@@ -476,6 +476,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ]);
   }, []);
 
+  // Keep the public leaderboard profile synchronized without sending every inventory/gold change.
+  useEffect(() => {
+    if (!player) return;
+    apiRequest('/api/profile/sync', {
+      method: 'POST',
+      body: JSON.stringify({ level: player.level, arenaRating: player.arenaRating })
+    }).catch(() => undefined);
+  }, [player?.id, player?.level, player?.arenaRating]);
+
   // Periodic Save
   useEffect(() => {
     if (!player) return;
