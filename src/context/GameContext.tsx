@@ -1251,6 +1251,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+    // Every completed combat has a small consumable roll: 0–3 potions.
+    const potionCount = Math.floor(Math.random() * 4);
+    const potionPool: GameItem[] = [
+      { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
+      { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
+    ];
     const lootResult = generateCombatLoot({
       monster,
       rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
@@ -1258,6 +1264,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       silverMult: (activeMod.silverMultiplier || 1) * 0.65 * (1 + combatStats.goldBonus / 100)
     });
     const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
+    if (potionCount > 0) {
+      for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
+    }
     const logs = [...baseLogs];
 
     logs.push({
@@ -1266,6 +1275,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       text: `🏆 ${monster.name} повержен! Блестящая победа!`,
       type: 'death'
     });
+    if (potionCount > 0) logs.push({ id: 'potion_reward_' + Date.now(), turn: currentTurn, text: `🧪 Дополнительно найдено зелий: ${potionCount}.`, type: 'system' });
+
     logs.push({
       id: 'reward_' + Date.now(),
       turn: currentTurn,
