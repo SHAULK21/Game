@@ -2374,6 +2374,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       turnPhase,
       playerEffects,
       monsterEffects,
+      monsterIntent,
       autoBattle,
       activeDungeonRun,
       quests,
