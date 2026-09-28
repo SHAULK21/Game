@@ -1429,6 +1429,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
+    if (player.energy < ENERGY_COSTS.combat) { triggerHaptic('error'); setBattleLog(prev => [...prev, { id: 'energy_' + Date.now(), turn: prev.length + 1, text: '⚡ Недостаточно энергии для действия.', type: 'system' }]); return; }
+    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.combat) } : prev);
 
     const currentTurn = battleLog.length + 1;
     const newLogs: BattleLogEntry[] = [];
