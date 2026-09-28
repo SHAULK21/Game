@@ -36,7 +36,7 @@ export const MarketScreen: React.FC = () => {
   const buyListing = async (listing: Listing) => {
     if (!player || player.gold < listing.price_gold) { setError('Недостаточно золота.'); return; }
     if (player.inventory.length >= player.maxInventorySlots && !(player.inventory.some(i => i.templateId === listing.item_json.templateId && i.name === listing.item_json.name))) { setError('Инвентарь заполнен.'); return; }
-    const r = await buyMarketListing(listing.id);
+    const r = await buyMarketListing(listing.id, listing.price_gold);
     if (!r.success) { setError(r.message); return; }
     triggerHaptic('success'); await load();
   };
