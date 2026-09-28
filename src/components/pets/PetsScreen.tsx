@@ -6,28 +6,13 @@ import { sound } from '../../utils/audio';
 import { triggerHaptic } from '../../utils/telegram';
 
 export const PetsScreen: React.FC = () => {
-  const { player } = useGame();
+  const { player, setActivePet } = useGame();
   if (!player) return null;
 
   const activeId = player.activePet?.id;
 
   const selectPet = (petId: string) => {
-    const pet = PETS_LIST.find(p => p.id === petId);
-    if (!pet || activeId === pet.id) return;
-    const raw = localStorage.getItem('aethelgard_save_v1_data');
-    if (!raw) return;
-    try {
-      const save = JSON.parse(raw);
-      if (save.player) {
-        save.player.activePet = pet;
-        localStorage.setItem('aethelgard_save_v1_data', JSON.stringify(save));
-        sound.playClick();
-        triggerHaptic('success');
-        window.location.reload();
-      }
-    } catch {
-      return;
-    }
+    setActivePet(petId);
   };
 
   return (
