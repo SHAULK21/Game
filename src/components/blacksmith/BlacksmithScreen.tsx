@@ -23,23 +23,32 @@ export const BlacksmithScreen: React.FC = () => {
   const currentItem = upgradeableItems.find(i => i.id === selectedItemId) || upgradeableItems[0] || null;
 
   const currentLevel = currentItem ? (currentItem.upgradeLevel || 0) : 0;
-  const costGold = Math.round(50 * Math.pow(1.35, currentLevel));
-  const costShards = Math.max(1, Math.floor(currentLevel / 3));
+  const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
+  const costShards = Math.max(2, Math.ceil(2 + currentLevel * 0.55));
+  const oreTiers = [
+    { name: 'Уголь', icon: '🪨', base: 3 }, { name: 'Медная руда', icon: '🟤', base: 4 },
+    { name: 'Железная руда', icon: '⚪', base: 5 }, { name: 'Серебряная руда', icon: '✨', base: 6 },
+    { name: 'Золотая руда', icon: '🪙', base: 7 }, { name: 'Мифриловая руда', icon: '💎', base: 8 },
+    { name: 'Адамантит', icon: '🟣', base: 10 }, { name: 'Драконит', icon: '🔥', base: 12 }
+  ];
+  const oreReq = oreTiers[Math.min(oreTiers.length - 1, Math.floor(currentLevel / 3))];
+  const oreCount = oreReq.base + Math.floor(currentLevel / 4);
+  const oreHave = player.inventory.reduce((sum, item) => sum + (item.name === oreReq.name ? (item.stackCount || 1) : 0), 0);
 
   // Success rate formula
   let successRatePct = 100;
-  if (currentLevel === 1) successRatePct = 95;
-  else if (currentLevel === 2) successRatePct = 90;
-  else if (currentLevel === 3) successRatePct = 85;
-  else if (currentLevel === 4) successRatePct = 80;
-  else if (currentLevel === 5) successRatePct = 70;
-  else if (currentLevel === 6) successRatePct = 60;
-  else if (currentLevel === 7) successRatePct = 50;
-  else if (currentLevel === 8) successRatePct = 40;
-  else if (currentLevel === 9) successRatePct = 35;
-  else if (currentLevel >= 10 && currentLevel < 15) successRatePct = 25;
-  else if (currentLevel >= 15 && currentLevel < 20) successRatePct = 15;
-  else if (currentLevel >= 20) successRatePct = 8;
+  if (currentLevel === 1) successRatePct = 90;
+  else if (currentLevel === 2) successRatePct = 82;
+  else if (currentLevel === 3) successRatePct = 74;
+  else if (currentLevel === 4) successRatePct = 66;
+  else if (currentLevel === 5) successRatePct = 58;
+  else if (currentLevel === 6) successRatePct = 50;
+  else if (currentLevel === 7) successRatePct = 43;
+  else if (currentLevel === 8) successRatePct = 36;
+  else if (currentLevel === 9) successRatePct = 30;
+  else if (currentLevel >= 10 && currentLevel < 15) successRatePct = 22;
+  else if (currentLevel >= 15 && currentLevel < 20) successRatePct = 14;
+  else if (currentLevel >= 20) successRatePct = 7;
 
   const handleUpgrade = () => {
     if (!currentItem || isUpgrading) return;
@@ -192,11 +201,17 @@ export const BlacksmithScreen: React.FC = () => {
 
           {/* Costs */}
           <div className="flex items-center justify-between text-xs font-mono bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-            <span className="text-slate-400">Стоимость:</span>
+            <span className="text-slate-400">На попытку:</span>
             <div className="flex items-center gap-3">
               <span className="text-amber-300 font-bold">{costGold} 🪙</span>
-              <span className="text-cyan-300 font-bold">{costShards} 💠 осколков</span>
+              <span className="text-cyan-300 font-bold">{costShards} 💠</span>
+              <span className={oreHave >= oreCount ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
+                {oreReq.icon} {oreHave}/{oreCount}
+              </span>
             </div>
+          </div>
+          <div className="text-[10px] font-mono text-slate-500 px-1">
+            Руда: <span className="text-slate-300">{oreReq.name}</span>. Она добывается в шахте и полностью расходуется при попытке заточки.
           </div>
 
           {/* Protection Checkbox for high levels */}
@@ -231,9 +246,9 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Upgrade Button */}
           <button
             onClick={handleUpgrade}
-            disabled={isUpgrading || player.gold < costGold}
+            disabled={isUpgrading || player.gold < costGold || player.shards < costShards || oreHave < oreCount}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
-              player.gold < costGold
+              (player.gold < costGold || player.shards < costShards || oreHave < oreCount)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                 : 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-slate-950 hover:brightness-110 shadow-amber-500/25 border border-amber-400'
             }`}
