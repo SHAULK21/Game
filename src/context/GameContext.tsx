@@ -78,6 +78,7 @@ interface GameContextType {
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
   setActiveRegionMod: (modId: string) => void;
+  setActivePet: (petId: string) => boolean;
   
   // Combat
   startBattleWithMonster: (monster: Monster, options?: { chain?: boolean }) => boolean;
@@ -793,6 +794,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsInCombat(false);
     setActiveMonster(null);
   }, []);
+
+  const setActivePet = useCallback((petId: string): boolean => {
+    const pet = PETS_LIST.find(p => p.id === petId);
+    if (!pet || !player) return false;
+    if (player.activePet?.id === pet.id) return true;
+    if (player.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return false; }
+    setPlayer(prev => prev ? {
+      ...prev,
+      activePet: pet,
+      energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
+    } : prev);
+    sound.playClick();
+    triggerHaptic('success');
+    return true;
+  }, [player]);
 
   const allocateAttribute = useCallback((attr: keyof PlayerCharacter['attributes']) => {
     setPlayer(prev => {
@@ -2525,6 +2541,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       upgradeItem,
       meditateOrRefillEnergy,
       setActiveRegionMod,
+      setActivePet,
       startBattleWithMonster,
       startNextCombatBattle,
       performPlayerAction,
