@@ -1267,6 +1267,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
     }
+    const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
     const logs = [...baseLogs];
 
     logs.push({
@@ -1276,7 +1277,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type: 'death'
     });
     if (potionCount > 0) logs.push({ id: 'potion_reward_' + Date.now(), turn: currentTurn, text: `🧪 Дополнительно найдено зелий: ${potionCount}.`, type: 'system' });
-    if (completesDungeon) logs.push({ id: 'dungeon_potion_bonus_' + Date.now(), turn: currentTurn, text: `🏰 Подземелье очищено! Дополнительный тайник: ${Math.floor(Math.random() * 4)} зелий.`, type: 'system' });
+    if (completesDungeon) logs.push({ id: 'dungeon_potion_bonus_' + Date.now(), turn: currentTurn, text: `🏰 Подземелье очищено! Дополнительный тайник: ${dungeonBonusPotions} зелий.`, type: 'system' });
 
     logs.push({
       id: 'reward_' + Date.now(),
@@ -1319,7 +1320,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
       if (dungeonBonusPotions > 0) {
         for (let i = 0; i < dungeonBonusPotions; i += 1) {
           const potion = potionPool[(i + potionCount) % potionPool.length];
