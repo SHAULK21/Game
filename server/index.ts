@@ -277,8 +277,7 @@ app.post('/api/clan/donate', auth, requireClan, async (req, res) => {
 });
 
 app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
-  const damage = Math.max(1, Math.min(500000, Math.floor(Number(req.body?.damage || 0))));
-  if (!damage) return res.status(400).json({ error: 'Некорректный урон.' });
+  const damage = 450 + crypto.randomInt(0, 251);
 
   const client = await pool.connect();
   try {
