@@ -7,6 +7,7 @@ import {
   CharacterClassId, 
   CombatStats, 
   Monster, 
+  MonsterSkill,
   BattleLogEntry, 
   AutoBattleSettings,
   StatusEffect,
@@ -52,6 +53,7 @@ interface GameContextType {
   turnPhase: 'player' | 'monster' | 'ended';
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
+  monsterIntent: MonsterSkill | null;
   autoBattle: AutoBattleSettings;
   activeDungeonRun: DungeonRun | null;
   quests: Quest[];
@@ -116,6 +118,24 @@ interface CombatChainState {
   queue: Monster[];
 }
 
+const getMonsterCombatSkills = (monster: Monster): MonsterSkill[] => {
+  if (monster.skills?.length) return monster.skills.map(s => ({ ...s, currentCooldown: s.currentCooldown || 0 }));
+  const common: MonsterSkill[] = [
+    { id: monster.id + '_heavy', name: 'Сокрушительный удар', icon: '💥', manaCost: 0, cooldown: 3, damageMultiplier: 1.45, damageType: monster.damageType || 'physical', description: 'Сильная атака с повышенным уроном.' },
+    { id: monster.id + '_guard', name: 'Укрепление', icon: '🛡️', manaCost: 15, cooldown: 5, damageMultiplier: 0.55, damageType: monster.damageType || 'physical', effect: 'fortify', effectChance: 1, effectDuration: 2, effectPower: 25, description: 'Атака и укрепление защиты.' }
+  ];
+  if (monster.damageType === 'poison' || monster.id.includes('spider')) {
+    common[0] = { id: monster.id + '_venom', name: 'Ядовитый плевок', icon: '☠️', manaCost: 12, cooldown: 3, damageMultiplier: 1.25, damageType: 'poison', effect: 'poison', effectChance: 0.9, effectDuration: 3, effectPower: Math.max(10, Math.round(monster.attack * 0.25)), description: 'Наносит урон и накладывает яд.' };
+  } else if (monster.damageType === 'fire') {
+    common[0] = { id: monster.id + '_flame', name: 'Пылающий взрыв', icon: '🔥', manaCost: 20, cooldown: 3, damageMultiplier: 1.55, damageType: 'fire', effect: 'burn', effectChance: 0.75, effectDuration: 3, effectPower: Math.max(12, Math.round(monster.magicAttack * 0.2)), description: 'Огненная атака с поджиганием.' };
+  } else if (monster.damageType === 'dark') {
+    common[0] = { id: monster.id + '_curse', name: 'Проклятие тьмы', icon: '🌑', manaCost: 20, cooldown: 4, damageMultiplier: 1.35, damageType: 'dark', effect: 'vulnerability', effectChance: 0.65, effectDuration: 2, effectPower: 20, description: 'Тёмный удар, ослабляющий защиту.' };
+  } else if (monster.isBoss) {
+    common[0] = { id: monster.id + '_ultimate', name: 'Королевский натиск', icon: '👑', manaCost: 35, cooldown: 4, damageMultiplier: 1.85, damageType: monster.damageType || 'physical', effect: 'stun', effectChance: 0.25, effectDuration: 1, effectPower: 0, description: 'Особый приём босса с шансом оглушения.' };
+  }
+  return common;
+};
+
 const scaleMonsterForCombat = (monster: Monster, player: PlayerCharacter, stats: CombatStats): Monster => {
   const baseLevel = Math.max(1, monster.level);
   const targetLevel = Math.min(120, Math.max(baseLevel, player.level + (monster.isBoss ? 0 : Math.min(2, Math.floor(Math.max(0, player.level - baseLevel) / 10)))));
@@ -134,6 +154,7 @@ const scaleMonsterForCombat = (monster: Monster, player: PlayerCharacter, stats:
 
   return {
     ...monster,
+    skills: getMonsterCombatSkills(monster),
     level: targetLevel,
     hp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
     maxHp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
@@ -270,6 +291,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [turnPhase, setTurnPhase] = useState<'player' | 'monster' | 'ended'>('player');
   const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]);
   const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);
+  const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
   const [activeDungeonRun, setActiveDungeonRun] = useState<DungeonRun | null>(null);
   const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
@@ -1022,6 +1044,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsInCombat(true);
     setIsCombatEnded(false);
     setCombatOutcome(null);
+    setMonsterIntent(null);
     setPlayerEffects([]);
     setMonsterEffects([]);
     setBattleLog([
