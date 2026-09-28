@@ -34,6 +34,8 @@ import {
 import { sound } from '../utils/audio';
 import { getTelegramUser, triggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
+import { addExperience, getNextExperience } from '../utils/progression';
+import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
 
 interface GameContextType {
   player: PlayerCharacter | null;
@@ -106,6 +108,77 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
+const clampResistance = (value: number) => Math.max(-75, Math.min(85, value));
+
+const getDamagePower = (damageType: import('../types/game').DamageType, stats: CombatStats) =>
+  damageType === 'physical' ? stats.attack :
+  damageType === 'true' ? Math.max(stats.attack, stats.magicAttack) :
+  stats.magicAttack;
+
+const getTargetResistance = (
+  damageType: import('../types/game').DamageType,
+  resistances: import('../types/game').ResistanceMap | Partial<import('../types/game').ResistanceMap> | undefined
+) => {
+  if (!resistances || damageType === 'true') return 0;
+  return clampResistance(resistances[damageType as keyof import('../types/game').ResistanceMap] ?? 0);
+};
+
+const calculateTypedDamage = ({
+  power,
+  multiplier,
+  damageType,
+  targetDefense,
+  targetMagicDefense,
+  armorPenetration,
+  targetResistances,
+  extraDamageMultiplier = 1
+}: {
+  power: number;
+  multiplier: number;
+  damageType: import('../types/game').DamageType;
+  targetDefense: number;
+  targetMagicDefense: number;
+  armorPenetration: number;
+  targetResistances?: Partial<import('../types/game').ResistanceMap>;
+  extraDamageMultiplier?: number;
+}) => {
+  if (damageType === 'true') {
+    return Math.max(1, Math.round(power * multiplier * extraDamageMultiplier));
+  }
+
+  const raw = Math.max(1, power * multiplier);
+  const defense = damageType === 'physical'
+    ? Math.max(0, targetDefense - armorPenetration)
+    : Math.max(0, targetMagicDefense);
+  const mitigation = defense / (defense + (damageType === 'physical' ? 75 : 90));
+  const resistance = getTargetResistance(damageType, targetResistances);
+  return Math.max(
+    1,
+    Math.round(raw * (1 - mitigation) * (1 - resistance / 100) * extraDamageMultiplier)
+  );
+};
+
+const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots: number) => {
+  const existingIndex = inventory.findIndex(i =>
+    i.templateId === item.templateId &&
+    i.type === item.type &&
+    i.name === item.name &&
+    i.rarity === item.rarity
+  );
+
+  if (existingIndex >= 0) {
+    const next = [...inventory];
+    next[existingIndex] = {
+      ...next[existingIndex],
+      stackCount: (next[existingIndex].stackCount || 1) + (item.stackCount || 1)
+    };
+    return { inventory: next, added: true };
+  }
+
+  if (inventory.length >= maxSlots) return { inventory, added: false };
+  return { inventory: [...inventory, item], added: true };
+};
+
 const SAVE_KEY = 'aethelgard_save_v1_data';
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -162,6 +235,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, []);
 
+  // Natural stamina regeneration (+1 every 10 seconds).
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPlayer(prev => {
+        if (!prev || prev.stamina >= prev.maxStamina) return prev;
+        return { ...prev, stamina: Math.min(prev.maxStamina, prev.stamina + 1) };
+      });
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Load saved state or check Telegram User
   useEffect(() => {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -183,7 +267,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const expEarned = kills * (25 + parsed.player.level * 6);
             
             parsed.player.gold += goldEarned;
-            parsed.player.exp += expEarned;
+            parsed.player = addExperience(parsed.player, expEarned).player;
             parsed.player.statsSummary.monstersKilled += kills;
             parsed.player.lastActiveTimestamp = now;
 
@@ -201,6 +285,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.shards = parsed.player.shards ?? 15;
           parsed.player.energy = parsed.player.energy ?? 100;
           parsed.player.maxEnergy = parsed.player.maxEnergy ?? 100;
+          parsed.player.stamina = parsed.player.stamina ?? 100;
+          parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
 
           setPlayer(parsed.player);
@@ -280,6 +366,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let dropBonus = attrs.luck * 0.8;
     let goldBonus = attrs.luck * 0.5;
     let expBonus = 0;
+    const resistances: import('../types/game').ResistanceMap = {
+      physical: 10, magic: 10, fire: 5, ice: 5, lightning: 5, poison: 5, dark: 5, holy: 5
+    };
 
     // Apply Equipped Items stats + sharpening (+1 to +25)
     Object.values(player.equipped).forEach(item => {
@@ -307,6 +396,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           else if (stat === 'hpRegen') hpRegen += val;
           else if (stat === 'mpRegen') mpRegen += val;
           else if (stat === 'armorPenetration') armorPen += val;
+          else if (stat === 'physicalResistance') resistances.physical += val;
+          else if (stat === 'magicResistance') resistances.magic += val;
+          else if (stat === 'fireResistance') resistances.fire += val;
+          else if (stat === 'iceResistance') resistances.ice += val;
+          else if (stat === 'lightningResistance') resistances.lightning += val;
+          else if (stat === 'poisonResistance') resistances.poison += val;
+          else if (stat === 'darkResistance') resistances.dark += val;
+          else if (stat === 'holyResistance') resistances.holy += val;
         });
       }
     });
@@ -343,10 +440,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       maxHp: Math.round(maxHp),
       mp: maxMp,
       maxMp: Math.round(maxMp),
-      energy: 100,
-      maxEnergy: 100,
-      stamina: 100,
-      maxStamina: 100,
+      energy: player?.energy ?? 100,
+      maxEnergy: player?.maxEnergy ?? 100,
+      stamina: player?.stamina ?? 100,
+      maxStamina: player?.maxStamina ?? 100,
       attack: Math.round(attack),
       magicAttack: Math.round(magicAttack),
       defense: Math.round(defense),
@@ -363,7 +460,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dropBonus: Math.round(dropBonus),
       goldBonus: Math.round(goldBonus),
       expBonus: Math.round(expBonus),
-      resistances: { physical: 10, magic: 10, fire: 5, ice: 5, lightning: 5, poison: 5, dark: 5, holy: 5 }
+      resistances
     };
   }, [player]);
 
@@ -383,6 +480,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         inventory.push({ ...item, isEquipped: false });
       }
+    });
+
+    // Starter alchemy materials for the first recipes.
+    [
+      { templateId: 'mat_healing_herb', name: 'Лечебная трава', count: 10, rarity: 'common' as const },
+      { templateId: 'mat_clean_water', name: 'Чистая вода', count: 10, rarity: 'common' as const },
+      { templateId: 'mat_moon_pollen', name: 'Лунная пыльца', count: 4, rarity: 'uncommon' as const }
+    ].forEach(mat => {
+      inventory.push({
+        id: mat.templateId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        templateId: mat.templateId,
+        name: mat.name,
+        type: 'material',
+        rarity: mat.rarity,
+        level: 1,
+        upgradeLevel: 0,
+        icon: '🧩',
+        description: 'Ингредиент для алхимии.',
+        stats: {},
+        sellPrice: 2,
+        disassembleYield: {},
+        stackCount: mat.count
+      });
     });
 
     // Add starter potions
@@ -409,7 +529,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       classId,
       level: 1,
       exp: 0,
-      nextExp: 100,
+      nextExp: getNextExperience(1),
       statPoints: 5,
       talentPoints: 1,
       gold: 250,
@@ -419,6 +539,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       energy: 100,
       maxEnergy: 100,
       lastEnergyRegenTimestamp: Date.now(),
+      stamina: 100,
+      maxStamina: 100,
       arcaneEnergy: 50,
       attributes: { ...classDef.baseAttributes },
       equipped,
@@ -562,36 +684,74 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const disassembleItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
-      if (!prev) return prev;
+      if (!prev || item.isEquipped) return prev;
       sound.playMining();
       triggerHaptic('medium');
-      const shardsGain = item.disassembleYield?.shards || 1;
-      const oreGain = item.disassembleYield?.ore || 0;
 
-      // Add shards / ore to inventory as materials
-      const newInventory = prev.inventory.filter(i => i.id !== item.id);
-      
-      const shardItem: GameItem = {
-        id: 'mat_shard_' + Date.now(),
-        templateId: 'magic_shard',
-        name: 'Магический осколок',
-        type: 'material',
-        rarity: 'rare',
-        level: 1,
-        upgradeLevel: 0,
-        icon: '💠',
-        description: 'Используется для кузнечного дела и алхимии.',
-        stats: {},
-        sellPrice: 15,
-        disassembleYield: {},
-        stackCount: shardsGain
+      let inventory = prev.inventory.filter(i => i.id !== item.id);
+      const add = (material: GameItem) => {
+        inventory = addOrStackInventoryItem(inventory, material, prev.maxInventorySlots).inventory;
       };
-      newInventory.push(shardItem);
 
-      return {
-        ...prev,
-        inventory: newInventory
-      };
+      const shards = item.disassembleYield?.shards || 0;
+      const ore = item.disassembleYield?.ore || 0;
+      const crystals = item.disassembleYield?.crystals || 0;
+
+      if (shards > 0) {
+        add({
+          id: 'mat_shard_' + Date.now(),
+          templateId: 'magic_shard',
+          name: 'Магический осколок',
+          type: 'material',
+          rarity: 'rare',
+          level: 1,
+          upgradeLevel: 0,
+          icon: '💠',
+          description: 'Используется для кузнечного дела и алхимии.',
+          stats: {},
+          sellPrice: 15,
+          disassembleYield: {},
+          stackCount: shards
+        });
+      }
+
+      if (ore > 0) {
+        add({
+          id: 'mat_iron_ore_' + Date.now(),
+          templateId: 'iron_ore',
+          name: 'Железная руда',
+          type: 'ore',
+          rarity: 'common',
+          level: 1,
+          upgradeLevel: 0,
+          icon: '⚪',
+          description: 'Руда, полученная разбором снаряжения.',
+          stats: {},
+          sellPrice: 12,
+          disassembleYield: { ore: 1 },
+          stackCount: ore
+        });
+      }
+
+      if (crystals > 0) {
+        add({
+          id: 'mat_crystal_' + Date.now(),
+          templateId: 'arcane_crystal',
+          name: 'Кристалл',
+          type: 'material',
+          rarity: 'epic',
+          level: 1,
+          upgradeLevel: 0,
+          icon: '💎',
+          description: 'Редкий материал для высокоуровневого ремесла.',
+          stats: {},
+          sellPrice: 50,
+          disassembleYield: {},
+          stackCount: crystals
+        });
+      }
+
+      return { ...prev, inventory };
     });
   }, []);
 
@@ -872,35 +1032,221 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, startBattleWithMonster]);
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
-  const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
-    if (!isInCombat || !activeMonster || isCombatEnded || !player) return;
-    if (turnPhase !== 'player') return; // Strict turn-based guard: only player can act on player's turn!
+  const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
+    const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+    const lootResult = generateCombatLoot({
+      monster,
+      rareDropMult: (activeMod.rareDropMultiplier || 1) * (1 + combatStats.dropBonus / 100),
+      goldMult: (activeMod.goldMultiplier || 1) * (1 + combatStats.goldBonus / 100),
+      silverMult: (activeMod.silverMultiplier || 1) * (1 + combatStats.goldBonus / 100)
+    });
+    const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
+    const logs = [...baseLogs];
 
-    let nextMonsterHp = activeMonster.hp;
-    const currentTurn = battleLog.length + 1;
-    const newLogs: BattleLogEntry[] = [];
+    logs.push({
+      id: 'win_' + Date.now(),
+      turn: currentTurn,
+      text: `🏆 ${monster.name} повержен! Блестящая победа!`,
+      type: 'death'
+    });
+    logs.push({
+      id: 'reward_' + Date.now(),
+      turn: currentTurn,
+      text: `💰 Награды: +${lootResult.gold} 🪙, +${lootResult.silver} 🥈, +${lootResult.shards} 💠, +${expReward} EXP.`,
+      type: 'system'
+    });
 
-    const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
-
-    // 1. Turn start: HP & MP Regeneration
-    const regenHp = combatStats.hpRegen + (activeMod.bonusRegen || 0);
-    const regenMp = combatStats.mpRegen + (activeMod.bonusRegen ? Math.floor(activeMod.bonusRegen / 2) : 0);
-    if (regenHp > 0 || regenMp > 0) {
-      setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + regenHp));
-      setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + regenMp));
-      newLogs.push({
-        id: 'regen_' + Date.now(),
+    lootResult.items.forEach((item, index) => {
+      logs.push({
+        id: 'drop_' + Date.now() + '_' + index,
         turn: currentTurn,
-        text: `✨ [Регенерация]: +${regenHp} HP, +${regenMp} MP`,
-        type: 'heal'
+        text: `🎁 Трофей: [${item.name}] (Ур. ${item.level}, ${item.rarity.toUpperCase()})!`,
+        type: 'system'
+      });
+    });
+
+    const dungeonRoom = activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex];
+    const completesDungeon =
+      Boolean(dungeonRoom) &&
+      dungeonRoom?.monster?.id === monster.id &&
+      !dungeonRoom?.resolved &&
+      activeDungeonRun!.currentRoomIndex === activeDungeonRun!.totalRooms - 1;
+
+    setPlayer(prev => {
+      if (!prev) return prev;
+      const xpResult = addExperience(prev, expReward);
+      let inventory = [...xpResult.player.inventory];
+
+      for (const item of lootResult.items) {
+        const added = addOrStackInventoryItem(inventory, item, xpResult.player.maxInventorySlots);
+        inventory = added.inventory;
+        if (!added.added) {
+          logs.push({
+            id: 'bag_full_' + Date.now() + Math.random(),
+            turn: currentTurn,
+            text: `⚠️ Инвентарь заполнен: ${item.name} не удалось забрать.`,
+            type: 'system'
+          });
+        }
+      }
+
+      const next = {
+        ...xpResult.player,
+        gold: xpResult.player.gold + lootResult.gold,
+        silver: xpResult.player.silver + lootResult.silver,
+        shards: xpResult.player.shards + lootResult.shards,
+        inventory,
+        statsSummary: {
+          ...xpResult.player.statsSummary,
+          monstersKilled: xpResult.player.statsSummary.monstersKilled + 1,
+          bossesDefeated: xpResult.player.statsSummary.bossesDefeated + (monster.isBoss ? 1 : 0),
+          battlesWon: xpResult.player.statsSummary.battlesWon + 1,
+          dungeonsCleared: xpResult.player.statsSummary.dungeonsCleared + (completesDungeon ? 1 : 0)
+        }
+      };
+
+      if (xpResult.levelsGained > 0) {
+        for (let level = prev.level + 1; level <= xpResult.player.level; level += 1) {
+          sound.playLevelUp();
+          logs.push({
+            id: 'lvl_' + Date.now() + '_' + level,
+            turn: currentTurn,
+            text: `🎉 НОВЫЙ УРОВЕНЬ! Вы достигли ${level} уровня! +5 очков характеристик и +1 очко талантов.`,
+            type: 'heal'
+          });
+        }
+      }
+
+      setQuests(qList => qList.map(q => {
+        if (q.completed) return q;
+        if (q.targetMonsterId && q.targetMonsterId !== monster.id) return q;
+        if (q.targetRegionId && q.targetRegionId !== monster.regionId && q.targetRegionId !== prev.currentRegionId) return q;
+        if (q.category === 'boss' && !monster.isBoss) return q;
+        if (['hunting','story','daily','boss'].includes(q.category)) {
+          const count = Math.min(q.targetCount, q.currentCount + 1);
+          const completed = count >= q.targetCount;
+          if (completed) {
+            logs.push({
+              id: 'quest_done_' + Date.now() + Math.random(),
+              turn: currentTurn,
+              text: `📜 Задание выполнено: [${q.title}]! Награда ждет в меню заданий.`,
+              type: 'heal'
+            });
+          }
+          return { ...q, currentCount: count, completed };
+        }
+        return q;
+      }));
+
+      setAchievements(aList => aList.map(a => {
+        if (a.id === 'ach_1' || a.id === 'ach_2') {
+          const progress = Math.min(a.maxProgress, a.progress + 1);
+          return { ...a, progress, completed: progress >= a.maxProgress };
+        }
+        if (a.id === 'ach_3' && monster.isBoss) {
+          return { ...a, progress: 1, completed: true };
+        }
+        return a;
+      }));
+
+      return next;
+    });
+
+    if (dungeonRoom?.monster?.id === monster.id && activeDungeonRun) {
+      setActiveDungeonRun(prevRun => {
+        if (!prevRun) return prevRun;
+        const index = prevRun.currentRoomIndex;
+        const rooms = prevRun.rooms.map((room, roomIndex) =>
+          roomIndex === index ? { ...room, resolved: true, rewardClaimed: true } : room
+        );
+        const isLast = index >= prevRun.totalRooms - 1;
+        return {
+          ...prevRun,
+          rooms,
+          currentRoomIndex: isLast ? index : index + 1,
+          completed: isLast
+        };
       });
     }
 
-    // 2. Player action resolution
+    sound.playVictory();
+    triggerHaptic('success');
+    setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
+    setBattleLog(prev => [...prev, ...logs]);
+    setIsCombatEnded(true);
+    setCombatOutcome('victory');
+    setTurnPhase('ended');
+  }, [player, combatStats, activeDungeonRun]);
+
+  const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
+    if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
+
+    const currentTurn = battleLog.length + 1;
+    const newLogs: BattleLogEntry[] = [];
+    const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+
+    // Process player-owned periodic effects at the start of the player's turn.
+    const playerTick = tickStatusEffects(playerEffects);
+    setPlayerEffects(playerTick.effects);
+
+    if (playerTick.damage > 0) {
+      let statusDamage = 0;
+      for (const [type, amount] of Object.entries(playerTick.damageByType)) {
+        statusDamage += calculateTypedDamage({
+          power: amount || 0,
+          multiplier: 1,
+          damageType: type as import('../types/game').DamageType,
+          targetDefense: combatStats.defense,
+          targetMagicDefense: combatStats.magicDefense,
+          armorPenetration: 0,
+          targetResistances: combatStats.resistances,
+          extraDamageMultiplier: playerTick.damageTakenMultiplier
+        });
+      }
+      const nextHp = Math.max(0, combatPlayerHp - statusDamage);
+      setCombatPlayerHp(nextHp);
+      if (statusDamage > 0) {
+        newLogs.push({
+          id: 'player_dot_' + Date.now(),
+          turn: currentTurn,
+          text: `☠️ [Статус] Вы получили ${statusDamage} периодического урона.`,
+          type: 'status'
+        });
+      }
+      if (nextHp <= 0) {
+        newLogs.push({
+          id: 'player_dot_death_' + Date.now(),
+          turn: currentTurn,
+          text: '💀 Вы погибли от действующего эффекта.',
+          type: 'death'
+        });
+        setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
+        setBattleLog(prev => [...prev, ...newLogs]);
+        setIsCombatEnded(true);
+        setCombatOutcome('defeat');
+        setTurnPhase('ended');
+        return;
+      }
+    }
+
+    if (playerTick.skipTurn) {
+      newLogs.push({
+        id: 'player_cc_' + Date.now(),
+        turn: currentTurn,
+        text: '🌀 [Контроль] Вы пропускаете этот ход.',
+        type: 'status'
+      });
+      setBattleLog(prev => [...prev, ...newLogs]);
+      setTurnPhase('monster');
+      return;
+    }
+
+    const playerMods = getStatusModifiers(playerEffects);
+    const monsterMods = getStatusModifiers(monsterEffects);
+    let nextMonsterHp = activeMonster.hp;
+
     if (actionType === 'flee') {
-      const fleeSuccess = Math.random() < 0.65;
-      if (fleeSuccess) {
-        sound.playClick();
+      if (Math.random() < 0.65) {
         newLogs.push({ id: 'flee_' + Date.now(), turn: currentTurn, text: '🏃 Вы ловко ускользнули из боя!', type: 'flee' });
         setBattleLog(prev => [...prev, ...newLogs]);
         setIsCombatEnded(true);
@@ -908,304 +1254,255 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTurnPhase('ended');
         triggerHaptic('light');
         return;
-      } else {
-        newLogs.push({ id: 'flee_fail_' + Date.now(), turn: currentTurn, text: '❌ Попытка побега провалилась! Монстр преграждает путь.', type: 'system' });
-        setBattleLog(prev => [...prev, ...newLogs]);
-        setTurnPhase('monster');
-        return;
       }
-    } else if (actionType === 'defend') {
-      sound.playClick();
-      newLogs.push({ id: 'def_' + Date.now(), turn: currentTurn, text: '🛡️ Вы встали в глухую оборону! Защита удвоена, восстановлено 25 MP.', type: 'heal' });
-      setPlayerEffects(prev => [...prev, { type: 'shield', name: 'Глухая оборона', duration: 1, value: Math.round(combatStats.defense * 1.5) }]);
-      setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + 25));
-      triggerHaptic('light');
+      newLogs.push({ id: 'flee_fail_' + Date.now(), turn: currentTurn, text: '❌ Попытка побега провалилась!', type: 'system' });
       setBattleLog(prev => [...prev, ...newLogs]);
       setTurnPhase('monster');
       return;
-    } else if (actionType === 'potion') {
+    }
+
+    if (actionType === 'defend') {
+      setPlayerEffects(prev => applyStatusEffect(prev, {
+        type: 'shield',
+        name: 'Глухая оборона',
+        duration: 1,
+        value: Math.round(combatStats.defense * 1.5)
+      }));
+      setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + 25));
+      newLogs.push({
+        id: 'def_' + Date.now(),
+        turn: currentTurn,
+        text: '🛡️ Вы встали в глухую оборону! Щит усилен, восстановлено 25 MP.',
+        type: 'heal'
+      });
+      setBattleLog(prev => [...prev, ...newLogs]);
+      setTurnPhase('monster');
+      return;
+    }
+
+    if (actionType === 'potion') {
       const pot = player.inventory.find(i => i.type === 'potion');
-      if (pot) {
-        sound.playPotion();
-        const healAmt = pot.templateId === 'pot_hp_large' ? 350 : 150;
-        setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmt));
-        newLogs.push({ id: 'pot_' + Date.now(), turn: currentTurn, text: `🧪 Вы выпили ${pot.name} и восстановили ${healAmt} HP!`, type: 'heal' });
-        triggerHaptic('medium');
-        // Decrement potion
-        setPlayer(prev => {
-          if (!prev) return prev;
-          if (pot.stackCount && pot.stackCount > 1) {
-            return {
-              ...prev,
-              inventory: prev.inventory.map(i => i.id === pot.id ? { ...i, stackCount: (i.stackCount || 1) - 1 } : i)
-            };
-          } else {
-            return {
-              ...prev,
-              inventory: prev.inventory.filter(i => i.id !== pot.id)
-            };
-          }
-        });
-        setBattleLog(prev => [...prev, ...newLogs]);
-        setTurnPhase('monster');
-        return;
-      } else {
+      if (!pot) {
         newLogs.push({ id: 'no_pot_' + Date.now(), turn: currentTurn, text: '❌ У вас нет зелий в инвентаре!', type: 'system' });
         setBattleLog(prev => [...prev, ...newLogs]);
         return;
       }
-    } else if (actionType === 'attack' || actionType === 'execute' || actionType === 'skill') {
-      let multiplier = 1.0;
-      let skillName = 'Атака оружием';
-      let isExecute = actionType === 'execute';
 
-      if (actionType === 'skill' && skillId) {
-        const skill = player.skills.find(s => s.id === skillId);
-        if (skill) {
-          if (combatPlayerMp < skill.manaCost) {
-            newLogs.push({ id: 'no_mp_' + Date.now(), turn: currentTurn, text: `❌ Недостаточно маны для ${skill.name} (${skill.manaCost} MP)!`, type: 'system' });
-            setBattleLog(prev => [...prev, ...newLogs]);
-            return;
-          }
-          setCombatPlayerMp(prev => Math.max(0, prev - skill.manaCost));
-          multiplier = skill.damageMultiplier;
-          skillName = skill.name;
-          if (skill.inflicts && Math.random() < skill.inflicts.chance) {
-            setMonsterEffects(prev => [...prev, {
-              type: skill.inflicts!.type,
-              name: skill.name,
-              duration: skill.inflicts!.duration,
-              value: skill.inflicts!.power
-            }]);
-            newLogs.push({
-              id: 'effect_' + Date.now(),
-              turn: currentTurn,
-              text: `✨ ${activeMonster.name} получает статус [${skill.inflicts.type}]!`,
-              type: 'status'
-            });
-          }
-        }
-      } else if (isExecute) {
-        if (activeMonster.hp / activeMonster.maxHp <= 0.35) {
-          multiplier = 2.5;
-          skillName = 'Смертельный добивающий удар';
-        } else {
-          multiplier = 1.2;
-          skillName = 'Попытка добивания';
-        }
+      const stats = pot.stats || {};
+      const heal = Math.max(0, stats.heal || (
+        pot.templateId === 'pot_hp_great' ? 650 :
+        pot.templateId === 'pot_hp_large' ? 350 :
+        pot.templateId === 'pot_hp_small' ? 150 : 0
+      ));
+      const mana = Math.max(0, stats.manaRestore || 0);
+      const attackPercent = Math.max(0, stats.attackPercent || 0);
+      const defensePercent = Math.max(0, stats.defensePercent || 0);
+      const buffDuration = Math.max(1, stats.buffDuration || 3);
+      const invulnerability = stats.invulnerable > 0;
+      const healFull = stats.healFull > 0;
+
+      if (!heal && !mana && !attackPercent && !defensePercent && !invulnerability && !healFull) {
+        newLogs.push({ id: 'empty_pot_' + Date.now(), turn: currentTurn, text: `❌ ${pot.name} пока не имеет боевого эффекта.`, type: 'system' });
+        setBattleLog(prev => [...prev, ...newLogs]);
+        return;
       }
 
-      // Check Monster Evasion vs Player Accuracy
-      const hitChance = Math.min(98, Math.max(30, combatStats.accuracy - activeMonster.evasion + 85));
-      const isEvaded = Math.random() * 100 > hitChance;
-
-      if (isEvaded) {
-        newLogs.push({ id: 'evade_' + Date.now(), turn: currentTurn, text: `💨 [Уклонение] ${activeMonster.name} ловко уклонился от вашей атаки!`, type: 'system' });
-      } else {
-        // Calculate Physical & Magic Damage with Armor Penetration & Defense Mitigation curve
-        const baseDmg = Math.max(combatStats.attack, combatStats.magicAttack);
-        const effDef = Math.max(0, activeMonster.defense - combatStats.armorPenetration);
-        const defMitigation = effDef / (effDef + 75);
-        let rawDmg = Math.max(6, Math.round((baseDmg * multiplier) * (1 - defMitigation)));
-
-        // Crit Check
-        const isCrit = Math.random() * 100 < combatStats.critChance;
-        if (isCrit) {
-          rawDmg = Math.round(rawDmg * (combatStats.critDamage / 100));
-          sound.playCriticalHit();
-          triggerHaptic('heavy');
-          newLogs.push({
-            id: 'crit_' + Date.now(),
-            turn: currentTurn,
-            text: `💥 КРИТИЧЕСКИЙ УДАР! [${skillName}] наносит ${rawDmg} урона! (Пробито брони: ${combatStats.armorPenetration})`,
-            type: 'crit'
-          });
-        } else {
-          sound.playSlash();
-          triggerHaptic('light');
-          newLogs.push({
-            id: 'hit_' + Date.now(),
-            turn: currentTurn,
-            text: `⚔️ [${skillName}] наносит ${rawDmg} урона (Броня врага снизила урон на ${Math.round(defMitigation * 100)}%).`,
-            type: 'player-attack'
-          });
-        }
-
-        // Vampirism (Lifesteal)
-        const totalVampirism = combatStats.vampirism;
-        if (totalVampirism > 0) {
-          const lifesteal = Math.max(1, Math.round(rawDmg * (totalVampirism / 100)));
-          setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + lifesteal));
-          newLogs.push({
-            id: 'vamp_' + Date.now(),
-            turn: currentTurn,
-            text: `🩸 [Вампиризм]: Похищено +${lifesteal} HP (${totalVampirism}%).`,
-            type: 'heal'
-          });
-        }
-
-        nextMonsterHp = Math.max(0, nextMonsterHp - rawDmg);
+      if (healFull) setCombatPlayerHp(combatStats.maxHp);
+      else if (heal) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
+      if (mana) setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + mana));
+      if (attackPercent) {
+        setPlayerEffects(prev => applyStatusEffect(prev, { type: 'fury', name: pot.name, duration: buffDuration, value: attackPercent }));
       }
-    }
+      if (defensePercent) {
+        setPlayerEffects(prev => applyStatusEffect(prev, { type: 'fortify', name: pot.name, duration: buffDuration, value: defensePercent }));
+      }
+      if (invulnerability) {
+        setPlayerEffects(prev => applyStatusEffect(prev, { type: 'invulnerable', name: pot.name, duration: 1, value: 1 }));
+      }
 
-    // Check Monster Death & Victory Loot
-    if (nextMonsterHp <= 0) {
-      sound.playVictory();
-      triggerHaptic('success');
-      newLogs.push({
-        id: 'win_' + Date.now(),
-        turn: currentTurn,
-        text: `🏆 ${activeMonster.name} повержен! Блестящая победа!`,
-        type: 'death'
-      });
-
-      // Generate rich loot with levels, rarities and currencies
-      const lootResult = generateCombatLoot({
-        monsterLevel: activeMonster.level,
-        isBoss: activeMonster.isBoss,
-        rareDropMult: (activeMod.rareDropMultiplier || 1.0) * (1 + combatStats.dropBonus / 100),
-        goldMult: (activeMod.goldMultiplier || 1.0) * (1 + combatStats.goldBonus / 100),
-        silverMult: (activeMod.silverMultiplier || 1.0) * (1 + combatStats.goldBonus / 100)
-      });
-
-      const expReward = Math.round(activeMonster.expReward * (activeMod.expMultiplier || 1.0) * (1 + combatStats.expBonus / 100));
-
-      sound.playCoinDrop();
-      newLogs.push({
-        id: 'reward_' + Date.now(),
-        turn: currentTurn,
-        text: `💰 Награды: +${lootResult.gold} 🪙 золота, +${lootResult.silver} 🥈 серебра, +${lootResult.shards} 💠 осколков, +${expReward} опыта.`,
-        type: 'system'
-      });
-
-      lootResult.items.forEach(item => {
-        newLogs.push({
-          id: 'drop_log_' + Date.now() + Math.random(),
-          turn: currentTurn,
-          text: `🎁 Трофей: [${item.name}] (Ур. ${item.level}, ${item.rarity.toUpperCase()})!`,
-          type: 'system'
-        });
-      });
-
-      // Update Player
       setPlayer(prev => {
         if (!prev) return prev;
-        const newGold = prev.gold + lootResult.gold;
-        const newSilver = prev.silver + lootResult.silver;
-        const newShards = prev.shards + lootResult.shards;
-        let newExp = prev.exp + expReward;
-        let newLevel = prev.level;
-        let newNextExp = prev.nextExp;
-        let newStatPoints = prev.statPoints;
-        let newTalentPoints = prev.talentPoints;
-
-        // Level Up check
-        while (newExp >= newNextExp) {
-          newExp -= newNextExp;
-          newLevel += 1;
-          newNextExp = Math.round(100 * Math.pow(newLevel, 1.75));
-          newStatPoints += 5;
-          newTalentPoints += 1;
-          sound.playLevelUp();
-          newLogs.push({
-            id: 'lvl_' + Date.now(),
-            turn: currentTurn,
-            text: `🎉 НОВЫЙ УРОВЕНЬ! Вы достигли ${newLevel} уровня! Получено +5 очков хар-к и +1 очко талантов!`,
-            type: 'heal'
-          });
-        }
-
-        // Add drops to inventory if space allows
-        const updatedInventory = [...prev.inventory];
-        lootResult.items.forEach(item => {
-          if (updatedInventory.length < prev.maxInventorySlots) {
-            updatedInventory.push(item);
-          }
-        });
-
-        // Update Quests & Achievements
-        setQuests(qList => qList.map(q => {
-          if (q.completed) return q;
-
-          // Check if quest targets a specific monster
-          if (q.targetMonsterId && q.targetMonsterId !== activeMonster.id) {
-            return q;
-          }
-
-          // Check if quest targets a specific region
-          if (q.targetRegionId && q.targetRegionId !== activeMonster.regionId && q.targetRegionId !== prev.currentRegionId) {
-            return q;
-          }
-
-          if (q.category === 'hunting' || q.category === 'story' || q.category === 'daily' || q.category === 'boss') {
-            if (q.category === 'boss' && !activeMonster.isBoss) return q;
-
-            const nextCount = Math.min(q.targetCount, q.currentCount + 1);
-            const isCompleted = nextCount >= q.targetCount;
-            if (isCompleted && !q.completed) {
-              sound.playUpgradeSuccess();
-              newLogs.push({
-                id: 'quest_done_' + Date.now(),
-                turn: currentTurn,
-                text: `📜 Задание выполнено: [${q.title}]! Награда ждет в меню заданий.`,
-                type: 'heal'
-              });
-            }
-            return {
-              ...q,
-              currentCount: nextCount,
-              completed: isCompleted
-            };
-          }
-          return q;
-        }));
-
-        setAchievements(aList => aList.map(a => {
-          if (a.id === 'ach_1' || a.id === 'ach_2') {
-            const nextProg = a.progress + 1;
-            return { ...a, progress: nextProg, completed: nextProg >= a.maxProgress };
-          }
-          if (activeMonster.isBoss && a.id === 'ach_3') {
-            return { ...a, progress: 1, completed: true };
-          }
-          return a;
-        }));
-
         return {
           ...prev,
-          level: newLevel,
-          exp: newExp,
-          nextExp: newNextExp,
-          statPoints: newStatPoints,
-          talentPoints: newTalentPoints,
-          gold: newGold,
-          silver: newSilver,
-          shards: newShards,
-          inventory: updatedInventory,
-          statsSummary: {
-            ...prev.statsSummary,
-            monstersKilled: prev.statsSummary.monstersKilled + 1,
-            bossesDefeated: prev.statsSummary.bossesDefeated + (activeMonster.isBoss ? 1 : 0),
-            battlesWon: prev.statsSummary.battlesWon + 1
-          }
+          inventory: prev.inventory
+            .map(i => i.id === pot.id ? { ...i, stackCount: (i.stackCount || 1) - 1 } : i)
+            .filter(i => (i.stackCount || 0) > 0)
         };
       });
 
-      setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
+      newLogs.push({
+        id: 'pot_' + Date.now(),
+        turn: currentTurn,
+        text: `🧪 Вы использовали ${pot.name}.${healFull ? ' Полное восстановление HP.' : ''}${heal ? ` +${heal} HP` : ''}${mana ? ` +${mana} MP` : ''}`,
+        type: 'heal'
+      });
       setBattleLog(prev => [...prev, ...newLogs]);
-      setIsCombatEnded(true);
-      setCombatOutcome('victory');
-      setTurnPhase('ended');
+      setTurnPhase('monster');
       return;
     }
 
-    // Monster survived: Player turn is complete, transfer turn to monster!
+    let multiplier = 1;
+    let damageType: import('../types/game').DamageType = 'physical';
+    let skillName = 'Атака оружием';
+    let skillUsed: import('../types/game').Skill | null = null;
+
+    if (actionType === 'skill') {
+      skillUsed = player.skills.find(s => s.id === skillId) || null;
+      if (!skillUsed) {
+        newLogs.push({ id: 'bad_skill_' + Date.now(), turn: currentTurn, text: '❌ Навык не найден.', type: 'system' });
+        setBattleLog(prev => [...prev, ...newLogs]);
+        return;
+      }
+      if (player.level < skillUsed.levelReq) {
+        newLogs.push({ id: 'locked_skill_' + Date.now(), turn: currentTurn, text: `🔒 ${skillUsed.name} доступен с ${skillUsed.levelReq} уровня.`, type: 'system' });
+        setBattleLog(prev => [...prev, ...newLogs]);
+        return;
+      }
+      if ((skillUsed.currentCooldown || 0) > 0) {
+        newLogs.push({ id: 'cooldown_' + Date.now(), turn: currentTurn, text: `⏳ ${skillUsed.name} ещё ${skillUsed.currentCooldown} ход(а) в перезарядке.`, type: 'system' });
+        setBattleLog(prev => [...prev, ...newLogs]);
+        return;
+      }
+      if (combatPlayerMp < skillUsed.manaCost) {
+        newLogs.push({ id: 'no_mp_' + Date.now(), turn: currentTurn, text: `❌ Недостаточно маны для ${skillUsed.name} (${skillUsed.manaCost} MP)!`, type: 'system' });
+        setBattleLog(prev => [...prev, ...newLogs]);
+        return;
+      }
+
+      setCombatPlayerMp(prev => Math.max(0, prev - skillUsed!.manaCost));
+      setPlayer(prev => prev ? {
+        ...prev,
+        skills: prev.skills.map(s => s.id === skillUsed!.id ? { ...s, currentCooldown: skillUsed!.cooldown } : s)
+      } : prev);
+
+      multiplier = skillUsed.damageMultiplier;
+      damageType = skillUsed.damageType;
+      skillName = skillUsed.name;
+
+      if (skillUsed.inflicts && Math.random() < skillUsed.inflicts.chance) {
+        setMonsterEffects(prev => applyStatusEffect(prev, {
+          type: skillUsed!.inflicts!.type,
+          name: skillUsed!.name,
+          duration: skillUsed!.inflicts!.duration,
+          value: skillUsed!.inflicts!.power
+        }));
+        newLogs.push({
+          id: 'effect_' + Date.now(),
+          turn: currentTurn,
+          text: `✨ ${activeMonster.name} получает статус [${skillUsed.inflicts.type}]!`,
+          type: 'status'
+        });
+      }
+    } else if (actionType === 'execute') {
+      const executeReady = activeMonster.hp / activeMonster.maxHp <= 0.35;
+      multiplier = executeReady ? 2.5 : 1.2;
+      skillName = executeReady ? 'Смертельный добивающий удар' : 'Попытка добивания';
+      damageType = 'physical';
+    }
+
+    // A heal skill (e.g. paladin) is a valid turn action without dealing damage.
+    if (skillUsed?.healMultiplier && skillUsed.damageMultiplier === 0) {
+      const healAmount = Math.max(1, Math.round(100 * skillUsed.healMultiplier));
+      setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmount));
+      newLogs.push({
+        id: 'skill_heal_' + Date.now(),
+        turn: currentTurn,
+        text: `✨ [${skillName}] восстанавливает ${healAmount} HP.`,
+        type: 'heal'
+      });
+      setBattleLog(prev => [...prev, ...newLogs]);
+      setTurnPhase('monster');
+      return;
+    }
+
+    const attackPower = getDamagePower(damageType, combatStats);
+    const hitChance = Math.min(98, Math.max(30, combatStats.accuracy - activeMonster.evasion + 85));
+    if (Math.random() * 100 > hitChance) {
+      newLogs.push({
+        id: 'evade_' + Date.now(),
+        turn: currentTurn,
+        text: `💨 [Уклонение] ${activeMonster.name} уклонился от ${skillName}.`,
+        type: 'system'
+      });
+    } else {
+      let finalDmg = calculateTypedDamage({
+        power: attackPower * playerMods.attackMultiplier,
+        multiplier,
+        damageType,
+        targetDefense: activeMonster.defense,
+        targetMagicDefense: activeMonster.magicDefense,
+        armorPenetration: combatStats.armorPenetration,
+        targetResistances: activeMonster.resistances,
+        extraDamageMultiplier: monsterMods.damageTakenMultiplier
+      });
+
+      const isCrit = Math.random() * 100 < combatStats.critChance;
+      if (isCrit) finalDmg = Math.round(finalDmg * (combatStats.critDamage / 100));
+
+      if (isCrit) {
+        sound.playCriticalHit();
+        triggerHaptic('heavy');
+      } else {
+        sound.playSlash();
+        triggerHaptic('light');
+      }
+
+      newLogs.push({
+        id: 'dmg_' + Date.now(),
+        turn: currentTurn,
+        text: `${isCrit ? '💥' : '⚔️'} [${skillName}] наносит ${finalDmg} ${damageType.toUpperCase()} урона (сопротивление цели учитывается).`,
+        type: isCrit ? 'crit' : 'player-attack'
+      });
+
+      if (skillUsed?.healMultiplier) {
+        const heal = Math.max(1, Math.round(finalDmg * skillUsed.healMultiplier));
+        setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
+        newLogs.push({
+          id: 'skill_drain_' + Date.now(),
+          turn: currentTurn,
+          text: `🩸 [${skillName}] восстанавливает ${heal} HP.`,
+          type: 'heal'
+        });
+      }
+
+      if (combatStats.vampirism > 0) {
+        const lifesteal = Math.max(1, Math.round(finalDmg * (combatStats.vampirism / 100)));
+        setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + lifesteal));
+        newLogs.push({
+          id: 'vamp_' + Date.now(),
+          turn: currentTurn,
+          text: `🩸 [Вампиризм] +${lifesteal} HP.`,
+          type: 'heal'
+        });
+      }
+
+      nextMonsterHp = Math.max(0, nextMonsterHp - finalDmg);
+    }
+
+    if (nextMonsterHp <= 0) {
+      completeCombatVictory(activeMonster, currentTurn, newLogs);
+      return;
+    }
+
     setActiveMonster(prev => prev ? { ...prev, hp: nextMonsterHp } : null);
     setBattleLog(prev => [...prev, ...newLogs]);
     setTurnPhase('monster');
-  }, [isInCombat, activeMonster, isCombatEnded, player, combatStats, battleLog.length, turnPhase, combatPlayerMp]);
+  }, [
+    isInCombat,
+    activeMonster,
+    isCombatEnded,
+    player,
+    turnPhase,
+    battleLog.length,
+    playerEffects,
+    monsterEffects,
+    combatPlayerHp,
+    combatPlayerMp,
+    combatStats,
+    completeCombatVictory
+  ]);
 
-  // MONSTER TURN CONTROLLER (Chess-like alternating turns: I attack, then it attacks me)
+  // MONSTER TURN CONTROLLER
   useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player) return;
 
@@ -1214,110 +1511,142 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newLogs: BattleLogEntry[] = [];
       const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
 
-      // 1. Evasion check: player evades monster strike
-      const isPlayerEvaded = Math.random() * 100 < combatStats.evasion;
-      if (isPlayerEvaded) {
-        sound.playDodge();
-        triggerHaptic('light');
+      const monsterTick = tickStatusEffects(monsterEffects);
+      setMonsterEffects(monsterTick.effects);
+
+      if (monsterTick.damage > 0) {
+        let statusDamage = 0;
+        for (const [type, amount] of Object.entries(monsterTick.damageByType)) {
+          statusDamage += calculateTypedDamage({
+            power: amount || 0,
+            multiplier: 1,
+            damageType: type as import('../types/game').DamageType,
+            targetDefense: activeMonster.defense,
+            targetMagicDefense: activeMonster.magicDefense,
+            armorPenetration: 0,
+            targetResistances: activeMonster.resistances,
+            extraDamageMultiplier: monsterTick.damageTakenMultiplier
+          });
+        }
+        const nextMonsterHp = Math.max(0, activeMonster.hp - statusDamage);
+        if (statusDamage > 0) {
+          newLogs.push({
+            id: 'monster_dot_' + Date.now(),
+            turn: currentTurn,
+            text: `☠️ [Статус] ${activeMonster.name} получает ${statusDamage} периодического урона.`,
+            type: 'status'
+          });
+        }
+        if (nextMonsterHp <= 0) {
+          completeCombatVictory(activeMonster, currentTurn, newLogs);
+          return;
+        }
+        setActiveMonster(prev => prev ? { ...prev, hp: nextMonsterHp } : null);
+      }
+
+      if (monsterTick.skipTurn) {
         newLogs.push({
-          id: 'm_miss_' + Date.now(),
+          id: 'monster_cc_' + Date.now(),
           turn: currentTurn,
-          text: `💨 [Уклонение] Вы ловко уклонились от выпада ${activeMonster.name}!`,
-          type: 'system'
+          text: `🌀 [Контроль] ${activeMonster.name} пропускает ход.`,
+          type: 'status'
         });
+        setPlayer(prev => prev ? {
+          ...prev,
+          skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) }))
+        } : prev);
         setBattleLog(prev => [...prev, ...newLogs]);
         setTurnPhase('player');
         return;
       }
 
-      // 2. Monster damage calculation
-      const effPDef = Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0));
-      const pDefMitigation = effPDef / (effPDef + 80);
-      const monsterBaseDmg = Math.round(activeMonster.attack * (activeMod.damageMultiplier || 1.0));
-      let monsterFinalDmg = Math.max(3, Math.round(monsterBaseDmg * (1 - pDefMitigation)));
+      const playerMods = getStatusModifiers(playerEffects);
+      const monsterDamageType = activeMonster.damageType || 'physical';
+      const monsterPower = monsterDamageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
+      const defense = monsterDamageType === 'physical'
+        ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0))
+        : combatStats.magicDefense;
+      const mitigation = defense / (defense + (monsterDamageType === 'physical' ? 80 : 90));
+      const resistance = getTargetResistance(monsterDamageType, combatStats.resistances);
 
-      // 3. Shield check (from Defend or potion effect)
+      let monsterFinalDmg = Math.max(
+        0,
+        Math.round(
+          monsterPower *
+          (activeMod.damageMultiplier || 1) *
+          (1 - mitigation) *
+          (1 - resistance / 100) *
+          playerMods.damageTakenMultiplier *
+          (playerMods.invulnerable ? 0 : 1)
+        )
+      );
+
       let blockedByShield = 0;
-      setPlayerEffects(prevEffects => {
-        const shieldIdx = prevEffects.findIndex(e => e.type === 'shield');
-        if (shieldIdx >= 0) {
-          const shieldVal = prevEffects[shieldIdx].value || 0;
-          if (shieldVal >= monsterFinalDmg) {
-            blockedByShield = monsterFinalDmg;
-            monsterFinalDmg = 0;
-            const rem = shieldVal - blockedByShield;
-            if (rem > 0) {
-              return prevEffects.map((e, i) => i === shieldIdx ? { ...e, value: rem } : e);
-            }
-            return prevEffects.filter((_, i) => i !== shieldIdx);
-          } else {
-            blockedByShield = shieldVal;
-            monsterFinalDmg -= shieldVal;
-            return prevEffects.filter((_, i) => i !== shieldIdx);
-          }
-        }
-        return prevEffects;
+      const shieldIndex = playerEffects.findIndex(e => e.type === 'shield');
+      if (!playerMods.invulnerable && shieldIndex >= 0) {
+        const shield = Math.max(0, playerEffects[shieldIndex].value || 0);
+        blockedByShield = Math.min(shield, monsterFinalDmg);
+        monsterFinalDmg -= blockedByShield;
+        setPlayerEffects(prevEffects => prevEffects
+          .map((effect, index) => index === shieldIndex ? { ...effect, value: effect.value - blockedByShield } : effect)
+          .filter(effect => effect.type !== 'shield' || effect.value > 0)
+        );
+      }
+
+      newLogs.push({
+        id: 'm_atk_' + Date.now(),
+        turn: currentTurn,
+        text: playerMods.invulnerable
+          ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.`
+          : `🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`,
+        type: playerMods.invulnerable ? 'heal' : 'monster-attack'
       });
 
-      // 4. Monster Vampirism check
-      const mobVamp = activeMod.bonusVampirism || 0;
-      if (mobVamp > 0 && monsterFinalDmg > 0) {
-        const mobHeal = Math.max(1, Math.round(monsterFinalDmg * (mobVamp / 100)));
-        setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, prev.hp + mobHeal) } : null);
-        newLogs.push({
-          id: 'mvamp_' + Date.now(),
-          turn: currentTurn,
-          text: `💀 ${activeMonster.name} поглотил вашу жизненную силу (+${mobHeal} HP врагу)!`,
-          type: 'status'
-        });
-      }
-
-      sound.playMonsterAttack();
-      triggerHaptic('heavy');
-
-      if (blockedByShield > 0 && monsterFinalDmg === 0) {
-        newLogs.push({
-          id: 'm_block_' + Date.now(),
-          turn: currentTurn,
-          text: `🛡️ [Блок] Ваша глухая оборона полностью отразила удар ${activeMonster.name}! (Заблокировано ${blockedByShield} урона)`,
-          type: 'heal'
-        });
-      } else {
-        newLogs.push({
-          id: 'm_atk_' + Date.now(),
-          turn: currentTurn,
-          text: `🩸 ${activeMonster.name} атакует вас на ${monsterFinalDmg} урона${blockedByShield > 0 ? ` (щит поглотил ${blockedByShield})` : ''} (Броня поглотила ${Math.round(pDefMitigation * 100)}%).`,
-          type: 'monster-attack'
-        });
-      }
-
-      // 5. Update player HP and verify survival
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
         if (nextHp <= 0) {
-          sound.playDefeat();
-          triggerHaptic('error');
           newLogs.push({
             id: 'm_fatal_' + Date.now(),
-            turn: currentTurn + 1,
-            text: `💀 Вы пали в неравном бою с ${activeMonster.name}...`,
+            turn: currentTurn,
+            text: `💀 Вы пали в бою с ${activeMonster.name}...`,
             type: 'death'
           });
+          sound.playDefeat();
+          triggerHaptic('error');
+          setPlayer(prev => prev ? {
+            ...prev,
+            statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 }
+          } : prev);
           setIsCombatEnded(true);
           setCombatOutcome('defeat');
           setTurnPhase('ended');
         } else {
-          // Hand control back to player!
           setTurnPhase('player');
         }
         return nextHp;
       });
 
+      setPlayer(prev => prev ? {
+        ...prev,
+        skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) }))
+      } : prev);
+
       setBattleLog(prev => [...prev, ...newLogs]);
     }, 750);
 
     return () => clearTimeout(timer);
-  }, [isInCombat, isCombatEnded, activeMonster, turnPhase, player, combatStats, battleLog.length]);
+  }, [
+    isInCombat,
+    isCombatEnded,
+    activeMonster,
+    player,
+    turnPhase,
+    battleLog.length,
+    monsterEffects,
+    playerEffects,
+    combatStats,
+    completeCombatVictory
+  ]);
 
   // Auto-battle loop (operates only on player's turn)
   useEffect(() => {
@@ -1452,37 +1781,57 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {
     if (!activeDungeonRun) return;
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
-    if (!currentRoom) return;
+    if (!currentRoom || currentRoom.resolved) return;
 
     if (currentRoom.type === 'combat' || currentRoom.type === 'boss') {
-      if (currentRoom.monster) {
-        startBattleWithMonster(currentRoom.monster);
-      }
-      currentRoom.resolved = true;
-    } else if (currentRoom.type === 'treasure') {
-      sound.playUpgradeSuccess();
-      triggerHaptic('success');
+      if (!currentRoom.monster) return;
+      const started = startBattleWithMonster(currentRoom.monster);
+      if (!started) return;
+      // Combat rooms are resolved only by completeCombatVictory().
+      return;
+    }
+
+    if (currentRoom.type === 'elite') {
+      if (!currentRoom.monster) return;
+      const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true });
+      if (!started) return;
+      return;
+    }
+
+    if (currentRoom.type === 'treasure') {
       const foundGold = 100 + Math.floor(Math.random() * 250);
       setPlayer(prev => prev ? { ...prev, gold: prev.gold + foundGold } : prev);
-      currentRoom.resolved = true;
-      currentRoom.rewardClaimed = true;
+      sound.playUpgradeSuccess();
+      triggerHaptic('success');
     } else if (currentRoom.type === 'shrine') {
       sound.playPotion();
       triggerHaptic('medium');
-      currentRoom.resolved = true;
+      setCombatPlayerHp(combatStats.maxHp);
+      setCombatPlayerMp(combatStats.maxMp);
+      setPlayer(prev => prev ? { ...prev, energy: Math.min(prev.maxEnergy, prev.energy + 10) } : prev);
+    } else if (currentRoom.type === 'trap') {
+      const trapDamage = Math.max(10, Math.round(combatStats.maxHp * 0.08));
+      setCombatPlayerHp(prev => Math.max(1, prev - trapDamage));
+    } else if (currentRoom.type === 'merchant') {
+      const merchantCost = 100;
+      setPlayer(prev => prev && prev.gold >= merchantCost ? { ...prev, gold: prev.gold - merchantCost } : prev);
     }
 
-    const nextIndex = activeDungeonRun.currentRoomIndex + 1;
-    if (nextIndex >= activeDungeonRun.totalRooms) {
-      setActiveDungeonRun(prev => prev ? { ...prev, completed: true } : null);
-      setPlayer(prev => prev ? {
-        ...prev,
-        statsSummary: { ...prev.statsSummary, dungeonsCleared: prev.statsSummary.dungeonsCleared + 1 }
-      } : prev);
-    } else {
-      setActiveDungeonRun(prev => prev ? { ...prev, currentRoomIndex: nextIndex } : null);
-    }
-  }, [activeDungeonRun, startBattleWithMonster]);
+    setActiveDungeonRun(prevRun => {
+      if (!prevRun) return prevRun;
+      const index = prevRun.currentRoomIndex;
+      const rooms = prevRun.rooms.map((room, roomIndex) =>
+        roomIndex === index ? { ...room, resolved: true, rewardClaimed: true } : room
+      );
+      const isLast = index >= prevRun.totalRooms - 1;
+      return {
+        ...prevRun,
+        rooms,
+        currentRoomIndex: isLast ? index : index + 1,
+        completed: isLast
+      };
+    });
+  }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp]);
 
   const exitDungeon = useCallback(() => {
     setActiveDungeonRun(null);
@@ -1492,106 +1841,196 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Mining
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
     let result = { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+    const node = MINING_NODES.find(n => n.id === nodeId);
+    if (!node) return result;
+
     setPlayer(prev => {
       if (!prev) return prev;
-      sound.playMining();
-      triggerHaptic('medium');
-
-      const isCrit = Math.random() < 0.25;
-      let count = Math.floor(Math.random() * 3) + 2;
-      if (isCrit) count += 3;
-
-      const oreName = nodeId.includes('iron') ? 'Железная руда' :
-                      nodeId.includes('gold') ? 'Золотая руда' :
-                      nodeId.includes('mithril') ? 'Мифриловая руда' :
-                      nodeId.includes('draconite') ? 'Драконит' : 'Медная руда';
-
-      result = { success: true, yieldCount: count, isCrit, oreName };
-
-      const oreItem: GameItem = {
-        id: 'ore_' + Date.now(),
-        templateId: nodeId,
-        name: oreName,
-        type: 'ore',
-        rarity: isCrit ? 'rare' : 'common',
-        level: 1,
-        upgradeLevel: 0,
-        icon: '🪨',
-        description: 'Сырая руда для переплавки и заточки в кузнице.',
-        stats: {},
-        sellPrice: 15,
-        disassembleYield: { ore: 1 },
-        stackCount: count
-      };
-
-      // Add to inventory
-      const updatedInv = [...prev.inventory];
-      if (updatedInv.length < prev.maxInventorySlots) {
-        updatedInv.push(oreItem);
+      if (prev.miningLevel < node.levelReq) {
+        triggerHaptic('error');
+        result.oreName = node.oreYield;
+        return prev;
+      }
+      if (prev.stamina < node.staminaCost) {
+        triggerHaptic('error');
+        result.oreName = node.oreYield;
+        return prev;
       }
 
-      // Mining exp
-      const newExp = prev.miningExp + 15;
-      const newLevel = prev.miningLevel + (newExp >= prev.miningLevel * 50 ? 1 : 0);
+      const oreTemplate = 'ore_' + node.id.replace(/^ore_/, '');
+      const existingOre = prev.inventory.find(i => i.templateId === oreTemplate && i.type === 'ore');
+      if (!existingOre && prev.inventory.length >= prev.maxInventorySlots) {
+        triggerHaptic('error');
+        result.oreName = node.oreYield;
+        return prev;
+      }
 
-      // Quests update
-      setQuests(qList => qList.map(q => q.category === 'mining' ? { ...q, currentCount: q.currentCount + count, completed: (q.currentCount + count) >= q.targetCount } : q));
-      setAchievements(aList => aList.map(a => a.id === 'ach_4' ? { ...a, progress: a.progress + count, completed: (a.progress + count) >= a.maxProgress } : a));
+      const isCrit = Math.random() < Math.min(0.65, 0.25 + prev.attributes.luck * 0.003);
+      const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
+      const yieldCount = isCrit ? Math.max(baseYield + 1, Math.ceil(baseYield * 1.5)) : baseYield;
 
+      const oreItem: GameItem = {
+        id: 'ore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        templateId: oreTemplate,
+        name: node.oreYield,
+        type: 'ore',
+        rarity: isCrit ? 'rare' : 'common',
+        level: Math.max(1, node.levelReq),
+        upgradeLevel: 0,
+        icon: node.icon,
+        description: `Добытая руда из жилы «${node.name}».`,
+        stats: {},
+        sellPrice: Math.max(2, Math.round(10 + node.levelReq * 2)),
+        disassembleYield: { ore: 1 },
+        stackCount: yieldCount
+      };
+
+      let inventory = [...prev.inventory];
+      const oreAdded = addOrStackInventoryItem(inventory, oreItem, prev.maxInventorySlots);
+      if (!oreAdded.added) return prev;
+      inventory = oreAdded.inventory;
+
+      // Gems are additional loot, never a replacement for the ore.
+      if (Math.random() < node.gemChance) {
+        const gemItem: GameItem = {
+          id: 'gem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+          templateId: 'mining_gem',
+          name: 'Сырой самоцвет',
+          type: 'material',
+          rarity: 'rare',
+          level: node.levelReq,
+          upgradeLevel: 0,
+          icon: '💎',
+          description: 'Самоцвет, найденный в руде.',
+          stats: {},
+          sellPrice: 35 + node.levelReq,
+          disassembleYield: { crystals: 1 },
+          stackCount: 1 + Math.floor(Math.random() * 2)
+        };
+        const gemAdded = addOrStackInventoryItem(inventory, gemItem, prev.maxInventorySlots);
+        if (gemAdded.added) inventory = gemAdded.inventory;
+      }
+
+      const miningExp = prev.miningExp + Math.max(5, node.levelReq + 10);
+      let miningLevel = prev.miningLevel;
+      while (miningExp >= miningLevel * 50 && miningLevel < 100) miningLevel += 1;
+
+      result = { success: true, yieldCount, isCrit, oreName: node.oreYield };
+
+      setQuests(qList => qList.map(q => {
+        if (q.category !== 'mining') return q;
+        const count = Math.min(q.targetCount, q.currentCount + yieldCount);
+        return { ...q, currentCount: count, completed: count >= q.targetCount };
+      }));
+      setAchievements(aList => aList.map(a => {
+        if (a.id !== 'ach_4') return a;
+        const progress = Math.min(a.maxProgress, a.progress + yieldCount);
+        return { ...a, progress, completed: progress >= a.maxProgress };
+      }));
+
+      sound.playMining();
+      triggerHaptic('medium');
       return {
         ...prev,
-        inventory: updatedInv,
-        miningLevel: newLevel,
-        miningExp: newExp,
-        statsSummary: {
-          ...prev.statsSummary,
-          oresMined: prev.statsSummary.oresMined + count
-        }
+        stamina: Math.max(0, prev.stamina - node.staminaCost),
+        miningExp,
+        miningLevel,
+        inventory,
+        statsSummary: { ...prev.statsSummary, oresMined: prev.statsSummary.oresMined + yieldCount }
       };
     });
+
     return result;
   }, []);
 
   // Alchemy
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     let success = false;
+    const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
+    if (!recipe) return false;
+
     setPlayer(prev => {
       if (!prev) return prev;
-      sound.playPotion();
-      triggerHaptic('success');
-      success = true;
+      if (prev.alchemyLevel < recipe.levelReq) {
+        triggerHaptic('error');
+        return prev;
+      }
 
-      const potItem: GameItem = {
-        id: 'pot_crafted_' + Date.now(),
-        templateId: recipeId,
-        name: recipeId.includes('hp') ? 'Великое зелье исцеления' : 'Эликсир берсерка',
+      for (const ingredient of recipe.ingredients) {
+        const have = prev.inventory.reduce(
+          (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
+          0
+        );
+        if (have < ingredient.count) {
+          triggerHaptic('error');
+          return prev;
+        }
+      }
+
+      let inventory = prev.inventory.map(item => ({ ...item }));
+      for (const ingredient of recipe.ingredients) {
+        let remaining = ingredient.count;
+        inventory = inventory.map(item => {
+          if (remaining <= 0 || item.name !== ingredient.name) return item;
+          const stack = item.stackCount || 1;
+          const take = Math.min(stack, remaining);
+          remaining -= take;
+          return { ...item, stackCount: stack - take };
+        }).filter(item => (item.stackCount || 0) > 0);
+      }
+
+      const resultStats: Record<string, number> =
+        recipe.id === 'alc_hp_small' ? { heal: 120 } :
+        recipe.id === 'alc_mp_small' ? { manaRestore: 80 } :
+        recipe.id === 'alc_hp_great' ? { heal: 650 } :
+        recipe.id === 'alc_berserk' ? { attackPercent: 25, critChance: 15, buffDuration: 5 } :
+        recipe.id === 'alc_stoneskin' ? { defensePercent: 40, buffDuration: 5 } :
+        recipe.id === 'alc_dragon_blood' ? { healFull: 1, invulnerable: 1 } :
+        {};
+
+      const output: GameItem = {
+        id: 'pot_crafted_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        templateId: recipe.id === 'alc_hp_small' ? 'pot_hp_small' : recipe.id,
+        name: recipe.resultItem,
         type: 'potion',
-        rarity: 'rare',
-        level: 1,
+        rarity: recipe.levelReq >= 50 ? 'mythic' : recipe.levelReq >= 30 ? 'epic' : recipe.levelReq >= 15 ? 'rare' : 'uncommon',
+        level: Math.max(1, recipe.levelReq),
         upgradeLevel: 0,
-        icon: '🧪',
-        description: 'Сваренное вручную алхимическое зелье.',
-        stats: {},
-        sellPrice: 40,
-        disassembleYield: {},
-        stackCount: 1
+        icon: recipe.icon,
+        description: recipe.description,
+        stats: resultStats,
+        sellPrice: Math.max(10, recipe.levelReq * 4),
+        disassembleYield: { shards: Math.max(1, Math.floor(recipe.levelReq / 5)) },
+        stackCount: recipe.resultCount
       };
 
-      const updatedInv = [...prev.inventory];
-      if (updatedInv.length < prev.maxInventorySlots) {
-        updatedInv.push(potItem);
+      const added = addOrStackInventoryItem(inventory, output, prev.maxInventorySlots);
+      if (!added.added) {
+        triggerHaptic('error');
+        return prev;
       }
+
+      const professionXp = Math.max(10, recipe.levelReq * 2);
+      const alchemyExp = prev.alchemyExp + professionXp;
+      let alchemyLevel = prev.alchemyLevel;
+      while (alchemyExp >= alchemyLevel * 100 && alchemyLevel < 100) alchemyLevel += 1;
+
+      success = true;
+      sound.playPotion();
+      triggerHaptic('success');
 
       return {
         ...prev,
-        inventory: updatedInv,
-        alchemyLevel: prev.alchemyLevel + 1,
+        inventory: added.inventory,
+        alchemyExp,
+        alchemyLevel,
         statsSummary: {
           ...prev.statsSummary,
-          potionsCrafted: prev.statsSummary.potionsCrafted + 1
+          potionsCrafted: prev.statsSummary.potionsCrafted + recipe.resultCount
         }
       };
     });
+
     return success;
   }, []);
 
@@ -1631,35 +2070,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Quests & Achievements Claims
   const claimQuestReward = useCallback((questId: string) => {
     setQuests(prev => prev.map(q => {
-      if (q.id === questId && q.completed && !q.claimed) {
-        sound.playVictory();
-        triggerHaptic('success');
-        setPlayer(p => p ? {
-          ...p,
-          gold: p.gold + q.rewardGold,
-          silver: p.silver + (q.rewardSilver || 0),
-          shards: p.shards + (q.rewardShards || 0),
-          crystals: p.crystals + q.rewardCrystals,
-          exp: p.exp + q.rewardExp
-        } : p);
-        return { ...q, claimed: true };
-      }
-      return q;
+      if (q.id !== questId || !q.completed || q.claimed) return q;
+      sound.playVictory();
+      triggerHaptic('success');
+      setPlayer(p => {
+        if (!p) return p;
+        const xpResult = addExperience(p, q.rewardExp);
+        return {
+          ...xpResult.player,
+          gold: xpResult.player.gold + q.rewardGold,
+          silver: xpResult.player.silver + (q.rewardSilver || 0),
+          shards: xpResult.player.shards + (q.rewardShards || 0),
+          crystals: xpResult.player.crystals + q.rewardCrystals
+        };
+      });
+      return { ...q, claimed: true };
     }));
   }, []);
 
   const claimAchievementReward = useCallback((achievementId: string) => {
     setAchievements(prev => prev.map(a => {
-      if (a.id === achievementId && a.completed) {
-        sound.playLevelUp();
-        triggerHaptic('success');
-        setPlayer(p => p ? {
-          ...p,
-          gold: p.gold + a.rewardGold,
-          crystals: p.crystals + a.rewardCrystals
-        } : p);
-      }
-      return a;
+      if (a.id !== achievementId || !a.completed || a.claimed) return a;
+      sound.playLevelUp();
+      triggerHaptic('success');
+      setPlayer(p => p ? {
+        ...p,
+        gold: p.gold + a.rewardGold,
+        crystals: p.crystals + a.rewardCrystals
+      } : p);
+      return { ...a, claimed: true };
     }));
   }, []);
 
@@ -1694,7 +2133,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const adminLevelUp = useCallback(() => {
-    setPlayer(p => p ? { ...p, level: p.level + 1, statPoints: p.statPoints + 5, talentPoints: p.talentPoints + 1 } : p);
+    setPlayer(p => {
+      if (!p) return p;
+      return addExperience(p, p.nextExp).player;
+    });
     sound.playLevelUp();
   }, []);
 
