@@ -365,6 +365,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
+          // Migrate old saves to the current steep XP curve.
+          parsed.player.nextExp = getNextExperience(parsed.player.level);
+          parsed.player = addExperience(parsed.player, 0).player;
 
           setPlayer(parsed.player);
           if (parsed.quests) {
