@@ -1,59 +1,127 @@
-import { GameItem, ItemRarity, ItemType } from '../types/game';
+import { GameItem, ItemRarity, ItemType, Monster, MonsterDrop } from '../types/game';
 import { ASSETS } from '../data/gameData';
 
 interface GenerateLootOptions {
-  monsterLevel: number;
-  isBoss?: boolean;
+  monster: Monster;
   rareDropMult?: number;
   goldMult?: number;
   silverMult?: number;
-  bonusLuck?: number;
 }
 
-const PREFIXES = [
-  'Закаленный', 'Темный', 'Древний', 'Рунический', 'Кровавый', 'Призрачный', 
-  'Освященный', 'Астральный', 'Титанический', 'Мифический', 'Громовой', 'Пламенный'
+const RARITY_MULTIPLIER: Record<ItemRarity, number> = {
+  common: 1,
+  uncommon: 1.25,
+  rare: 1.6,
+  epic: 2.1,
+  legendary: 2.8,
+  mythic: 3.8,
+  ancient: 4.8,
+  divine: 6
+};
+
+const EQUIPMENT_TYPES: ItemType[] = [
+  'weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves',
+  'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'
 ];
 
-const WEAPON_NAMES = [
-  'Клинок теней', 'Секира гнева', 'Боевой молот', 'Длинный меч стража',
-  'Кинжал погибели', 'Посох стихий', 'Коса жнеца', 'Лук сокола'
-];
+const slugify = (value: string) =>
+  value.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '_').replace(/^_|_$/g, '');
 
-const ARMOR_NAMES = [
-  'Латный нагрудник', 'Кольчужная рубаха', 'Мантия магии', 'Кожаная куртка следопыта',
-  'Панцирь титана', 'Одеяние чародея'
-];
+function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): GameItem {
+  const qty = Math.floor(drop.minQty + Math.random() * (drop.maxQty - drop.minQty + 1));
+  const mult = RARITY_MULTIPLIER[drop.rarity] ?? 1;
+  const isEquipment = EQUIPMENT_TYPES.includes(drop.type);
+  const idBase = `drop_${monsterLevel}_${slugify(drop.itemName)}_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`;
 
-const HELMET_NAMES = [
-  'Рогатый боевой шлем', 'Шлем драконьей чешуи', 'Капюшон убийцы', 'Диадема мудрости',
-  'Корона владыки'
-];
+  let icon = '🧩';
+  let baseAttack: number | undefined;
+  let baseDefense: number | undefined;
+  let baseMagicDef: number | undefined;
+  let stats: Record<string, number> = {};
 
-const SHIELD_NAMES = [
-  'Эгида света', 'Бастионный щит', 'Круглый щит ополченца', 'Теневой баклер'
-];
-
-const ACCESSORY_NAMES = [
-  'Амулет вечности', 'Кольцо ненасытности', 'Пояс берсерка', 'Плащ ночного охотника',
-  'Талисман ярости', 'Браслет бездны'
-];
-
-export function rollRarity(rareMult: number = 1.0, isBoss: boolean = false): ItemRarity {
-  const roll = Math.random() / Math.max(0.5, rareMult);
-  if (isBoss) {
-    if (roll < 0.05) return 'mythic';
-    if (roll < 0.20) return 'legendary';
-    if (roll < 0.50) return 'epic';
-    return 'rare';
+  if (drop.type === 'weapon') {
+    icon = '🗡️';
+    baseAttack = Math.round((10 + monsterLevel * 3.5) * mult);
+    stats = { attack: baseAttack };
+  } else if (drop.type === 'offhand') {
+    icon = '🛡️';
+    baseDefense = Math.round((6 + monsterLevel * 2.2) * mult);
+    baseMagicDef = Math.round((4 + monsterLevel * 1.8) * mult);
+    stats = { defense: baseDefense, magicDefense: baseMagicDef };
+  } else if (['armor', 'helmet', 'pants', 'gloves', 'boots'].includes(drop.type)) {
+    icon = drop.type === 'helmet' ? '🪖' : drop.type === 'pants' ? '👖' : drop.type === 'boots' ? '👢' : drop.type === 'gloves' ? '🧤' : '🥋';
+    baseDefense = Math.round((6 + monsterLevel * 2.2) * mult);
+    baseMagicDef = Math.round((4 + monsterLevel * 1.8) * mult);
+    stats = {
+      defense: baseDefense,
+      magicDefense: baseMagicDef,
+      maxHp: Math.round((20 + monsterLevel * 10) * mult)
+    };
+  } else if (['ring', 'amulet', 'belt', 'cloak'].includes(drop.type)) {
+    icon = drop.type === 'ring' ? '💍' : drop.type === 'amulet' ? '📿' : drop.type === 'belt' ? '🥋' : '🧥';
+    stats = {
+      maxHp: Math.round((15 + monsterLevel * 8) * mult),
+      maxMp: Math.round((10 + monsterLevel * 6) * mult)
+    };
+  } else if (drop.type === 'artifact') {
+    icon = '🔮';
+    stats = {
+      maxHp: Math.round((30 + monsterLevel * 12) * mult),
+      maxMp: Math.round((20 + monsterLevel * 8) * mult)
+    };
+  } else if (drop.type === 'potion') {
+    icon = '🧪';
+    const isLarge = monsterLevel >= 15 || ['rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity);
+    stats = { heal: isLarge ? 350 : 150 };
+  } else if (drop.type === 'ore') {
+    icon = '⛏️';
   }
 
-  if (roll < 0.005) return 'mythic';
-  if (roll < 0.03) return 'legendary';
-  if (roll < 0.12) return 'epic';
-  if (roll < 0.35) return 'rare';
-  if (roll < 0.65) return 'uncommon';
-  return 'common';
+  if (isEquipment) {
+    if (drop.rarity !== 'common') stats.critChance = Math.min(20, Math.round(2 + mult));
+    if (['rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity)) {
+      stats.hpRegen = Math.round(1 + mult);
+    }
+    if (['legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity)) {
+      stats.vampirism = Math.min(20, Math.round(2 + mult));
+    }
+  }
+
+  return {
+    id: idBase,
+    templateId: drop.templateId || `drop_${slugify(drop.itemName)}`,
+    name: drop.itemName,
+    type: drop.type,
+    rarity: drop.rarity,
+    level: monsterLevel,
+    upgradeLevel: 0,
+    icon,
+    image:
+      ['legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity)
+        ? drop.type === 'weapon'
+          ? ASSETS.relicWeapon
+          : drop.type === 'helmet'
+            ? ASSETS.itemRelicHelm
+            : drop.type === 'offhand'
+              ? ASSETS.itemRelicShield
+              : undefined
+        : undefined,
+    description: `Трофей из ${monsterLevel} уровня противника.`,
+    baseAttack,
+    baseDefense,
+    baseMagicDef,
+    stats,
+    sellPrice: Math.max(1, Math.round((10 + monsterLevel * 4) * mult)),
+    disassembleYield: {
+      ore: isEquipment ? Math.max(1, Math.floor(monsterLevel / 3)) : 0,
+      shards:
+        drop.rarity === 'common' ? 1 :
+        drop.rarity === 'uncommon' ? 2 :
+        drop.rarity === 'rare' ? 4 :
+        drop.rarity === 'epic' ? 8 : 15
+    },
+    stackCount: Math.max(1, qty)
+  };
 }
 
 export function generateCombatLoot(opts: GenerateLootOptions): {
@@ -62,157 +130,27 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
   silver: number;
   shards: number;
 } {
-  const { monsterLevel, isBoss = false, rareDropMult = 1.0, goldMult = 1.0, silverMult = 1.0 } = opts;
+  const { monster, rareDropMult = 1, goldMult = 1, silverMult = 1 } = opts;
 
-  // Currency rewards
-  const baseGold = (15 + monsterLevel * 6 + Math.floor(Math.random() * 15)) * (isBoss ? 4 : 1);
-  const baseSilver = (40 + monsterLevel * 12 + Math.floor(Math.random() * 30)) * (isBoss ? 3 : 1);
-  const baseShards = isBoss ? Math.floor(Math.random() * 4) + 2 : (Math.random() < 0.4 ? Math.floor(Math.random() * 2) + 1 : 0);
+  const baseGold = (15 + monster.level * 6 + Math.floor(Math.random() * 15)) * (monster.isBoss ? 4 : 1);
+  const baseSilver = (40 + monster.level * 12 + Math.floor(Math.random() * 30)) * (monster.isBoss ? 3 : 1);
+  const shards = monster.isBoss
+    ? Math.floor(Math.random() * 4) + 2
+    : Math.random() < 0.4
+      ? Math.floor(Math.random() * 2) + 1
+      : 0;
 
-  const gold = Math.round(baseGold * goldMult);
-  const silver = Math.round(baseSilver * silverMult);
-  const shards = baseShards;
-
-  // Roll item drops count: 80% chance for at least 1 item, bosses drop 2-4 items
   const items: GameItem[] = [];
-  const itemCount = isBoss ? Math.floor(Math.random() * 3) + 2 : (Math.random() < 0.85 ? (Math.random() < 0.4 ? 2 : 1) : 0);
+  (monster.drops || []).forEach((drop, index) => {
+    const affectsChance = ['rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity);
+    const chance = Math.min(1, drop.chance * (affectsChance ? Math.max(0.1, rareDropMult) : 1));
+    if (Math.random() <= chance) items.push(makeDropItem(drop, monster.level, index));
+  });
 
-  const itemTypes: ItemType[] = ['weapon', 'offhand', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'belt', 'cloak', 'potion'];
-
-  for (let i = 0; i < itemCount; i++) {
-    const type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-    const rarity = rollRarity(rareDropMult, isBoss);
-
-    if (type === 'potion') {
-      const isLarge = monsterLevel > 15 || rarity === 'rare' || rarity === 'epic';
-      items.push({
-        id: 'drop_pot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        templateId: isLarge ? 'pot_hp_large' : 'pot_hp_small',
-        name: isLarge ? 'Великое зелье исцеления' : 'Малое зелье исцеления',
-        type: 'potion',
-        rarity: isLarge ? 'rare' : 'common',
-        level: monsterLevel,
-        upgradeLevel: 0,
-        icon: '🧪',
-        description: isLarge ? 'Восстанавливает 350 ед. здоровья в бою.' : 'Восстанавливает 150 ед. здоровья в бою.',
-        stats: {},
-        sellPrice: 15 + monsterLevel * 2,
-        disassembleYield: { shards: 1 },
-        stackCount: Math.floor(Math.random() * 2) + 1
-      });
-      continue;
-    }
-
-    const prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-    let baseName = '';
-    let icon = '📦';
-    let image: string | undefined = undefined;
-
-    if (type === 'weapon') {
-      baseName = WEAPON_NAMES[Math.floor(Math.random() * WEAPON_NAMES.length)];
-      icon = '🗡️';
-      if (rarity === 'legendary' || rarity === 'mythic') image = ASSETS.relicWeapon;
-    } else if (type === 'offhand') {
-      baseName = SHIELD_NAMES[Math.floor(Math.random() * SHIELD_NAMES.length)];
-      icon = '🛡️';
-      if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary' || rarity === 'mythic') {
-        image = ASSETS.itemRelicShield;
-      }
-    } else if (type === 'helmet') {
-      baseName = HELMET_NAMES[Math.floor(Math.random() * HELMET_NAMES.length)];
-      icon = '🪖';
-      if (rarity === 'epic' || rarity === 'legendary' || rarity === 'mythic') {
-        image = ASSETS.itemRelicHelm;
-      }
-    } else if (type === 'armor') {
-      baseName = ARMOR_NAMES[Math.floor(Math.random() * ARMOR_NAMES.length)];
-      icon = '🥋';
-    } else if (type === 'ring' || type === 'amulet') {
-      baseName = ACCESSORY_NAMES[Math.floor(Math.random() * ACCESSORY_NAMES.length)];
-      icon = type === 'ring' ? '💍' : '📿';
-    } else {
-      baseName = `${type === 'gloves' ? 'Перчатки' : type === 'boots' ? 'Сапоги' : type === 'belt' ? 'Пояс' : 'Плащ'} странника`;
-      icon = type === 'gloves' ? '🧤' : type === 'boots' ? '👢' : type === 'belt' ? '🥋' : '🧥';
-    }
-
-    const fullName = `${prefix} ${baseName}`;
-
-    // Stat generation scaled by level and rarity
-    const rarityMultiplier: Record<ItemRarity, number> = {
-      common: 1.0,
-      uncommon: 1.25,
-      rare: 1.6,
-      epic: 2.1,
-      legendary: 2.8,
-      mythic: 3.8,
-      ancient: 4.8,
-      divine: 6.0
-    };
-
-    const mult = rarityMultiplier[rarity];
-    const stats: Record<string, number> = {};
-
-    let baseAttack: number | undefined = undefined;
-    let baseDefense: number | undefined = undefined;
-    let baseMagicDef: number | undefined = undefined;
-
-    if (type === 'weapon') {
-      baseAttack = Math.round((10 + monsterLevel * 3.5) * mult);
-      stats.attack = baseAttack;
-      if (rarity !== 'common') {
-        stats.critChance = Math.min(25, Math.round(3 + mult * 2));
-        stats.armorPenetration = Math.round(monsterLevel * 1.2 * mult);
-        if (rarity === 'legendary' || rarity === 'mythic') {
-          stats.vampirism = Math.min(20, Math.round(4 + mult * 1.5));
-          stats.critDamage = Math.round(15 * mult);
-        }
-      }
-    } else if (type === 'offhand' || type === 'armor' || type === 'helmet' || type === 'boots' || type === 'gloves') {
-      baseDefense = Math.round((6 + monsterLevel * 2.2) * mult);
-      baseMagicDef = Math.round((4 + monsterLevel * 1.8) * mult);
-      stats.defense = baseDefense;
-      stats.magicDefense = baseMagicDef;
-      stats.maxHp = Math.round((20 + monsterLevel * 10) * mult);
-      if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary' || rarity === 'mythic') {
-        stats.hpRegen = Math.round(2 + mult);
-        stats.evasion = Math.min(18, Math.round(2 + mult * 1.5));
-      }
-    } else {
-      // Accessories
-      stats.maxHp = Math.round((15 + monsterLevel * 8) * mult);
-      stats.maxMp = Math.round((10 + monsterLevel * 6) * mult);
-      if (rarity !== 'common') {
-        stats.critChance = Math.min(15, Math.round(2 + mult));
-        stats.vampirism = Math.min(15, Math.round(2 + mult));
-        stats.armorPenetration = Math.round(monsterLevel * 0.8 * mult);
-      }
-    }
-
-    const newItem: GameItem = {
-      id: 'loot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-      templateId: 'item_' + fullName.toLowerCase().replace(/\s+/g, '_'),
-      name: fullName,
-      type,
-      rarity,
-      level: monsterLevel,
-      upgradeLevel: 0,
-      icon,
-      image,
-      description: `Уровень ${monsterLevel}. Добыто в бою с монстрами.`,
-      baseAttack,
-      baseDefense,
-      baseMagicDef,
-      stats,
-      sellPrice: Math.round((15 + monsterLevel * 5) * mult),
-      disassembleYield: {
-        ore: Math.max(1, Math.floor(monsterLevel / 2)),
-        shards: rarity === 'common' ? 1 : rarity === 'uncommon' ? 2 : rarity === 'rare' ? 4 : rarity === 'epic' ? 8 : 15
-      },
-      stackCount: 1
-    };
-
-    items.push(newItem);
-  }
-
-  return { items, gold, silver, shards };
+  return {
+    items,
+    gold: Math.max(0, Math.round(baseGold * goldMult)),
+    silver: Math.max(0, Math.round(baseSilver * silverMult)),
+    shards
+  };
 }
