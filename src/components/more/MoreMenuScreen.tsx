@@ -233,45 +233,17 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
       {/* LEADERBOARD SECTION */}
       {activeSection === 'leaderboard' && (
-        <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2">
-          <div className="text-xs font-mono text-yellow-300 uppercase tracking-wider px-1 mb-2">
-            Топ Охотников Королевства:
-          </div>
-
-          {[
-            { rank: 1, name: 'Архимаг Азазель', class: 'Маг', lvl: 98, rating: 2840, tag: 'DRAGON' },
-            { rank: 2, name: 'Император Корвин', class: 'Паладин', lvl: 95, rating: 2710, tag: 'NEXUS' },
-            { rank: 3, name: 'Тень Ночи', class: 'Ассасин', lvl: 92, rating: 2650, tag: 'SILENT' },
-            { rank: 4, name: player.name, class: player.classId, lvl: player.level, rating: player.arenaRating, isMe: true },
-          ].map(lead => (
-            <div
-              key={lead.rank}
-              className={`p-2.5 rounded-lg border flex items-center justify-between text-xs font-mono ${
-                lead.isMe ? 'bg-cyan-950/40 border-cyan-400 text-cyan-200' : 'bg-slate-900/60 border-slate-800 text-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className={`w-5 text-center font-bold ${lead.rank === 1 ? 'text-yellow-400' : lead.rank === 2 ? 'text-slate-300' : lead.rank === 3 ? 'text-amber-600' : 'text-slate-500'}`}>
-                  #{lead.rank}
-                </span>
-                <div>
-                  <div className="font-bold flex items-center gap-1.5">
-                    <span>{lead.name}</span>
-                    {lead.tag && <span className="text-[10px] text-purple-400">[{lead.tag}]</span>}
-                  </div>
-                  <span className="text-[10px] text-slate-400">Ур. {lead.lvl} · {lead.class}</span>
-                </div>
-              </div>
-
-              <span className="text-amber-400 font-bold">
-                {lead.rating} PTS
-              </span>
-            </div>
-          ))}
+        <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-5 text-center">
+          <Trophy className="w-8 h-8 mx-auto text-amber-400 mb-2" />
+          <div className="font-cinzel text-sm font-bold text-slate-200">Рейтинг игроков</div>
+          <p className="text-[10px] text-slate-500 mt-1">
+            Глобальный рейтинг будет показываться только из серверной базы. Тестовые персонажи больше не используются.
+          </p>
         </div>
       )}
 
       {/* Admin Button */}
+      {import.meta.env.DEV &&
       <div className="pt-2">
         <button
           onClick={onOpenAdmin}
@@ -280,7 +252,8 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           <ShieldAlert className="w-4 h-4 text-purple-400" />
           <span>Панель Администратора</span>
         </button>
-      </div>
+      </div}
+>
     </div>
   );
 };
