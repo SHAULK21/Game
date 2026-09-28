@@ -1,4 +1,4 @@
-import { StatusEffect } from '../types/game';
+import { DamageType, StatusEffect } from '../types/game';
 
 export interface StatusModifiers {
   skipTurn: boolean;
@@ -10,6 +10,7 @@ export interface StatusModifiers {
 export interface StatusTickResult extends StatusModifiers {
   effects: StatusEffect[];
   damage: number;
+  damageByType: Partial<Record<DamageType, number>>;
 }
 
 /**
@@ -58,9 +59,12 @@ export function getStatusModifiers(effects: StatusEffect[]): StatusModifiers {
 export function tickStatusEffects(effects: StatusEffect[]): StatusTickResult {
   const modifiers = getStatusModifiers(effects);
   let damage = 0;
+  const damageByType: Partial<Record<DamageType, number>> = {};
 
   for (const effect of effects) {
     if (effect.type === 'poison' || effect.type === 'bleed' || effect.type === 'burn') {
+      const type: DamageType = effect.type === 'poison' ? 'poison' : effect.type === 'burn' ? 'fire' : 'physical';
+      damageByType[type] = (damageByType[type] || 0) + Math.max(0, effect.value);
       damage += Math.max(0, effect.value);
     }
   }
@@ -68,6 +72,7 @@ export function tickStatusEffects(effects: StatusEffect[]): StatusTickResult {
   return {
     ...modifiers,
     damage: Math.round(damage * modifiers.damageTakenMultiplier),
+    damageByType,
     effects: effects
       .map(effect => ({ ...effect, duration: effect.duration - 1 }))
       .filter(effect => effect.duration > 0)
