@@ -10,7 +10,6 @@ import {
   Plus,
   CheckCircle,
   X,
-  Package,
   FlaskConical,
   Pickaxe,
   Gem,
@@ -81,10 +80,16 @@ const PERCENT_STATS = new Set([
 
 const getItemStats = (item?: GameItem | null): Record<string, number> => {
   if (!item) return {};
-  const stats: Record<string, number> = { ...(item.stats || {}) };
-  if (item.baseAttack && stats.attack === undefined) stats.attack = item.baseAttack;
-  if (item.baseDefense && stats.defense === undefined) stats.defense = item.baseDefense;
-  if (item.baseMagicDef && stats.magicDefense === undefined) stats.magicDefense = item.baseMagicDef;
+  const upMult = 1 + (item.upgradeLevel || 0) * 0.12;
+  const stats: Record<string, number> = {};
+  Object.entries(item.stats || {}).forEach(([key, value]) => {
+    stats[key] = ['attack', 'magicAttack', 'defense', 'magicDefense'].includes(key)
+      ? Math.round(value * upMult)
+      : value;
+  });
+  if (item.baseAttack && stats.attack === undefined) stats.attack = Math.round(item.baseAttack * upMult);
+  if (item.baseDefense && stats.defense === undefined) stats.defense = Math.round(item.baseDefense * upMult);
+  if (item.baseMagicDef && stats.magicDefense === undefined) stats.magicDefense = Math.round(item.baseMagicDef * upMult);
   return stats;
 };
 
