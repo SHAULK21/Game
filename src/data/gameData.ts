@@ -1082,7 +1082,7 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Глаз Прадракона', type: 'artifact', rarity: 'divine', chance: 0.05, minQty: 1, maxQty: 1 },
       { itemName: 'Крушитель Богов Аэтельгарда', type: 'weapon', rarity: 'ancient', chance: 0.15, minQty: 1, maxQty: 1 },
       { itemName: 'Чешуйчатый доспех дракона', type: 'armor', rarity: 'mythic', chance: 0.3, minQty: 1, maxQty: 1 },
-      { itemName: 'Драконит', type: 'ore', rarity: 'ancient', chance: 0.9, minQty: 5, maxQty: 15 }
+      { itemName: 'Драконит', type: 'ore', rarity: 'ancient', chance: 0.9, minQty: 5, maxQty: 15 },
       { itemName: 'Магическая эссенция', type: 'material', rarity: 'epic', chance: 0.75, minQty: 2, maxQty: 5 },
     ]
   }
