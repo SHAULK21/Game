@@ -119,6 +119,7 @@ const ItemTypeIcon: React.FC<{ type: ItemType; className?: string }> = ({ type, 
 
 const getResourceUse = (item: GameItem) => {
   if (item.type === 'ore') return 'Кузница · заточка экипировки';
+  if (item.name === 'Сырой самоцвет') return 'Огранка · превращается в кристаллы';
   if (item.name === 'Лечебная трава' || item.name === 'Чистая вода' || item.name === 'Лунная пыльца' || item.name === 'Ядовитая железа' || item.name === 'Острый клык' || item.name === 'Огненный цветок' || item.name === 'Горный корень' || item.name === 'Магическая эссенция') {
     return 'Алхимия · создание зелий';
   }
@@ -501,7 +502,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </button>
               )}
 
-              {selectedIsEquipment && !currentSelected.isEquipped && (
+              {((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.crystals)) && (
                 <button
                   onClick={() => {
                     disassembleItem(currentSelected);
@@ -509,19 +510,22 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   }}
                   className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
-                  <Sparkles className="w-4 h-4 text-cyan-400" /> Разобрать
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  {currentSelected.name === 'Сырой самоцвет' ? 'Огранить → кристалл' : 'Разобрать'}
                 </button>
               )}
 
-              <button
-                onClick={() => {
-                  sellItem(currentSelected);
-                  setSelectedItem(null);
-                }}
-                className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5"
-              >
-                <Coins className="w-4 h-4" /> Продать за {currentSelected.sellPrice || 0} 🪙
-              </button>
+              {!currentSelected.isEquipped && (
+                <button
+                  onClick={() => {
+                    sellItem(currentSelected);
+                    setSelectedItem(null);
+                  }}
+                  className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Coins className="w-4 h-4" /> Продать за {currentSelected.sellPrice || 0} 🪙
+                </button>
+              )}
             </div>
           </div>
         </div>
