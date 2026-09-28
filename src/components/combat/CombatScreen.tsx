@@ -1,0 +1,752 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useGame } from '../../context/GameContext';
+import { 
+  Swords, 
+  Shield, 
+  Sparkles, 
+  Zap, 
+  Heart, 
+  Play, 
+  Pause, 
+  Settings2,
+  Skull,
+  Footprints,
+  AlertTriangle,
+  Gift,
+  Plus,
+  Hourglass,
+  Clock
+} from 'lucide-react';
+import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } from '../../data/gameData';
+import { sound } from '../../utils/audio';
+
+export const CombatScreen: React.FC = () => {
+  const {
+    player,
+    activeMonster,
+    battleLog,
+    isInCombat,
+    isCombatEnded,
+    combatOutcome,
+    combatPlayerHp,
+    combatPlayerMp,
+    turnPhase,
+    playerEffects,
+    monsterEffects,
+    autoBattle,
+    combatStats,
+    startBattleWithMonster,
+    performPlayerAction,
+    toggleAutoBattle,
+    updateAutoBattleSettings,
+    exitCombat,
+    meditateOrRefillEnergy
+  } = useGame();
+
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedMonsterId, setSelectedMonsterId] = useState<string>('m_wolf');
+  const [energyError, setEnergyError] = useState<string | null>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll combat log
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [battleLog]);
+
+  if (!player) return null;
+
+  const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
+  const regionMonsters = currentRegion.monsters.map(id => MONSTERS[id]).filter(Boolean);
+  const activeMod = REGION_MODIFIERS[player.activeRegionModId || currentRegion.defaultModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+
+  // Quick potion count
+  const potionItem = player.inventory.find(i => i.type === 'potion');
+  const potionCount = potionItem ? (potionItem.stackCount || 1) : 0;
+
+  const handleStartBattle = (mon: typeof MONSTERS[string]) => {
+    setEnergyError(null);
+    const success = startBattleWithMonster(mon);
+    if (!success) {
+      setEnergyError(`Недостаточно энергии! Требуется ${activeMod.energyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
+      setTimeout(() => setEnergyError(null), 5000);
+    }
+  };
+
+  const isMonsterImg = (avatar: string) => avatar.startsWith('/') || avatar.startsWith('http') || avatar.includes('.');
+
+  // OUT OF COMBAT: Hunting Dashboard
+  if (!isInCombat || !activeMonster) {
+    return (
+      <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+        {/* Banner */}
+        <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 p-4 bg-gradient-to-b from-[#0c1322] to-[#07090e] shadow-lg shadow-cyan-950/30">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-mono tracking-wider text-cyan-400 uppercase">
+              Охотничьи угодья
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-400/40 text-cyan-300 font-mono">
+                {currentRegion.levelRange}
+              </span>
+              <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${activeMod.badgeColor}`}>
+                {activeMod.icon} {activeMod.name}
+              </span>
+            </div>
+          </div>
+
+          <h2 className="font-cinzel text-xl font-bold text-slate-100 flex items-center gap-2">
+            <span>{currentRegion.icon}</span>
+            <span>{currentRegion.name}</span>
+          </h2>
+          <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+            {currentRegion.description}
+          </p>
+
+          {/* Energy notice */}
+          <div className="mt-3 flex items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1.5 text-amber-300 font-mono">
+              <Zap className="w-4 h-4 fill-amber-400" />
+              <span>Стоимость боя: <strong className="text-amber-200">{activeMod.energyCost} ⚡</strong></span>
+            </div>
+            <div className="text-slate-400 font-mono text-[11px]">
+              Ваша энергия: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
+            </div>
+          </div>
+
+          {/* Energy Warning alert */}
+          {energyError && (
+            <div className="mt-2.5 p-3 rounded-xl bg-rose-950/90 border border-rose-500/60 text-xs text-rose-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{energyError}</span>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => meditateOrRefillEnergy('meditate')}
+                  className="px-2.5 py-1 bg-emerald-950 border border-emerald-500 rounded text-emerald-200 text-[10px] font-bold"
+                >
+                  🧘 Помедитировать (+25 ⚡)
+                </button>
+                <button
+                  onClick={() => meditateOrRefillEnergy('silver')}
+                  className="px-2.5 py-1 bg-amber-950 border border-amber-500 rounded text-amber-200 text-[10px] font-bold"
+                >
+                  🧪 Зелье бодрости (50 🥈)
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => {
+                const target = MONSTERS[selectedMonsterId] || regionMonsters[0];
+                if (target) handleStartBattle(target);
+              }}
+              className="flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Swords className="w-4 h-4" />
+              <span>Вступить в бой ({activeMod.energyCost} ⚡)</span>
+            </button>
+
+            <button
+              onClick={() => setIsSettingsOpen(prev => !prev)}
+              aria-label="Настройки автобоя"
+              className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 active:scale-95 transition-all"
+            >
+              <Settings2 className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Auto Battle Configuration Dialog */}
+        {isSettingsOpen && (
+          <div className="bg-slate-900/95 border border-purple-500/40 rounded-xl p-3.5 space-y-3 shadow-xl">
+            <div className="flex items-center justify-between">
+              <span className="font-cinzel text-xs font-bold text-purple-300">
+                Настройки Авто-Боя
+              </span>
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Закрыть
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="flex items-center justify-between text-slate-300">
+                <span>Использовать способности:</span>
+                <input
+                  type="checkbox"
+                  checked={autoBattle.useSkills}
+                  onChange={e => updateAutoBattleSettings({ useSkills: e.target.checked })}
+                  className="rounded text-cyan-500 focus:ring-0"
+                />
+              </label>
+
+              <label className="flex items-center justify-between text-slate-300">
+                <span>Авто-зелье при HP ниже:</span>
+                <span className="font-mono text-cyan-400">{autoBattle.healAtHpPercent}%</span>
+              </label>
+
+              <input
+                type="range"
+                min="20"
+                max="70"
+                value={autoBattle.healAtHpPercent}
+                onChange={e => updateAutoBattleSettings({ healAtHpPercent: Number(e.target.value) })}
+                className="w-full accent-cyan-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Combat Stats Overview Card (Showcase Influence of Attributes) */}
+        <div className="p-3 rounded-xl bg-[#090e1a] border border-cyan-500/20 space-y-2 shadow-md">
+          <div className="flex items-center justify-between text-xs font-mono text-cyan-300 border-b border-slate-800 pb-1">
+            <span>Боевые параметры охотника</span>
+            <span className="text-[10px] text-slate-400">Влияние на исход боя</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">🩸 Вампиризм</span>
+              <span className="text-rose-400 font-bold">+{combatStats.vampirism}% HP</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">⚔️ Пробитие</span>
+              <span className="text-amber-300 font-bold">{combatStats.armorPenetration} ед.</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">🎯 Крит. шанс</span>
+              <span className="text-cyan-300 font-bold">{Math.round(combatStats.critChance)}% (x{(combatStats.critDamage / 100).toFixed(1)})</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">🛡️ Броня / Маг</span>
+              <span className="text-slate-200 font-bold">{combatStats.defense} / {combatStats.magicDefense}</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">💨 Уклонение</span>
+              <span className="text-indigo-300 font-bold">{Math.round(combatStats.evasion)}%</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
+              <span className="text-slate-400 block text-[9px]">✨ Регенерация</span>
+              <span className="text-emerald-400 font-bold">+{combatStats.hpRegen} HP/ход</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Monster Selector */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-cinzel text-xs font-bold text-slate-300 uppercase tracking-wider">
+              Обитатели локации
+            </h3>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {regionMonsters.length} видов монстров
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {regionMonsters.map(mon => {
+              const isSelected = selectedMonsterId === mon.id;
+              const hasImg = isMonsterImg(mon.avatar);
+
+              return (
+                <div
+                  key={mon.id}
+                  onClick={() => setSelectedMonsterId(mon.id)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    isSelected
+                      ? 'bg-cyan-950/40 border-cyan-400 shadow-md shadow-cyan-950/50'
+                      : 'bg-[#0a0f1a] border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {hasImg ? (
+                      <img
+                        src={mon.avatar}
+                        alt={mon.name}
+                        className="w-12 h-12 rounded-lg object-cover border border-slate-700 shadow-sm"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className="text-2xl p-1.5 bg-slate-900 rounded-lg border border-slate-800">
+                        {mon.avatar}
+                      </span>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-cinzel text-xs font-bold text-slate-100">
+                          {mon.name}
+                        </span>
+                        {mon.isBoss && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 bg-red-950 text-red-300 border border-red-500 rounded">
+                            БОСС
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 flex items-center gap-3 mt-0.5">
+                        <span>Ур. {mon.level}</span>
+                        <span>·</span>
+                        <span>HP: {mon.maxHp}</span>
+                        <span>·</span>
+                        <span>Атака: {mon.attack}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleStartBattle(mon);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600/80 hover:bg-cyan-500 text-white active:scale-95 transition-transform"
+                  >
+                    Атаковать
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ACTIVE COMBAT SCREEN
+  const monsterHpPct = Math.max(0, Math.min(100, Math.round((activeMonster.hp / activeMonster.maxHp) * 100)));
+  const playerHpPct = Math.max(0, Math.min(100, Math.round((combatPlayerHp / combatStats.maxHp) * 100)));
+  const playerMpPct = Math.max(0, Math.min(100, Math.round((combatPlayerMp / combatStats.maxMp) * 100)));
+  const hasMonImg = isMonsterImg(activeMonster.avatar);
+  const playerClass = CLASSES[player.classId] || CLASSES['warrior'];
+  const playerHeroImg = playerClass?.image || ASSETS.heroHunter;
+
+  return (
+    <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
+      {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
+      <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] shadow-2xl h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
+        {/* Atmospheric Background with gradient lighting */}
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-950/35 via-[#070c18] to-red-950/40 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-transparent to-transparent pointer-events-none" />
+
+        {/* Top combat status bar inside the 1/3 showcase */}
+        <div className="relative z-10 flex items-center justify-between text-[11px] font-mono border-b border-slate-800/80 pb-1.5">
+          <div className="flex items-center gap-1.5 text-cyan-300">
+            <span className="font-bold truncate max-w-[120px]">{currentRegion.name}</span>
+            <span className="text-slate-600">·</span>
+            <span className="text-amber-300 text-[10px]">[{activeMod.name}]</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-[10px]">Раунд {battleLog.length + 1}</span>
+            <div className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border transition-all ${
+              turnPhase === 'player'
+                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-sm shadow-cyan-500/30 animate-pulse'
+                : turnPhase === 'monster'
+                ? 'bg-red-950/90 border-red-500/80 text-red-300 shadow-sm shadow-red-500/30 animate-pulse'
+                : 'bg-slate-800 border-slate-700 text-slate-300'
+            }`}>
+              {turnPhase === 'player' && <span>⚔️ ВАШ ХОД</span>}
+              {turnPhase === 'monster' && <span>⏳ ХОД ВРАГА</span>}
+              {turnPhase === 'ended' && <span>ФИНИШ</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Main 1/3 Arena: Hero (Left) vs Center (VS Clash) vs Monster (Right) */}
+        <div className="relative z-10 flex-1 grid grid-cols-5 items-center gap-2 py-1">
+          {/* Left: Hero Card (2 cols) */}
+          <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${
+            turnPhase === 'player'
+              ? 'ring-2 ring-cyan-400/80 bg-cyan-950/40 shadow-lg shadow-cyan-950/60 scale-[1.02]'
+              : 'opacity-80 bg-slate-900/40'
+          }`}>
+            {/* Hero Image */}
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md shadow-cyan-950 bg-slate-950">
+              <img
+                src={playerHeroImg}
+                alt={player.name}
+                className="w-full h-full object-cover object-top"
+                referrerPolicy="no-referrer"
+              />
+              <span className="absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-cyan-300 py-0.5 truncate px-1">
+                {playerClass.name}
+              </span>
+              {turnPhase === 'player' && (
+                <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm animate-ping" />
+              )}
+            </div>
+
+            <div className="w-full mt-1.5 text-center">
+              <div className="flex items-center justify-between text-[11px] font-mono leading-none">
+                <span className="font-bold text-slate-200 truncate max-w-[70px]">{player.name}</span>
+                <span className="text-cyan-400 font-bold text-[10px]">Ур. {player.level}</span>
+              </div>
+
+              {/* Hero HP Bar */}
+              <div className="mt-1">
+                <div className="flex justify-between text-[9px] font-mono text-emerald-400">
+                  <span className="font-bold">HP</span>
+                  <span className="tabular-nums">{combatPlayerHp}/{combatStats.maxHp}</span>
+                </div>
+                <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-emerald-950 mt-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300 rounded-full"
+                    style={{ width: `${playerHpPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Hero MP Bar */}
+              <div className="mt-0.5">
+                <div className="flex justify-between text-[9px] font-mono text-indigo-400">
+                  <span className="font-bold">MP</span>
+                  <span className="tabular-nums">{combatPlayerMp}/{combatStats.maxMp}</span>
+                </div>
+                <div className="h-1 bg-slate-950 rounded-full overflow-hidden border border-indigo-950">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-400 transition-all duration-300 rounded-full"
+                    style={{ width: `${playerMpPct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Center: Clash VS Badge (1 col) */}
+          <div className="col-span-1 flex flex-col items-center justify-center">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-cinzel font-bold text-xs shadow-lg transition-all ${
+              turnPhase === 'player'
+                ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-2 border-cyan-300 scale-110 shadow-cyan-500/50'
+                : turnPhase === 'monster'
+                ? 'bg-gradient-to-br from-red-600 to-rose-700 text-white border-2 border-red-300 scale-110 shadow-red-500/50'
+                : 'bg-slate-800 text-slate-300 border border-slate-600'
+            }`}>
+              VS
+            </div>
+
+            <div className="mt-1 text-center">
+              <span className={`text-[9px] font-mono font-bold block ${
+                turnPhase === 'player' ? 'text-cyan-300' : 'text-rose-400'
+              }`}>
+                {turnPhase === 'player' ? 'Вы' : 'Враг'}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Monster Card (2 cols) */}
+          <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${
+            turnPhase === 'monster'
+              ? 'ring-2 ring-red-500/80 bg-red-950/40 shadow-lg shadow-red-950/60 scale-[1.02]'
+              : 'opacity-80 bg-slate-900/40'
+          }`}>
+            {/* Monster Image */}
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md shadow-red-950 flex items-center justify-center bg-red-950/40">
+              {hasMonImg ? (
+                <img
+                  src={activeMonster.avatar}
+                  alt={activeMonster.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="text-4xl">{activeMonster.avatar}</span>
+              )}
+              {activeMonster.isBoss && (
+                <span className="absolute top-0 right-0 bg-red-600 text-white text-[8px] font-bold px-1 rounded-bl">
+                  БОСС
+                </span>
+              )}
+              <span className="absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-red-300 py-0.5 truncate px-1">
+                {activeMonster.name}
+              </span>
+              {turnPhase === 'monster' && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-400 shadow-sm animate-ping" />
+              )}
+            </div>
+
+            <div className="w-full mt-1.5 text-center">
+              <div className="flex items-center justify-between text-[11px] font-mono leading-none">
+                <span className="font-bold text-slate-200 truncate max-w-[70px]">{activeMonster.name}</span>
+                <span className="text-red-400 font-bold text-[10px]">Ур. {activeMonster.level}</span>
+              </div>
+
+              {/* Monster HP Bar */}
+              <div className="mt-1">
+                <div className="flex justify-between text-[9px] font-mono text-red-400">
+                  <span className="font-bold">HP</span>
+                  <span className="tabular-nums">{activeMonster.hp}/{activeMonster.maxHp}</span>
+                </div>
+                <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-red-950 mt-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 transition-all duration-300 rounded-full"
+                    style={{ width: `${monsterHpPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Monster Attack info / Status effects */}
+              <div className="mt-1 flex items-center justify-between text-[9px] font-mono text-slate-400">
+                <span>⚔️ {activeMonster.attack}</span>
+                <span>🛡️ {activeMonster.defense}</span>
+                {monsterEffects.length > 0 && (
+                  <span className="text-purple-300 truncate max-w-[45px]">
+                    {monsterEffects[0].name}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. BUTTONS PLACED DIRECTLY UNDERNEATH THE IMAGES */}
+      <div className="space-y-2">
+        {/* Turn Status Alert Banner with Auto-Battle Toggle */}
+        <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono transition-all ${
+          turnPhase === 'player'
+            ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-200 shadow-md shadow-cyan-950/40'
+            : turnPhase === 'monster'
+            ? 'bg-red-950/60 border-red-500/60 text-red-200 shadow-md shadow-red-950/40 animate-pulse'
+            : 'bg-slate-900 border-slate-800 text-slate-300'
+        }`}>
+          <div className="flex items-center gap-2">
+            {turnPhase === 'player' ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                <span className="font-cinzel font-bold text-cyan-300">ВАШ ХОД</span>
+                <span className="text-[11px] text-slate-300 hidden sm:inline">— Выберите действие</span>
+              </>
+            ) : turnPhase === 'monster' ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping" />
+                <span className="font-cinzel font-bold text-red-300">ХОД ПРОТИВНИКА</span>
+                <span className="text-[11px] text-slate-300 hidden sm:inline">— {activeMonster.name} атакует...</span>
+              </>
+            ) : (
+              <span className="font-cinzel font-bold text-slate-200">БОЙ ЗАВЕРШЕН</span>
+            )}
+          </div>
+
+          {/* Auto-Battle Toggle */}
+          <button
+            onClick={toggleAutoBattle}
+            className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
+              autoBattle.enabled
+                ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/50 animate-pulse'
+                : 'bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+          >
+            {autoBattle.enabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            <span>{autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ'}</span>
+          </button>
+        </div>
+
+        {/* COMBAT ACTIONS OR COMBAT RESULT */}
+        {isCombatEnded ? (
+          <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl text-center space-y-3 shadow-xl">
+            <div className="font-cinzel text-lg font-bold text-slate-100 flex items-center justify-center gap-2">
+              {combatOutcome === 'victory' && (
+                <>
+                  <Gift className="w-5 h-5 text-amber-400 animate-bounce" />
+                  <span>ПОБЕДА! ВРАГ ПОВЕРЖЕН</span>
+                </>
+              )}
+              {combatOutcome === 'defeat' && '💀 ПОРАЖЕНИЕ В БОЮ'}
+              {combatOutcome === 'flee' && '🏃 ВЫ УСПЕШНО СКРЫЛИСЬ'}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  exitCombat();
+                  if (activeMonster) {
+                    handleStartBattle(activeMonster);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
+              >
+                Следующий бой ({activeMod.energyCost} ⚡)
+              </button>
+
+              <button
+                onClick={exitCombat}
+                className="flex-1 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-xs text-slate-200 active:scale-95 transition-all"
+              >
+                В локацию
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={`space-y-2 transition-all ${turnPhase === 'monster' ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
+            {/* Primary Action Buttons Grid (Row 1) */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Attack */}
+              <button
+                onClick={() => performPlayerAction('attack')}
+                disabled={turnPhase !== 'player'}
+                className="py-3 px-2 rounded-xl bg-gradient-to-b from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-cyan-400/40"
+              >
+                <Swords className="w-4 h-4 text-cyan-200" />
+                <span>Атака</span>
+              </button>
+
+              {/* Skills Drawer */}
+              <button
+                onClick={() => setIsSkillsOpen(prev => !prev)}
+                disabled={turnPhase !== 'player'}
+                className="py-3 px-2 rounded-xl bg-gradient-to-b from-indigo-700 to-indigo-800 hover:from-indigo-600 hover:to-indigo-700 text-white font-cinzel font-bold text-xs shadow-md shadow-indigo-950 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-indigo-400/40"
+              >
+                <Zap className="w-4 h-4 text-indigo-200" />
+                <span>Навыки</span>
+              </button>
+
+              {/* Defend */}
+              <button
+                onClick={() => performPlayerAction('defend')}
+                disabled={turnPhase !== 'player'}
+                className="py-3 px-2 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
+              >
+                <Shield className="w-4 h-4 text-slate-300" />
+                <span>Защита (+25 MP)</span>
+              </button>
+            </div>
+
+            {/* Secondary Action Buttons Grid (Row 2) */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Potion */}
+              <button
+                onClick={() => performPlayerAction('potion')}
+                disabled={turnPhase !== 'player' || potionCount <= 0}
+                className={`py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  potionCount > 0
+                    ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200 active:scale-95'
+                    : 'bg-slate-900/50 border-slate-800 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <Heart className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Зелье ({potionCount})</span>
+              </button>
+
+              {/* Execute */}
+              <button
+                onClick={() => performPlayerAction('execute')}
+                disabled={turnPhase !== 'player'}
+                className={`py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  monsterHpPct <= 35
+                    ? 'bg-rose-950/80 border-rose-500 text-rose-200 animate-pulse font-bold'
+                    : 'bg-slate-900 border-slate-800 text-slate-300'
+                }`}
+              >
+                <Skull className="w-3.5 h-3.5 text-rose-400" />
+                <span>Добить (x2.5)</span>
+              </button>
+
+              {/* Flee */}
+              <button
+                onClick={() => performPlayerAction('flee')}
+                disabled={turnPhase !== 'player'}
+                className="py-2 px-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+              >
+                <Footprints className="w-3.5 h-3.5 text-slate-400" />
+                <span>Скрыться</span>
+              </button>
+            </div>
+
+            {/* Skills Drawer */}
+            {isSkillsOpen && (
+              <div className="bg-slate-900/95 border border-indigo-500/40 rounded-xl p-3 space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs text-indigo-300 font-cinzel font-bold border-b border-slate-800 pb-1">
+                  <span>Выберите заклинание или навык</span>
+                  <button onClick={() => setIsSkillsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1.5">
+                  {player.skills.map(skill => {
+                    const hasMp = combatPlayerMp >= skill.manaCost;
+                    return (
+                      <button
+                        key={skill.id}
+                        disabled={!hasMp || turnPhase !== 'player'}
+                        onClick={() => {
+                          performPlayerAction('skill', skill.id);
+                          setIsSkillsOpen(false);
+                        }}
+                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${
+                          hasMp
+                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
+                            : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
+                        }`}
+                      >
+                        <div>
+                          <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <span>{skill.icon}</span>
+                            <span>{skill.name}</span>
+                            {skill.isUltimate && (
+                              <span className="text-[9px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">
+                                УЛЬТ
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400">{skill.description}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={`text-[10px] font-mono block ${hasMp ? 'text-indigo-300' : 'text-rose-400'}`}>
+                            {skill.manaCost} MP
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">{skill.damageMultiplier * 100}% урона</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3. REAL-TIME COMBAT LOG */}
+      <div className="rounded-xl border border-slate-800 bg-[#070a12] p-2.5 h-36 flex flex-col">
+        <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between border-b border-slate-800/80 pb-1">
+          <span>Журнал пошагового сражения</span>
+          <span>{battleLog.length} записей</span>
+        </div>
+
+        <div ref={logContainerRef} className="flex-1 overflow-y-auto space-y-1 text-xs pr-1">
+          {battleLog.map(entry => {
+            const colorClass = 
+              entry.type === 'crit' ? 'text-amber-300 font-bold bg-amber-950/20 px-1 rounded' :
+              entry.type === 'player-attack' ? 'text-cyan-300' :
+              entry.type === 'monster-attack' ? 'text-rose-400 font-medium' :
+              entry.type === 'heal' ? 'text-emerald-300 font-medium' :
+              entry.type === 'death' ? 'text-yellow-300 font-bold bg-yellow-950/30 px-1 rounded' :
+              entry.type === 'status' ? 'text-purple-300' :
+              'text-slate-300';
+
+            return (
+              <div key={entry.id} className="leading-snug flex items-start gap-1.5 font-mono text-[11px]">
+                <span className="text-slate-500 shrink-0">[{entry.turn}]</span>
+                <span className={colorClass}>{entry.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. COMBAT INFLUENCE CHIPS (Showcase of Attributes Impact) */}
+      <div className="p-2.5 rounded-xl bg-[#090e1a] border border-cyan-500/20 text-[10px] font-mono flex items-center justify-between text-slate-300">
+        <span>🩸 Вампиризм: <strong className="text-rose-400">+{combatStats.vampirism}%</strong></span>
+        <span>⚔️ Пробитие: <strong className="text-amber-300">{combatStats.armorPenetration}</strong></span>
+        <span>🛡️ Броня: <strong className="text-slate-200">{combatStats.defense}</strong></span>
+        <span>💨 Уклон: <strong className="text-indigo-300">{Math.round(combatStats.evasion)}%</strong></span>
+        <span>🎯 Крит: <strong className="text-cyan-300">{Math.round(combatStats.critChance)}%</strong></span>
+      </div>
+    </div>
+  );
+};

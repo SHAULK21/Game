@@ -1,0 +1,6 @@
+{
+  "name": "Aethelgard RPG - Telegram Mini App",
+  "description": "Полноценная браузерная текстовая Action/Idle RPG для Telegram Mini App в стиле Dark Fantasy & Neon RPG: классы, пошаговые бои, авто-бой, инвентарь, кузница, шахта, алхимия, арена и процедурные подземелья.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

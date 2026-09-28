@@ -1,0 +1,148 @@
+import React, { useState } from 'react';
+import { useGame } from '../../context/GameContext';
+import { CharacterClassId } from '../../types/game';
+import { CLASSES, ASSETS } from '../../data/gameData';
+import { getTelegramUser } from '../../utils/telegram';
+import { Swords, Sparkles, Shield, Zap, Skull, Check } from 'lucide-react';
+import { sound } from '../../utils/audio';
+
+export const CharacterCreationModal: React.FC = () => {
+  const { createCharacter } = useGame();
+  const tgUser = getTelegramUser();
+
+  const [name, setName] = useState<string>(tgUser.first_name || 'Теневой Странник');
+  const [selectedClass, setSelectedClass] = useState<CharacterClassId>('warrior');
+
+  const handleStart = () => {
+    if (!name.trim()) return;
+    createCharacter(name, selectedClass);
+  };
+
+  const classList = Object.values(CLASSES);
+  const activeClassDef = CLASSES[selectedClass];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#07090e] overflow-y-auto p-4 flex flex-col items-center justify-center">
+      <div className="w-full max-w-md space-y-4 my-auto">
+        {/* Logo / Header */}
+        <div className="text-center space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono">
+            <span>✨</span>
+            <span>Telegram Web App RPG</span>
+          </div>
+
+          <h1 className="font-cinzel text-2xl font-black tracking-wider text-slate-100 uppercase">
+            AETHELGARD
+          </h1>
+          <p className="text-xs text-slate-400">
+            Мрачные хроники темного фэнтези. Выберите класс и создайте легенду.
+          </p>
+        </div>
+
+        {/* Hero Visual Card */}
+        <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent shadow-xl">
+          <img
+            src={activeClassDef?.image || ASSETS.heroHunter}
+            alt={activeClassDef?.name || 'Hero'}
+            className="w-full h-full object-cover object-top opacity-85 transition-opacity duration-300"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-transparent to-transparent" />
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
+            <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
+              <span>{activeClassDef?.icon}</span>
+              <span>Класс: {activeClassDef?.name}</span>
+            </span>
+            <span className="font-mono text-cyan-400 text-[11px]">
+              ID: {tgUser.id}
+            </span>
+          </div>
+        </div>
+
+        {/* Character Name Input */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+            Имя персонажа:
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Введите имя героя..."
+            className="w-full bg-[#0b101c] border border-cyan-500/30 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-cinzel font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+          />
+        </div>
+
+        {/* Class Selection Grid */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
+            Выберите класс героя:
+          </label>
+
+          <div className="grid grid-cols-3 gap-2">
+            {classList.map(c => {
+              const isSelected = selectedClass === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    setSelectedClass(c.id);
+                    sound.playClick();
+                  }}
+                  className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                    isSelected
+                      ? 'border-cyan-400 bg-cyan-950/60 shadow-md shadow-cyan-950 text-cyan-200'
+                      : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="text-xl mb-0.5">{c.icon}</span>
+                  <span className="font-cinzel text-[11px] font-bold">{c.name}</span>
+                  <span className="text-[8px] text-slate-400 truncate w-full text-center">
+                    {c.role.split('/')[0]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Class Details Card */}
+        {activeClassDef && (
+          <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
+                <span>{activeClassDef.icon}</span>
+                <span>{activeClassDef.name} ({activeClassDef.role})</span>
+              </span>
+              <span className="text-cyan-400 font-mono text-[11px]">
+                {activeClassDef.startingSkills.length} стартовых навыка
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              {activeClassDef.description}
+            </p>
+
+            {/* Base Attributes preview */}
+            <div className="grid grid-cols-4 gap-1 text-[10px] font-mono text-slate-400 pt-1">
+              <div>СИЛ: <span className="text-slate-200 font-bold">{activeClassDef.baseAttributes.strength}</span></div>
+              <div>ЛОВ: <span className="text-slate-200 font-bold">{activeClassDef.baseAttributes.agility}</span></div>
+              <div>ИНТ: <span className="text-slate-200 font-bold">{activeClassDef.baseAttributes.intelligence}</span></div>
+              <div>ЖИВ: <span className="text-slate-200 font-bold">{activeClassDef.baseAttributes.vitality}</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* Start Game Button */}
+        <button
+          onClick={handleStart}
+          disabled={!name.trim()}
+          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white font-cinzel font-bold text-sm shadow-xl shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
+        >
+          <Swords className="w-4 h-4" />
+          <span>Начать путешествие</span>
+        </button>
+      </div>
+    </div>
+  );
+};
