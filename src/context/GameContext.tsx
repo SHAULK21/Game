@@ -39,6 +39,7 @@ import { getTelegramUser, triggerHaptic, TelegramUser } from '../utils/telegram'
 import { generateCombatLoot } from '../utils/lootGenerator';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
+import { apiRequest } from '../utils/api';
 
 interface GameContextType {
   player: PlayerCharacter | null;
@@ -96,6 +97,61 @@ interface GameContextType {
   // Gathering & Crafting
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
   craftAlchemy: (recipeId: string) => boolean;
+  listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
+  buyMarketListing: (listingId: string) => Promise<{ success: boolean; message: string }>;
+  buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
+
+  const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
+    if (!player) return { success: false, message: 'Персонаж не создан.' };
+    const stack = item.stackCount || 1;
+    if (quantity < 1 || quantity > stack) return { success: false, message: 'Недостаточное количество.' };
+    try {
+      await apiRequest('/api/market/list', { method: 'POST', body: JSON.stringify({ item, quantity, price_gold: priceGold }) });
+      setPlayer(prev => {
+        if (!prev) return prev;
+        let left = quantity;
+        const inventory = prev.inventory.map(i => {
+          if (i.id !== item.id || left <= 0) return i;
+          const take = Math.min(left, i.stackCount || 1); left -= take;
+          return { ...i, stackCount: (i.stackCount || 1) - take };
+        }).filter(i => (i.stackCount || 1) > 0);
+        return { ...prev, inventory };
+      });
+      return { success: true, message: 'Лот выставлен на рынок.' };
+    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
+  }, [player]);
+
+  const buyMarketListing = useCallback(async (listingId: string) => {
+    try {
+      const result = await apiRequest<{ item: Partial<GameItem>; quantity: number; priceGold: number }>('/api/market/' + listingId + '/buy', { method: 'POST', body: '{}' });
+      if (!player) return { success: false, message: 'Персонаж не создан.' };
+      if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
+      const raw = result.item;
+      const item: GameItem = {
+        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
+        type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
+        upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
+        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
+      };
+      const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
+      if (!added.added) return { success: false, message: 'В инвентаре нет места.' };
+      setPlayer(prev => prev ? { ...prev, gold: prev.gold - result.priceGold, inventory: added.inventory } : prev);
+      return { success: true, message: 'Покупка завершена.' };
+    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Покупка не удалась.' }; }
+  }, [player]);
+
+  const buyBasicConsumable = useCallback((templateId: string, priceGold: number) => {
+    if (!player || player.gold < priceGold) return false;
+    const catalog: Record<string, GameItem> = {
+      pot_hp_small: { id: 'shop_hp', templateId: 'pot_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
+      pot_mp_small: { id: 'shop_mp', templateId: 'pot_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
+    };
+    const item = catalog[templateId]; if (!item) return false;
+    const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
+    if (!added.added) return false;
+    setPlayer(prev => prev ? { ...prev, gold: prev.gold - priceGold, inventory: added.inventory } : prev);
+    return true;
+  }, [player]);
 
   // Arena & Clan
   challengeArena: (opponent: ArenaOpponent) => void;
@@ -2409,6 +2465,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       exitDungeon,
       mineNode,
       craftAlchemy,
+      listMarketItem,
+      buyMarketListing,
+      buyBasicConsumable,
       challengeArena,
       claimQuestReward,
       claimAchievementReward,
