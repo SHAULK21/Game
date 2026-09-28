@@ -805,7 +805,7 @@ export const MONSTERS: Record<string, Monster> = {
     drops: [
       { itemName: 'Волчья шкура', type: 'material', rarity: 'common', chance: 0.8, minQty: 1, maxQty: 2 },
       { itemName: 'Острый клык', type: 'material', rarity: 'uncommon', chance: 0.4, minQty: 1, maxQty: 1 },
-      { itemName: 'Кожаный жилет охотника', type: 'armor', rarity: 'uncommon', chance: 0.15, minQty: 1, maxQty: 1 }
+      { itemName: 'Кожаный жилет охотника', type: 'armor', rarity: 'uncommon', chance: 0.15, minQty: 1, maxQty: 1 },
       { itemName: 'Лечебная трава', type: 'material', rarity: 'common', chance: 0.65, minQty: 1, maxQty: 2 },
     ]
   },
@@ -913,7 +913,7 @@ export const MONSTERS: Record<string, Monster> = {
     drops: [
       { itemName: 'Крылья Королевы Мышей', type: 'cloak', rarity: 'epic', chance: 0.25, minQty: 1, maxQty: 1 },
       { itemName: 'Кольцо эхолокации', type: 'ring', rarity: 'rare', chance: 0.5, minQty: 1, maxQty: 1 },
-      { itemName: 'Алмазный самородок', type: 'ore', rarity: 'epic', chance: 0.4, minQty: 1, maxQty: 2 }
+      { itemName: 'Алмазный самородок', type: 'ore', rarity: 'epic', chance: 0.4, minQty: 1, maxQty: 2 },
       { itemName: 'Лунная пыльца', type: 'material', rarity: 'uncommon', chance: 0.5, minQty: 1, maxQty: 2 },
     ]
   },
@@ -968,7 +968,7 @@ export const MONSTERS: Record<string, Monster> = {
     drops: [
       { itemName: 'Сердце монолита', type: 'artifact', rarity: 'epic', chance: 0.35, minQty: 1, maxQty: 1 },
       { itemName: 'Булава сокрушителя камней', type: 'weapon', rarity: 'rare', chance: 0.5, minQty: 1, maxQty: 1 },
-      { itemName: 'Мифриловая руда', type: 'ore', rarity: 'rare', chance: 0.8, minQty: 3, maxQty: 6 }
+      { itemName: 'Мифриловая руда', type: 'ore', rarity: 'rare', chance: 0.8, minQty: 3, maxQty: 6 },
       { itemName: 'Горный корень', type: 'material', rarity: 'uncommon', chance: 0.55, minQty: 1, maxQty: 2 },
     ]
   },
@@ -1023,7 +1023,7 @@ export const MONSTERS: Record<string, Monster> = {
     goldReward: 4800,
     drops: [
       { itemName: 'Меч Ледяной Скорби', type: 'weapon', rarity: 'legendary', chance: 0.2, minQty: 1, maxQty: 1 },
-      { itemName: 'Латный доспех Рыцаря Смерти', type: 'armor', rarity: 'epic', chance: 0.5, minQty: 1, maxQty: 1 }
+      { itemName: 'Латный доспех Рыцаря Смерти', type: 'armor', rarity: 'epic', chance: 0.5, minQty: 1, maxQty: 1 },
       { itemName: 'Магическая эссенция', type: 'material', rarity: 'rare', chance: 0.45, minQty: 1, maxQty: 2 },
     ]
   },
@@ -1051,7 +1051,7 @@ export const MONSTERS: Record<string, Monster> = {
     goldReward: 16000,
     drops: [
       { itemName: 'Корона Инферно', type: 'helmet', rarity: 'mythic', chance: 0.1, minQty: 1, maxQty: 1 },
-      { itemName: 'Адская коса погибели', type: 'weapon', rarity: 'legendary', chance: 0.35, minQty: 1, maxQty: 1 }
+      { itemName: 'Адская коса погибели', type: 'weapon', rarity: 'legendary', chance: 0.35, minQty: 1, maxQty: 1 },
       { itemName: 'Огненный цветок', type: 'material', rarity: 'rare', chance: 0.55, minQty: 1, maxQty: 2 },
       { itemName: 'Магическая эссенция', type: 'material', rarity: 'rare', chance: 0.65, minQty: 1, maxQty: 3 },
     ]
