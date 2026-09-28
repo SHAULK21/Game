@@ -64,6 +64,9 @@ export const MiningScreen: React.FC = () => {
           <div className="text-right">
             <span className="text-[10px] font-mono text-slate-400 block">Опыт шахтера:</span>
             <span className="text-xs font-mono text-amber-300 font-bold">{player.miningExp} EXP</span>
+            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
+              Выносливость: <span className="text-emerald-300 font-bold">{player.stamina}/{player.maxStamina}</span>
+            </span>
           </div>
         </div>
       </div>
