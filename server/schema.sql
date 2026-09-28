@@ -22,3 +22,8 @@ CREATE TABLE IF NOT EXISTS market_listings (
 );
 CREATE INDEX IF NOT EXISTS idx_market_active ON market_listings(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_telegram_id, status);
+
+
+-- Leaderboard profile fields; additive migration for existing databases.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS arena_rating INTEGER NOT NULL DEFAULT 1000;
