@@ -2332,7 +2332,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       player,
       activeMonster,
       combatChain: combatChain ? { total: combatChain.total, defeated: combatChain.defeated, remaining: combatChain.queue.length } : null,
-      battleLog:
+      battleLog,
       isInCombat,
       isCombatEnded,
       combatOutcome,
