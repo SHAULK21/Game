@@ -30,6 +30,8 @@ export type TabId =
   | 'clan' 
   | 'chat' 
   | 'market' 
+  | 'pets' 
+  | 'leaderboard'
   | 'more';
 
 interface BottomNavigationProps {
@@ -152,16 +154,16 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               </button>
 
               <button
-                onClick={() => selectSecondaryTab('more')}
-                className="flex flex-col items-center justify-center p-3 rounded-xl border bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700 transition-all"
+                onClick={() => selectSecondaryTab('pets')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${currentTab === 'pets' ? 'bg-cyan-950/50 border-cyan-400 text-cyan-300' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'}`}
               >
                 <Dog className="w-5 h-5 mb-1 text-teal-400" />
                 <span className="text-[11px] font-medium">Питомцы</span>
               </button>
 
               <button
-                onClick={() => selectSecondaryTab('more')}
-                className="flex flex-col items-center justify-center p-3 rounded-xl border bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700 transition-all"
+                onClick={() => selectSecondaryTab('leaderboard')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${currentTab === 'leaderboard' ? 'bg-cyan-950/50 border-cyan-400 text-cyan-300' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'}`}
               >
                 <Crown className="w-5 h-5 mb-1 text-yellow-400" />
                 <span className="text-[11px] font-medium">Рейтинг</span>
@@ -241,7 +243,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <button
             onClick={() => handleTabClick('more')}
             className={`relative flex flex-col items-center justify-center h-full transition-colors ${
-              isMoreDrawerOpen || ['alchemy', 'mine', 'clan', 'chat', 'market', 'more'].includes(currentTab)
+              isMoreDrawerOpen || ['alchemy', 'mine', 'clan', 'chat', 'market', 'pets', 'leaderboard', 'more'].includes(currentTab)
                 ? 'text-purple-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
