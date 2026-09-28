@@ -98,7 +98,7 @@ interface GameContextType {
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
   craftAlchemy: (recipeId: string) => boolean;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
-  buyMarketListing: (listingId: string) => Promise<{ success: boolean; message: string }>;
+  buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
@@ -121,7 +121,9 @@ interface GameContextType {
     } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
   }, [player]);
 
-  const buyMarketListing = useCallback(async (listingId: string) => {
+  const buyMarketListing = useCallback(async (listingId: string, expectedPriceGold?: number) => {
+    if (!player) return { success: false, message: 'Персонаж не создан.' };
+    if (expectedPriceGold !== undefined && player.gold < expectedPriceGold) return { success: false, message: 'Недостаточно золота.' };
     try {
       const result = await apiRequest<{ item: Partial<GameItem>; quantity: number; priceGold: number }>('/api/market/' + listingId + '/buy', { method: 'POST', body: '{}' });
       if (!player) return { success: false, message: 'Персонаж не создан.' };
