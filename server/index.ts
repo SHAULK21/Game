@@ -143,6 +143,26 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.post('/api/profile/sync', auth, async (req, res) => {
+  const level = Math.max(1, Math.min(120, Math.floor(Number(req.body?.level || 1))));
+  const arenaRating = Math.max(0, Math.min(10000, Math.floor(Number(req.body?.arenaRating || 1000))));
+  await pool.query(
+    'UPDATE players SET level = $1, arena_rating = $2, updated_at = NOW() WHERE telegram_id = $3',
+    [level, arenaRating, req.authUser!.id]
+  );
+  res.json({ ok: true });
+});
+
+app.get('/api/leaderboard', auth, async (_req, res) => {
+  const result = await pool.query(
+    `SELECT telegram_id, display_name, username, level, arena_rating
+     FROM players
+     ORDER BY level DESC, arena_rating DESC, updated_at ASC
+     LIMIT 100`
+  );
+  res.json({ players: result.rows });
+});
+
 app.get('/api/clans', auth, async (req, res) => {
   const q = String(req.query.q || '').trim();
   const result = await pool.query(
