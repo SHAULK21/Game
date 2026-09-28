@@ -1121,8 +1121,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     craftTimeSeconds: 1,
     icon: '🧪',
     ingredients: [
-      { name: 'Лечебная трава', count: 2 },
-      { name: 'Чистая вода', count: 1 }
+      { name: 'Уголь', count: 2 }
     ]
   },
   {
@@ -1131,12 +1130,11 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     resultCount: 2,
     name: 'Малое зелье маны',
     description: 'Восстанавливает 80 ед. маны.',
-    levelReq: 2,
+    levelReq: 1,
     craftTimeSeconds: 1,
     icon: '💧',
     ingredients: [
-      { name: 'Лунная пыльца', count: 2 },
-      { name: 'Чистая вода', count: 1 }
+      { name: 'Медная руда', count: 2 }
     ]
   },
   {
