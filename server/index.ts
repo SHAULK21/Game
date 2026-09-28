@@ -318,6 +318,77 @@ app.post('/api/clan/chat', auth, requireClan, async (req, res) => {
   res.status(201).json({ message: { ...result.rows[0], display_name: req.authUser!.displayName } });
 });
 
+app.get('/api/chat/global', auth, async (_req, res) => {
+  const result = await pool.query(
+    `SELECT m.id, m.text, m.created_at, p.display_name, p.username
+     FROM global_chat_messages m JOIN players p ON p.telegram_id = m.telegram_id
+     ORDER BY m.created_at DESC LIMIT 80`
+  );
+  res.json({ messages: result.rows.reverse() });
+});
+
+app.post('/api/chat/global', auth, async (req, res) => {
+  const text = String(req.body?.text || '').trim();
+  if (!text || text.length > 500) return res.status(400).json({ error: 'Сообщение: 1–500 символов.' });
+  const result = await pool.query(
+    `INSERT INTO global_chat_messages (telegram_id, text) VALUES ($1, $2)
+     RETURNING id, text, created_at`,
+    [req.authUser!.id, text]
+  );
+  res.status(201).json({ message: { ...result.rows[0], display_name: req.authUser!.displayName, username: req.authUser!.username } });
+});
+
+app.get('/api/market/listings', auth, async (req, res) => {
+  const type = String(req.query.type || '').trim();
+  const params: unknown[] = [];
+  const typeFilter = type ? `AND item_json->>'type' = $1` : '';
+  if (type) params.push(type);
+  const result = await pool.query(
+    `SELECT l.id, l.seller_telegram_id, l.item_json, l.quantity, l.price_gold, l.created_at, p.display_name, p.username
+     FROM market_listings l JOIN players p ON p.telegram_id = l.seller_telegram_id
+     WHERE l.status = 'active' AND l.expires_at > NOW() ${typeFilter}
+     ORDER BY l.created_at DESC LIMIT 100`, params
+  );
+  res.json({ listings: result.rows });
+});
+
+app.post('/api/market/list', auth, async (req, res) => {
+  const item = req.body?.item;
+  const quantity = Math.floor(Number(req.body?.quantity || 1));
+  const price = Math.floor(Number(req.body?.price_gold));
+  if (!item || typeof item !== 'object') return res.status(400).json({ error: 'Предмет не указан.' });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Количество: 1–999.' });
+  if (!Number.isInteger(price) || price < 1 || price > 100000000) return res.status(400).json({ error: 'Цена: 1–100000000 золота.' });
+  const safeItem = {
+    templateId: String(item.templateId || ''), name: String(item.name || 'Предмет').slice(0, 80),
+    type: String(item.type || 'material'), rarity: String(item.rarity || 'common'), level: Number(item.level || 1),
+    upgradeLevel: Number(item.upgradeLevel || 0), icon: String(item.icon || '📦'), stats: item.stats || {},
+    description: String(item.description || '').slice(0, 300), sellPrice: Number(item.sellPrice || 0)
+  };
+  const result = await pool.query(
+    `INSERT INTO market_listings (seller_telegram_id, item_json, quantity, price_gold)
+     VALUES ($1, $2::jsonb, $3, $4) RETURNING id, item_json, quantity, price_gold, created_at`,
+    [req.authUser!.id, JSON.stringify(safeItem), quantity, price]
+  );
+  res.status(201).json({ listing: { ...result.rows[0], display_name: req.authUser!.displayName } });
+});
+
+app.post('/api/market/:listingId/buy', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const listing = await client.query(`SELECT * FROM market_listings WHERE id = $1 AND status = 'active' AND expires_at > NOW() FOR UPDATE`, [req.params.listingId]);
+    if (!listing.rows[0]) throw new Error('Лот уже продан или снят.');
+    if (Number(listing.rows[0].seller_telegram_id) === req.authUser!.id) throw new Error('Нельзя купить собственный лот.');
+    await client.query(`UPDATE market_listings SET status = 'sold' WHERE id = $1`, [req.params.listingId]);
+    await client.query('COMMIT');
+    res.json({ ok: true, item: listing.rows[0].item_json, quantity: listing.rows[0].quantity, priceGold: listing.rows[0].price_gold, seller: listing.rows[0].seller_telegram_id });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Покупка не удалась.' });
+  } finally { client.release(); }
+});
+
 app.use(express.static(path.resolve(__dirname, '../dist'), {
   maxAge: isProduction ? '1d' : 0,
   index: 'index.html',
