@@ -16,8 +16,12 @@ export const AlchemyScreen: React.FC = () => {
     setCraftFeedback(null);
 
     setTimeout(() => {
-      craftAlchemy(recipeId);
-      setCraftFeedback('Зелье успешно сварено и добавлено в вашу сумку!');
+      const success = craftAlchemy(recipeId);
+      setCraftFeedback(
+        success
+          ? 'Зелье успешно сварено и добавлено в вашу сумку!'
+          : 'Не удалось сварить: проверьте уровень алхимии, ингредиенты и место в сумке.'
+      );
       setCraftingRecipeId(null);
     }, 600);
   };
@@ -87,7 +91,7 @@ export const AlchemyScreen: React.FC = () => {
 
                   <button
                     onClick={() => handleCraft(rec.id)}
-                    disabled={isCrafting}
+                    disabled={isCrafting || player.alchemyLevel < rec.levelReq}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
@@ -98,6 +102,7 @@ export const AlchemyScreen: React.FC = () => {
                 {/* Ingredients tag list */}
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
                   <span className="text-slate-500">Ингредиенты:</span>
+                  <span className="text-purple-300">Ур. {rec.levelReq}</span>
                   {rec.ingredients.map((ing, idx) => (
                     <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
                       {ing.name} x{ing.count}
