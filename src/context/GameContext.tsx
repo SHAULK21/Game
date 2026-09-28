@@ -335,6 +335,7 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
 };
 
 const SAVE_KEY = 'aethelgard_save_v1_data';
+const ENERGY_COSTS = { travel: 8, dungeon: 12, combat: 2, mining: 8, alchemy: 4, upgrade: 3, inventory: 2, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
@@ -1940,6 +1941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Procedural Dungeons
   const enterDungeon = useCallback((caveId: string, difficulty: DungeonRun['difficulty'] = 'normal') => {
+    if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return; }
     const cave = CAVES[caveId];
     if (!cave) return;
     sound.playClick();
@@ -2009,7 +2011,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setActiveDungeonRun(run);
-  }, []);
+    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.dungeon) } : prev);
+  }, [player]);
 
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {
     if (!activeDungeonRun) return;
@@ -2081,6 +2084,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerHaptic('error');
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
     }
+    if (player.energy < ENERGY_COSTS.mining) { triggerHaptic('error'); return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield }; }
     if (player.stamina < node.staminaCost) {
       triggerHaptic('error');
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
@@ -2181,6 +2185,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Alchemy
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     if (!player) return false;
+    if (player.energy < ENERGY_COSTS.alchemy) { triggerHaptic('error'); return false; }
 
     const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
     if (!recipe || player.alchemyLevel < recipe.levelReq) {
@@ -2263,6 +2268,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => prev ? {
       ...prev,
       inventory: added.inventory,
+      energy: Math.max(0, prev.energy - ENERGY_COSTS.alchemy),
       alchemyExp,
       alchemyLevel,
       statsSummary: {
