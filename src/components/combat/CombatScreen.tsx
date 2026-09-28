@@ -33,6 +33,7 @@ export const CombatScreen: React.FC = () => {
     turnPhase,
     playerEffects,
     monsterEffects,
+    monsterIntent,
     autoBattle,
     combatStats,
     combatChain,
@@ -548,6 +549,16 @@ export const CombatScreen: React.FC = () => {
             <span>{autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ'}</span>
           </button>
         </div>
+
+        {monsterIntent && turnPhase === 'monster' && (
+          <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 shadow-lg shadow-amber-950/30 animate-pulse">
+            <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+              <span className="text-lg">{monsterIntent.icon}</span>
+              <span>⚠️ {activeMonster.name} сейчас применит «{monsterIntent.name}»</span>
+            </div>
+            <div className="text-[10px] text-amber-100/70 mt-1">{monsterIntent.description}</div>
+          </div>
+        )}
 
         {combatChain && (
           <div className="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 p-2.5">
