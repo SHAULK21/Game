@@ -680,7 +680,9 @@ export const CombatScreen: React.FC = () => {
                           performPlayerAction('skill', skill.id);
                           setIsSkillsOpen(false);
                         }}
-                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${\n                          canUse\n                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
+                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${
+                          canUse
+                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
                             : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
                         }`}
                       >
