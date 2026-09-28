@@ -87,3 +87,16 @@
 .animate-pulse-subtle {
   animation: pulse-subtle 2s infinite ease-in-out;
 }
+/* Telegram safe-area helpers */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.min-h-screen {
+  min-height: 100dvh;
+}
+button, input, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
