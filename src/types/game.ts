@@ -202,6 +202,22 @@ export interface MonsterDrop {
   maxQty: number;
 }
 
+export interface MonsterSkill {
+  id: string;
+  name: string;
+  icon: string;
+  manaCost: number;
+  cooldown: number;
+  currentCooldown?: number;
+  damageMultiplier: number;
+  damageType: DamageType;
+  effect?: StatusEffectType;
+  effectChance?: number;
+  effectDuration?: number;
+  effectPower?: number;
+  description?: string;
+}
+
 export interface Monster {
   id: string;
   name: string;
@@ -228,12 +244,7 @@ export interface Monster {
   expReward: number;
   goldReward: number;
   drops: MonsterDrop[];
-  skills?: {
-    name: string;
-    manaCost: number;
-    damageMultiplier: number;
-    effect?: StatusEffectType;
-  }[];
+  skills?: MonsterSkill[];
 }
 
 export interface BattleLogEntry {
