@@ -952,6 +952,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
 
+    if (player.energy < ENERGY_COSTS.upgrade) return { success: false, message: `Недостаточно энергии (нужно ${ENERGY_COSTS.upgrade}).` };
     const currentLevel = item.upgradeLevel || 0;
     if (currentLevel >= 25) {
       return { success: false, message: 'Предмет достиг максимального уровня заточки (+25)!' };
@@ -1006,6 +1007,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!prev) return prev;
       return {
         ...prev,
+        energy: Math.max(0, prev.energy - ENERGY_COSTS.upgrade),
         gold: prev.gold - costGold,
         shards: prev.shards - costShards,
         equipped: Object.fromEntries(
