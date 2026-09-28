@@ -48,6 +48,7 @@ export interface ClassDefinition {
   name: string;
   role: string;
   description: string;
+  passive: { name: string; description: string };
   icon: string;
   image?: string;
   baseAttributes: {
