@@ -1921,6 +1921,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const exitCombat = useCallback(() => {
     setIsInCombat(false);
+    setMonsterIntent(null);
     setCombatChain(null);
     setActiveMonster(null);
     setIsCombatEnded(false);
