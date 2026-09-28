@@ -172,7 +172,14 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                 </div>
 
                 <div className="text-right">
-                  {ach.completed ? (
+                  {ach.completed && !ach.claimed ? (
+                    <button
+                      onClick={() => claimAchievementReward(ach.id)}
+                      className="text-[10px] font-mono text-amber-300 font-bold px-2 py-1 bg-amber-950/60 border border-amber-500/40 rounded"
+                    >
+                      Забрать
+                    </button>
+                  ) : ach.claimed ? (
                     <span className="text-[10px] font-mono text-emerald-400 font-bold px-2 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded">
                       Получено
                     </span>
