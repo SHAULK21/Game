@@ -519,7 +519,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       upgradeLevel: 0,
       icon: '🧪',
       description: 'Восстанавливает 120 HP в бою.',
-      stats: {},
+      stats: { heal: 120 },
       sellPrice: 10,
       disassembleYield: { shards: 1 },
       stackCount: 5
