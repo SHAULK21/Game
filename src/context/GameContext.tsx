@@ -1671,151 +1671,144 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     completeCombatVictory
   ]);
 
-  // MONSTER TURN CONTROLLER
+  // MONSTER TURN CONTROLLER — monsters telegraph skills before casting them.
   useEffect(() => {
-    if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player) return;
+    if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player || monsterIntent) return;
 
     const timer = setTimeout(() => {
       const currentTurn = battleLog.length + 1;
       const newLogs: BattleLogEntry[] = [];
       const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
-
       const monsterTick = tickStatusEffects(monsterEffects);
       setMonsterEffects(monsterTick.effects);
 
+      let workingHp = activeMonster.hp;
       if (monsterTick.damage > 0) {
         let statusDamage = 0;
         for (const [type, amount] of Object.entries(monsterTick.damageByType)) {
           statusDamage += calculateTypedDamage({
-            power: amount || 0,
-            multiplier: 1,
-            damageType: type as import('../types/game').DamageType,
-            targetDefense: activeMonster.defense,
-            targetMagicDefense: activeMonster.magicDefense,
-            armorPenetration: 0,
-            targetResistances: activeMonster.resistances,
+            power: amount || 0, multiplier: 1, damageType: type as import('../types/game').DamageType,
+            targetDefense: activeMonster.defense, targetMagicDefense: activeMonster.magicDefense,
+            armorPenetration: 0, targetResistances: activeMonster.resistances,
             extraDamageMultiplier: monsterTick.damageTakenMultiplier
           });
         }
-        const nextMonsterHp = Math.max(0, activeMonster.hp - statusDamage);
-        if (statusDamage > 0) {
-          newLogs.push({
-            id: 'monster_dot_' + Date.now(),
-            turn: currentTurn,
-            text: `☠️ [Статус] ${activeMonster.name} получает ${statusDamage} периодического урона.`,
-            type: 'status'
-          });
-        }
-        if (nextMonsterHp <= 0) {
-          completeCombatVictory(activeMonster, currentTurn, newLogs);
-          return;
-        }
-        setActiveMonster(prev => prev ? { ...prev, hp: nextMonsterHp } : null);
+        workingHp = Math.max(0, workingHp - statusDamage);
+        if (statusDamage > 0) newLogs.push({ id: 'monster_dot_' + Date.now(), turn: currentTurn, text: `☠️ [Статус] ${activeMonster.name} получает ${statusDamage} периодического урона.`, type: 'status' });
       }
+      if (workingHp <= 0) {
+        completeCombatVictory(activeMonster, currentTurn, newLogs);
+        return;
+      }
+      if (workingHp !== activeMonster.hp) setActiveMonster(prev => prev ? { ...prev, hp: workingHp } : null);
 
       if (monsterTick.skipTurn) {
-        newLogs.push({
-          id: 'monster_cc_' + Date.now(),
-          turn: currentTurn,
-          text: `🌀 [Контроль] ${activeMonster.name} пропускает ход.`,
-          type: 'status'
-        });
-        setPlayer(prev => prev ? {
-          ...prev,
-          skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) }))
-        } : prev);
+        newLogs.push({ id: 'monster_cc_' + Date.now(), turn: currentTurn, text: `🌀 [Контроль] ${activeMonster.name} пропускает ход.`, type: 'status' });
+        setActiveMonster(prev => prev ? { ...prev, hp: workingHp, skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
+        setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
         setBattleLog(prev => [...prev, ...newLogs]);
         setTurnPhase('player');
+        return;
+      }
+
+      const readySkills = (activeMonster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && activeMonster.mp >= s.manaCost);
+      const shouldUseSkill = readySkills.length > 0 && (activeMonster.isBoss || Math.random() < 0.55);
+      if (shouldUseSkill) {
+        const skill = readySkills[Math.floor(Math.random() * readySkills.length)];
+        setActiveMonster(prev => prev ? { ...prev, hp: workingHp } : null);
+        setMonsterIntent(skill);
+        newLogs.push({
+          id: 'monster_intent_' + Date.now(), turn: currentTurn,
+          text: `⚠️ ${activeMonster.name} готовит ${skill.icon} «${skill.name}» — ${skill.description || 'особый приём'}!`, type: 'skill'
+        });
+        setBattleLog(prev => [...prev, ...newLogs]);
         return;
       }
 
       const playerMods = getStatusModifiers(playerEffects);
       const monsterDamageType = activeMonster.damageType || 'physical';
       const monsterPower = monsterDamageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
-      const defense = monsterDamageType === 'physical'
-        ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0))
-        : combatStats.magicDefense;
+      const defense = monsterDamageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const mitigation = defense / (defense + (monsterDamageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(monsterDamageType, combatStats.resistances);
-
-      let monsterFinalDmg = Math.max(
-        0,
-        Math.round(
-          monsterPower *
-          (activeMod.damageMultiplier || 1) *
-          (1 - mitigation) *
-          (1 - resistance / 100) *
-          playerMods.damageTakenMultiplier *
-          (playerMods.invulnerable ? 0 : 1)
-        )
-      );
-
+      let monsterFinalDmg = Math.max(0, Math.round(monsterPower * (activeMod.damageMultiplier || 1) * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      const hpPct = combatPlayerHp / Math.max(1, combatStats.maxHp);
+      if (player.classId === 'warrior') monsterFinalDmg = Math.round(monsterFinalDmg * 0.90);
+      if (player.classId === 'druid' && hpPct < 0.45) monsterFinalDmg = Math.round(monsterFinalDmg * 0.85);
       let blockedByShield = 0;
       const shieldIndex = playerEffects.findIndex(e => e.type === 'shield');
       if (!playerMods.invulnerable && shieldIndex >= 0) {
         const shield = Math.max(0, playerEffects[shieldIndex].value || 0);
         blockedByShield = Math.min(shield, monsterFinalDmg);
         monsterFinalDmg -= blockedByShield;
-        setPlayerEffects(prevEffects => prevEffects
-          .map((effect, index) => index === shieldIndex ? { ...effect, value: effect.value - blockedByShield } : effect)
-          .filter(effect => effect.type !== 'shield' || effect.value > 0)
-        );
+        setPlayerEffects(prevEffects => prevEffects.map((effect, index) => index === shieldIndex ? { ...effect, value: effect.value - blockedByShield } : effect).filter(effect => effect.type !== 'shield' || effect.value > 0));
       }
-
-      newLogs.push({
-        id: 'm_atk_' + Date.now(),
-        turn: currentTurn,
-        text: playerMods.invulnerable
-          ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.`
-          : `🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`,
-        type: playerMods.invulnerable ? 'heal' : 'monster-attack'
-      });
-
+      newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
         if (nextHp <= 0) {
-          newLogs.push({
-            id: 'm_fatal_' + Date.now(),
-            turn: currentTurn,
-            text: `💀 Вы пали в бою с ${activeMonster.name}...`,
-            type: 'death'
-          });
-          sound.playDefeat();
-          triggerHaptic('error');
-          setPlayer(prev => prev ? {
-            ...prev,
-            statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 }
-          } : prev);
-          setIsCombatEnded(true);
-          setCombatOutcome('defeat');
-          setTurnPhase('ended');
+          newLogs.push({ id: 'm_fatal_' + Date.now(), turn: currentTurn, text: `💀 Вы пали в бою с ${activeMonster.name}...`, type: 'death' });
+          sound.playDefeat(); triggerHaptic('error');
+          setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
+          setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended');
+        } else setTurnPhase('player');
+        return nextHp;
+      });
+      setActiveMonster(prev => prev ? { ...prev, hp: workingHp, skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
+      setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
+      setBattleLog(prev => [...prev, ...newLogs]);
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, battleLog.length, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp]);
+
+  // Delayed monster skill execution. The warning above is intentionally visible first.
+  useEffect(() => {
+    if (!monsterIntent || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'monster') return;
+    const timer = setTimeout(() => {
+      const skill = monsterIntent;
+      const currentTurn = battleLog.length + 1;
+      const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+      const playerMods = getStatusModifiers(playerEffects);
+      const power = skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
+      const defense = skill.damageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
+      const mitigation = defense / (defense + (skill.damageType === 'physical' ? 80 : 90));
+      const resistance = getTargetResistance(skill.damageType, combatStats.resistances);
+      let damage = Math.max(0, Math.round(power * skill.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      const hpPct = combatPlayerHp / Math.max(1, combatStats.maxHp);
+      if (player.classId === 'warrior') damage = Math.round(damage * 0.90);
+      if (player.classId === 'druid' && hpPct < 0.45) damage = Math.round(damage * 0.85);
+      const logs: BattleLogEntry[] = [{ id: 'monster_cast_' + Date.now(), turn: currentTurn, text: `🔥 ${activeMonster.name} применяет ${skill.icon} «${skill.name}»!`, type: 'skill' }];
+      let blocked = 0;
+      const shieldIndex = playerEffects.findIndex(e => e.type === 'shield');
+      if (!playerMods.invulnerable && shieldIndex >= 0) {
+        blocked = Math.min(playerEffects[shieldIndex].value, damage); damage -= blocked;
+        setPlayerEffects(prev => prev.map((e,i)=>i===shieldIndex?{...e,value:e.value-blocked}:e).filter(e=>e.type!=='shield'||e.value>0));
+      }
+      if (skill.effect && Math.random() < (skill.effectChance ?? 1)) {
+        const effect: StatusEffect = { type: skill.effect, name: skill.name, duration: skill.effectDuration || 1, value: skill.effectPower || 0 };
+        if (skill.effect === 'fortify' || skill.effect === 'fury' || skill.effect === 'shield') setMonsterEffects(prev => applyStatusEffect(prev, effect));
+        else setPlayerEffects(prev => applyStatusEffect(prev, effect));
+        logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
+      }
+      logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
+      setCombatPlayerHp(prevHp => {
+        const nextHp = Math.max(0, prevHp - damage);
+        if (nextHp <= 0) {
+          logs.push({ id: 'monster_skill_fatal_' + Date.now(), turn: currentTurn, text: `💀 Особый приём ${skill.name} вас добил.`, type: 'death' });
+          sound.playDefeat(); triggerHaptic('error');
+          setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
+          setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended'); setMonsterIntent(null);
         } else {
-          setTurnPhase('player');
+          setTurnPhase('player'); setMonsterIntent(null);
         }
         return nextHp;
       });
-
-      setPlayer(prev => prev ? {
-        ...prev,
-        skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) }))
-      } : prev);
-
-      setBattleLog(prev => [...prev, ...newLogs]);
-    }, 750);
-
+      setActiveMonster(prev => prev ? { ...prev, skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.max(0, prev.mp - skill.manaCost) } : null);
+      setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
+      setBattleLog(prev => [...prev, ...logs]);
+    }, 700);
     return () => clearTimeout(timer);
-  }, [
-    isInCombat,
-    isCombatEnded,
-    activeMonster,
-    player,
-    turnPhase,
-    battleLog.length,
-    monsterEffects,
-    playerEffects,
-    combatStats,
-    completeCombatVictory
-  ]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, battleLog.length, playerEffects, combatStats, combatPlayerHp]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
