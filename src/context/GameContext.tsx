@@ -897,8 +897,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    // Deduct battle energy
-    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - energyCost) } : prev);
+    // Deduct battle energy and reset per-battle skill cooldowns.
+    setPlayer(prev => prev ? {
+      ...prev,
+      energy: Math.max(0, prev.energy - energyCost),
+      skills: prev.skills.map(skill => ({ ...skill, currentCooldown: 0 }))
+    } : prev);
 
     const fullHp = monster.maxHp && monster.maxHp > 0 ? monster.maxHp : (monster.hp > 0 ? monster.hp : 100);
     setActiveMonster({ ...monster, hp: fullHp });
