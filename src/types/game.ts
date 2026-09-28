@@ -58,7 +58,9 @@ export type StatusEffectType =
   | 'shield' 
   | 'vulnerability' 
   | 'haste' 
-  | 'fury';
+  | 'fury'
+  | 'fortify'
+  | 'invulnerable';
 
 export interface StatusEffect {
   type: StatusEffectType;
@@ -111,6 +113,17 @@ export interface CharacterAttributes {
   willpower: number; // status resistance, health regen
 }
 
+export interface ResistanceMap {
+  physical: number;
+  magic: number;
+  fire: number;
+  ice: number;
+  lightning: number;
+  poison: number;
+  dark: number;
+  holy: number;
+}
+
 export interface CombatStats {
   hp: number;
   maxHp: number;
@@ -139,16 +152,7 @@ export interface CombatStats {
   goldBonus: number; // %
   expBonus: number; // %
 
-  resistances: {
-    physical: number;
-    magic: number;
-    fire: number;
-    ice: number;
-    lightning: number;
-    poison: number;
-    dark: number;
-    holy: number;
-  };
+  resistances: ResistanceMap;
 }
 
 export interface Skill {
@@ -214,6 +218,8 @@ export interface Monster {
   speed: number;
   critChance: number;
   evasion: number;
+  damageType?: DamageType;
+  resistances?: Partial<ResistanceMap>;
   isBoss?: boolean;
   isElite?: boolean;
   bossPhase?: number;
@@ -326,6 +332,7 @@ export interface Achievement {
   progress: number;
   maxProgress: number;
   completed: boolean;
+  claimed?: boolean;
   permanentBonusDesc: string;
   rewardGold: number;
   rewardCrystals: number;
@@ -425,6 +432,8 @@ export interface PlayerCharacter {
   energy: number;
   maxEnergy: number;
   lastEnergyRegenTimestamp?: number;
+  stamina: number;
+  maxStamina: number;
   arcaneEnergy: number;
 
   attributes: CharacterAttributes;
