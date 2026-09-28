@@ -35,7 +35,7 @@ const MainGameContent: React.FC = () => {
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className="min-h-screen pt-safe bg-[#07090e] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
       {/* Top Header */}
       <TopHeader
         onOpenAdmin={() => setIsAdminOpen(true)}
