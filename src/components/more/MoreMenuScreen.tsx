@@ -12,6 +12,7 @@ import {
   Coins
 } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { getTelegramUser } from '../../utils/telegram';
 
 interface MoreMenuScreenProps {
   onOpenAdmin: () => void;
@@ -22,6 +23,8 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard'>('quests');
 
   if (!player) return null;
+  const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
+  const isAdmin = adminTelegramId && String(getTelegramUser().id) === String(adminTelegramId);
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
@@ -243,7 +246,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       )}
 
       {/* Admin Button */}
-      {import.meta.env.DEV && (
+      {isAdmin && (
         <div className="pt-2">
         <button
           onClick={onOpenAdmin}
