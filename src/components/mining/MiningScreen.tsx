@@ -113,6 +113,9 @@ export const MiningScreen: React.FC = () => {
                     <div className="text-[11px] font-mono text-slate-400 mt-0.5">
                       Добыча: {node.oreYield} (x{node.baseYieldMin}-{node.baseYieldMax}) · ⚡{node.staminaCost}
                     </div>
+                    <div className="text-[10px] font-mono text-cyan-400/80 mt-0.5">
+                      ⛏ → Кузница · руда нужна для заточки
+                    </div>
                   </div>
                 </div>
 
