@@ -35,7 +35,9 @@ export const CombatScreen: React.FC = () => {
     monsterEffects,
     autoBattle,
     combatStats,
+    combatChain,
     startBattleWithMonster,
+    startNextCombatBattle,
     performPlayerAction,
     toggleAutoBattle,
     updateAutoBattleSettings,
@@ -128,13 +130,13 @@ export const CombatScreen: React.FC = () => {
                   onClick={() => meditateOrRefillEnergy('meditate')}
                   className="px-2.5 py-1 bg-emerald-950 border border-emerald-500 rounded text-emerald-200 text-[10px] font-bold"
                 >
-                  🧘 Помедитировать (+25 ⚡)
+                  🧘 Помедитировать (+10 ⚡)
                 </button>
                 <button
                   onClick={() => meditateOrRefillEnergy('silver')}
                   className="px-2.5 py-1 bg-amber-950 border border-amber-500 rounded text-amber-200 text-[10px] font-bold"
                 >
-                  🧪 Зелье бодрости (50 🥈)
+                  🧪 Восстановление (+30 ⚡ / 100 🥈)
                 </button>
               </div>
             </div>
@@ -547,6 +549,18 @@ export const CombatScreen: React.FC = () => {
           </button>
         </div>
 
+        {combatChain && (
+          <div className="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 p-2.5">
+            <div className="flex items-center justify-between text-[11px] font-mono">
+              <span className="text-amber-300 font-bold">🔥 Боевая серия</span>
+              <span className="text-slate-300">{combatChain.defeated}/{combatChain.total}</span>
+            </div>
+            <div className="mt-1 text-[10px] text-slate-400">
+              Одна энергия на всю серию · {combatChain.remaining > 0 ? `следующих врагов: ${combatChain.remaining}` : 'серия завершена'}
+            </div>
+          </div>
+        )}
+
         {/* COMBAT ACTIONS OR COMBAT RESULT */}
         {isCombatEnded ? (
           <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl text-center space-y-3 shadow-xl">
@@ -554,25 +568,46 @@ export const CombatScreen: React.FC = () => {
               {combatOutcome === 'victory' && (
                 <>
                   <Gift className="w-5 h-5 text-amber-400 animate-bounce" />
-                  <span>ПОБЕДА! ВРАГ ПОВЕРЖЕН</span>
+                  <span>{combatChain && combatChain.remaining > 0 ? 'ВРАГ ПОВЕРЖЕН — СЕРИЯ ПРОДОЛЖАЕТСЯ' : 'ПОБЕДА! СЕРИЯ ЗАВЕРШЕНА'}</span>
                 </>
               )}
               {combatOutcome === 'defeat' && '💀 ПОРАЖЕНИЕ В БОЮ'}
-              {combatOutcome === 'flee' && '🏃 ВЫ УСПЕШНО СКРЫЛИСЬ'}
+              {combatOutcome === 'flee' && '🏃 ВЫ ВЫРВАЛИСЬ ИЗ БОЯ'}
             </div>
 
+            {combatChain && (
+              <div className="rounded-xl bg-black/20 border border-slate-800 p-2 text-left">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400">Серия противников</span>
+                  <span className="text-cyan-300 font-bold">{combatChain.defeated}/{combatChain.total}</span>
+                </div>
+                <div className="mt-1.5 h-2 rounded-full bg-slate-950 overflow-hidden">
+                  <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${Math.min(100, (combatChain.defeated / combatChain.total) * 100)}%` }} />
+                </div>
+                <div className="mt-1 text-[10px] text-slate-500">
+                  {combatChain.remaining > 0
+                    ? `Осталось ${combatChain.remaining}. Награда за каждого врага сохраняется.`
+                    : 'Все враги серии повержены. Для новой серии потребуется энергия.'}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  exitCombat();
-                  if (activeMonster) {
-                    handleStartBattle(activeMonster);
-                  }
-                }}
-                className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
-              >
-                Следующий бой ({activeMod.energyCost} ⚡)
-              </button>
+              {combatOutcome === 'victory' && combatChain && combatChain.remaining > 0 ? (
+                <button
+                  onClick={startNextCombatBattle}
+                  className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
+                >
+                  Следующий противник · бесплатно
+                </button>
+              ) : (
+                <button
+                  onClick={() => activeMonster && handleStartBattle(activeMonster)}
+                  className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
+                >
+                  Новая серия ({activeMod.energyCost} ⚡)
+                </button>
+              )}
 
               <button
                 onClick={exitCombat}
