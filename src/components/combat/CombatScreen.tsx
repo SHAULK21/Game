@@ -602,7 +602,10 @@ export const CombatScreen: React.FC = () => {
                 </button>
               ) : (
                 <button
-                  onClick={() => activeMonster && handleStartBattle(activeMonster)}
+                  onClick={() => {
+                    const target = MONSTERS[selectedMonsterId] || regionMonsters[0];
+                    if (target) handleStartBattle(target);
+                  }}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
                   Новая серия ({activeMod.energyCost} ⚡)
