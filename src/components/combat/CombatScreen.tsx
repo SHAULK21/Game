@@ -111,7 +111,7 @@ export const CombatScreen: React.FC = () => {
           <div className="mt-3 flex items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
             <div className="flex items-center gap-1.5 text-amber-300 font-mono">
               <Zap className="w-4 h-4 fill-amber-400" />
-              <span>Стоимость боя: <strong className="text-amber-200">{activeMod.energyCost} ⚡</strong></span>
+              <span>Стоимость серии: <strong className="text-amber-200">{activeMod.energyCost} ⚡</strong></span>
             </div>
             <div className="text-slate-400 font-mono text-[11px]">
               Ваша энергия: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
@@ -151,7 +151,7 @@ export const CombatScreen: React.FC = () => {
               className="flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Swords className="w-4 h-4" />
-              <span>Вступить в бой ({activeMod.energyCost} ⚡)</span>
+              <span>Начать охоту · 2–7 врагов ({activeMod.energyCost} ⚡)</span>
             </button>
 
             <button
@@ -248,8 +248,8 @@ export const CombatScreen: React.FC = () => {
             <h3 className="font-cinzel text-xs font-bold text-slate-300 uppercase tracking-wider">
               Обитатели локации
             </h3>
-            <span className="text-[11px] text-slate-400 font-mono">
-              {regionMonsters.length} видов монстров
+            <span className="text-[11px] text-amber-300 font-mono">
+              Серия: 2–7 врагов · 1 энергия
             </span>
           </div>
 
