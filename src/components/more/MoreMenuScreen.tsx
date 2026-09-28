@@ -243,8 +243,8 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       )}
 
       {/* Admin Button */}
-      {import.meta.env.DEV &&
-      <div className="pt-2">
+      {import.meta.env.DEV && (
+        <div className="pt-2">
         <button
           onClick={onOpenAdmin}
           className="w-full py-2.5 px-3 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300 font-cinzel font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-900/60 active:scale-95 transition-all"
@@ -252,8 +252,8 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           <ShieldAlert className="w-4 h-4 text-purple-400" />
           <span>Панель Администратора</span>
         </button>
-      </div}
->
+        </div>
+      )}
     </div>
   );
 };
