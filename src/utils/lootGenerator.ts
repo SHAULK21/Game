@@ -143,10 +143,27 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
 
   const items: GameItem[] = [];
   (monster.drops || []).forEach((drop, index) => {
-    const affectsChance = ['rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity);
-    const chance = Math.min(1, drop.chance * (affectsChance ? Math.max(0.1, rareDropMult) : 1));
+    const isRare = ['rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity);
+    const baseMultiplier = isRare ? 1.18 : 1.38;
+    const chance = Math.min(0.98, drop.chance * baseMultiplier * (isRare ? Math.max(0.1, rareDropMult) : 1));
     if (Math.random() <= chance) items.push(makeDropItem(drop, monster.level, index));
   });
+
+  // Additional loot roll: monsters should usually leave something extra behind.
+  if ((monster.drops || []).length > 1 && Math.random() < 0.45) {
+    const alreadyDropped = new Set(items.map(item => item.templateId));
+    const candidates = (monster.drops || []).filter(drop => !alreadyDropped.has(drop.templateId || `drop_${slugify(drop.itemName)}`));
+    if (candidates.length) {
+      const bonus = candidates[Math.floor(Math.random() * candidates.length)];
+      items.push(makeDropItem(bonus, monster.level, items.length + 10));
+    }
+  }
+
+  // Guarantee a basic trophy/material when the normal rolls all miss.
+  if (!items.length && (monster.drops || []).length) {
+    const fallback = (monster.drops || []).find(drop => drop.rarity === 'common' || drop.type === 'material') || monster.drops[0];
+    items.push(makeDropItem(fallback, monster.level, 99));
+  }
 
   return {
     items,
