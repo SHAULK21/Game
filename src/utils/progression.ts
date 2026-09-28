@@ -7,10 +7,10 @@ export interface ExperienceResult {
 
 /**
  * XP required to advance from the given level.
- * Level 1 starts at 100 XP, then scales non-linearly.
+ * Level 1 starts at 160 XP, then scales steeply to make progression a long-term grind.
  */
 export const getNextExperience = (level: number): number =>
-  Math.max(100, Math.round(100 * Math.pow(Math.max(1, level), 1.75)));
+  Math.max(160, Math.round(160 * Math.pow(Math.max(1, level), 2.05)));
 
 /**
  * Adds XP and resolves all level-ups in one place.
