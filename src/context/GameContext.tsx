@@ -29,7 +29,9 @@ import {
   PETS_LIST, 
   ARENA_BOTS,
   ASSETS,
-  REGION_MODIFIERS
+  REGION_MODIFIERS,
+  MINING_NODES,
+  ALCHEMY_RECIPES
 } from '../data/gameData';
 import { sound } from '../utils/audio';
 import { getTelegramUser, triggerHaptic, TelegramUser } from '../utils/telegram';
