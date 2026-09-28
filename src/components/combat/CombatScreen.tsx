@@ -669,17 +669,18 @@ export const CombatScreen: React.FC = () => {
                 <div className="grid grid-cols-1 gap-1.5">
                   {player.skills.map(skill => {
                     const hasMp = combatPlayerMp >= skill.manaCost;
+                    const levelLocked = player.level < skill.levelReq;
+                    const onCooldown = (skill.currentCooldown || 0) > 0;
+                    const canUse = hasMp && !levelLocked && !onCooldown;
                     return (
                       <button
                         key={skill.id}
-                        disabled={!hasMp || turnPhase !== 'player'}
+                        disabled={!canUse || turnPhase !== 'player'}
                         onClick={() => {
                           performPlayerAction('skill', skill.id);
                           setIsSkillsOpen(false);
                         }}
-                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${
-                          hasMp
-                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
+                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${\n                          canUse\n                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
                             : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
                         }`}
                       >
@@ -694,6 +695,8 @@ export const CombatScreen: React.FC = () => {
                             )}
                           </div>
                           <div className="text-[10px] text-slate-400">{skill.description}</div>
+                          {levelLocked && <div className="text-[10px] text-rose-400 font-mono">🔒 С уровня {skill.levelReq}</div>}
+                          {onCooldown && <div className="text-[10px] text-amber-300 font-mono">⏳ Перезарядка: {skill.currentCooldown}</div>}
                         </div>
                         <div className="text-right shrink-0">
                           <span className={`text-[10px] font-mono block ${hasMp ? 'text-indigo-300' : 'text-rose-400'}`}>
