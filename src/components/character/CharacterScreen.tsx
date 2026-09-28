@@ -80,6 +80,10 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
           <p className="text-[11px] text-slate-400 mt-1 leading-snug line-clamp-2">
             {classDef.description}
           </p>
+          <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2">
+            <div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">Пассив класса · {classDef.passive.name}</div>
+            <div className="text-[10px] text-amber-100/80 mt-0.5 leading-snug">{classDef.passive.description}</div>
+          </div>
 
           {/* EXP Bar */}
           <div className="mt-2 space-y-0.5">
