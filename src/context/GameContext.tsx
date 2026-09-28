@@ -702,7 +702,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
-      if (!prev) return prev;
+      if (!prev || item.isEquipped || item.level > prev.level) return prev;
       sound.playClick();
       triggerHaptic('medium');
 
@@ -747,7 +747,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sellItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
-      if (!prev) return prev;
+      if (!prev || item.isEquipped) return prev;
       sound.playClick();
       triggerHaptic('light');
       const goldGain = item.sellPrice || 10;
