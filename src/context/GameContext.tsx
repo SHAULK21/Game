@@ -42,6 +42,7 @@ import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../uti
 interface GameContextType {
   player: PlayerCharacter | null;
   activeMonster: Monster | null;
+  combatChain: { total: number; defeated: number; remaining: number } | null;
   battleLog: BattleLogEntry[];
   isInCombat: boolean;
   isCombatEnded: boolean;
@@ -76,7 +77,8 @@ interface GameContextType {
   setActiveRegionMod: (modId: string) => void;
   
   // Combat
-  startBattleWithMonster: (monster: Monster) => boolean;
+  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean }) => boolean;
+  startNextCombatBattle: () => boolean;
   performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => void;
   toggleAutoBattle: () => void;
   updateAutoBattleSettings: (settings: Partial<AutoBattleSettings>) => void;
@@ -107,6 +109,77 @@ interface GameContextType {
   adminSpawnLegendaryItem: () => void;
   adminHealAll: () => void;
 }
+
+interface CombatChainState {
+  total: number;
+  defeated: number;
+  queue: Monster[];
+}
+
+const scaleMonsterForCombat = (monster: Monster, player: PlayerCharacter, stats: CombatStats): Monster => {
+  const baseLevel = Math.max(1, monster.level);
+  const targetLevel = Math.min(120, Math.max(baseLevel, player.level + (monster.isBoss ? 0 : Math.min(2, Math.floor(Math.max(0, player.level - baseLevel) / 10)))));
+  const levelFactor = Math.min(3.2, Math.pow(targetLevel / baseLevel, 1.08));
+  const basePower = monster.attack + monster.magicAttack * 0.75 + monster.defense * 0.65 + monster.hp / 14;
+  const playerPower = stats.attack + stats.magicAttack * 0.75 + stats.defense * 0.65 + stats.maxHp / 14;
+  const gearFactor = Math.min(2.5, Math.max(1, Math.pow(playerPower / Math.max(1, basePower), 0.58)));
+  const roleFactor = monster.isBoss ? 1.3 : monster.isElite ? 1.15 : 0.95;
+  const scale = Math.min(4.5, Math.max(1, levelFactor * gearFactor * roleFactor));
+  const isBoss = Boolean(monster.isBoss);
+  const hpFloor = stats.maxHp * (isBoss ? 2.0 : 0.72);
+  const attackFloor = stats.attack * (isBoss ? 0.92 : 0.62);
+  const magicAttackFloor = stats.magicAttack * (isBoss ? 0.9 : 0.58);
+  const defenseFloor = stats.defense * (isBoss ? 0.86 : 0.56);
+  const magicDefenseFloor = stats.magicDefense * (isBoss ? 0.84 : 0.54);
+
+  return {
+    ...monster,
+    level: targetLevel,
+    hp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
+    maxHp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
+    mp: Math.max(0, Math.round(monster.maxMp * Math.max(1, Math.min(3.5, scale)))),
+    maxMp: Math.max(0, Math.round(monster.maxMp * Math.max(1, Math.min(3.5, scale)))),
+    attack: Math.max(1, Math.round(Math.max(monster.attack * scale, attackFloor))),
+    magicAttack: Math.max(0, Math.round(Math.max(monster.magicAttack * scale, magicAttackFloor))),
+    defense: Math.max(0, Math.round(Math.max(monster.defense * scale, defenseFloor))),
+    magicDefense: Math.max(0, Math.round(Math.max(monster.magicDefense * scale, magicDefenseFloor))),
+    speed: Math.max(1, Math.round(monster.speed * Math.min(2.4, Math.max(1, scale * 0.9)))),
+    critChance: Math.min(55, Math.round(monster.critChance + (targetLevel - baseLevel) * 0.45 + (isBoss ? 5 : 1))),
+    evasion: Math.min(45, Math.round(monster.evasion + (targetLevel - baseLevel) * 0.25)),
+    expReward: Math.max(monster.expReward, Math.round(monster.expReward * Math.min(4, Math.pow(scale, 0.82)))),
+    goldReward: Math.max(1, Math.round(monster.goldReward * Math.min(2.25, Math.pow(scale, 0.42))))
+  };
+};
+
+const buildCombatChain = (firstMonster: Monster, player: PlayerCharacter, stats: CombatStats, regionId: string) => {
+  const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
+  const normalPool = region.monsters
+    .map(id => MONSTERS[id])
+    .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite);
+  const pool = normalPool.length > 0 ? normalPool : [firstMonster];
+  const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * 6);
+  const chain: Monster[] = [scaleMonsterForCombat(firstMonster, player, stats)];
+  for (let i = 1; i < count; i += 1) {
+    const candidate = pool[Math.floor(Math.random() * pool.length)] || firstMonster;
+    chain.push(scaleMonsterForCombat(candidate, player, stats));
+  }
+  return chain;
+};
+
+const getUpgradeOreRequirement = (currentLevel: number) => {
+  const tiers = [
+    { name: 'Уголь', icon: '🪨', min: 3 },
+    { name: 'Медная руда', icon: '🟤', min: 4 },
+    { name: 'Железная руда', icon: '⚪', min: 5 },
+    { name: 'Серебряная руда', icon: '✨', min: 6 },
+    { name: 'Золотая руда', icon: '🪙', min: 7 },
+    { name: 'Мифриловая руда', icon: '💎', min: 8 },
+    { name: 'Адамантит', icon: '🟣', min: 10 },
+    { name: 'Драконит', icon: '🔥', min: 12 }
+  ];
+  const tier = tiers[Math.min(tiers.length - 1, Math.floor(currentLevel / 3))];
+  return { ...tier, count: tier.min + Math.floor(currentLevel / 4) };
+};
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -187,7 +260,8 @@ const SAVE_KEY = 'aethelgard_save_v1_data';
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
-  const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
+  const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
+  const [battleLog, setBattleLog = useState<BattleLogEntry[]>([]);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
@@ -265,9 +339,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (elapsedMins >= 2) {
             const cappedMins = Math.min(elapsedMins, 480); // max 8 hours
-            const kills = Math.floor(cappedMins * 1.8);
-            const goldEarned = kills * (15 + parsed.player.level * 4);
-            const expEarned = kills * (25 + parsed.player.level * 6);
+            const kills = Math.floor(cappedMins * 0.9);
+            const goldEarned = kills * (8 + parsed.player.level * 2);
+            const expEarned = kills * (16 + parsed.player.level * 4);
             
             parsed.player.gold += goldEarned;
             parsed.player = addExperience(parsed.player, expEarned).player;
@@ -279,7 +353,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               gold: goldEarned,
               exp: expEarned,
               kills: kills,
-              itemsCount: Math.floor(kills * 0.15)
+              itemsCount: Math.floor(kills * 0.08)
             });
           }
 
@@ -487,9 +561,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Starter alchemy materials for the first recipes.
     [
-      { templateId: 'mat_healing_herb', name: 'Лечебная трава', count: 10, rarity: 'common' as const },
-      { templateId: 'mat_clean_water', name: 'Чистая вода', count: 10, rarity: 'common' as const },
-      { templateId: 'mat_moon_pollen', name: 'Лунная пыльца', count: 4, rarity: 'uncommon' as const }
+      { templateId: 'mat_healing_herb', name: 'Лечебная трава', count: 6, rarity: 'common' as const },
+      { templateId: 'mat_clean_water', name: 'Чистая вода', count: 5, rarity: 'common' as const },
+      { templateId: 'mat_moon_pollen', name: 'Лунная пыльца', count: 2, rarity: 'uncommon' as const }
     ].forEach(mat => {
       inventory.push({
         id: mat.templateId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
@@ -535,10 +609,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       nextExp: getNextExperience(1),
       statPoints: 5,
       talentPoints: 1,
-      gold: 250,
-      silver: 150,
-      shards: 15,
-      crystals: 20,
+      gold: 120,
+      silver: 80,
+      shards: 5,
+      crystals: 8,
       energy: 100,
       maxEnergy: 100,
       lastEnergyRegenTimestamp: Date.now(),
@@ -761,7 +835,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const expandInventory = useCallback(() => {
     setPlayer(prev => {
       if (!prev) return prev;
-      const cost = prev.maxInventorySlots * 25;
+      const cost = prev.maxInventorySlots * 60;
       if (prev.gold < cost) {
         triggerHaptic('error');
         return prev;
@@ -771,7 +845,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         ...prev,
         gold: prev.gold - cost,
-        maxInventorySlots: prev.maxInventorySlots + 10
+        maxInventorySlots: prev.maxInventorySlots + 5
       };
     });
   }, []);
@@ -785,34 +859,50 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Предмет достиг максимального уровня заточки (+25)!' };
     }
 
-    const costGold = Math.round(50 * Math.pow(1.35, currentLevel));
-    const costShards = Math.max(1, Math.floor(currentLevel / 3));
+    const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
+    const costShards = Math.max(2, Math.ceil(2 + currentLevel * 0.55));
+    const oreReq = getUpgradeOreRequirement(currentLevel);
+    const oreHave = player.inventory.reduce((sum, invItem) => sum + (invItem.name === oreReq.name ? (invItem.stackCount || 1) : 0), 0);
     if (player.gold < costGold) {
       return { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
     }
     if (player.shards < costShards) {
       return { success: false, message: `Недостаточно осколков (нужно ${costShards} 💠)!` };
     }
+    if (oreHave < oreReq.count) {
+      return { success: false, message: `Нужна руда: ${oreReq.name} ×${oreReq.count} ${oreReq.icon}. Есть: ${oreHave}.` };
+    }
 
     let successRate = 1;
-    if (currentLevel === 1) successRate = 0.95;
-    else if (currentLevel === 2) successRate = 0.90;
-    else if (currentLevel === 3) successRate = 0.85;
-    else if (currentLevel === 4) successRate = 0.80;
-    else if (currentLevel === 5) successRate = 0.70;
-    else if (currentLevel === 6) successRate = 0.60;
-    else if (currentLevel === 7) successRate = 0.50;
-    else if (currentLevel === 8) successRate = 0.40;
-    else if (currentLevel === 9) successRate = 0.35;
-    else if (currentLevel >= 10 && currentLevel < 15) successRate = 0.25;
-    else if (currentLevel >= 15 && currentLevel < 20) successRate = 0.15;
-    else if (currentLevel >= 20) successRate = 0.08;
+    if (currentLevel === 1) successRate = 0.90;
+    else if (currentLevel === 2) successRate = 0.82;
+    else if (currentLevel === 3) successRate = 0.74;
+    else if (currentLevel === 4) successRate = 0.66;
+    else if (currentLevel === 5) successRate = 0.58;
+    else if (currentLevel === 6) successRate = 0.50;
+    else if (currentLevel === 7) successRate = 0.43;
+    else if (currentLevel === 8) successRate = 0.36;
+    else if (currentLevel === 9) successRate = 0.30;
+    else if (currentLevel >= 10 && currentLevel < 15) successRate = 0.22;
+    else if (currentLevel >= 15 && currentLevel < 20) successRate = 0.14;
+    else if (currentLevel >= 20) successRate = 0.07;
 
     const isSuccess = Math.random() <= successRate;
     const newLevel = isSuccess || useProtection ? currentLevel + (isSuccess ? 1 : 0) : Math.max(0, currentLevel - 1);
 
     const updateItem = (i: GameItem) =>
       i.id === item.id ? { ...i, upgradeLevel: newLevel } : i;
+
+    const consumeOre = (inventory: GameItem[]) => {
+      let remaining = oreReq.count;
+      return inventory.map(i => {
+        if (remaining <= 0 || i.name !== oreReq.name) return i;
+        const stack = i.stackCount || 1;
+        const take = Math.min(stack, remaining);
+        remaining -= take;
+        return { ...i, stackCount: stack - take };
+      }).filter(i => (i.stackCount || 1) > 0);
+    };
 
     setPlayer(prev => {
       if (!prev) return prev;
@@ -823,7 +913,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         equipped: Object.fromEntries(
           Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
         ) as Partial<Record<ItemType, GameItem>>,
-        inventory: prev.inventory.map(updateItem),
+        inventory: consumeOre(prev.inventory.map(updateItem)),
         statsSummary: isSuccess
           ? {
               ...prev.statsSummary,
@@ -837,7 +927,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSuccess) {
       sound.playUpgradeSuccess();
       triggerHaptic('success');
-      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}!` };
+      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙, ${costShards} 💠.` };
     }
 
     sound.playUpgradeFail();
@@ -864,10 +954,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         triggerHaptic('medium');
         return {
           ...prev,
-          energy: Math.min(prev.maxEnergy, prev.energy + 25)
+          energy: Math.min(prev.maxEnergy, prev.energy + 10)
         };
       } else if (mode === 'silver') {
-        if (prev.silver < 50) {
+        if (prev.silver < 100) {
           triggerHaptic('error');
           sound.playUpgradeFail();
           return prev;
@@ -877,8 +967,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         triggerHaptic('success');
         return {
           ...prev,
-          silver: prev.silver - 50,
-          energy: Math.min(prev.maxEnergy, prev.energy + 50)
+          silver: prev.silver - 100,
+          energy: Math.min(prev.maxEnergy, prev.energy + 30)
         };
       }
       return prev;
@@ -886,26 +976,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // START BATTLE with Energy Check
-  const startBattleWithMonster = useCallback((monster: Monster): boolean => {
+  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean }): boolean => {
     const activeModId = player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = activeMod.energyCost || 5;
+    const useChain = options?.chain !== false;
 
     if (player && player.energy < energyCost) {
       sound.playUpgradeFail();
       triggerHaptic('error');
       return false;
     }
+    if (isInCombat && !isCombatEnded) return false;
 
-    // Deduct battle energy and reset per-battle skill cooldowns.
+    const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId) : [scaleMonsterForCombat(monster, player!, combatStats)];
+
     setPlayer(prev => prev ? {
       ...prev,
       energy: Math.max(0, prev.energy - energyCost),
       skills: prev.skills.map(skill => ({ ...skill, currentCooldown: 0 }))
     } : prev);
 
-    const fullHp = monster.maxHp && monster.maxHp > 0 ? monster.maxHp : (monster.hp > 0 ? monster.hp : 100);
-    setActiveMonster({ ...monster, hp: fullHp });
+    setCombatChain(useChain && player ? { total: chain.length, defeated: 0, queue: chain.slice(1) } : null);
+    setActiveMonster({ ...chain[0], hp: chain[0].maxHp });
     setCombatPlayerHp(combatStats.maxHp);
     setCombatPlayerMp(combatStats.maxMp);
     setTurnPhase('player');
@@ -918,14 +1011,43 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         id: 'start_' + Date.now(),
         turn: 1,
-        text: `⚔️ В бой вступает ${monster.name} (Ур. ${monster.level})! Режим: [${activeMod.name}]. Затрачено ${energyCost} ⚡. Ваш ход!`,
+        text: `⚔️ В бой вступает ${chain[0].name} (Ур. ${chain[0].level})! Серия: ${chain.length} противников. Режим: [${activeMod.name}]. Затрачено ${energyCost} ⚡.`,
         type: 'system'
-      }
+      },
+      ...(chain.length > 1 ? [{
+        id: 'chain_' + Date.now(),
+        turn: 1,
+        text: `☠️ В этой вылазке ${chain.length} противников. После каждой победы можно продолжить без выхода из боя.`,
+        type: 'system' as const
+      }] : [])
     ]);
     sound.playClick();
     triggerHaptic('medium');
     return true;
-  }, [player, combatStats.maxHp, combatStats.maxMp]);
+  }, [player, combatStats.maxHp, combatStats, isInCombat, isCombatEnded]);
+
+  const startNextCombatBattle = useCallback((): boolean => {
+    if (!player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
+    const nextMonster = combatChain.queue[0];
+    const remaining = combatChain.queue.length - 1;
+    setCombatChain(prev => prev ? { ...prev, queue: prev.queue.slice(1) } : prev);
+    setActiveMonster({ ...nextMonster, hp: nextMonster.maxHp });
+    setMonsterEffects([]);
+    setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + Math.floor(combatStats.maxMp * 0.05)));
+    setIsCombatEnded(false);
+    setCombatOutcome(null);
+    setTurnPhase('player');
+    setBattleLog(prev => [...prev, {
+      id: 'next_enemy_' + Date.now(),
+      turn: prev.length + 1,
+      text: `⚔️ Следующий противник: ${nextMonster.name} (Ур. ${nextMonster.level}). После этого останется ${remaining}.`,
+      type: 'system'
+    }]);
+    sound.playClick();
+    triggerHaptic('medium');
+    return true;
+  }, [player, isInCombat, isCombatEnded, combatOutcome, combatChain, combatStats.maxMp]);
+
 
   const startTravel = useCallback((targetRegionId: string, modId?: string) => {
     const targetReg = REGIONS.find(r => r.id === targetRegionId);
@@ -1032,9 +1154,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
     const lootResult = generateCombatLoot({
       monster,
-      rareDropMult: (activeMod.rareDropMultiplier || 1) * (1 + combatStats.dropBonus / 100),
-      goldMult: (activeMod.goldMultiplier || 1) * (1 + combatStats.goldBonus / 100),
-      silverMult: (activeMod.silverMultiplier || 1) * (1 + combatStats.goldBonus / 100)
+      rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
+      goldMult: (activeMod.goldMultiplier || 1) * 0.55 * (1 + combatStats.goldBonus / 100),
+      silverMult: (activeMod.silverMultiplier || 1) * 0.65 * (1 + combatStats.goldBonus / 100)
     });
     const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     const logs = [...baseLogs];
@@ -1167,12 +1289,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     sound.playVictory();
     triggerHaptic('success');
+    const hasNextCombat = Boolean(combatChain && combatChain.queue.length > 0);
+    setCombatChain(prev => prev ? { ...prev, defeated: Math.min(prev.total, prev.defeated + 1) } : prev);
     setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
-    setBattleLog(prev => [...prev, ...logs]);
+    setBattleLog(prev => [...prev, ...logs, {
+      id: 'chain_state_' + Date.now(),
+      turn: currentTurn,
+      text: hasNextCombat
+        ? `🔥 Победа ${combatChain!.defeated + 1}/${combatChain!.total}. Следующий противник уже ждёт.`
+        : (combatChain ? `🏁 Вся серия из ${combatChain.total} противников уничтожена.` : '🏁 Бой завершён.'),
+      type: 'system'
+    }]);
     setIsCombatEnded(true);
     setCombatOutcome('victory');
     setTurnPhase('ended');
-  }, [player, combatStats, activeDungeonRun]);
+  }, [player, combatStats, activeDungeonRun, combatChain]);
 
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
@@ -1220,6 +1351,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBattleLog(prev => [...prev, ...newLogs]);
         setIsCombatEnded(true);
         setCombatOutcome('defeat');
+        setCombatChain(null);
         setTurnPhase('ended');
         return;
       }
@@ -1247,6 +1379,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBattleLog(prev => [...prev, ...newLogs]);
         setIsCombatEnded(true);
         setCombatOutcome('flee');
+        setCombatChain(null);
         setTurnPhase('ended');
         triggerHaptic('light');
         return;
@@ -1644,6 +1777,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     completeCombatVictory
   ]);
 
+  // Auto-battle loop (continues the encounter chain without leaving combat).
+  useEffect(() => {
+    if (!autoBattle.enabled || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return;
+    const timer = setTimeout(() => { startNextCombatBattle(); }, 700);
+    return () => clearTimeout(timer);
+  }, [autoBattle.enabled, isInCombat, isCombatEnded, combatOutcome, combatChain, startNextCombatBattle]);
+
   // Auto-battle loop (operates only on player's turn)
   useEffect(() => {
     if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player) return;
@@ -1690,6 +1830,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const exitCombat = useCallback(() => {
     setIsInCombat(false);
+    setCombatChain(null);
     setActiveMonster(null);
     setIsCombatEnded(false);
     setCombatOutcome(null);
@@ -1785,7 +1926,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentRoom.type === 'combat' || currentRoom.type === 'boss') {
       if (!currentRoom.monster) return;
-      const started = startBattleWithMonster(currentRoom.monster);
+      const started = startBattleWithMonster(currentRoom.monster, { chain: false });
       if (!started) return;
       // Combat rooms are resolved only by completeCombatVictory().
       return;
@@ -1793,7 +1934,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentRoom.type === 'elite') {
       if (!currentRoom.monster) return;
-      const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true });
+      const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true }, { chain: false });
       if (!started) return;
       return;
     }
@@ -1909,9 +2050,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const miningExp = player.miningExp + Math.max(5, node.levelReq + 10);
+    const miningExp = player.miningExp + Math.max(8, node.levelReq * 2 + 6);
     let miningLevel = player.miningLevel;
-    while (miningExp >= miningLevel * 50 && miningLevel < 100) miningLevel += 1;
+    while (miningExp >= miningLevel * 175 && miningLevel < 100) miningLevel += 1;
 
     const result = { success: true, yieldCount, isCrit, oreName: node.oreYield };
 
@@ -2022,10 +2163,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const professionXp = Math.max(10, recipe.levelReq * 2);
+    const professionXp = Math.max(6, 6 + Math.floor(recipe.levelReq * 0.8));
     const alchemyExp = player.alchemyExp + professionXp;
     let alchemyLevel = player.alchemyLevel;
-    while (alchemyExp >= alchemyLevel * 100 && alchemyLevel < 100) alchemyLevel += 1;
+    while (alchemyExp >= alchemyLevel * 220 && alchemyLevel < 100) alchemyLevel += 1;
 
     setPlayer(prev => prev ? {
       ...prev,
@@ -2073,7 +2214,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]
     };
 
-    startBattleWithMonster(oppMonster);
+    startBattleWithMonster(oppMonster, { chain: false });
   }, [startBattleWithMonster]);
 
   // Quests & Achievements Claims
@@ -2190,7 +2331,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider value={{
       player,
       activeMonster,
-      battleLog,
+      combatChain: combatChain ? { total: combatChain.total, defeated: combatChain.defeated, remaining: combatChain.queue.length } : null,
+      battleLog:
       isInCombat,
       isCombatEnded,
       combatOutcome,
@@ -2221,6 +2363,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meditateOrRefillEnergy,
       setActiveRegionMod,
       startBattleWithMonster,
+      startNextCombatBattle,
       performPlayerAction,
       toggleAutoBattle,
       updateAutoBattleSettings,
