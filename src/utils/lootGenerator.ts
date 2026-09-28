@@ -132,7 +132,8 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
 } {
   const { monster, rareDropMult = 1, goldMult = 1, silverMult = 1 } = opts;
 
-  const baseGold = (15 + monster.level * 6 + Math.floor(Math.random() * 15)) * (monster.isBoss ? 4 : 1);
+  const goldVariance = 0.9 + Math.random() * 0.2;
+  const baseGold = Math.max(0, Math.round(monster.goldReward * goldVariance));
   const baseSilver = (40 + monster.level * 12 + Math.floor(Math.random() * 30)) * (monster.isBoss ? 3 : 1);
   const shards = monster.isBoss
     ? Math.floor(Math.random() * 4) + 2
