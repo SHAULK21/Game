@@ -11,6 +11,7 @@ import { AlchemyScreen } from './components/alchemy/AlchemyScreen';
 import { MiningScreen } from './components/mining/MiningScreen';
 import { ClanScreen } from './components/clan/ClanScreen';
 import { ChatScreen } from './components/chat/ChatScreen';
+import { MarketScreen } from './components/market/MarketScreen';
 import { MoreMenuScreen } from './components/more/MoreMenuScreen';
 import { CharacterScreen } from './components/character/CharacterScreen';
 import { CharacterCreationModal } from './components/dialogs/CharacterCreationModal';
@@ -57,6 +58,7 @@ const MainGameContent: React.FC = () => {
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'clan' && <ClanScreen />}
             {currentTab === 'chat' && <ChatScreen />}
+            {currentTab === 'market' && <MarketScreen />}
             {currentTab === 'more' && <MoreMenuScreen onOpenAdmin={() => setIsAdminOpen(true)} />}
           </>
         )}
