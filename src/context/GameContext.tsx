@@ -168,7 +168,8 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
     i.rarity === item.rarity
   );
 
-  if (existingIndex >= 0) {
+  const stackable = item.type === 'material' || item.type === 'ore' || item.type === 'potion';
+  if (existingIndex >= 0 && stackable) {
     const next = [...inventory];
     next[existingIndex] = {
       ...next[existingIndex],
@@ -777,88 +778,77 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Blacksmith sharpening
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
-    let result = { success: false, message: '' };
+    if (!player) return { success: false, message: 'Персонаж не найден.' };
+
+    const currentLevel = item.upgradeLevel || 0;
+    if (currentLevel >= 25) {
+      return { success: false, message: 'Предмет достиг максимального уровня заточки (+25)!' };
+    }
+
+    const costGold = Math.round(50 * Math.pow(1.35, currentLevel));
+    const costShards = Math.max(1, Math.floor(currentLevel / 3));
+    if (player.gold < costGold) {
+      return { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
+    }
+    if (player.shards < costShards) {
+      return { success: false, message: `Недостаточно осколков (нужно ${costShards} 💠)!` };
+    }
+
+    let successRate = 1;
+    if (currentLevel === 1) successRate = 0.95;
+    else if (currentLevel === 2) successRate = 0.90;
+    else if (currentLevel === 3) successRate = 0.85;
+    else if (currentLevel === 4) successRate = 0.80;
+    else if (currentLevel === 5) successRate = 0.70;
+    else if (currentLevel === 6) successRate = 0.60;
+    else if (currentLevel === 7) successRate = 0.50;
+    else if (currentLevel === 8) successRate = 0.40;
+    else if (currentLevel === 9) successRate = 0.35;
+    else if (currentLevel >= 10 && currentLevel < 15) successRate = 0.25;
+    else if (currentLevel >= 15 && currentLevel < 20) successRate = 0.15;
+    else if (currentLevel >= 20) successRate = 0.08;
+
+    const isSuccess = Math.random() <= successRate;
+    const newLevel = isSuccess || useProtection ? currentLevel + (isSuccess ? 1 : 0) : Math.max(0, currentLevel - 1);
+
+    const updateItem = (i: GameItem) =>
+      i.id === item.id ? { ...i, upgradeLevel: newLevel } : i;
+
     setPlayer(prev => {
       if (!prev) return prev;
-      const currentLevel = item.upgradeLevel || 0;
-      if (currentLevel >= 25) {
-        result = { success: false, message: 'Предмет достиг максимального уровня заточки (+25)!' };
-        return prev;
-      }
-
-      const costGold = Math.round(50 * Math.pow(1.35, currentLevel));
-      const costShards = Math.max(1, Math.floor(currentLevel / 3));
-
-      if (prev.gold < costGold) {
-        triggerHaptic('error');
-        result = { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
-        return prev;
-      }
-
-      // Success chances
-      let successRate = 1.0;
-      if (currentLevel === 1) successRate = 0.95;
-      else if (currentLevel === 2) successRate = 0.90;
-      else if (currentLevel === 3) successRate = 0.85;
-      else if (currentLevel === 4) successRate = 0.80;
-      else if (currentLevel === 5) successRate = 0.70;
-      else if (currentLevel === 6) successRate = 0.60;
-      else if (currentLevel === 7) successRate = 0.50;
-      else if (currentLevel === 8) successRate = 0.40;
-      else if (currentLevel === 9) successRate = 0.35;
-      else if (currentLevel >= 10 && currentLevel < 15) successRate = 0.25;
-      else if (currentLevel >= 15 && currentLevel < 20) successRate = 0.15;
-      else if (currentLevel >= 20) successRate = 0.08;
-
-      const roll = Math.random();
-      const isSuccess = roll <= successRate;
-
-      if (isSuccess) {
-        sound.playUpgradeSuccess();
-        triggerHaptic('success');
-        result = { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}!` };
-
-        const updateItem = (i: GameItem) => i.id === item.id ? { ...i, upgradeLevel: i.upgradeLevel + 1 } : i;
-
-        return {
-          ...prev,
-          gold: prev.gold - costGold,
-          equipped: Object.fromEntries(
-            Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
-          ) as Partial<Record<ItemType, GameItem>>,
-          inventory: prev.inventory.map(updateItem),
-          statsSummary: {
-            ...prev.statsSummary,
-            itemsUpgraded: prev.statsSummary.itemsUpgraded + 1,
-            maxUpgradeReached: Math.max(prev.statsSummary.maxUpgradeReached, currentLevel + 1)
-          }
-        };
-      } else {
-        sound.playUpgradeFail();
-        triggerHaptic('warning');
-        let newLevel = currentLevel;
-        if (!useProtection && currentLevel >= 8) {
-          newLevel = Math.max(0, currentLevel - 1);
-          result = { success: false, message: `Провал заточки! Уровень снижен до +${newLevel}.` };
-        } else {
-          result = { success: false, message: `Провал заточки! Предмет сохранил уровень +${currentLevel}.` };
-        }
-
-        const updateItem = (i: GameItem) => i.id === item.id ? { ...i, upgradeLevel: newLevel } : i;
-
-        return {
-          ...prev,
-          gold: prev.gold - costGold,
-          equipped: Object.fromEntries(
-            Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
-          ) as Partial<Record<ItemType, GameItem>>,
-          inventory: prev.inventory.map(updateItem)
-        };
-      }
+      return {
+        ...prev,
+        gold: prev.gold - costGold,
+        shards: prev.shards - costShards,
+        equipped: Object.fromEntries(
+          Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
+        ) as Partial<Record<ItemType, GameItem>>,
+        inventory: prev.inventory.map(updateItem),
+        statsSummary: isSuccess
+          ? {
+              ...prev.statsSummary,
+              itemsUpgraded: prev.statsSummary.itemsUpgraded + 1,
+              maxUpgradeReached: Math.max(prev.statsSummary.maxUpgradeReached, currentLevel + 1)
+            }
+          : prev.statsSummary
+      };
     });
 
-    return result;
-  }, []);
+    if (isSuccess) {
+      sound.playUpgradeSuccess();
+      triggerHaptic('success');
+      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}!` };
+    }
+
+    sound.playUpgradeFail();
+    triggerHaptic('warning');
+    return {
+      success: false,
+      message: useProtection
+        ? `Провал заточки! Уровень сохранён на +${currentLevel}.`
+        : `Провал заточки! Уровень снижен до +${newLevel}.`
+    };
+  }, [player]);
 
   const setActiveRegionMod = useCallback((modId: string) => {
     setPlayer(prev => prev ? { ...prev, activeRegionModId: modId } : prev);
@@ -1664,7 +1654,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (monsterHpPct <= 35) {
         performPlayerAction('execute');
       } else if (autoBattle.useSkills && player.skills.length > 0) {
-        const affordableSkill = player.skills.find(s => s.manaCost <= combatPlayerMp);
+        const affordableSkill = player.skills.find(s =>
+          s.manaCost <= combatPlayerMp &&
+          player.level >= s.levelReq &&
+          (s.currentCooldown || 0) <= 0
+        );
         if (affordableSkill) {
           performPlayerAction('skill', affordableSkill.id);
         } else {
@@ -1842,96 +1836,83 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Mining
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
-    let result = { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+    if (!player) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+
     const node = MINING_NODES.find(n => n.id === nodeId);
-    if (!node) return result;
+    if (!node) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+    if (player.miningLevel < node.levelReq) {
+      triggerHaptic('error');
+      return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
+    }
+    if (player.stamina < node.staminaCost) {
+      triggerHaptic('error');
+      return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
+    }
+
+    const oreTemplate = 'ore_' + node.id.replace(/^ore_/, '');
+    const existingOre = player.inventory.find(i => i.templateId === oreTemplate && i.type === 'ore');
+    if (!existingOre && player.inventory.length >= player.maxInventorySlots) {
+      triggerHaptic('error');
+      return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
+    }
+
+    const isCrit = Math.random() < Math.min(0.65, 0.25 + player.attributes.luck * 0.003);
+    const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
+    const yieldCount = isCrit ? Math.max(baseYield + 1, Math.ceil(baseYield * 1.5)) : baseYield;
+
+    let inventory = [...player.inventory];
+    const oreItem: GameItem = {
+      id: 'ore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      templateId: oreTemplate,
+      name: node.oreYield,
+      type: 'ore',
+      rarity: isCrit ? 'rare' : 'common',
+      level: Math.max(1, node.levelReq),
+      upgradeLevel: 0,
+      icon: node.icon,
+      description: `Добытая руда из жилы «${node.name}».`,
+      stats: {},
+      sellPrice: Math.max(2, Math.round(10 + node.levelReq * 2)),
+      disassembleYield: { ore: 1 },
+      stackCount: yieldCount
+    };
+
+    const oreAdded = addOrStackInventoryItem(inventory, oreItem, player.maxInventorySlots);
+    if (!oreAdded.added) return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
+    inventory = oreAdded.inventory;
+
+    let gemFound = false;
+    if (Math.random() < node.gemChance) {
+      const gemItem: GameItem = {
+        id: 'gem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        templateId: 'mining_gem',
+        name: 'Сырой самоцвет',
+        type: 'material',
+        rarity: 'rare',
+        level: node.levelReq,
+        upgradeLevel: 0,
+        icon: '💎',
+        description: 'Самоцвет, найденный в руде.',
+        stats: {},
+        sellPrice: 35 + node.levelReq,
+        disassembleYield: { crystals: 1 },
+        stackCount: 1 + Math.floor(Math.random() * 2)
+      };
+      const gemAdded = addOrStackInventoryItem(inventory, gemItem, player.maxInventorySlots);
+      if (gemAdded.added) {
+        inventory = gemAdded.inventory;
+        gemFound = true;
+      }
+    }
+
+    const miningExp = player.miningExp + Math.max(5, node.levelReq + 10);
+    let miningLevel = player.miningLevel;
+    while (miningExp >= miningLevel * 50 && miningLevel < 100) miningLevel += 1;
+
+    const result = { success: true, yieldCount, isCrit, oreName: node.oreYield };
 
     setPlayer(prev => {
       if (!prev) return prev;
-      if (prev.miningLevel < node.levelReq) {
-        triggerHaptic('error');
-        result.oreName = node.oreYield;
-        return prev;
-      }
-      if (prev.stamina < node.staminaCost) {
-        triggerHaptic('error');
-        result.oreName = node.oreYield;
-        return prev;
-      }
-
-      const oreTemplate = 'ore_' + node.id.replace(/^ore_/, '');
-      const existingOre = prev.inventory.find(i => i.templateId === oreTemplate && i.type === 'ore');
-      if (!existingOre && prev.inventory.length >= prev.maxInventorySlots) {
-        triggerHaptic('error');
-        result.oreName = node.oreYield;
-        return prev;
-      }
-
-      const isCrit = Math.random() < Math.min(0.65, 0.25 + prev.attributes.luck * 0.003);
-      const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
-      const yieldCount = isCrit ? Math.max(baseYield + 1, Math.ceil(baseYield * 1.5)) : baseYield;
-
-      const oreItem: GameItem = {
-        id: 'ore_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        templateId: oreTemplate,
-        name: node.oreYield,
-        type: 'ore',
-        rarity: isCrit ? 'rare' : 'common',
-        level: Math.max(1, node.levelReq),
-        upgradeLevel: 0,
-        icon: node.icon,
-        description: `Добытая руда из жилы «${node.name}».`,
-        stats: {},
-        sellPrice: Math.max(2, Math.round(10 + node.levelReq * 2)),
-        disassembleYield: { ore: 1 },
-        stackCount: yieldCount
-      };
-
-      let inventory = [...prev.inventory];
-      const oreAdded = addOrStackInventoryItem(inventory, oreItem, prev.maxInventorySlots);
-      if (!oreAdded.added) return prev;
-      inventory = oreAdded.inventory;
-
-      // Gems are additional loot, never a replacement for the ore.
-      if (Math.random() < node.gemChance) {
-        const gemItem: GameItem = {
-          id: 'gem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
-          templateId: 'mining_gem',
-          name: 'Сырой самоцвет',
-          type: 'material',
-          rarity: 'rare',
-          level: node.levelReq,
-          upgradeLevel: 0,
-          icon: '💎',
-          description: 'Самоцвет, найденный в руде.',
-          stats: {},
-          sellPrice: 35 + node.levelReq,
-          disassembleYield: { crystals: 1 },
-          stackCount: 1 + Math.floor(Math.random() * 2)
-        };
-        const gemAdded = addOrStackInventoryItem(inventory, gemItem, prev.maxInventorySlots);
-        if (gemAdded.added) inventory = gemAdded.inventory;
-      }
-
-      const miningExp = prev.miningExp + Math.max(5, node.levelReq + 10);
-      let miningLevel = prev.miningLevel;
-      while (miningExp >= miningLevel * 50 && miningLevel < 100) miningLevel += 1;
-
-      result = { success: true, yieldCount, isCrit, oreName: node.oreYield };
-
-      setQuests(qList => qList.map(q => {
-        if (q.category !== 'mining') return q;
-        const count = Math.min(q.targetCount, q.currentCount + yieldCount);
-        return { ...q, currentCount: count, completed: count >= q.targetCount };
-      }));
-      setAchievements(aList => aList.map(a => {
-        if (a.id !== 'ach_4') return a;
-        const progress = Math.min(a.maxProgress, a.progress + yieldCount);
-        return { ...a, progress, completed: progress >= a.maxProgress };
-      }));
-
-      sound.playMining();
-      triggerHaptic('medium');
       return {
         ...prev,
         stamina: Math.max(0, prev.stamina - node.staminaCost),
@@ -1942,99 +1923,121 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     });
 
+    setQuests(qList => qList.map(q => {
+      if (q.category !== 'mining') return q;
+      const count = Math.min(q.targetCount, q.currentCount + yieldCount);
+      return { ...q, currentCount: count, completed: count >= q.targetCount };
+    }));
+    setAchievements(aList => aList.map(a => {
+      if (a.id !== 'ach_4') return a;
+      const progress = Math.min(a.maxProgress, a.progress + yieldCount);
+      return { ...a, progress, completed: progress >= a.maxProgress };
+    }));
+
+    sound.playMining();
+    triggerHaptic('medium');
+    if (gemFound) sound.playUpgradeSuccess();
+
     return result;
-  }, []);
+  }, [player]);
 
   // Alchemy
   const craftAlchemy = useCallback((recipeId: string): boolean => {
-    let success = false;
+    if (!player) return false;
+
     const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
-    if (!recipe) return false;
+    if (!recipe || player.alchemyLevel < recipe.levelReq) {
+      triggerHaptic('error');
+      return false;
+    }
 
-    setPlayer(prev => {
-      if (!prev) return prev;
-      if (prev.alchemyLevel < recipe.levelReq) {
+    for (const ingredient of recipe.ingredients) {
+      const have = player.inventory.reduce(
+        (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
+        0
+      );
+      if (have < ingredient.count) {
         triggerHaptic('error');
-        return prev;
+        return false;
       }
+    }
 
-      for (const ingredient of recipe.ingredients) {
-        const have = prev.inventory.reduce(
-          (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
-          0
-        );
-        if (have < ingredient.count) {
-          triggerHaptic('error');
-          return prev;
-        }
-      }
-
-      let inventory = prev.inventory.map(item => ({ ...item }));
-      for (const ingredient of recipe.ingredients) {
-        let remaining = ingredient.count;
-        inventory = inventory.map(item => {
+    let inventory = player.inventory.map(item => ({ ...item }));
+    for (const ingredient of recipe.ingredients) {
+      let remaining = ingredient.count;
+      inventory = inventory
+        .map(item => {
           if (remaining <= 0 || item.name !== ingredient.name) return item;
           const stack = item.stackCount || 1;
           const take = Math.min(stack, remaining);
           remaining -= take;
           return { ...item, stackCount: stack - take };
-        }).filter(item => (item.stackCount || 0) > 0);
+        })
+        .filter(item => (item.stackCount || 0) > 0);
+    }
+
+    const resultStats: Record<string, number> =
+      recipe.id === 'alc_hp_small' ? { heal: 120 } :
+      recipe.id === 'alc_mp_small' ? { manaRestore: 80 } :
+      recipe.id === 'alc_hp_great' ? { heal: 650 } :
+      recipe.id === 'alc_berserk' ? { attackPercent: 25, critChance: 15, buffDuration: 5 } :
+      recipe.id === 'alc_stoneskin' ? { defensePercent: 40, buffDuration: 5 } :
+      recipe.id === 'alc_dragon_blood' ? { healFull: 1, invulnerable: 1 } :
+      {};
+
+    const output: GameItem = {
+      id: 'pot_crafted_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      templateId: recipe.id,
+      name: recipe.resultItem,
+      type: 'potion',
+      rarity: recipe.levelReq >= 50 ? 'mythic' : recipe.levelReq >= 30 ? 'epic' : recipe.levelReq >= 15 ? 'rare' : 'uncommon',
+      level: Math.max(1, recipe.levelReq),
+      upgradeLevel: 0,
+      icon: recipe.icon,
+      description: recipe.description,
+      stats: resultStats,
+      sellPrice: Math.max(10, recipe.levelReq * 4),
+      disassembleYield: { shards: Math.max(1, Math.floor(recipe.levelReq / 5)) },
+      stackCount: recipe.resultCount
+    };
+
+    const canStack = inventory.some(item =>
+      item.templateId === output.templateId &&
+      item.type === output.type &&
+      item.name === output.name &&
+      item.rarity === output.rarity
+    );
+    if (!canStack && inventory.length >= player.maxInventorySlots) {
+      triggerHaptic('error');
+      return false;
+    }
+
+    const added = addOrStackInventoryItem(inventory, output, player.maxInventorySlots);
+    if (!added.added) {
+      triggerHaptic('error');
+      return false;
+    }
+
+    const professionXp = Math.max(10, recipe.levelReq * 2);
+    const alchemyExp = player.alchemyExp + professionXp;
+    let alchemyLevel = player.alchemyLevel;
+    while (alchemyExp >= alchemyLevel * 100 && alchemyLevel < 100) alchemyLevel += 1;
+
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory: added.inventory,
+      alchemyExp,
+      alchemyLevel,
+      statsSummary: {
+        ...prev.statsSummary,
+        potionsCrafted: prev.statsSummary.potionsCrafted + recipe.resultCount
       }
+    } : prev);
 
-      const resultStats: Record<string, number> =
-        recipe.id === 'alc_hp_small' ? { heal: 120 } :
-        recipe.id === 'alc_mp_small' ? { manaRestore: 80 } :
-        recipe.id === 'alc_hp_great' ? { heal: 650 } :
-        recipe.id === 'alc_berserk' ? { attackPercent: 25, critChance: 15, buffDuration: 5 } :
-        recipe.id === 'alc_stoneskin' ? { defensePercent: 40, buffDuration: 5 } :
-        recipe.id === 'alc_dragon_blood' ? { healFull: 1, invulnerable: 1 } :
-        {};
-
-      const output: GameItem = {
-        id: 'pot_crafted_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        templateId: recipe.id === 'alc_hp_small' ? 'pot_hp_small' : recipe.id,
-        name: recipe.resultItem,
-        type: 'potion',
-        rarity: recipe.levelReq >= 50 ? 'mythic' : recipe.levelReq >= 30 ? 'epic' : recipe.levelReq >= 15 ? 'rare' : 'uncommon',
-        level: Math.max(1, recipe.levelReq),
-        upgradeLevel: 0,
-        icon: recipe.icon,
-        description: recipe.description,
-        stats: resultStats,
-        sellPrice: Math.max(10, recipe.levelReq * 4),
-        disassembleYield: { shards: Math.max(1, Math.floor(recipe.levelReq / 5)) },
-        stackCount: recipe.resultCount
-      };
-
-      const added = addOrStackInventoryItem(inventory, output, prev.maxInventorySlots);
-      if (!added.added) {
-        triggerHaptic('error');
-        return prev;
-      }
-
-      const professionXp = Math.max(10, recipe.levelReq * 2);
-      const alchemyExp = prev.alchemyExp + professionXp;
-      let alchemyLevel = prev.alchemyLevel;
-      while (alchemyExp >= alchemyLevel * 100 && alchemyLevel < 100) alchemyLevel += 1;
-
-      success = true;
-      sound.playPotion();
-      triggerHaptic('success');
-
-      return {
-        ...prev,
-        inventory: added.inventory,
-        alchemyExp,
-        alchemyLevel,
-        statsSummary: {
-          ...prev.statsSummary,
-          potionsCrafted: prev.statsSummary.potionsCrafted + recipe.resultCount
-        }
-      };
-    });
-
-    return success;
-  }, []);
+    sound.playPotion();
+    triggerHaptic('success');
+    return true;
+  }, [player]);
 
   // Arena
   const challengeArena = useCallback((opponent: ArenaOpponent) => {
