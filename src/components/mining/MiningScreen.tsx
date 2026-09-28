@@ -31,6 +31,11 @@ export const MiningScreen: React.FC = () => {
             ...prev.slice(0, 8)
           ]);
         }
+      } else {
+        setMiningLog(prev => [
+          `❌ Не удалось добыть ${res.oreName || 'руду'}: недостаточно выносливости, уровень или место в сумке.`,
+          ...prev.slice(0, 8)
+        ]);
       }
       setIsMining(false);
       setActiveMiningNodeId(null);
@@ -103,7 +108,7 @@ export const MiningScreen: React.FC = () => {
                       {node.name}
                     </span>
                     <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                      Добыча: {node.oreYield} (x{node.baseYieldMin}-{node.baseYieldMax})
+                      Добыча: {node.oreYield} (x{node.baseYieldMin}-{node.baseYieldMax}) · ⚡{node.staminaCost}
                     </div>
                   </div>
                 </div>
