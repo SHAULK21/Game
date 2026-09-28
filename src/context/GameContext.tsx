@@ -101,60 +101,6 @@ interface GameContextType {
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
 
-  const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
-    if (!player) return { success: false, message: 'Персонаж не создан.' };
-    const stack = item.stackCount || 1;
-    if (quantity < 1 || quantity > stack) return { success: false, message: 'Недостаточное количество.' };
-    try {
-      await apiRequest('/api/market/list', { method: 'POST', body: JSON.stringify({ item, quantity, price_gold: priceGold }) });
-      setPlayer(prev => {
-        if (!prev) return prev;
-        let left = quantity;
-        const inventory = prev.inventory.map(i => {
-          if (i.id !== item.id || left <= 0) return i;
-          const take = Math.min(left, i.stackCount || 1); left -= take;
-          return { ...i, stackCount: (i.stackCount || 1) - take };
-        }).filter(i => (i.stackCount || 1) > 0);
-        return { ...prev, inventory };
-      });
-      return { success: true, message: 'Лот выставлен на рынок.' };
-    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
-  }, [player]);
-
-  const buyMarketListing = useCallback(async (listingId: string, expectedPriceGold?: number) => {
-    if (!player) return { success: false, message: 'Персонаж не создан.' };
-    if (expectedPriceGold !== undefined && player.gold < expectedPriceGold) return { success: false, message: 'Недостаточно золота.' };
-    try {
-      const result = await apiRequest<{ item: Partial<GameItem>; quantity: number; priceGold: number }>('/api/market/' + listingId + '/buy', { method: 'POST', body: '{}' });
-      if (!player) return { success: false, message: 'Персонаж не создан.' };
-      if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
-      const raw = result.item;
-      const item: GameItem = {
-        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
-        type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
-        upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
-        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
-      };
-      const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
-      if (!added.added) return { success: false, message: 'В инвентаре нет места.' };
-      setPlayer(prev => prev ? { ...prev, gold: prev.gold - result.priceGold, inventory: added.inventory } : prev);
-      return { success: true, message: 'Покупка завершена.' };
-    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Покупка не удалась.' }; }
-  }, [player]);
-
-  const buyBasicConsumable = useCallback((templateId: string, priceGold: number) => {
-    if (!player || player.gold < priceGold) return false;
-    const catalog: Record<string, GameItem> = {
-      pot_hp_small: { id: 'shop_hp', templateId: 'pot_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
-      pot_mp_small: { id: 'shop_mp', templateId: 'pot_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
-    };
-    const item = catalog[templateId]; if (!item) return false;
-    const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
-    if (!added.added) return false;
-    setPlayer(prev => prev ? { ...prev, gold: prev.gold - priceGold, inventory: added.inventory } : prev);
-    return true;
-  }, [player]);
-
   // Arena & Clan
   challengeArena: (opponent: ArenaOpponent) => void;
   claimQuestReward: (questId: string) => void;
@@ -335,7 +281,7 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
 };
 
 const SAVE_KEY = 'aethelgard_save_v1_data';
-const ENERGY_COSTS = { travel: 8, dungeon: 12, combat: 2, mining: 8, alchemy: 4, upgrade: 3, inventory: 2, quest: 2 };
+const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, mining: 8, alchemy: 5, upgrade: 4, inventory: 2, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
@@ -377,7 +323,62 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     message: ''
   });
 
-  // Natural energy regeneration (+1 every 5 seconds)
+  const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
+    if (!player) return { success: false, message: 'Персонаж не создан.' };
+    const stack = item.stackCount || 1;
+    if (quantity < 1 || quantity > stack) return { success: false, message: 'Недостаточное количество.' };
+    try {
+      await apiRequest('/api/market/list', { method: 'POST', body: JSON.stringify({ item, quantity, price_gold: priceGold }) });
+      setPlayer(prev => {
+        if (!prev) return prev;
+        let left = quantity;
+        const inventory = prev.inventory.map(i => {
+          if (i.id !== item.id || left <= 0) return i;
+          const take = Math.min(left, i.stackCount || 1); left -= take;
+          return { ...i, stackCount: (i.stackCount || 1) - take };
+        }).filter(i => (i.stackCount || 1) > 0);
+        return { ...prev, inventory };
+      });
+      return { success: true, message: 'Лот выставлен на рынок.' };
+    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
+  }, [player]);
+
+  const buyMarketListing = useCallback(async (listingId: string, expectedPriceGold?: number) => {
+    if (!player) return { success: false, message: 'Персонаж не создан.' };
+    if (expectedPriceGold !== undefined && player.gold < expectedPriceGold) return { success: false, message: 'Недостаточно золота.' };
+    try {
+      const result = await apiRequest<{ item: Partial<GameItem>; quantity: number; priceGold: number }>('/api/market/' + listingId + '/buy', { method: 'POST', body: '{}' });
+      if (!player) return { success: false, message: 'Персонаж не создан.' };
+      if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
+      const raw = result.item;
+      const item: GameItem = {
+        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
+        type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
+        upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
+        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
+      };
+      const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
+      if (!added.added) return { success: false, message: 'В инвентаре нет места.' };
+      setPlayer(prev => prev ? { ...prev, gold: prev.gold - result.priceGold, inventory: added.inventory } : prev);
+      return { success: true, message: 'Покупка завершена.' };
+    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Покупка не удалась.' }; }
+  }, [player]);
+
+  const buyBasicConsumable = useCallback((templateId: string, priceGold: number) => {
+    if (!player || player.gold < priceGold) return false;
+    const catalog: Record<string, GameItem> = {
+      pot_hp_small: { id: 'shop_hp', templateId: 'pot_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
+      pot_mp_small: { id: 'shop_mp', templateId: 'pot_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
+    };
+    const item = catalog[templateId]; if (!item) return false;
+    const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
+    if (!added.added) return false;
+    setPlayer(prev => prev ? { ...prev, gold: prev.gold - priceGold, inventory: added.inventory } : prev);
+    return true;
+  }, [player]);
+
+  // Energy is intentionally scarce: active play is designed to last roughly 15 minutes.
+  // Regeneration is deliberately slow: +1 energy every 120 seconds.
   useEffect(() => {
     const timer = setInterval(() => {
       setPlayer(prev => {
@@ -389,7 +390,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastEnergyRegenTimestamp: Date.now()
         };
       });
-    }, 5000);
+    }, 120000);
     return () => clearInterval(timer);
   }, []);
 
@@ -441,8 +442,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Ensure currency and energy defaults
           parsed.player.silver = parsed.player.silver ?? 150;
           parsed.player.shards = parsed.player.shards ?? 15;
-          parsed.player.energy = parsed.player.energy ?? 100;
-          parsed.player.maxEnergy = parsed.player.maxEnergy ?? 100;
+          parsed.player.energy = parsed.player.energy ?? 60;
+          parsed.player.maxEnergy = parsed.player.maxEnergy ?? 60;
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
@@ -499,7 +500,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const combatStats: CombatStats = useMemo(() => {
     if (!player) {
       return {
-        hp: 100, maxHp: 100, mp: 50, maxMp: 50, energy: 100, maxEnergy: 100, stamina: 100, maxStamina: 100,
+        hp: 100, maxHp: 100, mp: 50, maxMp: 50, energy: 60, maxEnergy: 60, stamina: 100, maxStamina: 100,
         attack: 10, magicAttack: 5, defense: 5, magicDefense: 5, speed: 10, accuracy: 90, evasion: 5,
         critChance: 5, critDamage: 150, armorPenetration: 0, vampirism: 0, hpRegen: 2, mpRegen: 2,
         dropBonus: 0, goldBonus: 0, expBonus: 0,
@@ -800,6 +801,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
+      if (prev && prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       if (!prev || item.isEquipped || item.level > prev.level) return prev;
       sound.playClick();
       triggerHaptic('medium');
@@ -816,7 +818,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev.equipped,
           [item.type]: { ...item, isEquipped: true }
         },
-        inventory: newInventory
+        inventory: newInventory,
+        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
   }, []);
@@ -824,6 +827,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const unequipItem = useCallback((type: ItemType) => {
     setPlayer(prev => {
       if (!prev) return prev;
+      if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       const currentEquipped = prev.equipped[type];
       if (!currentEquipped) return prev;
       if (prev.inventory.length >= prev.maxInventorySlots) {
@@ -838,7 +842,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         ...prev,
         equipped: updatedEquipped,
-        inventory: [...prev.inventory, { ...currentEquipped, isEquipped: false }]
+        inventory: [...prev.inventory, { ...currentEquipped, isEquipped: false }],
+        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
   }, []);
@@ -846,13 +851,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sellItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
       if (!prev || item.isEquipped) return prev;
+      if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       sound.playClick();
       triggerHaptic('light');
       const goldGain = item.sellPrice || 10;
       return {
         ...prev,
         gold: prev.gold + goldGain,
-        inventory: prev.inventory.filter(i => i.id !== item.id)
+        inventory: prev.inventory.filter(i => i.id !== item.id),
+        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
   }, []);
@@ -860,6 +867,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const disassembleItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
       if (!prev || item.isEquipped) return prev;
+      if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       sound.playMining();
       triggerHaptic('medium');
 
@@ -926,7 +934,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      return { ...prev, inventory };
+      return { ...prev, inventory, energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory) };
     });
   }, []);
 
