@@ -25,9 +25,16 @@ CREATE TABLE IF NOT EXISTS clans (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE players
-  ADD CONSTRAINT players_clan_fk
-  FOREIGN KEY (clan_id) REFERENCES clans(id) ON DELETE SET NULL;
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'players_clan_fk'
+  ) THEN
+    ALTER TABLE players
+      ADD CONSTRAINT players_clan_fk
+      FOREIGN KEY (clan_id) REFERENCES clans(id) ON DELETE SET NULL;
+  END IF;
+END $;
 
 CREATE TABLE IF NOT EXISTS clan_members (
   clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
