@@ -797,6 +797,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 14,
     critChance: 8,
     evasion: 10,
+    damageType: 'physical',
+    resistances: { physical: 5, poison: 10 },
     avatar: ASSETS.mobWolf,
     expReward: 25,
     goldReward: 18,
@@ -804,6 +806,7 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Волчья шкура', type: 'material', rarity: 'common', chance: 0.8, minQty: 1, maxQty: 2 },
       { itemName: 'Острый клык', type: 'material', rarity: 'uncommon', chance: 0.4, minQty: 1, maxQty: 1 },
       { itemName: 'Кожаный жилет охотника', type: 'armor', rarity: 'uncommon', chance: 0.15, minQty: 1, maxQty: 1 }
+      { itemName: 'Лечебная трава', type: 'material', rarity: 'common', chance: 0.65, minQty: 1, maxQty: 2 },
     ]
   },
   m_goblin: {
@@ -822,6 +825,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 16,
     critChance: 12,
     evasion: 12,
+    damageType: 'physical',
+    resistances: { physical: 5, fire: 5 },
     avatar: ASSETS.mobGoblin,
     expReward: 45,
     goldReward: 35,
@@ -847,6 +852,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 10,
     critChance: 10,
     evasion: 5,
+    damageType: 'physical',
+    resistances: { physical: 12 },
     avatar: '🐗',
     expReward: 70,
     goldReward: 50,
@@ -871,6 +878,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 18,
     critChance: 15,
     evasion: 14,
+    damageType: 'physical',
+    resistances: { physical: 8 },
     avatar: '🗡️',
     expReward: 110,
     goldReward: 95,
@@ -895,6 +904,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 25,
     critChance: 18,
     evasion: 20,
+    damageType: 'dark',
+    resistances: { physical: 5, dark: 20 },
     isBoss: true,
     avatar: '🦇',
     expReward: 420,
@@ -903,6 +914,7 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Крылья Королевы Мышей', type: 'cloak', rarity: 'epic', chance: 0.25, minQty: 1, maxQty: 1 },
       { itemName: 'Кольцо эхолокации', type: 'ring', rarity: 'rare', chance: 0.5, minQty: 1, maxQty: 1 },
       { itemName: 'Алмазный самородок', type: 'ore', rarity: 'epic', chance: 0.4, minQty: 1, maxQty: 2 }
+      { itemName: 'Лунная пыльца', type: 'material', rarity: 'uncommon', chance: 0.5, minQty: 1, maxQty: 2 },
     ]
   },
   m_spider: {
@@ -921,6 +933,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 22,
     critChance: 14,
     evasion: 16,
+    damageType: 'poison',
+    resistances: { poison: 35 },
     avatar: '🕷️',
     expReward: 160,
     goldReward: 120,
@@ -945,6 +959,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 8,
     critChance: 10,
     evasion: 2,
+    damageType: 'physical',
+    resistances: { physical: 35, magic: 20, lightning: -10 },
     isBoss: true,
     avatar: '🗿',
     expReward: 950,
@@ -953,6 +969,7 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Сердце монолита', type: 'artifact', rarity: 'epic', chance: 0.35, minQty: 1, maxQty: 1 },
       { itemName: 'Булава сокрушителя камней', type: 'weapon', rarity: 'rare', chance: 0.5, minQty: 1, maxQty: 1 },
       { itemName: 'Мифриловая руда', type: 'ore', rarity: 'rare', chance: 0.8, minQty: 3, maxQty: 6 }
+      { itemName: 'Горный корень', type: 'material', rarity: 'uncommon', chance: 0.55, minQty: 1, maxQty: 2 },
     ]
   },
   m_spider_queen: {
@@ -971,6 +988,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 30,
     critChance: 22,
     evasion: 24,
+    damageType: 'poison',
+    resistances: { physical: 10, poison: 45 },
     isBoss: true,
     avatar: '🕸️',
     expReward: 1400,
@@ -996,6 +1015,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 35,
     critChance: 25,
     evasion: 15,
+    damageType: 'dark',
+    resistances: { physical: 20, dark: 40, ice: 25, holy: -15 },
     isBoss: true,
     avatar: ASSETS.mobDeathKnight,
     expReward: 6500,
@@ -1003,6 +1024,7 @@ export const MONSTERS: Record<string, Monster> = {
     drops: [
       { itemName: 'Меч Ледяной Скорби', type: 'weapon', rarity: 'legendary', chance: 0.2, minQty: 1, maxQty: 1 },
       { itemName: 'Латный доспех Рыцаря Смерти', type: 'armor', rarity: 'epic', chance: 0.5, minQty: 1, maxQty: 1 }
+      { itemName: 'Магическая эссенция', type: 'material', rarity: 'rare', chance: 0.45, minQty: 1, maxQty: 2 },
     ]
   },
   m_demon_lord: {
@@ -1021,6 +1043,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 48,
     critChance: 30,
     evasion: 20,
+    damageType: 'fire',
+    resistances: { physical: 15, fire: 25, dark: 35, holy: -20 },
     isBoss: true,
     avatar: '👿',
     expReward: 22000,
@@ -1028,6 +1052,8 @@ export const MONSTERS: Record<string, Monster> = {
     drops: [
       { itemName: 'Корона Инферно', type: 'helmet', rarity: 'mythic', chance: 0.1, minQty: 1, maxQty: 1 },
       { itemName: 'Адская коса погибели', type: 'weapon', rarity: 'legendary', chance: 0.35, minQty: 1, maxQty: 1 }
+      { itemName: 'Огненный цветок', type: 'material', rarity: 'rare', chance: 0.55, minQty: 1, maxQty: 2 },
+      { itemName: 'Магическая эссенция', type: 'material', rarity: 'rare', chance: 0.65, minQty: 1, maxQty: 3 },
     ]
   },
   m_dragon_boss: {
@@ -1046,6 +1072,8 @@ export const MONSTERS: Record<string, Monster> = {
     speed: 55,
     critChance: 35,
     evasion: 22,
+    damageType: 'fire',
+    resistances: { physical: 25, magic: 35, fire: 60, ice: 10, lightning: 20, dark: 20, holy: -10 },
     isBoss: true,
     avatar: ASSETS.bossDragon,
     expReward: 85000,
@@ -1055,6 +1083,7 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Крушитель Богов Аэтельгарда', type: 'weapon', rarity: 'ancient', chance: 0.15, minQty: 1, maxQty: 1 },
       { itemName: 'Чешуйчатый доспех дракона', type: 'armor', rarity: 'mythic', chance: 0.3, minQty: 1, maxQty: 1 },
       { itemName: 'Драконит', type: 'ore', rarity: 'ancient', chance: 0.9, minQty: 5, maxQty: 15 }
+      { itemName: 'Магическая эссенция', type: 'material', rarity: 'epic', chance: 0.75, minQty: 2, maxQty: 5 },
     ]
   }
 };
@@ -1319,6 +1348,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     progress: 0,
     maxProgress: 1,
     completed: false,
+    claimed: false,
     permanentBonusDesc: '+2% к физ. урону навсегда',
     rewardGold: 200,
     rewardCrystals: 10
@@ -1331,6 +1361,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     progress: 0,
     maxProgress: 50,
     completed: false,
+    claimed: false,
     permanentBonusDesc: '+5% к опыту навсегда',
     rewardGold: 1000,
     rewardCrystals: 25
@@ -1343,6 +1374,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     progress: 0,
     maxProgress: 1,
     completed: false,
+    claimed: false,
     permanentBonusDesc: '+5% к выпадению редких предметов',
     rewardGold: 2500,
     rewardCrystals: 50
@@ -1355,6 +1387,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     progress: 0,
     maxProgress: 100,
     completed: false,
+    claimed: false,
     permanentBonusDesc: '+10% к шансу критической добычи',
     rewardGold: 1500,
     rewardCrystals: 30
@@ -1367,6 +1400,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     progress: 0,
     maxProgress: 10,
     completed: false,
+    claimed: false,
     permanentBonusDesc: '+3% к шансу успешной заточки',
     rewardGold: 5000,
     rewardCrystals: 100
