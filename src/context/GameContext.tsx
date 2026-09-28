@@ -450,6 +450,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       physical: 10, magic: 10, fire: 5, ice: 5, lightning: 5, poison: 5, dark: 5, holy: 5
     };
 
+    // Class identity passives: every class has a meaningful combat specialty.
+    switch (player.classId) {
+      case 'warrior': defense *= 1.10; break;
+      case 'berserker': attack *= 1.18; break;
+      case 'knight': defense *= 1.15; magicDefense *= 1.15; Object.keys(resistances).forEach(k => resistances[k as keyof typeof resistances] += 10); break;
+      case 'rogue': evasion += 8; critDamage += 10; break;
+      case 'assassin': armorPen += 10; break;
+      case 'archer': accuracy += 12; critChance += 6; armorPen += 10; break;
+      case 'mage': magicAttack *= 1.15; mpRegen *= 1.20; break;
+      case 'necromancer': vampirism += 8; break;
+      case 'paladin': defense *= 1.10; hpRegen *= 1.12; resistances.dark += 15; break;
+      case 'druid': hpRegen *= 1.10; mpRegen *= 1.10; resistances.poison += 20; break;
+    }
+
     // Apply Equipped Items stats + sharpening (+1 to +25)
     Object.values(player.equipped).forEach(item => {
       if (!item) return;
