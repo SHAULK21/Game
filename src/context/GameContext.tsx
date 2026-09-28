@@ -681,6 +681,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     });
 
+    // Starter mining ores: basic alchemy is usable immediately, while the same ores remain needed for sharpening.
+    [
+      { templateId: 'ore_coal', name: 'Уголь', count: 2, icon: '🪨' },
+      { templateId: 'ore_copper', name: 'Медная руда', count: 2, icon: '🟤' }
+    ].forEach(ore => {
+      inventory.push({
+        id: ore.templateId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        templateId: ore.templateId,
+        name: ore.name,
+        type: 'ore',
+        rarity: 'common',
+        level: 1,
+        upgradeLevel: 0,
+        icon: ore.icon,
+        description: 'Базовая руда для алхимии и заточки.',
+        stats: {},
+        sellPrice: 3,
+        disassembleYield: { ore: 1 },
+        stackCount: ore.count
+      });
+    });
+
     // Add starter potions
     inventory.push({
       id: 'pot_start_1',
@@ -712,8 +734,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       silver: 80,
       shards: 5,
       crystals: 8,
-      energy: 100,
-      maxEnergy: 100,
+      energy: 60,
+      maxEnergy: 60,
       lastEnergyRegenTimestamp: Date.now(),
       stamina: 100,
       maxStamina: 100,
