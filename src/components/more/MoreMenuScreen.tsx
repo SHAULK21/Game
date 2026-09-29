@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
   Scroll, 
@@ -19,14 +19,22 @@ interface MoreMenuScreenProps {
 }
 
 export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) => {
-  const { player, quests, achievements, premium, purchasePremium, claimQuestReward, claimAchievementReward } = useGame();
+  const { player, quests, achievements, premium, preparePremiumInvoice, purchasePremium, claimQuestReward, claimAchievementReward } = useGame();
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const [premiumBusy, setPremiumBusy] = useState(false);
+  const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium'>('quests');
 
   if (!player) return null;
   const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
   const isAdmin = adminTelegramId && String(getTelegramUser().id) === String(adminTelegramId);
+
+  useEffect(() => {
+    if (activeSection !== 'premium' || premium.active || preparedPremiumInvoice) return;
+    preparePremiumInvoice().then(link => {
+      if (link) setPreparedPremiumInvoice(link);
+    }).catch(() => undefined);
+  }, [activeSection, premium.active, preparedPremiumInvoice, preparePremiumInvoice]);
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
@@ -308,7 +316,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                 onClick={async () => {
                   setPremiumBusy(true);
                   setPremiumFeedback(null);
-                  const result = await purchasePremium();
+                  const result = await purchasePremium(preparedPremiumInvoice);
                   setPremiumFeedback(result.message);
                   setPremiumBusy(false);
                 }}
