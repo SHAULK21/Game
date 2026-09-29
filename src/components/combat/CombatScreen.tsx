@@ -19,8 +19,17 @@ import {
 } from 'lucide-react';
 import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } from '../../data/gameData';
 import { sound } from '../../utils/audio';
+import { RpgIcon } from '../ui/RpgIcon';
 
-export const CombatScreen: React.FC = () => {
+export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
+  const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
+  if (!ready.length) return null;
+  return [...ready].sort((a, b) =>
+    (b.damageMultiplier + (b.effect ? 0.2 : 0)) - (a.damageMultiplier + (a.effect ? 0.2 : 0))
+  )[0] || null;
+};
+
+const CombatScreen: React.FC = () => {
   const {
     player,
     activeMonster,
@@ -64,6 +73,8 @@ export const CombatScreen: React.FC = () => {
   const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
   const regionMonsters = currentRegion.monsters.map(id => MONSTERS[id]).filter(Boolean);
   const activeMod = REGION_MODIFIERS[player.activeRegionModId || currentRegion.defaultModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+  const combatEnergyCost = 2;
+  const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
 
   // Quick potion count
   const potionItem = player.inventory.find(i => i.type === 'potion');
@@ -73,7 +84,7 @@ export const CombatScreen: React.FC = () => {
     setEnergyError(null);
     const success = startBattleWithMonster(mon);
     if (!success) {
-      setEnergyError(`Недостаточно энергии! Требуется ${activeMod.energyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
+      setEnergyError(`Недостаточно энергии! Требуется ${combatEnergyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
       setTimeout(() => setEnergyError(null), 5000);
     }
   };
@@ -152,7 +163,7 @@ export const CombatScreen: React.FC = () => {
               className="flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Swords className="w-4 h-4" />
-              <span>Начать охоту · 2–7 врагов ({activeMod.energyCost} ⚡)</span>
+              <span>Начать охоту · 2–7 врагов ({combatEnergyCost} ⚡)</span>
             </button>
 
             <button
@@ -550,6 +561,28 @@ export const CombatScreen: React.FC = () => {
           </button>
         </div>
 
+        {turnPhase === 'player' && activeMonster && !isCombatEnded && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5">
+            <div className="flex items-center gap-2 text-amber-200 text-xs font-bold">
+              <RpgIcon kind="weapon" size={17} className="text-amber-300" />
+              <span>Следующее действие врага</span>
+              <span className="ml-auto text-[10px] text-slate-400">после вашего хода</span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-[11px] font-mono">
+              <span className="text-lg">{nextMonsterSkill?.icon || '⚔️'}</span>
+              <span className="text-slate-100 font-bold">
+                {nextMonsterSkill ? nextMonsterSkill.name : 'Обычная атака'}
+              </span>
+              {nextMonsterSkill && (
+                <span className="ml-auto text-rose-300">×{Math.round(nextMonsterSkill.damageMultiplier * 100)}%</span>
+              )}
+            </div>
+            <div className="mt-1 text-[10px] text-slate-400">
+              {nextMonsterSkill?.description || 'Моб нанесёт обычный физический удар, если у него нет доступного навыка.'}
+            </div>
+          </div>
+        )}
+
         {monsterIntent && turnPhase === 'monster' && (
           <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 shadow-lg shadow-amber-950/30 animate-pulse">
             <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
@@ -619,7 +652,7 @@ export const CombatScreen: React.FC = () => {
                   }}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
-                  Новая серия ({activeMod.energyCost} ⚡)
+                  Новая серия ({combatEnergyCost} ⚡)
                 </button>
               )}
 
