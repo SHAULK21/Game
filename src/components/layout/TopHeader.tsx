@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, ShieldAlert, Zap, Plus, X } from 'lucide-react';
 import { CLASSES, ASSETS } from '../../data/gameData';
+import { RpgIcon } from '../ui/RpgIcon';
 
 interface TopHeaderProps {
   onOpenAdmin: () => void;
@@ -114,13 +115,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-800/80 text-[11px] font-mono">
             {/* Gold */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-amber-500/20 text-amber-300">
-              <span>🪙</span>
+              <RpgIcon kind="gold" size={15} className="text-amber-300" />
               <span className="font-bold">{player.gold >= 10000 ? `${(player.gold / 1000).toFixed(1)}k` : player.gold}</span>
             </div>
 
             {/* Silver */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-slate-400/20 text-slate-300">
-              <span>🥈</span>
+              <RpgIcon kind="silver" size={15} className="text-slate-200" />
               <span className="font-bold">{player.silver ?? 150}</span>
             </div>
 
