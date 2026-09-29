@@ -104,6 +104,7 @@ interface GameContextType {
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
   startMiningExpedition: (hours: 1 | 3 | 7) => { success: boolean; message: string };
   claimMiningExpedition: () => { success: boolean; message: string };
+  leaveMiningExpedition: () => { success: boolean; message: string };
   craftAlchemy: (recipeId: string) => boolean;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
@@ -400,7 +401,7 @@ const addMiningRewardsToInventory = (
 };
 
 const SAVE_KEY = 'aethelgard_save_v1_data';
-const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, alchemy: 5, upgrade: 4, inventory: 0, quest: 2 };
+const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
@@ -654,6 +655,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, []);
 
+  // Separate alchemy energy regeneration (+1 every 20 seconds).
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPlayer(prev => {
+        if (!prev || prev.alchemyEnergy >= prev.maxAlchemyEnergy) return prev;
+        return { ...prev, alchemyEnergy: Math.min(prev.maxAlchemyEnergy, prev.alchemyEnergy + 1) };
+      });
+    }, 20000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Load saved state or check Telegram User
   useEffect(() => {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -706,6 +718,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.maxEnergy = parsed.player.maxEnergy ?? 60;
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
+          parsed.player.alchemyEnergy = parsed.player.alchemyEnergy ?? 100;
+          parsed.player.maxAlchemyEnergy = parsed.player.maxAlchemyEnergy ?? 100;
           parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           // Migrate old saves to the current steep XP curve.
@@ -1025,6 +1039,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       miningExp: 0,
       alchemyLevel: 1,
       alchemyExp: 0,
+      alchemyEnergy: 100,
+      maxAlchemyEnergy: 100,
       arenaRating: 1000,
       arenaTickets: 5,
       arenaLeague: 'Бронза',
@@ -1377,6 +1393,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const activeModId = player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = options?.energyCost ?? ENERGY_COSTS.combat;
+    if (player?.miningExpedition) {
+      sound.playUpgradeFail();
+      triggerHaptic('error');
+      return false;
+    }
     const useChain = options?.chain !== false;
 
     if (player && player.energy < energyCost) {
@@ -2446,6 +2467,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: `Экспедиция на ${hours} ч. началась.` };
   }, [player]);
 
+  const leaveMiningExpedition = useCallback((): { success: boolean; message: string } => {
+    if (!player?.miningExpedition) return { success: false, message: 'Персонаж сейчас не в шахте.' };
+    setPlayer(prev => prev ? { ...prev, miningExpedition: undefined } : prev);
+    triggerHaptic('warning');
+    return { success: true, message: 'Вы ушли с шахты. Прогресс текущей экспедиции потерян.' };
+  }, [player?.miningExpedition]);
+
   const claimMiningExpedition = useCallback((): { success: boolean; message: string } => {
     if (!player?.miningExpedition) return { success: false, message: 'Нет активной экспедиции.' };
     if (Date.now() < player.miningExpedition.endsAt) return { success: false, message: 'Экспедиция ещё не завершена.' };
@@ -2665,10 +2693,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Alchemy
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     if (!player) return false;
-    if (player.energy < ENERGY_COSTS.alchemy) { triggerHaptic('error'); return false; }
 
     const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
     if (!recipe || player.alchemyLevel < recipe.levelReq) {
+      triggerHaptic('error');
+      return false;
+    }
+
+    const alchemyEnergyCost = Math.max(4, Math.min(20, 4 + Math.floor(recipe.levelReq / 5)));
+    if (player.alchemyEnergy < alchemyEnergyCost) {
       triggerHaptic('error');
       return false;
     }
@@ -2748,7 +2781,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => prev ? {
       ...prev,
       inventory: added.inventory,
-      energy: Math.max(0, prev.energy - ENERGY_COSTS.alchemy),
+      alchemyEnergy: Math.max(0, prev.alchemyEnergy - alchemyEnergyCost),
       alchemyExp,
       alchemyLevel,
       statsSummary: {
@@ -2987,6 +3020,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mineNode,
       startMiningExpedition,
       claimMiningExpedition,
+      leaveMiningExpedition,
       craftAlchemy,
       listMarketItem,
       buyMarketListing,
