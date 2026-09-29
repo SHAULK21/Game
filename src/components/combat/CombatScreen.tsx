@@ -149,7 +149,7 @@ export const CombatScreen: React.FC = () => {
           <div className="text-[10px] text-slate-400">30 дней · Telegram Stars</div>
         </div>
         <button
-          disabled={premiumBusy}
+          disabled={premiumBusy || !preparedPremiumInvoice}
           onClick={async () => {
             setPremiumBusy(true);
             setPremiumFeedback(null);
@@ -160,7 +160,7 @@ export const CombatScreen: React.FC = () => {
           }}
           className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95"
         >
-          {premiumBusy ? 'Открываю оплату…' : 'Купить Premium · 150 ⭐'}
+          {premiumBusy ? 'Открываю оплату…' : !preparedPremiumInvoice ? 'Подготавливаю оплату…' : 'Купить Premium · 150 ⭐'}
         </button>
         {premiumFeedback && <div className="mt-2 text-center text-[11px] text-slate-300">{premiumFeedback}</div>}
       </div>
