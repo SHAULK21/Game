@@ -100,7 +100,7 @@ const validateTelegramInitData = (initData: string): AuthUser => {
   const hash = params.get('hash');
   const authDate = Number(params.get('auth_date') || 0);
   if (!hash || !authDate) throw new Error('Invalid Telegram initData.');
-  if (Math.abs(Date.now() / 1000 - authDate) > 86400) throw new Error('Telegram session expired.');
+  if (Math.abs(Date.now() / 1000 - authDate) > 7 * 86400) throw new Error('Telegram session expired. Reopen the Mini App from the bot.');
 
   const dataCheckString = [...params.entries()]
     .filter(([key]) => key !== 'hash')
@@ -150,6 +150,7 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
     );
     next();
   } catch (error) {
+    console.error('Telegram auth failed:', error);
     res.status(401).json({ error: error instanceof Error ? error.message : 'Unauthorized' });
   }
 };
@@ -497,7 +498,6 @@ app.post('/api/premium/invoice', auth, async (req, res) => {
     title: 'Aethelgard Premium',
     description: 'Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.',
     payload,
-    provider_token: '',
     currency: 'XTR',
     prices: [{ label: 'Aethelgard Premium · 30 дней', amount: PREMIUM_PRICE_STARS }],
     subscription_period: PREMIUM_PERIOD_SECONDS
