@@ -338,39 +338,49 @@ const MINING_BONUS_MATERIALS: Record<string, Array<{
   ],
   ore_iron: [
     { name: 'Соляной кристалл', icon: '🧂', rarity: 'common', chance: 0.25, minQty: 1, maxQty: 2 },
-    { name: 'Магнетит', icon: '🧲', rarity: 'uncommon', chance: 0.13, minQty: 1, maxQty: 1 }
+    { name: 'Магнетит', icon: '🧲', rarity: 'uncommon', chance: 0.13, minQty: 1, maxQty: 1 },
+    { name: 'Железный пирит', icon: '🪨', rarity: 'uncommon', chance: 0.09, minQty: 1, maxQty: 2 }
   ],
   ore_silver: [
     { name: 'Осколок лунного камня', icon: '🌙', rarity: 'uncommon', chance: 0.22, minQty: 1, maxQty: 2 },
-    { name: 'Лунная пыльца', icon: '✨', rarity: 'uncommon', chance: 0.10, minQty: 1, maxQty: 1 }
+    { name: 'Лунная пыльца', icon: '✨', rarity: 'uncommon', chance: 0.10, minQty: 1, maxQty: 1 },
+    { name: 'Серебряная нить', icon: '🧵', rarity: 'rare', chance: 0.08, minQty: 1, maxQty: 1 }
   ],
   ore_gold: [
     { name: 'Янтарный кристалл', icon: '🟡', rarity: 'uncommon', chance: 0.20, minQty: 1, maxQty: 2 },
-    { name: 'Сырой самоцвет', icon: '💎', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 }
+    { name: 'Сырой самоцвет', icon: '💎', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 },
+    { name: 'Золотая слюда', icon: '✨', rarity: 'rare', chance: 0.09, minQty: 1, maxQty: 1 }
   ],
   ore_cobalt: [
     { name: 'Синяя кристаллическая пыль', icon: '🔷', rarity: 'uncommon', chance: 0.24, minQty: 1, maxQty: 2 },
-    { name: 'Рунический осколок', icon: '🔹', rarity: 'rare', chance: 0.11, minQty: 1, maxQty: 1 }
+    { name: 'Рунический осколок', icon: '🔹', rarity: 'rare', chance: 0.11, minQty: 1, maxQty: 1 },
+    { name: 'Кобальтовая призма', icon: '🔷', rarity: 'rare', chance: 0.09, minQty: 1, maxQty: 1 }
   ],
   ore_mithril: [
     { name: 'Арканная пыль', icon: '✨', rarity: 'rare', chance: 0.25, minQty: 1, maxQty: 2 },
-    { name: 'Магическая эссенция', icon: '🔮', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 }
+    { name: 'Магическая эссенция', icon: '🔮', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 },
+    { name: 'Мифриловый шёлк', icon: '🧵', rarity: 'epic', chance: 0.08, minQty: 1, maxQty: 1 }
   ],
   ore_adamantite: [
     { name: 'Руническое ядро', icon: '🧿', rarity: 'epic', chance: 0.18, minQty: 1, maxQty: 1 },
-    { name: 'Осколок титана', icon: '🪨', rarity: 'rare', chance: 0.24, minQty: 1, maxQty: 2 }
+    { name: 'Осколок титана', icon: '🪨', rarity: 'rare', chance: 0.24, minQty: 1, maxQty: 2 },
+    { name: 'Адамантовый зубец', icon: '🔩', rarity: 'epic', chance: 0.10, minQty: 1, maxQty: 1 }
   ],
   ore_blood_obsidian: [
     { name: 'Демонический уголь', icon: '🌋', rarity: 'epic', chance: 0.22, minQty: 1, maxQty: 1 },
-    { name: 'Кровавый кристалл', icon: '🩸', rarity: 'epic', chance: 0.14, minQty: 1, maxQty: 1 }
+    { name: 'Кровавый кристалл', icon: '🩸', rarity: 'epic', chance: 0.14, minQty: 1, maxQty: 1 },
+    { name: 'Пепел Бездны', icon: '🌑', rarity: 'epic', chance: 0.11, minQty: 1, maxQty: 1 }
   ],
   ore_draconite: [
     { name: 'Осколок драконьей чешуи', icon: '🐲', rarity: 'epic', chance: 0.28, minQty: 1, maxQty: 2 },
-    { name: 'Драконья искра', icon: '🔥', rarity: 'ancient', chance: 0.10, minQty: 1, maxQty: 1 }
+    { name: 'Драконья искра', icon: '🔥', rarity: 'ancient', chance: 0.10, minQty: 1, maxQty: 1 },
+    { name: 'Сердце драконида', icon: '🐉', rarity: 'mythic', chance: 0.08, minQty: 1, maxQty: 1 }
   ],
   ore_aetherium: [
     { name: 'Эфирная пыль', icon: '🌌', rarity: 'ancient', chance: 0.34, minQty: 1, maxQty: 2 },
-    { name: 'Звёздное ядро', icon: '⭐', rarity: 'mythic', chance: 0.12, minQty: 1, maxQty: 1 }
+    { name: 'Звёздное ядро', icon: '⭐', rarity: 'mythic', chance: 0.12, minQty: 1, maxQty: 1 },
+    { name: 'Небесная слеза', icon: '💠', rarity: 'ancient', chance: 0.10, minQty: 1, maxQty: 1 },
+    { name: 'Осколок вечности', icon: '🌠', rarity: 'divine', chance: 0.045, minQty: 1, maxQty: 1 }
   ]
 };
 
@@ -503,6 +513,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [combatRound, setCombatRound] = useState<number>(1);
   const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[] } | null>(null);
+  const [pendingChainItems, setPendingChainItems] = useState<GameItem[]>([]);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
@@ -1589,6 +1600,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMonsterEffects([]);
     setCombatRound(1);
     setLastCombatReward(null);
+    setPendingChainItems([]);
     setBattleLog([
       {
         id: 'start_' + Date.now(),
@@ -1765,11 +1777,30 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
     }
+
+    const hasNextCombat = Boolean(combatChain && combatChain.queue.length > 0);
+    const isChainBattle = Boolean(combatChain);
+    let itemsToAward = lootResult.items.map(item => ({ ...item }));
+
+    if (isChainBattle && hasNextCombat) {
+      setPendingChainItems(prev => [...prev, ...itemsToAward]);
+      itemsToAward = [];
+    } else if (isChainBattle) {
+      const completionBonus = generateCombatLoot({
+        monster,
+        rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.85 * (1 + combatStats.dropBonus / 100),
+        goldMult: 0,
+        silverMult: 0
+      }).items.slice(0, Math.max(1, Math.ceil((combatChain?.total || 1) / 3)));
+      itemsToAward = [...pendingChainItems, ...itemsToAward, ...completionBonus];
+      setPendingChainItems([]);
+    }
+
     setLastCombatReward({
       gold: lootResult.gold,
       silver: lootResult.silver,
       exp: expReward,
-      items: lootResult.items.map(item => ({ ...item }))
+      items: itemsToAward.map(item => ({ ...item }))
     });
     const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
     const logs = [...baseLogs];
@@ -1790,7 +1821,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type: 'system'
     });
 
-    lootResult.items.forEach((item, index) => {
+    if (isChainBattle && hasNextCombat && lootResult.items.length > 0) {
+      logs.push({
+        id: 'chain_loot_' + Date.now(),
+        turn: currentTurn,
+        text: `🎒 Найдено предметов: ${lootResult.items.length}. Они добавлены в награду серии и будут выданы после последней победы.`,
+        type: 'system'
+      });
+    }
+    itemsToAward.forEach((item, index) => {
       logs.push({
         id: 'drop_' + Date.now() + '_' + index,
         turn: currentTurn,
@@ -1798,13 +1837,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'system'
       });
     });
+    if (isChainBattle && !hasNextCombat && itemsToAward.length > 0) {
+      logs.push({
+        id: 'chain_bonus_' + Date.now(),
+        turn: currentTurn,
+        text: `🔥 Награда за завершённую серию: ${itemsToAward.length} предметов с бонусным роллом!`,
+        type: 'system'
+      });
+    }
 
     setPlayer(prev => {
       if (!prev) return prev;
       const xpResult = addExperience(prev, expReward);
       let inventory = [...xpResult.player.inventory];
 
-      for (const item of lootResult.items) {
+      for (const item of itemsToAward) {
         const added = addOrStackInventoryItem(inventory, item, xpResult.player.maxInventorySlots);
         inventory = added.inventory;
         if (!added.added) {
@@ -1905,7 +1952,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     sound.playVictory();
     triggerHaptic('success');
-    const hasNextCombat = Boolean(combatChain && combatChain.queue.length > 0);
     setCombatChain(prev => prev ? { ...prev, defeated: Math.min(prev.total, prev.defeated + 1) } : prev);
     setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
     setBattleLog(prev => [...prev, ...logs, {
@@ -1919,7 +1965,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCombatEnded(true);
     setCombatOutcome('victory');
     setTurnPhase('ended');
-  }, [player, combatStats, activeDungeonRun, combatChain]);
+  }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems]);
 
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
