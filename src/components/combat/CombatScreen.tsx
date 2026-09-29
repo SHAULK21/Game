@@ -34,6 +34,8 @@ export const CombatScreen: React.FC = () => {
     player,
     activeMonster,
     battleLog,
+    combatRound,
+    lastCombatReward,
     isInCombat,
     isCombatEnded,
     combatOutcome,
@@ -357,7 +359,7 @@ export const CombatScreen: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-[10px]">Раунд {battleLog.length + 1}</span>
+            <span className="text-slate-400 text-[10px]">Раунд {combatRound}</span>
             <div className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border transition-all ${
               turnPhase === 'player'
                 ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-sm shadow-cyan-500/30 animate-pulse'
@@ -618,6 +620,41 @@ export const CombatScreen: React.FC = () => {
               {combatOutcome === 'defeat' && '💀 ПОРАЖЕНИЕ В БОЮ'}
               {combatOutcome === 'flee' && '🏃 ВЫ ВЫРВАЛИСЬ ИЗ БОЯ'}
             </div>
+
+            {combatOutcome === 'victory' && lastCombatReward && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
+                <div className="text-[11px] font-bold text-emerald-300 mb-2">Получено за бой</div>
+                <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
+                    <div className="text-amber-300 font-bold">+{lastCombatReward.gold}</div>
+                    <div className="text-slate-500">золото</div>
+                  </div>
+                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
+                    <div className="text-slate-200 font-bold">+{lastCombatReward.silver}</div>
+                    <div className="text-slate-500">серебро</div>
+                  </div>
+                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
+                    <div className="text-cyan-300 font-bold">+{lastCombatReward.exp}</div>
+                    <div className="text-slate-500">EXP</div>
+                  </div>
+                </div>
+                {lastCombatReward.items.length > 0 ? (
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    {lastCombatReward.items.map((item, index) => (
+                      <div key={item.id + index} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/60 p-2 flex items-center gap-2">
+                        <span className="text-xl shrink-0">{item.icon || '📦'}</span>
+                        <div className="min-w-0">
+                          <div className="text-[10px] text-slate-100 leading-tight break-words">{item.name}</div>
+                          <div className="text-[9px] text-slate-500">×{item.stackCount || 1} · {item.rarity}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-[10px] text-slate-500">Предметов не выпало.</div>
+                )}
+              </div>
+            )}
 
             {combatChain && (
               <div className="rounded-xl bg-black/20 border border-slate-800 p-2 text-left">
