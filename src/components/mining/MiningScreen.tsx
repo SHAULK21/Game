@@ -1,29 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
-import { Pickaxe, Clock3, Crown, PackageCheck } from 'lucide-react';
+import { Clock3, Crown, PackageCheck, Pickaxe, Sparkles } from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';
 
 const EXPEDITIONS = [
-  {
-    hours: 1 as const,
-    title: 'Короткая смена',
-    description: 'Базовая руда и простые материалы.',
-    finds: ['Уголь', 'Медь', 'Железо', 'Трава', 'Чистая вода']
-  },
-  {
-    hours: 3 as const,
-    title: 'Глубокая выработка',
-    description: 'Больше руды, шанс серебра, корней и лунной пыльцы.',
-    finds: ['Железо', 'Серебро', 'Горный корень', 'Лунная пыльца', 'Самоцвет']
-  },
-  {
-    hours: 7 as const,
-    title: 'Дальняя экспедиция',
-    description: 'Самая богатая добыча и повышенный шанс редких материалов.',
-    finds: ['Золото', 'Мифрил', 'Самоцвет', 'Эссенция', 'Адамантит/Драконит по уровню']
-  }
+  { hours: 1 as const, title: 'Короткая смена', description: 'Базовая руда и простые материалы.' },
+  { hours: 3 as const, title: 'Глубокая выработка', description: 'Больше ресурсов и повышенный шанс редких материалов.' },
+  { hours: 7 as const, title: 'Дальняя экспедиция', description: 'Максимальная офлайн-добыча и лучший шанс редких находок.' }
 ];
+
+const NODE_MATERIALS: Record<string, string[]> = {
+  ore_coal: ['Каменная пыль', 'Кварц'],
+  ore_copper: ['Кварц', 'Медный кристалл'],
+  ore_iron: ['Соляной кристалл', 'Магнетит'],
+  ore_silver: ['Осколок лунного камня', 'Лунная пыльца'],
+  ore_gold: ['Янтарный кристалл', 'Сырой самоцвет'],
+  ore_cobalt: ['Синяя кристаллическая пыль', 'Рунический осколок'],
+  ore_mithril: ['Арканная пыль', 'Магическая эссенция'],
+  ore_adamantite: ['Руническое ядро', 'Осколок титана'],
+  ore_blood_obsidian: ['Демонический уголь', 'Кровавый кристалл'],
+  ore_draconite: ['Осколок драконьей чешуи', 'Драконья искра'],
+  ore_aetherium: ['Эфирная пыль', 'Звёздное ядро']
+};
 
 const formatRemaining = (ms: number) => {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -45,12 +44,12 @@ export const MiningScreen: React.FC = () => {
 
   const [activeMiningNodeId, setActiveMiningNodeId] = useState<string | null>(null);
   const [miningLog, setMiningLog] = useState<string[]>([]);
-  const [isMining, setIsMining] = useState<boolean>(false);
+  const [isMining, setIsMining] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   if (!player) return null;
@@ -58,40 +57,30 @@ export const MiningScreen: React.FC = () => {
   const expedition = player.miningExpedition;
   const expeditionReady = Boolean(expedition && now >= expedition.endsAt);
   const remainingMs = expedition ? Math.max(0, expedition.endsAt - now) : 0;
-
-  const unlockedOres = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
+  const unlockedNodes = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
+  const nextNode = MINING_NODES.find(node => node.levelReq > player.miningLevel);
+  const currentLevelExp = Math.max(175, player.miningLevel * 175);
+  const levelProgress = Math.min(100, Math.round((player.miningExp / currentLevelExp) * 100));
 
   const handleMine = (nodeId: string) => {
     if (isMining) return;
     setIsMining(true);
     setActiveMiningNodeId(nodeId);
 
-    setTimeout(() => {
-      const res = mineNode(nodeId);
-      if (res.success) {
-        setMiningLog(prev => [
-          res.isCrit
-            ? `⚡ КРИТИЧЕСКАЯ ДОБЫЧА! Получено ${res.yieldCount} ед. [${res.oreName}]!`
-            : `⛏️ Получено ${res.yieldCount} ед. [${res.oreName}].`,
-          ...prev.slice(0, 8)
-        ]);
-      } else {
-        setMiningLog(prev => [
-          `❌ Не удалось добыть: ${res.oreName || 'недостаточно энергии шахты, уровня или места в сумке'}.`,
-          ...prev.slice(0, 8)
-        ]);
-      }
+    window.setTimeout(() => {
+      const result = mineNode(nodeId);
+      setMiningLog(prev => [
+        result.success
+          ? `${result.isCrit ? '⚡ КРИТ! ' : '⛏️ '}Получено: ${result.yieldCount} × ${result.oreName}`
+          : `❌ Не удалось добыть: ${result.oreName || 'проверьте уровень, энергию шахты и место в рюкзаке'}.`,
+        ...prev.slice(0, 8)
+      ]);
       setIsMining(false);
       setActiveMiningNodeId(null);
-    }, 600);
+    }, 500);
   };
 
-  const handleStartExpedition = (hours: 1 | 3 | 7) => {
-    const result = startMiningExpedition(hours);
-    setMiningLog(prev => [result.success ? `🕯️ ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
-  };
-
-  const handleClaimExpedition = () => {
+  const handleClaim = () => {
     const result = claimMiningExpedition();
     setMiningLog(prev => [result.success ? `📦 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
   };
@@ -117,135 +106,40 @@ export const MiningScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-3 rounded-xl border border-slate-800 bg-black/20 p-2.5 text-[10px] text-slate-400">
-          {premium.active
-            ? '👑 Premium: офлайн-добыча работает автоматически. Ручная добыча доступна всегда.'
-            : 'Обычная ручная добыча доступна всегда. Для офлайн-добычи запустите экспедицию на 1, 3 или 7 часов.'}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0f1d] p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <Clock3 className="w-4 h-4 text-cyan-300" />
-          <div>
-            <div className="text-xs font-bold text-cyan-200">Шахтёрская экспедиция</div>
-            <div className="text-[10px] text-slate-500">Экспедиция отвечает только за офлайн-добычу. Ручная добыча остаётся доступной. Если уйти раньше, сохранится часть уже добытых ресурсов.</div>
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
+            <span>Опыт шахтёра: {player.miningExp}/{currentLevelExp}</span>
+            <span>{levelProgress}%</span>
           </div>
-        </div>
-
-        {expedition ? (
-          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-cyan-500/30 bg-cyan-950/10'}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-bold text-slate-100">
-                  Экспедиция на {expedition.durationHours} ч.
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  {expeditionReady ? 'Группа вернулась с добычей.' : 'Персонаж работает в шахте.'}
-                </div>
-              </div>
-              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-cyan-300'}`}>
-                {expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs)}
-              </div>
+          <div className="mt-1 h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+            <div className="h-full bg-gradient-to-r from-amber-700 to-yellow-400" style={{ width: `${levelProgress}%` }} />
+          </div>
+          {nextNode && (
+            <div className="mt-1 text-[9px] text-slate-500">
+              Следующая жила: <span className="text-slate-300">{nextNode.name}</span> с {nextNode.levelReq} ур.
             </div>
-
-            {expeditionReady ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {(expedition.rewards || []).map(reward => (
-                  <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
-                    {reward.icon} {reward.name} ×{reward.count}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2 text-[10px] text-slate-500">
-                Состав полной добычи будет известен после возвращения. При досрочном выходе сохранится часть ресурсов по уже отработанному времени.
-              </div>
-            )}
-
-            {expeditionReady && (
-              <button
-                onClick={handleClaimExpedition}
-                className="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-95"
-              >
-                <PackageCheck className="w-4 h-4" />
-                Забрать добычу
-              </button>
-            )}
-
-            {!expeditionReady && (
-              <button
-                onClick={() => {
-                  const result = leaveMiningExpedition();
-                  setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
-                }}
-                className="mt-2 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs active:scale-95 transition-all"
-              >
-                Уйти с шахты
-              </button>
-            )}
-          </div>
-        ) : premium.active ? (
-          <div className="rounded-xl border border-yellow-500/25 bg-yellow-950/10 p-3 text-center">
-            <Crown className="w-5 h-5 mx-auto text-yellow-300 mb-1" />
-            <div className="text-xs font-bold text-yellow-200">Экспедицию запускать не нужно</div>
-            <div className="text-[10px] text-slate-500 mt-1">Premium автоматически добывает ресурсы, пока вы офлайн.</div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2">
-            {EXPEDITIONS.map(option => (
-              <button
-                key={option.hours}
-                onClick={() => handleStartExpedition(option.hours)}
-                className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-cyan-500/40 active:scale-[0.99] transition-all"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs font-bold text-slate-100">{option.title}</div>
-                    <div className="text-[10px] text-slate-500">{option.description}</div>
-                  </div>
-                  <span className="shrink-0 px-2 py-1 rounded-lg bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold">
-                    {option.hours} ч.
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {option.finds.map(find => (
-                    <span key={find} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
-                      {find}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {miningLog.length > 0 && (
-        <div className="rounded-xl border border-slate-800 bg-[#070912] p-2.5 space-y-1 font-mono text-[11px]">
-          {miningLog.map((log, idx) => (
-            <div key={idx} className={log.startsWith('❌') ? 'text-rose-300' : 'text-slate-300'}>{log}</div>
-          ))}
-        </div>
-      )}
-
+      {/* Manual extraction first */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
+        <div className="px-1">
           <div className="text-xs font-mono text-amber-400 uppercase tracking-wider">Ручная добыча</div>
-          <span className="text-[9px] text-slate-500">Для всех игроков</span>
+          <div className="text-[10px] text-slate-500">Доступна всем игрокам. Кроме руды можно найти дополнительные материалы.</div>
         </div>
 
-        <div className="space-y-2">
-          {unlockedOres.map(node => {
-            const isCurrentlyMining = isMining && activeMiningNodeId === node.id;
-            return (
-              <div key={node.id} className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center justify-between gap-2">
+        {unlockedNodes.map(node => {
+          const mining = isMining && activeMiningNodeId === node.id;
+          return (
+            <div key={node.id} className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d]">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="p-2 bg-slate-900 rounded-lg border border-slate-800">
                     <RpgIcon kind="ore" size={28} className="text-amber-300" />
                   </span>
                   <div className="min-w-0">
-                    <span className="font-cinzel text-xs font-bold text-slate-100">{node.name}</span>
+                    <div className="font-cinzel text-xs font-bold text-slate-100">{node.name}</div>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5">
                       {node.oreYield} ×{node.baseYieldMin}-{node.baseYieldMax} · ⛏ {node.staminaCost}
                     </div>
@@ -254,14 +148,121 @@ export const MiningScreen: React.FC = () => {
                 <button
                   onClick={() => handleMine(node.id)}
                   disabled={isMining || player.stamina < node.staminaCost}
-                  className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 disabled:cursor-not-allowed font-bold text-xs text-slate-950 active:scale-95"
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 text-slate-950 font-bold text-xs active:scale-95"
                 >
-                  {isCurrentlyMining ? 'Добыча…' : 'Добывать'}
+                  {mining ? 'Добыча…' : 'Добывать'}
                 </button>
               </div>
-            );
-          })}
+
+              {(NODE_MATERIALS[node.id] || []).length > 0 && (
+                <div className="mt-2 flex items-start gap-1.5">
+                  <Sparkles className="w-3 h-3 text-purple-300 shrink-0 mt-0.5" />
+                  <div className="flex flex-wrap gap-1">
+                    {(NODE_MATERIALS[node.id] || []).map(material => (
+                      <span key={material} className="text-[9px] px-1.5 py-0.5 rounded border border-purple-500/20 bg-purple-950/20 text-purple-200">
+                        {material}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {miningLog.length > 0 && (
+        <div className="rounded-xl border border-slate-800 bg-[#070912] p-2.5 space-y-1 font-mono text-[11px]">
+          {miningLog.map((log, index) => (
+            <div key={index} className={log.startsWith('❌') ? 'text-rose-300' : 'text-slate-300'}>{log}</div>
+          ))}
         </div>
+      )}
+
+      {/* Offline expedition second */}
+      <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0f1d] p-3">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock3 className="w-4 h-4 text-cyan-300" />
+          <div>
+            <div className="text-xs font-bold text-cyan-200">Офлайн-экспедиция</div>
+            <div className="text-[10px] text-slate-500">
+              {premium.active
+                ? 'Premium добывает ресурсы офлайн автоматически — запускать экспедицию не нужно.'
+                : 'Для обычного аккаунта экспедицию нужно запустить перед выходом из игры.'}
+            </div>
+          </div>
+        </div>
+
+        {expedition ? (
+          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-cyan-500/30 bg-cyan-950/10'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-xs font-bold text-slate-100">Экспедиция на {expedition.durationHours} ч.</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.
+                </div>
+              </div>
+              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-cyan-300'}`}>
+                {expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs)}
+              </div>
+            </div>
+
+            {expeditionReady && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {expedition.rewards.map(reward => (
+                  <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
+                    {reward.icon} {reward.name} ×{reward.count}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {expeditionReady ? (
+              <button onClick={handleClaim} className="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2">
+                <PackageCheck className="w-4 h-4" /> Забрать добычу
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const result = leaveMiningExpedition();
+                  setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
+                }}
+                className="mt-3 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs"
+              >
+                Уйти с шахты
+              </button>
+            )}
+          </div>
+        ) : premium.active ? (
+          <div className="rounded-xl border border-yellow-500/25 bg-yellow-950/10 p-3 text-center">
+            <Crown className="w-5 h-5 mx-auto text-yellow-300 mb-1" />
+            <div className="text-xs font-bold text-yellow-200">Автоматическая Premium-добыча активна</div>
+            <div className="text-[10px] text-slate-500 mt-1">Просто закройте игру — ресурсы будут рассчитаны при возвращении.</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {EXPEDITIONS.map(option => (
+              <button
+                key={option.hours}
+                onClick={() => {
+                  const result = startMiningExpedition(option.hours);
+                  setMiningLog(prev => [result.success ? `🕯️ ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
+                }}
+                className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-cyan-500/40 active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-bold text-slate-100">{option.title}</div>
+                    <div className="text-[10px] text-slate-500">{option.description}</div>
+                  </div>
+                  <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold">
+                    {option.hours} ч.
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
