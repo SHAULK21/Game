@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24.21.0'
-- name: Install
+      - name: Install
         run: npm install
       - name: Typecheck
         run: npm run lint
