@@ -303,7 +303,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   key={mod.id}
                   onClick={() => {
                     setSelectedModId(mod.id);
-                    setActiveRegionMod(mod.id);
+                    if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
                   className={`p-2 rounded-xl border text-left transition-all ${
@@ -345,14 +345,19 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               <span>⚔️ Перейти к охоте на монстров</span>
             </button>
           ) : (
-            <button
-              onClick={() => handleStartTravel(inspectingRegion.id)}
-              disabled={player.level < inspectingRegion.minLevel}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 disabled:opacity-50 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <Footprints className="w-4 h-4" />
-              <span>Отправиться в путь (3 сек, {activeMod.energyCost} ⚡)</span>
-            </button>
+            <>
+              <button
+                onClick={() => handleStartTravel(inspectingRegion.id)}
+                disabled={player.level < inspectingRegion.minLevel}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 disabled:opacity-50 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Footprints className="w-4 h-4" />
+                <span>Отправиться в путь (3 сек, {activeMod.energyCost} ⚡)</span>
+              </button>
+              {player.level < inspectingRegion.minLevel && (
+                <p className="mt-2 text-center text-xs text-rose-300">Локация откроется на {inspectingRegion.minLevel}-м уровне. Сейчас её можно только посмотреть.</p>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -374,6 +379,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 key={reg.id}
                 onClick={() => {
                   setSelectedRegionId(reg.id);
+                  setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
+                    ? player.activeRegionModId!
+                    : reg.defaultModId);
                   sound.playClick();
                 }}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
@@ -441,6 +449,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         <div className="space-y-2">
           {Object.values(CAVES).map(cave => {
             const isSelected = selectedCaveId === cave.id;
+            const isAvailableHere = currentRegion.caves.includes(cave.id);
+            const canEnter = isAvailableHere && player.level >= cave.minLevel;
             return (
               <div
                 key={cave.id}
@@ -464,17 +474,18 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                         {cave.name}
                       </span>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        {cave.roomsCount} комнат · Мин. ур. {cave.minLevel}
+                        {cave.roomsCount} комнат · Мин. ур. {cave.minLevel}{!isAvailableHere ? ' · Другая локация' : ''}
                       </div>
                     </div>
                   </div>
 
                   <button
+                    disabled={!canEnter}
                     onClick={e => {
                       e.stopPropagation();
                       enterDungeon(cave.id, difficulty);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white active:scale-95 transition-transform"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white active:scale-95 transition-transform"
                   >
                     Войти
                   </button>

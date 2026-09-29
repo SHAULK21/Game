@@ -19,7 +19,7 @@ import {
   Crown,
   X
 } from 'lucide-react';
-import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } from '../../data/gameData';
+import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
@@ -94,7 +94,8 @@ export const CombatScreen: React.FC = () => {
   if (!player) return null;
 
   const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
-  const regionMonsters = currentRegion.monsters.map(id => MONSTERS[id]).filter(Boolean);
+  const regionMonsters = currentRegion.monsters.map(id => MONSTERS[id]).filter(Boolean).map(mon => getRegionMonster(mon, currentRegion));
+  const selectedMonster = regionMonsters.find(mon => mon.id === selectedMonsterId) || regionMonsters[0];
   const activeMod = REGION_MODIFIERS[player.activeRegionModId || currentRegion.defaultModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
   const combatEnergyCost = 2;
   const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
@@ -255,8 +256,7 @@ export const CombatScreen: React.FC = () => {
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => {
-                const target = MONSTERS[selectedMonsterId] || regionMonsters[0];
-                if (target) handleStartBattle(target);
+                if (selectedMonster) handleStartBattle(selectedMonster);
               }}
               className="flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
@@ -375,7 +375,7 @@ export const CombatScreen: React.FC = () => {
 
           <div className="space-y-2">
             {regionMonsters.map(mon => {
-              const isSelected = selectedMonsterId === mon.id;
+              const isSelected = selectedMonster?.id === mon.id;
               const hasImg = isMonsterImg(mon.avatar);
 
               return (
@@ -795,8 +795,7 @@ export const CombatScreen: React.FC = () => {
               ) : (
                 <button
                   onClick={() => {
-                    const target = MONSTERS[selectedMonsterId] || regionMonsters[0];
-                    if (target) handleStartBattle(target);
+                    if (selectedMonster) handleStartBattle(selectedMonster);
                   }}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
