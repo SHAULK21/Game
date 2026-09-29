@@ -23,6 +23,7 @@ import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } f
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
+import { skillTier } from '../../data/classEvolution';
 
 export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
   const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
@@ -48,6 +49,7 @@ export const CombatScreen: React.FC = () => {
     playerEffects,
     monsterEffects,
     monsterIntent,
+    comboReady,
     autoBattle,
     combatStats,
     combatChain,
@@ -536,6 +538,9 @@ export const CombatScreen: React.FC = () => {
                   />
                 </div>
               </div>
+              {playerEffects.length > 0 && <div className="text-[9px] text-cyan-300 truncate" title={playerEffects.map(e => e.name).join(', ')}>
+                {playerEffects.map(e => `${e.name}${e.stacks ? ` ×${e.stacks}` : ''}`).join(' · ')}
+              </div>}
             </div>
           </div>
 
@@ -617,7 +622,7 @@ export const CombatScreen: React.FC = () => {
                 <span>🛡️ {activeMonster.defense}</span>
                 {monsterEffects.length > 0 && (
                   <span className="text-purple-300 truncate max-w-[45px]">
-                    {monsterEffects[0].name}
+                    {monsterEffects.map(e => `${e.name}${e.stacks ? ` ×${e.stacks}` : ''}`).join(' · ')}
                   </span>
                 )}
               </div>
@@ -858,20 +863,6 @@ export const CombatScreen: React.FC = () => {
                 <span>Зелье ({potionCount})</span>
               </button>
 
-              {/* Execute */}
-              <button
-                onClick={() => performPlayerAction('execute')}
-                disabled={turnPhase !== 'player'}
-                className={`py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
-                  monsterHpPct <= 35
-                    ? 'bg-rose-950/80 border-rose-500 text-rose-200 animate-pulse font-bold'
-                    : 'bg-slate-900 border-slate-800 text-slate-300'
-                }`}
-              >
-                <Skull className="w-3.5 h-3.5 text-rose-400" />
-                <span>Добить (x2.5)</span>
-              </button>
-
               {/* Flee */}
               <button
                 onClick={() => performPlayerAction('flee')}
@@ -889,7 +880,7 @@ export const CombatScreen: React.FC = () => {
                   <span>Выберите зелье</span>
                   <button onClick={() => setIsPotionsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
-                <div className="grid grid-cols-1 gap-1.5">
+                <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
                   {combatPotions.map(potion => {
                     const stats = potion.stats || {};
                     const effects = [
@@ -947,7 +938,7 @@ export const CombatScreen: React.FC = () => {
                         }}
                         className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${
                           canUse
-                            ? 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
+                            ? comboReady.includes(skill.id) ? 'bg-cyan-950/40 border-cyan-400 hover:border-cyan-200 active:scale-98 cursor-pointer' : 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
                             : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
                         }`}
                       >
@@ -955,6 +946,8 @@ export const CombatScreen: React.FC = () => {
                           <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                             <span>{skill.icon}</span>
                             <span>{skill.name}</span>
+                            {comboReady.includes(skill.id) && <span className="text-[9px] text-cyan-300">🔗 Связка</span>}
+                            <span className="text-[9px] text-cyan-300">{['I', 'II', 'III', 'IV'][skillTier(player) - 1]}</span>
                             {skill.isUltimate && (
                               <span className="text-[9px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">
                                 УЛЬТ
@@ -974,6 +967,7 @@ export const CombatScreen: React.FC = () => {
                       </button>
                     );
                   })}
+                  {player.skills.every(s => !s.hidden) && <div className="col-span-full text-[10px] text-slate-500 p-2">🔒 Неизвестный классовый навык. Откроется при развитии героя.</div>}
                 </div>
               </div>
             )}

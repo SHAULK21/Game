@@ -26,6 +26,7 @@ interface WorldScreenProps {
 export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) => {
   const {
     player,
+    combatStats,
     activeDungeonRun,
     travelState,
     startTravel,
@@ -118,9 +119,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <div>
             <div className="text-[10px] font-mono text-cyan-400 uppercase">Подземелье</div>
             <h2 className="font-cinzel text-sm font-bold text-slate-100">{activeDungeonRun.dungeonName}</h2>
+            <div className="text-[10px] text-cyan-300">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
           </div>
           <button
-            onClick={exitDungeon}
+            onClick={() => { if (window.confirm('Покинуть подземелье? Прогресс этого захода будет потерян.')) exitDungeon(); }}
             className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800 border border-slate-700"
           >
             Покинуть

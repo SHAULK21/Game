@@ -31,7 +31,7 @@ export const MarketScreen: React.FC = () => {
   };
   useEffect(() => { load(); }, []);
 
-  const sellable = useMemo(() => (player?.inventory || []).filter(i => !i.isEquipped && i.type !== 'ore'), [player]);
+  const sellable = useMemo(() => (player?.inventory || []).filter(i => !i.isEquipped && !i.isLocked && !i.boundToClan && i.type !== 'ore'), [player]);
 
   const buyListing = async (listing: Listing) => {
     if (!player || player.gold < listing.price_gold) { setError('Недостаточно золота.'); return; }

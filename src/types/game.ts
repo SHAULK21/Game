@@ -67,6 +67,7 @@ export interface StatusEffect {
   name: string;
   duration: number; // turns
   value: number; // damage or shield amount
+  stacks?: number;
 }
 
 export interface ItemAffix {
@@ -100,6 +101,9 @@ export interface GameItem {
   stackCount?: number;
   isEquipped?: boolean;
   isLocked?: boolean;
+  armorClass?: 'heavy' | 'medium' | 'light';
+  weaponClass?: 'twoHanded' | 'dagger' | 'staff' | 'shield' | 'bow';
+  boundToClan?: string;
 }
 
 export interface CharacterAttributes {
@@ -174,6 +178,17 @@ export interface Skill {
   };
   icon: string;
   isUltimate?: boolean;
+  hidden?: boolean;
+  hits?: number;
+  comboFrom?: string;
+  comboMultiplier?: number;
+  guaranteedHit?: boolean;
+  guaranteedEvade?: boolean;
+  executeThreshold?: number;
+  executeMultiplier?: number;
+  instantExecutePve?: boolean;
+  poisonBurst?: boolean;
+  armorBreak?: number;
 }
 
 export interface Talent {
@@ -282,6 +297,11 @@ export interface DungeonRun {
   currentRoomIndex: number;
   rooms: DungeonRoom[];
   completed: boolean;
+  kills?: number;
+  resurrectionUsed?: boolean;
+  savedHp?: number;
+  savedMp?: number;
+  blessings?: string[];
 }
 
 export interface MiningExpeditionReward {
@@ -481,6 +501,7 @@ export interface PlayerCharacter {
 
   talents: Talent[];
   skills: Skill[];
+  unlockedHiddenSkills?: string[];
   activePet?: Pet;
   craftedPetIds?: string[];
 

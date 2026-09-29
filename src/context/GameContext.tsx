@@ -42,6 +42,7 @@ import { generateCombatLoot } from '../utils/lootGenerator';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
 import { apiRequest } from '../utils/api';
+import { CLASS_SKILLS, HIDDEN_SKILLS, hiddenSkillReady, reconcileSkills, skillTier } from '../data/classEvolution';
 
 interface GameContextType {
   player: PlayerCharacter | null;
@@ -59,6 +60,7 @@ interface GameContextType {
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
   monsterIntent: MonsterSkill | null;
+  comboReady: string[];
   autoBattle: AutoBattleSettings;
   activeDungeonRun: DungeonRun | null;
   quests: Quest[];
@@ -79,6 +81,7 @@ interface GameContextType {
   unequipItem: (type: ItemType) => void;
   sellItem: (item: GameItem) => void;
   disassembleItem: (item: GameItem) => void;
+  toggleItemLock: (itemId: string) => void;
   expandInventory: () => void;
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
@@ -89,7 +92,7 @@ interface GameContextType {
   // Combat
   startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number }) => boolean;
   startNextCombatBattle: () => boolean;
-  performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => void;
+  performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => void;
   toggleAutoBattle: () => void;
   updateAutoBattleSettings: (settings: Partial<AutoBattleSettings>) => void;
   exitCombat: () => void;
@@ -523,7 +526,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]);
   const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);
   const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
+  const [lastCast, setLastCast] = useState<{ id: string; turn: number } | null>(null);
+  const [warriorMomentum, setWarriorMomentum] = useState(0);
+  const [rogueFocus, setRogueFocus] = useState(false);
   const [activeDungeonRun, setActiveDungeonRun] = useState<DungeonRun | null>(null);
+  useEffect(() => {
+    if (!activeDungeonRun || combatOutcome !== 'victory' || !isCombatEnded) return;
+    setActiveDungeonRun(run => run && (run.savedHp !== combatPlayerHp || run.savedMp !== combatPlayerMp)
+      ? { ...run, savedHp: combatPlayerHp, savedMp: combatPlayerMp } : run);
+  }, [activeDungeonRun, combatOutcome, isCombatEnded, combatPlayerHp, combatPlayerMp]);
   const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -703,6 +714,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
+    if (item.isLocked || item.boundToClan) return { success: false, message: 'Запертый или клановый предмет нельзя выставить на рынок.' };
+    if (!player.inventory.some(i => i.id === item.id && !i.isLocked && !i.boundToClan)) return { success: false, message: 'Предмета нет в инвентаре.' };
     const stack = item.stackCount || 1;
     if (quantity < 1 || quantity > stack) return { success: false, message: 'Недостаточное количество.' };
     try {
@@ -733,6 +746,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
         type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
         upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
+        armorClass: raw.armorClass, weaponClass: raw.weaponClass,
         stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
       };
       const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
@@ -857,7 +871,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.nextExp = getNextExperience(parsed.player.level);
           parsed.player = addExperience(parsed.player, 0).player;
 
-          setPlayer(parsed.player);
+          setPlayer(CLASSES[parsed.player.classId as CharacterClassId]
+            ? reconcileSkills(parsed.player, CLASSES[parsed.player.classId as CharacterClassId].startingSkills)
+            : parsed.player);
           if (parsed.quests) {
             const savedQuestIds = new Set(parsed.quests.map((q: Quest) => q.id));
             const missingQuests = INITIAL_QUESTS.filter(q => !savedQuestIds.has(q.id));
@@ -867,6 +883,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           if (parsed.achievements) setAchievements(parsed.achievements);
           if (parsed.chatMessages) setChatMessages(parsed.chatMessages);
+          if (parsed.activeDungeonRun && !parsed.activeDungeonRun.completed) setActiveDungeonRun(parsed.activeDungeonRun);
           return;
         }
       } catch (err) {
@@ -898,10 +915,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       player: { ...player, lastActiveTimestamp: Date.now() },
       quests,
       achievements,
-      chatMessages: chatMessages.slice(-50)
+      chatMessages: chatMessages.slice(-50),
+      activeDungeonRun
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-  }, [player, quests, achievements, chatMessages]);
+  }, [player, quests, achievements, chatMessages, activeDungeonRun]);
 
   // Online count simulation
   useEffect(() => {
@@ -1195,7 +1213,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeRegionModId: 'mod_standard'
     };
 
-    setPlayer(newPlayer);
+    setPlayer(reconcileSkills(newPlayer, classDef.startingSkills));
     sound.playLevelUp();
     triggerHaptic('success');
   }, []);
@@ -1267,14 +1285,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!prev || prev.statPoints <= 0) return prev;
       sound.playClick();
       triggerHaptic('light');
-      return {
+      return reconcileSkills({
         ...prev,
         statPoints: prev.statPoints - 1,
         attributes: {
           ...prev.attributes,
           [attr]: prev.attributes[attr] + 1
         }
-      };
+      }, CLASSES[prev.classId].startingSkills);
     });
   }, []);
 
@@ -1349,7 +1367,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sellItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
-      if (!prev || item.isEquipped) return prev;
+      if (!prev || item.isEquipped || prev.inventory.find(i => i.id === item.id)?.isLocked) return prev;
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       sound.playClick();
       triggerHaptic('light');
@@ -1365,7 +1383,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const disassembleItem = useCallback((item: GameItem) => {
     setPlayer(prev => {
-      if (!prev || item.isEquipped) return prev;
+      if (!prev || item.isEquipped || prev.inventory.find(i => i.id === item.id)?.isLocked) return prev;
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       sound.playMining();
       triggerHaptic('medium');
@@ -1403,6 +1421,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         silver: prev.silver + salvageSilver
       };
     });
+  }, []);
+
+  const toggleItemLock = useCallback((itemId: string) => {
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory: prev.inventory.map(i => i.id === itemId ? { ...i, isLocked: !i.isLocked } : i),
+      equipped: Object.fromEntries(Object.entries(prev.equipped).map(([slot, i]) => [slot, i?.id === itemId ? { ...i, isLocked: !i.isLocked } : i]))
+    } : prev);
   }, []);
 
   const expandInventory = useCallback(() => {
@@ -1589,8 +1615,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCombatChain(useChain && player ? { total: chain.length, defeated: 0, queue: chain.slice(1) } : null);
     setActiveMonster({ ...chain[0], hp: chain[0].maxHp });
-    setCombatPlayerHp(combatStats.maxHp);
-    setCombatPlayerMp(combatStats.maxMp);
+    const dungeonFight = !useChain && !!activeDungeonRun && energyCost === 0;
+    setCombatPlayerHp(dungeonFight ? Math.max(1, activeDungeonRun.savedHp ?? combatStats.maxHp) : combatStats.maxHp);
+    setCombatPlayerMp(dungeonFight ? Math.max(0, activeDungeonRun.savedMp ?? combatStats.maxMp) : combatStats.maxMp);
+    setLastCast(null);
+    setWarriorMomentum(0);
+    setRogueFocus(false);
     setTurnPhase('player');
     setIsInCombat(true);
     setIsCombatEnded(false);
@@ -1599,6 +1629,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayerEffects([]);
     setMonsterEffects([]);
     setCombatRound(1);
+    setLastCast(null);
     setLastCombatReward(null);
     setPendingChainItems([]);
     setBattleLog([
@@ -1618,7 +1649,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sound.playClick();
     triggerHaptic('medium');
     return true;
-  }, [player, premium.active, combatStats.maxHp, combatStats, isInCombat, isCombatEnded]);
+  }, [player, premium.active, combatStats.maxHp, combatStats, isInCombat, isCombatEnded, activeDungeonRun]);
 
   const startNextCombatBattle = useCallback((): boolean => {
     if (!player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
@@ -1781,6 +1812,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hasNextCombat = Boolean(combatChain && combatChain.queue.length > 0);
     const isChainBattle = Boolean(combatChain);
     let itemsToAward = lootResult.items.map(item => ({ ...item }));
+    if (dungeonRoom && activeDungeonRun && player?.classId === 'rogue' && (activeDungeonRun.kills || 0) >= 2) {
+      itemsToAward.push(...generateCombatLoot({ monster, rareDropMult: 0.65, goldMult: 0, silverMult: 0 }).items.slice(0, 1));
+    }
+    if (completesDungeon) {
+      itemsToAward.push(...generateCombatLoot({ monster, rareDropMult: 1.25, goldMult: 0, silverMult: 0 }).items.slice(0, 2));
+    }
 
     if (isChainBattle && hasNextCombat) {
       setPendingChainItems(prev => [...prev, ...itemsToAward]);
@@ -1930,10 +1967,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return a;
       }));
 
-      return next;
+      return reconcileSkills(next, CLASSES[next.classId].startingSkills);
     });
 
     if (dungeonRoom?.monster?.id === monster.id && activeDungeonRun) {
+      if (player?.classId === 'mage') setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * 0.1)));
+      if (player?.classId === 'necromancer' || (player?.classId === 'paladin' && (activeDungeonRun.kills || 0) % 3 === 2)) {
+        setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(combatStats.maxHp * 0.08)));
+      }
       setActiveDungeonRun(prevRun => {
         if (!prevRun) return prevRun;
         const index = prevRun.currentRoomIndex;
@@ -1945,7 +1986,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prevRun,
           rooms,
           currentRoomIndex: isLast ? index : index + 1,
-          completed: isLast
+          completed: isLast,
+          kills: (prevRun.kills || 0) + 1,
+          savedHp: Math.min(combatStats.maxHp, combatPlayerHp + (player?.classId === 'necromancer' || player?.classId === 'paladin' && (prevRun.kills || 0) % 3 === 2 ? Math.round(combatStats.maxHp * 0.08) : 0)),
+          savedMp: Math.min(combatStats.maxMp, combatPlayerMp + (player?.classId === 'mage' ? Math.round(combatStats.maxMp * 0.1) : 0))
         };
       });
     }
@@ -1965,9 +2009,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCombatEnded(true);
     setCombatOutcome('victory');
     setTurnPhase('ended');
-  }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems]);
+  }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, combatPlayerHp, combatPlayerMp]);
 
-  const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
+  const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
 
     const currentTurn = combatRound;
@@ -2139,6 +2183,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let skillName = 'Атака оружием';
     let skillUsed: import('../types/game').Skill | null = null;
 
+    const stealthStrike = player.classId === 'assassin' && lastCast?.id === 'a_stealth' && currentTurn - lastCast.turn <= 3;
     if (actionType === 'skill') {
       skillUsed = player.skills.find(s => s.id === skillId) || null;
       if (!skillUsed) {
@@ -2168,17 +2213,39 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         skills: prev.skills.map(s => s.id === skillUsed!.id ? { ...s, currentCooldown: skillUsed!.cooldown } : s)
       } : prev);
 
-      multiplier = skillUsed.damageMultiplier;
+      const tier = skillTier(player);
+      multiplier = skillUsed.damageMultiplier * [1, 1.12, 1.25, 1.4][tier - 1];
+      if (skillUsed.comboFrom && lastCast?.id === skillUsed.comboFrom && currentTurn - lastCast.turn <= 3) {
+        multiplier *= skillUsed.comboMultiplier || 1.25;
+        newLogs.push({ id: 'combo_' + Date.now(), turn: currentTurn, text: `🔗 Связка ${skillUsed.name}: усиленный удар!`, type: 'skill' });
+      }
+      if (skillUsed.executeThreshold && activeMonster.hp / activeMonster.maxHp <= skillUsed.executeThreshold) multiplier *= skillUsed.executeMultiplier || 1.5;
+      if (player.classId === 'assassin' && activeMonster.hp / activeMonster.maxHp < 0.4) multiplier *= 1.25;
+      if (player.classId === 'mage' && lastCast && lastCast.id !== skillUsed.id && currentTurn - lastCast.turn <= 3) {
+        setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(skillUsed!.manaCost * 0.15)));
+        newLogs.push({id:'elemental_' + Date.now(),turn:currentTurn,text:'🌌 Чередование стихий возвращает часть MP.',type:'skill'});
+      }
+      if (skillUsed.guaranteedEvade) setPlayerEffects(prev => applyStatusEffect(prev, { type: 'invulnerable', name: 'Скрытность', duration: 1, value: 1 }));
+      if (skillUsed.poisonBurst) {
+        const poison = monsterEffects.find(e => e.type === 'poison');
+        if (poison) {
+          multiplier += (poison.stacks || 1) * 0.22;
+          setMonsterEffects(prev => prev.filter(e => e.type !== 'poison'));
+          newLogs.push({ id: 'burst_' + Date.now(), turn: currentTurn, text: `☠️ Взорвано слоёв яда: ${poison.stacks || 1}.`, type: 'skill' });
+        }
+      }
       damageType = skillUsed.damageType;
       skillName = skillUsed.name;
+      setLastCast({ id: skillUsed.id, turn: currentTurn });
 
-      if (skillUsed.inflicts && Math.random() < skillUsed.inflicts.chance) {
-        setMonsterEffects(prev => applyStatusEffect(prev, {
+      if (skillUsed.inflicts && ['shield', 'fortify', 'fury', 'haste', 'invulnerable'].includes(skillUsed.inflicts.type)) {
+        const effect = {
           type: skillUsed!.inflicts!.type,
           name: skillUsed!.name,
           duration: skillUsed!.inflicts!.duration,
           value: skillUsed!.inflicts!.power
-        }));
+        };
+        setPlayerEffects(prev => applyStatusEffect(prev, effect));
         newLogs.push({
           id: 'effect_' + Date.now(),
           turn: currentTurn,
@@ -2186,21 +2253,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           type: 'status'
         });
       }
-    } else if (actionType === 'execute') {
-      const executeReady = activeMonster.hp / activeMonster.maxHp <= 0.35;
-      multiplier = executeReady ? 2.5 : 1.2;
-      skillName = executeReady ? 'Смертельный добивающий удар' : 'Попытка добивания';
-      damageType = 'physical';
     }
+    if (player.classId === 'warrior') multiplier *= 1 + warriorMomentum * 0.03;
+    if (player.classId === 'berserker' && combatPlayerHp / combatStats.maxHp < 0.5) multiplier *= 1.22;
+    if (player.classId === 'warrior' && activeDungeonRun) multiplier *= 1 + Math.min(10, activeDungeonRun.kills || 0) * 0.02;
+    if (player.classId === 'rogue' && rogueFocus) { multiplier *= 1.12; setRogueFocus(false); }
 
-    // A heal skill (e.g. paladin) is a valid turn action without dealing damage.
-    if (skillUsed?.healMultiplier && skillUsed.damageMultiplier === 0) {
-      const healAmount = Math.max(1, Math.round(100 * skillUsed.healMultiplier));
-      setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmount));
+    // Shield, stealth and healing skills consume a turn without a phantom zero-damage hit.
+    if (skillUsed && skillUsed.damageMultiplier === 0) {
+      const healAmount = skillUsed.healMultiplier ? Math.max(1, Math.round(100 * skillUsed.healMultiplier)) : 0;
+      if (healAmount) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmount));
       newLogs.push({
         id: 'skill_heal_' + Date.now(),
         turn: currentTurn,
-        text: `✨ [${skillName}] восстанавливает ${healAmount} HP.`,
+        text: healAmount ? `✨ [${skillName}] восстанавливает ${healAmount} HP.` : `✨ [${skillName}] активирован.`,
         type: 'heal'
       });
       setBattleLog(prev => [...prev, ...newLogs]);
@@ -2208,67 +2274,60 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Every strike resolves independently. A multi-hit can crit, miss, drain and kill on any hit.
     const attackPower = getDamagePower(damageType, combatStats);
-    const hitChance = Math.min(98, Math.max(30, combatStats.accuracy - activeMonster.evasion + 85));
-    if (Math.random() * 100 > hitChance) {
-      newLogs.push({
-        id: 'evade_' + Date.now(),
-        turn: currentTurn,
-        text: `💨 [Уклонение] ${activeMonster.name} уклонился от ${skillName}.`,
-        type: 'system'
-      });
-    } else {
+    const strikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && skillTier(player) >= 4 ? 1 : 0));
+    for (let strike = 0; strike < strikes && nextMonsterHp > 0; strike++) {
+      const hitChance = Math.min(98, Math.max(30, combatStats.accuracy - activeMonster.evasion + 85));
+      const alwaysHit = Boolean(skillUsed?.guaranteedHit || stealthStrike);
+      const evade = monsterEffects.some(e => e.type === 'invulnerable');
+      const conflict = alwaysHit && evade;
+      const landed = conflict ? Math.random() < 0.5 : alwaysHit || (!evade && Math.random() * 100 <= hitChance);
+      if (conflict) newLogs.push({id:`contest_${Date.now()}_${strike}`,turn:currentTurn,text:`⚖️ Безошибочный удар и уход в пустоту: ${landed ? 'удар попал' : 'уклонение победило'}.`,type:'system'});
+      if (!landed) {
+        newLogs.push({id:`evade_${Date.now()}_${strike}`,turn:currentTurn,text:`💨 ${activeMonster.name} уклонился от ${skillName} (${strike + 1}/${strikes}).`,type:'system'});
+        continue;
+      }
       let finalDmg = calculateTypedDamage({
         power: attackPower * playerMods.attackMultiplier,
-        multiplier,
+        multiplier: multiplier / strikes,
         damageType,
         targetDefense: activeMonster.defense,
         targetMagicDefense: activeMonster.magicDefense,
-        armorPenetration: combatStats.armorPenetration,
+        armorPenetration: combatStats.armorPenetration + (skillUsed && skillTier(player) >= 3 ? 20 : 0),
         targetResistances: activeMonster.resistances,
         extraDamageMultiplier: monsterMods.damageTakenMultiplier
       });
-
-      const isCrit = Math.random() * 100 < combatStats.critChance;
-      if (isCrit) finalDmg = Math.round(finalDmg * (combatStats.critDamage / 100));
-
-      if (isCrit) {
-        sound.playCriticalHit();
-        triggerHaptic('heavy');
-      } else {
-        sound.playSlash();
-        triggerHaptic('light');
+      const isCrit = stealthStrike || Math.random() * 100 < combatStats.critChance;
+      if (isCrit) finalDmg = Math.round(finalDmg * combatStats.critDamage / 100);
+      if (isCrit && player.classId === 'rogue') setRogueFocus(true);
+      if (skillUsed?.instantExecutePve && activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex]?.monster?.id === activeMonster.id && !activeMonster.isBoss &&
+          nextMonsterHp / activeMonster.maxHp <= (skillUsed.executeThreshold || 0)) {
+        finalDmg = nextMonsterHp;
+        newLogs.push({id:`execute_${Date.now()}`,turn:currentTurn,text:`☠️ ${skillName}: обычный враг повержен.`,type:'skill'});
       }
-
-      newLogs.push({
-        id: 'dmg_' + Date.now(),
-        turn: currentTurn,
-        text: `${isCrit ? '💥' : '⚔️'} [${skillName}] наносит ${finalDmg} ${damageType.toUpperCase()} урона (сопротивление цели учитывается).`,
-        type: isCrit ? 'crit' : 'player-attack'
-      });
-
-      if (skillUsed?.healMultiplier) {
+      if (isCrit) { sound.playCriticalHit(); triggerHaptic('heavy'); }
+      else { sound.playSlash(); triggerHaptic('light'); }
+      finalDmg = Math.min(finalDmg, nextMonsterHp);
+      if (skillUsed?.armorBreak && strike === 0) setMonsterEffects(prev => applyStatusEffect(prev, { type: 'vulnerability', name: 'Разлом брони', duration: 3, value: skillUsed!.armorBreak! }));
+      if (skillUsed?.inflicts && !['shield', 'fortify', 'fury', 'haste', 'invulnerable'].includes(skillUsed.inflicts.type)
+          && Math.random() < Math.min(1, skillUsed.inflicts.chance + (skillTier(player) >= 2 ? 0.08 : 0))) {
+        setMonsterEffects(prev => applyStatusEffect(prev, {
+          type: skillUsed!.inflicts!.type, name: skillUsed!.name,
+          duration: skillUsed!.inflicts!.duration, value: skillUsed!.inflicts!.power
+        }));
+        newLogs.push({id:`effect_${Date.now()}_${strike}`,turn:currentTurn,text:`✨ ${activeMonster.name}: ${skillUsed.inflicts.type}.`,type:'status'});
+      }
+      newLogs.push({id:`dmg_${Date.now()}_${strike}`,turn:currentTurn,text:`${isCrit ? '💥' : '⚔️'} [${skillName}] удар ${strike + 1}/${strikes}: ${finalDmg} ${damageType.toUpperCase()} урона.`,type:isCrit?'crit':'player-attack'});
+      if (skillUsed?.healMultiplier && finalDmg > 0) {
         const heal = Math.max(1, Math.round(finalDmg * skillUsed.healMultiplier));
         setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
-        newLogs.push({
-          id: 'skill_drain_' + Date.now(),
-          turn: currentTurn,
-          text: `🩸 [${skillName}] восстанавливает ${heal} HP.`,
-          type: 'heal'
-        });
       }
-
-      if (combatStats.vampirism > 0) {
-        const lifesteal = Math.max(1, Math.round(finalDmg * (combatStats.vampirism / 100)));
+      if (combatStats.vampirism > 0 && finalDmg > 0) {
+        const lifesteal = Math.max(1, Math.round(finalDmg * combatStats.vampirism / 100));
         setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + lifesteal));
-        newLogs.push({
-          id: 'vamp_' + Date.now(),
-          turn: currentTurn,
-          text: `🩸 [Вампиризм] +${lifesteal} HP.`,
-          type: 'heal'
-        });
+        newLogs.push({id:`vamp_${Date.now()}_${strike}`,turn:currentTurn,text:`🩸 Вампиризм +${lifesteal} HP.`,type:'heal'});
       }
-
       nextMonsterHp = Math.max(0, nextMonsterHp - finalDmg);
     }
 
@@ -2298,7 +2357,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     combatPlayerHp,
     combatPlayerMp,
     combatStats,
-    completeCombatVictory
+    completeCombatVictory,
+    lastCast, warriorMomentum, rogueFocus, activeDungeonRun
   ]);
 
   // MONSTER TURN CONTROLLER — monsters telegraph skills before casting them.
@@ -2373,9 +2433,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         monsterFinalDmg -= blockedByShield;
         setPlayerEffects(prevEffects => prevEffects.map((effect, index) => index === shieldIndex ? { ...effect, value: effect.value - blockedByShield } : effect).filter(effect => effect.type !== 'shield' || effect.value > 0));
       }
+      if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
+        if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
+          setActiveDungeonRun(run => run ? { ...run, resurrectionUsed: true } : run);
+          newLogs.push({ id: 'resurrection_' + Date.now(), turn: currentTurn, text: '👻 Некромант воскрес с 30% HP. Воскрешение за поход использовано.', type: 'heal' });
+          setCombatRound(prev => prev + 1); setTurnPhase('player');
+          return Math.max(1, Math.round(combatStats.maxHp * 0.3));
+        }
         if (nextHp <= 0) {
           newLogs.push({ id: 'm_fatal_' + Date.now(), turn: currentTurn, text: `💀 Вы пали в бою с ${activeMonster.name}...`, type: 'death' });
           sound.playDefeat(); triggerHaptic('error');
@@ -2392,7 +2459,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...newLogs]);
     }, 650);
     return () => clearTimeout(timer);
-  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp]);
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun]);
 
   // Delayed monster skill execution. The warning above is intentionally visible first.
   useEffect(() => {
@@ -2417,6 +2484,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         blocked = Math.min(playerEffects[shieldIndex].value, damage); damage -= blocked;
         setPlayerEffects(prev => prev.map((e,i)=>i===shieldIndex?{...e,value:e.value-blocked}:e).filter(e=>e.type!=='shield'||e.value>0));
       }
+      if (player.classId === 'warrior' && damage > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       if (skill.effect && Math.random() < (skill.effectChance ?? 1)) {
         const effect: StatusEffect = { type: skill.effect, name: skill.name, duration: skill.effectDuration || 1, value: skill.effectPower || 0 };
         if (skill.effect === 'fortify' || skill.effect === 'fury' || skill.effect === 'shield') setMonsterEffects(prev => applyStatusEffect(prev, effect));
@@ -2426,6 +2494,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);
+        if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
+          setActiveDungeonRun(run => run ? { ...run, resurrectionUsed: true } : run);
+          logs.push({ id: 'resurrection_' + Date.now(), turn: currentTurn, text: '👻 Некромант воскрес с 30% HP.', type: 'heal' });
+          setCombatRound(prev => prev + 1); setTurnPhase('player'); setMonsterIntent(null);
+          return Math.max(1, Math.round(combatStats.maxHp * 0.3));
+        }
         if (nextHp <= 0) {
           logs.push({ id: 'monster_skill_fatal_' + Date.now(), turn: currentTurn, text: `💀 Особый приём ${skill.name} вас добил.`, type: 'death' });
           sound.playDefeat(); triggerHaptic('error');
@@ -2443,7 +2517,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...logs]);
     }, 700);
     return () => clearTimeout(timer);
-  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, activeDungeonRun]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
@@ -2457,14 +2531,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player) return;
 
     const timer = setTimeout(() => {
-      const monsterHpPct = (activeMonster.hp / activeMonster.maxHp) * 100;
       const playerHpPct = (combatPlayerHp / combatStats.maxHp) * 100;
       const potionItem = player.inventory.find(i => i.type === 'potion');
 
       if (playerHpPct <= autoBattle.healAtHpPercent && potionItem) {
         performPlayerAction('potion');
-      } else if (monsterHpPct <= 35) {
-        performPlayerAction('execute');
       } else if (autoBattle.useSkills && player.skills.length > 0) {
         const affordableSkill = player.skills.find(s =>
           s.manaCost <= combatPlayerMp &&
@@ -2509,10 +2580,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCombatEnded(false);
     setCombatOutcome(null);
     setTurnPhase('player');
-    setCombatPlayerHp(combatStats.maxHp);
-    setCombatPlayerMp(combatStats.maxMp);
+    if (!activeDungeonRun) {
+      setCombatPlayerHp(combatStats.maxHp);
+      setCombatPlayerMp(combatStats.maxMp);
+    }
     setBattleLog([]);
-  }, [combatStats.maxHp, combatStats.maxMp]);
+  }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
 
   // Exploration & Regions
   const setCurrentRegion = useCallback((regionId: string) => {
@@ -2625,10 +2698,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerHaptic('medium');
       setCombatPlayerHp(combatStats.maxHp);
       setCombatPlayerMp(combatStats.maxMp);
+      setActiveDungeonRun(run => run ? { ...run, savedHp: combatStats.maxHp, savedMp: combatStats.maxMp, blessings: [...(run.blessings || []), 'Благословение святилища'] } : run);
       setPlayer(prev => prev ? { ...prev, energy: Math.min(prev.maxEnergy, prev.energy + 10) } : prev);
     } else if (currentRoom.type === 'trap') {
       const trapDamage = Math.max(10, Math.round(combatStats.maxHp * 0.08));
       setCombatPlayerHp(prev => Math.max(1, prev - trapDamage));
+      setActiveDungeonRun(run => run ? { ...run, savedHp: Math.max(1, (run.savedHp ?? combatStats.maxHp) - trapDamage) } : run);
     } else if (currentRoom.type === 'merchant') {
       const merchantCost = 100;
       setPlayer(prev => prev && prev.gold >= merchantCost ? { ...prev, gold: prev.gold - merchantCost } : prev);
@@ -3275,6 +3350,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       playerEffects,
       monsterEffects,
       monsterIntent,
+      comboReady: lastCast && combatRound - lastCast.turn <= 3 ? player?.skills.filter(s => s.comboFrom === lastCast.id).map(s => s.id) || [] : [],
       autoBattle,
       activeDungeonRun,
       quests,
@@ -3293,6 +3369,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unequipItem,
       sellItem,
       disassembleItem,
+      toggleItemLock,
       expandInventory,
       upgradeItem,
       meditateOrRefillEnergy,

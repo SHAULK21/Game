@@ -512,12 +512,15 @@ app.post('/api/market/list', auth, async (req, res) => {
   const quantity = Math.floor(Number(req.body?.quantity || 1));
   const price = Math.floor(Number(req.body?.price_gold));
   if (!item || typeof item !== 'object') return res.status(400).json({ error: 'Предмет не указан.' });
+  if (item.isLocked || item.boundToClan) return res.status(400).json({ error: 'Запертый или клановый предмет нельзя выставить на рынок.' });
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Количество: 1–999.' });
   if (!Number.isInteger(price) || price < 1 || price > 100000000) return res.status(400).json({ error: 'Цена: 1–100000000 золота.' });
   const safeItem = {
     templateId: String(item.templateId || ''), name: String(item.name || 'Предмет').slice(0, 80),
     type: String(item.type || 'material'), rarity: String(item.rarity || 'common'), level: Number(item.level || 1),
     upgradeLevel: Number(item.upgradeLevel || 0), icon: String(item.icon || '📦'), stats: item.stats || {},
+    armorClass: ['heavy', 'medium', 'light'].includes(item.armorClass) ? item.armorClass : undefined,
+    weaponClass: ['twoHanded', 'dagger', 'staff', 'shield', 'bow'].includes(item.weaponClass) ? item.weaponClass : undefined,
     description: String(item.description || '').slice(0, 300), sellPrice: Number(item.sellPrice || 0)
   };
   const result = await pool.query(

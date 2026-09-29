@@ -503,6 +503,23 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
   }
 };
 
+// Existing skills gain the same declarative combat effects as newly added skills.
+const SKILL_EFFECTS: Record<string, Partial<Skill>> = {
+  w_strike: { comboFrom: 'w_shield', comboMultiplier: 1.25 },
+  b_execute: { comboFrom: 'b_roar', comboMultiplier: 1.25, executeThreshold: 0.3, executeMultiplier: 1.5 },
+  k_smite: { comboFrom: 'k_bastion', comboMultiplier: 1.25 },
+  r_dance: { hits: 3, comboFrom: 'r_poison', comboMultiplier: 1.2 },
+  a_backstab: { comboFrom: 'a_stealth', comboMultiplier: 1.3, executeThreshold: 0.4, executeMultiplier: 1.4 },
+  arc_shot: { comboFrom: 'arc_mark', comboMultiplier: 1.25 },
+  m_fireball: { comboFrom: 'm_frost', comboMultiplier: 1.25 },
+  n_drain: { comboFrom: 'n_curse', comboMultiplier: 1.25 },
+  p_holy: { comboFrom: 'p_heal', comboMultiplier: 1.25 },
+  d_thorns: { comboFrom: 'd_spores', comboMultiplier: 1.2 }
+};
+for (const classDef of Object.values(CLASSES)) {
+  classDef.startingSkills = classDef.startingSkills.map(s => ({ ...s, ...SKILL_EFFECTS[s.id] }));
+}
+
 export interface RegionDefinition {
   id: string;
   name: string;

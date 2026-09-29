@@ -244,7 +244,7 @@ export const BlacksmithScreen: React.FC = () => {
           )}
 
           {/* Upgrade Button */}
-          <button
+          {currentLevel >= 25 ? <div className="w-full py-3 rounded-xl border border-emerald-500/40 text-center text-emerald-300 text-sm font-bold">✅ Заточено до предела +25</div> : <button
             onClick={handleUpgrade}
             disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || oreHave < oreCount}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
@@ -256,6 +256,7 @@ export const BlacksmithScreen: React.FC = () => {
             <Hammer className={`w-4 h-4 ${isUpgrading ? 'animate-spin' : ''}`} />
             <span>{isUpgrading ? 'Ковка...' : `Заточить до +${currentLevel + 1}`}</span>
           </button>
+          }
         </div>
       ) : (
         <div className="rounded-xl border border-slate-800 p-8 text-center text-slate-400 text-xs">
