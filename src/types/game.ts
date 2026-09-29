@@ -297,6 +297,24 @@ export interface MiningNode {
   gemChance: number;
 }
 
+export interface BasicCraftRecipe {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  ingredients: { name: string; count: number }[];
+  result?: {
+    name: string;
+    type: ItemType;
+    rarity: ItemRarity;
+    icon: string;
+    stats: Record<string, number>;
+    sellPrice: number;
+    count: number;
+  };
+  silverReward?: number;
+}
+
 export interface AlchemyRecipe {
   id: string;
   resultItem: string;
