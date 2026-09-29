@@ -103,10 +103,11 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
                 <button
                   onClick={() => {
-                    challengeArena(opp);
-                    if (onEnterCombatTab) onEnterCombatTab();
+                    const started = challengeArena(opp);
+                    if (started && onEnterCombatTab) onEnterCombatTab();
                   }}
-                  className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-yellow-950 active:scale-95 transition-all flex items-center gap-1.5"
+                  disabled={player.arenaTickets <= 0}
+                  className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-yellow-950 active:scale-95 transition-all flex items-center gap-1.5"
                 >
                   <Swords className="w-3.5 h-3.5" />
                   <span>В бой</span>
