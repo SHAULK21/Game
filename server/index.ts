@@ -43,13 +43,30 @@ const telegramBotApi = async <T = unknown>(method: string, payload: Record<strin
   return data.result as T;
 };
 
-const pool = new Pool({
+const createDatabasePool = (useSsl: boolean) => new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: Number(process.env.DB_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });
+
+let databaseUsesSsl = process.env.DATABASE_SSL === 'true';
+let pool = createDatabasePool(databaseUsesSsl);
+
+const ensureDatabaseConnection = async () => {
+  try {
+    await pool.query('SELECT 1');
+    console.log(`Postgres connected (SSL=${databaseUsesSsl}).`);
+  } catch (firstError) {
+    console.warn(`Postgres connection failed with SSL=${databaseUsesSsl}; retrying with SSL=${!databaseUsesSsl}.`, firstError);
+    await pool.end().catch(() => undefined);
+    databaseUsesSsl = !databaseUsesSsl;
+    pool = createDatabasePool(databaseUsesSsl);
+    await pool.query('SELECT 1');
+    console.log(`Postgres connected after fallback (SSL=${databaseUsesSsl}).`);
+  }
+};
 
 const ensureGlobalChatSchema = async () => {
   await pool.query(`
@@ -188,7 +205,7 @@ app.get('/api/health', async (_req, res) => {
     res.json({
       ok: true,
       service: 'aethelgard',
-      database: { ok: true, latencyMs: Date.now() - dbStarted, ssl: process.env.DATABASE_SSL === 'true' },
+      database: { ok: true, latencyMs: Date.now() - dbStarted, ssl: databaseUsesSsl },
       telegram: { configured: Boolean(telegramBotToken), ok: telegramOk, username: telegramUsername },
       webhook: { baseUrlConfigured: Boolean(publicBaseUrl), secretConfigured: Boolean(telegramWebhookSecret) },
       time: new Date().toISOString()
@@ -634,6 +651,7 @@ app.get('*', async (_req, res) => {
 });
 
 const bootstrap = async () => {
+  await ensureDatabaseConnection();
   const schema = await fs.readFile(path.resolve(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
   await ensureGlobalChatSchema();
