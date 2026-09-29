@@ -21,7 +21,7 @@ interface CharacterScreenProps {
 }
 
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => {
-  const { player, combatStats, allocateAttribute, unlockTalent } = useGame();
+  const { player, combatStats, allocateAttribute, unlockTalent, premium } = useGame();
   const [activeTab, setActiveTab] = useState<'stats' | 'talents' | 'pet'>('stats');
 
   if (!player) return null;
@@ -43,7 +43,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
             </button>
           )}
           <h2 className="font-cinzel text-sm font-bold text-slate-100">
-            Профиль героя: {player.name}
+            Профиль героя: {premium.active && <span className="text-amber-300" title="Premium">👑 </span>}{player.name}
           </h2>
         </div>
 
