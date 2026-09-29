@@ -15,7 +15,8 @@ import {
   Gem,
   Swords
 } from 'lucide-react';
-import { RpgIcon, getRpgIconKind } from '../ui/RpgIcon';
+import { RpgIcon } from '../ui/RpgIcon';
+import { ItemArtwork } from '../ui/ItemArtwork';
 
 interface InventoryScreenProps {
   onNavigateToBlacksmith?: () => void;
@@ -207,16 +208,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           </span>
         )}
         <div className="flex items-center justify-center h-9 mt-1">
-          {item.image ? (
-            <img src={item.image} alt="" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
-          ) : (
-            <div className="relative w-10 h-10 rounded-lg bg-slate-950/80 border border-slate-700 flex items-center justify-center">
-              <span className="text-2xl leading-none">{item.icon || '📦'}</span>
-              <span className="absolute -bottom-1 -right-1 rounded bg-slate-950 border border-slate-700 p-0.5">
-                <RpgIcon kind={getRpgIconKind(item)} size={12} className={RARITY_COLORS[item.rarity].text} />
-              </span>
-            </div>
-          )}
+          <ItemArtwork item={item} size={40} />
         </div>
         <div
           className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[22px] max-h-[22px]"
@@ -239,8 +231,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       onClick={() => setSelectedItem(item)}
       className="w-full p-2.5 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center gap-3 text-left active:scale-[0.99]"
     >
-      <div className="w-10 h-10 shrink-0 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center">
-        <span className="text-xl leading-none">{item.icon || '📦'}</span>
+      <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+        <ItemArtwork item={item} size={40} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -277,7 +269,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 <button key={type} onClick={() => item && setSelectedItem(item)}
                   className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
                   <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <span className="text-lg leading-none">{item.icon || '📦'}</span> : <ItemTypeIcon type={type} className="text-slate-600" />}
+                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[8px] text-slate-500 uppercase truncate">{TYPE_LABELS[type]}</div>
@@ -304,7 +296,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 <button key={type} onClick={() => item && setSelectedItem(item)}
                   className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
                   <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <span className="text-lg leading-none">{item.icon || '📦'}</span> : <ItemTypeIcon type={type} className="text-slate-600" />}
+                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[8px] text-slate-500 uppercase truncate">{TYPE_LABELS[type]}</div>
@@ -369,8 +361,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 onClick={() => setSelectedItem(item)}
                 className="w-full rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-3 flex items-center gap-3 text-left"
               >
-                <div className="w-10 h-10 rounded-lg bg-slate-950 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-2xl">{item.icon || '🧪'}</span>
+                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <ItemArtwork item={item} size={40} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-100 truncate">{item.name}</div>
@@ -477,7 +469,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-14 h-14 shrink-0 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center">
-                  <span className="text-3xl">{currentSelected.icon || '📦'}</span>
+                  <ItemArtwork item={currentSelected} size={52} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
