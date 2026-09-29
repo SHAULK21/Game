@@ -24,7 +24,7 @@ export const BlacksmithScreen: React.FC = () => {
 
   const currentLevel = currentItem ? (currentItem.upgradeLevel || 0) : 0;
   const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
-  const costShards = Math.max(2, Math.ceil(2 + currentLevel * 0.55));
+  const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
   const oreTiers = [
     { name: 'Уголь', icon: '🪨', base: 3 }, { name: 'Медная руда', icon: '🟤', base: 4 },
     { name: 'Железная руда', icon: '⚪', base: 5 }, { name: 'Серебряная руда', icon: '✨', base: 6 },
@@ -76,7 +76,7 @@ export const BlacksmithScreen: React.FC = () => {
               Королевская Кузница
             </h2>
             <p className="text-xs text-slate-300">
-              Заточка снаряжения от +0 до +25 с усилением характеристик.
+              Заточка снаряжения от +0 до +25. Руда + золото + серебро; провал может снизить уровень.
             </p>
           </div>
         </div>
@@ -204,7 +204,7 @@ export const BlacksmithScreen: React.FC = () => {
             <span className="text-slate-400">На попытку:</span>
             <div className="flex items-center gap-3">
               <span className="text-amber-300 font-bold">{costGold} 🪙</span>
-              <span className="text-cyan-300 font-bold">{costShards} 💠</span>
+              <span className="text-slate-200 font-bold">{costSilver} 🥈</span>
               <span className={oreHave >= oreCount ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
                 {oreReq.icon} {oreHave}/{oreCount}
               </span>
@@ -246,9 +246,9 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Upgrade Button */}
           <button
             onClick={handleUpgrade}
-            disabled={isUpgrading || player.gold < costGold || player.shards < costShards || oreHave < oreCount}
+            disabled={isUpgrading || player.gold < costGold || player.silver < costSilver || oreHave < oreCount}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
-              (player.gold < costGold || player.shards < costShards || oreHave < oreCount)
+              (player.gold < costGold || player.silver < costSilver || oreHave < oreCount)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                 : 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-slate-950 hover:brightness-110 shadow-amber-500/25 border border-amber-400'
             }`}
