@@ -10,6 +10,7 @@ type GlobalMessage = {
   created_at: string;
   display_name: string;
   username?: string;
+  is_premium?: boolean;
 };
 
 const normalizeMessages = (value: unknown): GlobalMessage[] => {
@@ -21,7 +22,8 @@ const normalizeMessages = (value: unknown): GlobalMessage[] => {
       text: String(item.text ?? ''),
       created_at: String(item.created_at ?? new Date().toISOString()),
       display_name: String(item.display_name ?? item.username ?? 'Игрок'),
-      username: item.username ? String(item.username) : undefined
+      username: item.username ? String(item.username) : undefined,
+      is_premium: Boolean(item.is_premium)
     }))
     .filter(item => item.text.length > 0);
 };
@@ -158,6 +160,7 @@ export const ChatScreen: React.FC = () => {
             >
               <div className="flex justify-between gap-2">
                 <span className={`text-[10px] font-bold ${me ? 'text-cyan-300' : 'text-slate-200'}`}>
+                  {message.is_premium && <span className="mr-1 text-amber-300" title="Premium">👑</span>}
                   {message.display_name}
                 </span>
                 <span className="text-[8px] text-slate-600">{time}</span>
