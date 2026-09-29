@@ -123,7 +123,7 @@ const CombatScreen: React.FC = () => {
           <div className="mt-3 flex items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
             <div className="flex items-center gap-1.5 text-amber-300 font-mono">
               <Zap className="w-4 h-4 fill-amber-400" />
-              <span>Стоимость серии: <strong className="text-amber-200">{activeMod.energyCost} ⚡</strong></span>
+              <span>Стоимость серии: <strong className="text-amber-200">{combatEnergyCost} ⚡</strong></span>
             </div>
             <div className="text-slate-400 font-mono text-[11px]">
               Ваша энергия: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
