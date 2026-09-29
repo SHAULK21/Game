@@ -10,7 +10,7 @@ interface TopHeaderProps {
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
-  const { player, combatStats, meditateOrRefillEnergy } = useGame();
+  const { player, combatStats, meditateOrRefillEnergy, premium } = useGame();
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [showEnergyModal, setShowEnergyModal] = useState(false);
 
@@ -50,7 +50,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
 
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-cinzel text-xs font-bold text-slate-100 truncate max-w-[100px]">
+                  <span className="font-cinzel text-xs font-bold text-slate-100 truncate max-w-[120px]">
+                    {premium.active && <span className="text-amber-300" title="Premium">👑 </span>}
                     {player.name}
                   </span>
                   {player.statPoints > 0 && (
