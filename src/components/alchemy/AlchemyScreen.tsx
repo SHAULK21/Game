@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { ALCHEMY_RECIPES } from '../../data/gameData';
 import { FlaskConical, Sparkles, Check, Flame } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { RpgIcon } from '../ui/RpgIcon';
 
 export const AlchemyScreen: React.FC = () => {
   const { player, craftAlchemy } = useGame();
@@ -77,7 +78,7 @@ export const AlchemyScreen: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      {rec.icon}
+                      <RpgIcon kind="alchemy" size={24} className="text-purple-300" />
                     </span>
                     <div>
                       <span className="font-cinzel text-xs font-bold text-slate-100">
