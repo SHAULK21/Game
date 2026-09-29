@@ -1194,16 +1194,16 @@ export const MINE_CATALYST_BY_ORE: Record<string, string> = {
   'Эфириум': 'Эфирная пыль'
 };
 
-// The roll changes only after a successful craft. Requirements therefore remain
-// visible and stable while the player farms them, including after reloading.
-export const getCraftIngredients = (recipe: BasicCraftRecipe, playerId: string, roll = 0) => {
+// Pick a varied recipe once in the game data. Every player sees the same
+// ingredients, and crafting never rerolls them.
+const buildFixedCraftIngredients = (recipe: BasicCraftRecipe) => {
   if (!recipe.regionId) return recipe.ingredients;
   const index = REGION_CRAFT_TIERS.findIndex(tier => tier.regionId === recipe.regionId && tier.level === recipe.levelReq);
   if (index < 0) return recipe.ingredients;
   const tier = REGION_CRAFT_TIERS[index];
   const previous = REGION_CRAFT_TIERS[Math.max(0, index - 1)];
   let seed = 2166136261;
-  for (const char of `${playerId}:${recipe.id}:${roll}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
+  for (const char of recipe.id) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
   const randomIndex = (size: number) => {
     seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
     return (seed >>> 0) % size;
@@ -1519,7 +1519,7 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     ingredients: [{ name: 'Медная монета гоблинов', count: 5 }],
     silverReward: 30
   },
-  ...REGIONAL_CRAFT_RECIPES
+  ...REGIONAL_CRAFT_RECIPES.map(recipe => ({ ...recipe, ingredients: buildFixedCraftIngredients(recipe) }))
 ];
 
 export const INITIAL_QUESTS: Quest[] = [
