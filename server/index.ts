@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import 'express-async-errors';
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -630,6 +631,14 @@ app.post('/api/telegram/webhook', async (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled API error:', req.method, req.path, error);
+  if (res.headersSent) return;
+  res.status(500).json({
+    error: error instanceof Error ? error.message : 'Внутренняя ошибка игрового сервера.'
+  });
 });
 
 app.use(express.static(path.resolve(__dirname, '../dist'), {
