@@ -1868,10 +1868,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const readySkills = (activeMonster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && activeMonster.mp >= s.manaCost);
-      const shouldUseSkill = readySkills.length > 0 && (activeMonster.isBoss || Math.random() < 0.55);
-      if (shouldUseSkill) {
-        const skill = readySkills[Math.floor(Math.random() * readySkills.length)];
+      const plannedSkill = getMonsterPlannedSkill(activeMonster);
+      if (plannedSkill) {
+        const skill = plannedSkill;
         setActiveMonster(prev => prev ? { ...prev, hp: workingHp } : null);
         setMonsterIntent(skill);
         newLogs.push({
