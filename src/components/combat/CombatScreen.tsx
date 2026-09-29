@@ -29,7 +29,7 @@ export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof 
   )[0] || null;
 };
 
-const CombatScreen: React.FC = () => {
+export const CombatScreen: React.FC = () => {
   const {
     player,
     activeMonster,
