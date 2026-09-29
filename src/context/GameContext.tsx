@@ -509,6 +509,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } : prev);
 
+    setQuests(prev => prev.map(q => q.category === 'mining'
+      ? { ...q, currentCount: Math.min(q.targetCount, q.currentCount + minedCount), completed: q.currentCount + minedCount >= q.targetCount }
+      : q
+    ));
+    setAchievements(prev => prev.map(a => {
+      if (a.id !== 'ach_4') return a;
+      const progress = Math.min(a.maxProgress, a.progress + minedCount);
+      return { ...a, progress, completed: progress >= a.maxProgress };
+    }));
+
     setOfflineReport({
       minutes,
       gold: 0,
@@ -2467,6 +2477,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? { ...q, currentCount: Math.min(q.targetCount, q.currentCount + minedCount), completed: q.currentCount + minedCount >= q.targetCount }
       : q
     ));
+    setAchievements(prev => prev.map(a => {
+      if (a.id !== 'ach_4') return a;
+      const progress = Math.min(a.maxProgress, a.progress + minedCount);
+      return { ...a, progress, completed: progress >= a.maxProgress };
+    }));
 
     triggerHaptic('success');
     sound.playUpgradeSuccess();
@@ -2476,6 +2491,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Mining
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
     if (!player) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+    if (!premium.active) return { success: false, yieldCount: 0, isCrit: false, oreName: 'ручная добыча доступна только Premium' };
     if (player.miningExpedition) return { success: false, yieldCount: 0, isCrit: false, oreName: 'экспедиция уже идёт' };
 
     const node = MINING_NODES.find(n => n.id === nodeId);
@@ -2580,7 +2596,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (gemFound) sound.playUpgradeSuccess();
 
     return result;
-  }, [player]);
+  }, [player, premium.active, achievements]);
 
   const craftBasicItem = useCallback((recipeId: string): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
