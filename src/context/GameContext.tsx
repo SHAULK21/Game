@@ -1330,7 +1330,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       !dungeonRoom?.resolved &&
       activeDungeonRun!.currentRoomIndex === activeDungeonRun!.totalRooms - 1;
 
-    let lootResult: { items: GameItem[]; gold: number; silver: number; shards: number };
+    let lootResult: { items: GameItem[]; gold: number; silver: number };
     try {
       lootResult = generateCombatLoot({
         monster,
