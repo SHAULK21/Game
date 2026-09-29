@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType } from '../../types/game';
-import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES } from '../../data/gameData';
+import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES, REGIONS, REGIONAL_TROPHIES, MINING_NODES, REGION_CRAFT_TIERS, MONSTERS } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -153,6 +153,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
   const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
   const [tab, setTab] = useState<InventoryTab>('equipment');
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
+  const [craftRegionId, setCraftRegionId] = useState<string | null>(null);
 
   if (!player) return null;
 
@@ -394,8 +395,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           <div className="rounded-xl border border-amber-500/25 bg-amber-950/10 p-3">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <div className="text-xs font-bold text-amber-300">Переработка трофеев</div>
-                <div className="text-[10px] text-slate-500">Обычный лут превращается в расходники, базовую экипировку или серебро.</div>
+                <div className="text-xs font-bold text-amber-300">Крафт из трофеев и руды</div>
+                <div className="text-[10px] text-slate-500">Выберите регион и соберите материалы с указанных мобов и жил.</div>
               </div>
               <Hammer className="w-4 h-4 text-amber-400" />
             </div>
@@ -406,9 +407,19 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
               </div>
             )}
 
+            <select
+              aria-label="Регион рецептов"
+              value={craftRegionId || player.currentRegionId}
+              onChange={event => setCraftRegionId(event.target.value)}
+              className="w-full mb-2 rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs text-slate-200"
+            >
+              {REGIONS.map(region => <option key={region.id} value={region.id}>{region.name} · с {region.minLevel} ур.</option>)}
+            </select>
+
             <div className="space-y-2">
-              {BASIC_CRAFT_RECIPES.map(recipe => {
-                const canCraft = recipe.ingredients.every(ingredient => {
+              {BASIC_CRAFT_RECIPES.filter(recipe => !recipe.regionId || recipe.regionId === (craftRegionId || player.currentRegionId)).map(recipe => {
+                const unlocked = player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
+                const canCraft = unlocked && recipe.ingredients.every(ingredient => {
                   const have = player.inventory.reduce(
                     (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
                     0
@@ -422,6 +433,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                       <div className="min-w-0 flex-1">
                         <div className="text-[11px] font-bold text-slate-100">{recipe.name}</div>
                         <div className="text-[9px] text-slate-500 mt-0.5">{recipe.description}</div>
+                        {recipe.regionId && <div className="text-[9px] text-cyan-300 mt-0.5">
+                          {REGIONS.find(region => region.id === recipe.regionId)?.name} · персонаж {recipe.levelReq} ур. · шахта {recipe.miningLevelReq} ур.
+                        </div>}
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {recipe.ingredients.map(ingredient => {
                             const have = player.inventory.reduce(
@@ -435,6 +449,16 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                                   : 'border-rose-500/30 bg-rose-950/30 text-rose-300'
                               }`}>
                                 {ingredient.name} {have}/{ingredient.count}
+                                {recipe.regionId && <span className="block text-[8px] opacity-70">{
+                                  (() => {
+                                    const mobId = Object.entries(REGIONAL_TROPHIES[recipe.regionId] || {}).find(([, drop]) => drop.name === ingredient.name)?.[0];
+                                    if (mobId) return `С моба: ${MONSTERS[mobId]?.name}`;
+                                    const ore = MINING_NODES.find(node => node.oreYield === ingredient.name);
+                                    if (ore) return `Шахта: ${ore.name}`;
+                                    const tier = REGION_CRAFT_TIERS.find(entry => entry.regionId === recipe.regionId && entry.catalyst === ingredient.name);
+                                    return tier ? `Шахта: жила ${tier.ore}` : '';
+                                  })()
+                                }</span>}
                               </span>
                             );
                           })}

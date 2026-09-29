@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem } from '../../types/game';
-import { RARITY_COLORS } from '../../data/gameData';
+import { RARITY_COLORS, getUpgradeRequirements, REGIONS } from '../../data/gameData';
 import { Hammer, Sparkles, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { ItemArtwork } from '../ui/ItemArtwork';
@@ -26,16 +26,14 @@ export const BlacksmithScreen: React.FC = () => {
   const currentLevel = currentItem ? (currentItem.upgradeLevel || 0) : 0;
   const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
   const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
-  const oreTiers = [
-    { name: 'Уголь', icon: '🪨', base: 3 }, { name: 'Медная руда', icon: '🟤', base: 4 },
-    { name: 'Железная руда', icon: '⚪', base: 5 }, { name: 'Серебряная руда', icon: '✨', base: 6 },
-    { name: 'Золотая руда', icon: '🪙', base: 7 }, { name: 'Мифриловая руда', icon: '💎', base: 8 },
-    { name: 'Адамантит', icon: '🟣', base: 10 }, { name: 'Драконит', icon: '🔥', base: 12 }
-  ];
   const protectionCost = useProtection ? Math.max(250, Math.round(costSilver * 1.5)) : 0;
-  const oreReq = oreTiers[Math.min(oreTiers.length - 1, Math.floor(currentLevel / 3))];
-  const oreCount = oreReq.base + Math.floor(currentLevel / 4);
-  const oreHave = player.inventory.reduce((sum, item) => sum + (item.name === oreReq.name ? (item.stackCount || 1) : 0), 0);
+  const requirements = currentItem ? getUpgradeRequirements(currentItem, currentLevel) : null;
+  const ingredientRows = requirements ? [
+    { name: requirements.ore, count: requirements.oreCount },
+    { name: requirements.trophy, count: requirements.trophyCount },
+    ...(requirements.catalyst ? [{ name: requirements.catalyst, count: requirements.catalystCount }] : [])
+  ] : [];
+  const ingredientsReady = ingredientRows.every(req => player.inventory.reduce((sum, item) => sum + (item.name === req.name ? (item.stackCount ?? 1) : 0), 0) >= req.count);
 
   // Success rate formula
   let successRatePct = 100;
@@ -179,6 +177,18 @@ export const BlacksmithScreen: React.FC = () => {
                 </span>
               </div>
             )}
+            {!currentItem.baseAttack && currentItem.stats.attack && (
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-slate-400">Атака:</span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.attack * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.attack * (1 + (currentLevel + 1) * 0.12))}</span></span>
+              </div>
+            )}
+            {!currentItem.baseDefense && currentItem.stats.defense && (
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-slate-400">Защита:</span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.defense * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.defense * (1 + (currentLevel + 1) * 0.12))}</span></span>
+              </div>
+            )}
           </div>
 
           {/* Probability & Requirements */}
@@ -205,14 +215,15 @@ export const BlacksmithScreen: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className="text-amber-300 font-bold">{costGold} 🪙</span>
               <span className="text-slate-200 font-bold">{costSilver + protectionCost} 🥈</span>
-              <span className={oreHave >= oreCount ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
-                {oreReq.icon} {oreHave}/{oreCount}
-              </span>
             </div>
           </div>
-          <div className="text-[10px] font-mono text-slate-500 px-1">
-            Руда: <span className="text-slate-300">{oreReq.name}</span>. Она добывается в шахте и полностью расходуется при попытке заточки.
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-mono px-1">
+            {ingredientRows.map(req => {
+              const have = player.inventory.reduce((sum, item) => sum + (item.name === req.name ? (item.stackCount ?? 1) : 0), 0);
+              return <span key={req.name} className={have >= req.count ? 'text-emerald-300' : 'text-rose-300'}>{req.name} {have}/{req.count}</span>;
+            })}
           </div>
+          {requirements && <p className="text-[10px] text-slate-500">Руда и катализатор — в шахте; трофей — у мобов локации «{REGIONS.find(r => r.id === requirements.regionId)?.name}». Все материалы расходуются при попытке.</p>}
 
           {/* Protection Checkbox for high levels */}
           {currentLevel >= 8 && (
@@ -246,9 +257,9 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Upgrade Button */}
           {currentItem.serverOwned ? <div className="w-full py-3 rounded-xl border border-slate-700 text-center text-slate-400 text-xs">Для заточки серверной вещи нужна серверная кузница и учёт руды.</div> : currentLevel >= 25 ? <div className="w-full py-3 rounded-xl border border-emerald-500/40 text-center text-emerald-300 text-sm font-bold">✅ Заточено до предела +25</div> : <button
             onClick={handleUpgrade}
-            disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || oreHave < oreCount}
+            disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || !ingredientsReady}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
-              (player.gold < costGold || player.silver < costSilver || oreHave < oreCount)
+              (player.gold < costGold || player.silver < costSilver + protectionCost || !ingredientsReady)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                 : 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-slate-950 hover:brightness-110 shadow-amber-500/25 border border-amber-400'
             }`}

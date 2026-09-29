@@ -338,6 +338,9 @@ export interface BasicCraftRecipe {
   name: string;
   description: string;
   icon: string;
+  levelReq?: number;
+  miningLevelReq?: number;
+  regionId?: string;
   ingredients: { name: string; count: number }[];
   result?: {
     name: string;
@@ -347,6 +350,7 @@ export interface BasicCraftRecipe {
     stats: Record<string, number>;
     sellPrice: number;
     count: number;
+    level?: number;
   };
   silverReward?: number;
 }

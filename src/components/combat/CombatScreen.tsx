@@ -419,6 +419,9 @@ export const CombatScreen: React.FC = () => {
                         <span>·</span>
                         <span>Атака: {mon.attack}</span>
                       </div>
+                      <div className="text-[9px] text-amber-300 mt-1">
+                        Трофеи: {mon.drops.filter(drop => drop.type === 'material').map(drop => drop.itemName).join(', ') || 'нет'}
+                      </div>
                     </div>
                   </div>
 
