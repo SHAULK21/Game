@@ -95,8 +95,7 @@ export interface GameItem {
   sellPrice: number;
   disassembleYield: {
     ore?: number;
-    shards?: number;
-    crystals?: number;
+    silver?: number;
   };
   stackCount?: number;
   isEquipped?: boolean;
@@ -329,8 +328,6 @@ export interface Quest {
   targetRegionName?: string;
   rewardGold: number;
   rewardSilver?: number;
-  rewardShards?: number;
-  rewardCrystals: number;
   rewardExp: number;
   rewardItems?: string[];
 }
@@ -346,7 +343,7 @@ export interface Achievement {
   claimed?: boolean;
   permanentBonusDesc: string;
   rewardGold: number;
-  rewardCrystals: number;
+  rewardSilver?: number;
 }
 
 export interface ArenaOpponent {
@@ -438,8 +435,6 @@ export interface PlayerCharacter {
 
   gold: number;
   silver: number;
-  shards: number;
-  crystals: number;
   energy: number;
   maxEnergy: number;
   lastEnergyRegenTimestamp?: number;
@@ -469,6 +464,7 @@ export interface PlayerCharacter {
   statsSummary: PlayerStatsSummary;
 
   lastActiveTimestamp: number;
+  lastMeditationTimestamp?: number;
   currentRegionId: string;
   activeRegionModId?: string;
 }
