@@ -39,7 +39,8 @@ export const MiningScreen: React.FC = () => {
     premium,
     mineNode,
     startMiningExpedition,
-    claimMiningExpedition
+    claimMiningExpedition,
+    leaveMiningExpedition
   } = useGame();
 
   const [activeMiningNodeId, setActiveMiningNodeId] = useState<string | null>(null);
@@ -169,6 +170,18 @@ export const MiningScreen: React.FC = () => {
               >
                 <PackageCheck className="w-4 h-4" />
                 Забрать добычу
+              </button>
+            )}
+
+            {!expeditionReady && (
+              <button
+                onClick={() => {
+                  const result = leaveMiningExpedition();
+                  setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
+                }}
+                className="mt-2 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs active:scale-95 transition-all"
+              >
+                Уйти с шахты
               </button>
             )}
           </div>
