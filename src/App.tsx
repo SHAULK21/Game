@@ -40,10 +40,7 @@ const MainGameContent: React.FC = () => {
   return (
     <div className="min-h-screen pt-safe bg-[#07090e] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
       {/* Top Header */}
-      <TopHeader
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)}
-      />
+      <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
       <main className="flex-1 w-full max-w-md mx-auto">
