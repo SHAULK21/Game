@@ -45,7 +45,7 @@ const telegramBotApi = async <T = unknown>(method: string, payload: Record<strin
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
   max: Number(process.env.DB_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -172,10 +172,37 @@ const requireClan = async (req: express.Request, res: express.Response, next: ex
 
 app.get('/api/health', async (_req, res) => {
   try {
+    const dbStarted = Date.now();
     await pool.query('SELECT 1');
-    res.json({ ok: true, service: 'aethelgard', time: new Date().toISOString() });
-  } catch {
-    res.status(503).json({ ok: false });
+    let telegramOk = false;
+    let telegramUsername: string | null = null;
+    if (telegramBotToken) {
+      try {
+        const bot = await telegramBotApi<{ username?: string }>('getMe', {});
+        telegramOk = true;
+        telegramUsername = bot?.username || null;
+      } catch (error) {
+        console.error('Telegram getMe health check failed:', error);
+      }
+    }
+    res.json({
+      ok: true,
+      service: 'aethelgard',
+      database: { ok: true, latencyMs: Date.now() - dbStarted, ssl: process.env.DATABASE_SSL === 'true' },
+      telegram: { configured: Boolean(telegramBotToken), ok: telegramOk, username: telegramUsername },
+      webhook: { baseUrlConfigured: Boolean(publicBaseUrl), secretConfigured: Boolean(telegramWebhookSecret) },
+      time: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check database failure:', error);
+    res.status(503).json({
+      ok: false,
+      service: 'aethelgard',
+      database: { ok: false },
+      telegram: { configured: Boolean(telegramBotToken) },
+      error: error instanceof Error ? error.message : 'Database unavailable',
+      time: new Date().toISOString()
+    });
   }
 });
 
