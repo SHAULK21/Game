@@ -58,6 +58,7 @@ export const CombatScreen: React.FC = () => {
     updateAutoBattleSettings,
     exitCombat,
     meditateOrRefillEnergy,
+    preparePremiumInvoice,
     purchasePremium,
     leaveMiningExpedition
   } = useGame();
@@ -69,6 +70,7 @@ export const CombatScreen: React.FC = () => {
   const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
+  const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll combat log
@@ -77,6 +79,13 @@ export const CombatScreen: React.FC = () => {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [battleLog]);
+
+  useEffect(() => {
+    if (!premiumPromptOpen || premium.active || preparedPremiumInvoice) return;
+    preparePremiumInvoice().then(link => {
+      if (link) setPreparedPremiumInvoice(link);
+    }).catch(() => undefined);
+  }, [premiumPromptOpen, premium.active, preparedPremiumInvoice, preparePremiumInvoice]);
 
   if (!player) return null;
 
@@ -144,7 +153,7 @@ export const CombatScreen: React.FC = () => {
           onClick={async () => {
             setPremiumBusy(true);
             setPremiumFeedback(null);
-            const result = await purchasePremium();
+            const result = await purchasePremium(preparedPremiumInvoice);
             setPremiumFeedback(result.message);
             setPremiumBusy(false);
             if (result.success) setTimeout(() => setPremiumPromptOpen(false), 900);
