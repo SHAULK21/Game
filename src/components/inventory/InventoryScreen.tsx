@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType } from '../../types/game';
-import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
+import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -135,11 +135,13 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     unequipItem,
     sellItem,
     disassembleItem,
-    expandInventory
+    expandInventory,
+    craftBasicItem
   } = useGame();
 
   const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
   const [tab, setTab] = useState<InventoryTab>('equipment');
+  const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
 
   if (!player) return null;
 
@@ -386,13 +388,81 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       )}
 
       {tab === 'resources' && (
-        groupedResources.length > 0 ? (
-          <div className="space-y-1.5">{groupedResources.map(renderResource)}</div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-800 p-7 text-center text-xs text-slate-500">
-            Ресурсов пока нет.
+        <div className="space-y-3">
+          <div className="rounded-xl border border-amber-500/25 bg-amber-950/10 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-xs font-bold text-amber-300">Переработка трофеев</div>
+                <div className="text-[10px] text-slate-500">Обычный лут превращается в расходники, базовую экипировку или серебро.</div>
+              </div>
+              <Hammer className="w-4 h-4 text-amber-400" />
+            </div>
+
+            {craftFeedback && (
+              <div className="mb-2 rounded-lg border border-slate-700 bg-slate-950/70 p-2 text-[10px] text-slate-300">
+                {craftFeedback}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {BASIC_CRAFT_RECIPES.map(recipe => {
+                const canCraft = recipe.ingredients.every(ingredient => {
+                  const have = player.inventory.reduce(
+                    (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
+                    0
+                  );
+                  return have >= ingredient.count;
+                });
+                return (
+                  <div key={recipe.id} className="rounded-lg border border-slate-800 bg-slate-950/50 p-2.5">
+                    <div className="flex items-start gap-2">
+                      <span className="text-2xl shrink-0">{recipe.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-bold text-slate-100">{recipe.name}</div>
+                        <div className="text-[9px] text-slate-500 mt-0.5">{recipe.description}</div>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {recipe.ingredients.map(ingredient => {
+                            const have = player.inventory.reduce(
+                              (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
+                              0
+                            );
+                            return (
+                              <span key={ingredient.name} className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                                have >= ingredient.count
+                                  ? 'border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
+                                  : 'border-rose-500/30 bg-rose-950/30 text-rose-300'
+                              }`}>
+                                {ingredient.name} {have}/{ingredient.count}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const result = craftBasicItem(recipe.id);
+                          setCraftFeedback(result.message);
+                        }}
+                        disabled={!canCraft}
+                        className="shrink-0 px-2 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 disabled:cursor-not-allowed text-[10px] font-bold text-slate-950 active:scale-95"
+                      >
+                        Создать
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )
+
+          {groupedResources.length > 0 ? (
+            <div className="space-y-1.5">{groupedResources.map(renderResource)}</div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-800 p-7 text-center text-xs text-slate-500">
+              Ресурсов пока нет.
+            </div>
+          )}
+        </div>
       )}
 
       {currentSelected && (
