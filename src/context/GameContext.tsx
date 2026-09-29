@@ -17,7 +17,8 @@ import {
   ChatMessage,
   ArenaOpponent,
   TravelState,
-  RegionModifier
+  RegionModifier,
+  MiningExpeditionReward
 } from '../types/game';
 import { 
   CLASSES, 
@@ -65,7 +66,7 @@ interface GameContextType {
   chatMessages: ChatMessage[];
   onlinePlayersCount: number;
   combatStats: CombatStats;
-  offlineReport: { minutes: number; gold: number; exp: number; kills: number; itemsCount: number } | null;
+  offlineReport: { minutes: number; gold: number; exp: number; kills: number; itemsCount: number; miningRewards?: MiningExpeditionReward[] } | null;
   travelState: TravelState;
   premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean };
   
@@ -101,6 +102,8 @@ interface GameContextType {
 
   // Gathering & Crafting
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
+  startMiningExpedition: (hours: 1 | 3 | 7) => { success: boolean; message: string };
+  claimMiningExpedition: () => { success: boolean; message: string };
   craftAlchemy: (recipeId: string) => boolean;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
@@ -296,6 +299,106 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
   return { inventory: [...inventory, item], added: true };
 };
 
+const MINING_EXPEDITION_POOLS: Array<{
+  name: string;
+  icon: string;
+  type: 'ore' | 'material';
+  rarity: ItemRarity;
+  minLevel: number;
+  weight: number;
+}> = [
+  { name: 'Уголь', icon: '🪨', type: 'ore', rarity: 'common', minLevel: 1, weight: 18 },
+  { name: 'Медная руда', icon: '🟤', type: 'ore', rarity: 'common', minLevel: 1, weight: 17 },
+  { name: 'Железная руда', icon: '⚪', type: 'ore', rarity: 'common', minLevel: 5, weight: 15 },
+  { name: 'Лечебная трава', icon: '🌿', type: 'material', rarity: 'common', minLevel: 1, weight: 11 },
+  { name: 'Чистая вода', icon: '💧', type: 'material', rarity: 'common', minLevel: 1, weight: 10 },
+  { name: 'Горный корень', icon: '🌱', type: 'material', rarity: 'uncommon', minLevel: 5, weight: 8 },
+  { name: 'Серебряная руда', icon: '✨', type: 'ore', rarity: 'uncommon', minLevel: 15, weight: 8 },
+  { name: 'Лунная пыльца', icon: '🌙', type: 'material', rarity: 'uncommon', minLevel: 15, weight: 6 },
+  { name: 'Золотая руда', icon: '🪙', type: 'ore', rarity: 'rare', minLevel: 25, weight: 5 },
+  { name: 'Сырой самоцвет', icon: '💎', type: 'material', rarity: 'rare', minLevel: 25, weight: 4 },
+  { name: 'Мифриловая руда', icon: '💠', type: 'ore', rarity: 'rare', minLevel: 40, weight: 3 },
+  { name: 'Магическая эссенция', icon: '🔮', type: 'material', rarity: 'rare', minLevel: 40, weight: 2 },
+  { name: 'Адамантит', icon: '🟣', type: 'ore', rarity: 'epic', minLevel: 60, weight: 1.5 },
+  { name: 'Драконит', icon: '🔥', type: 'ore', rarity: 'ancient', minLevel: 85, weight: 0.5 }
+];
+
+const generateMiningExpeditionRewards = (
+  hours: number,
+  miningLevel: number,
+  premiumMultiplier = 1
+): MiningExpeditionReward[] => {
+  const available = MINING_EXPEDITION_POOLS.filter(entry => entry.minLevel <= Math.max(1, miningLevel));
+  const rolls = hours >= 7 ? 9 : hours >= 3 ? 6 : 4;
+  const qtyBase = Math.max(1, Math.round(hours * premiumMultiplier));
+  const merged = new Map<string, MiningExpeditionReward>();
+
+  for (let roll = 0; roll < rolls; roll += 1) {
+    const rareBoost = hours >= 7 ? 1.8 : hours >= 3 ? 1.25 : 1;
+    const weighted = available.map(entry => ({
+      ...entry,
+      adjustedWeight: entry.rarity === 'common' ? entry.weight : entry.weight * rareBoost
+    }));
+    const totalWeight = weighted.reduce((sum, entry) => sum + entry.adjustedWeight, 0);
+    let cursor = Math.random() * totalWeight;
+    let picked = weighted[0];
+    for (const entry of weighted) {
+      cursor -= entry.adjustedWeight;
+      if (cursor <= 0) {
+        picked = entry;
+        break;
+      }
+    }
+
+    const rarityFactor =
+      picked.rarity === 'common' ? 1 :
+      picked.rarity === 'uncommon' ? 0.8 :
+      picked.rarity === 'rare' ? 0.55 :
+      picked.rarity === 'epic' ? 0.35 : 0.2;
+    const count = Math.max(1, Math.round((qtyBase + Math.random() * (hours + 2)) * rarityFactor));
+    const existing = merged.get(picked.name);
+    if (existing) existing.count += count;
+    else merged.set(picked.name, {
+      name: picked.name,
+      icon: picked.icon,
+      type: picked.type,
+      rarity: picked.rarity,
+      count
+    });
+  }
+
+  return [...merged.values()];
+};
+
+const addMiningRewardsToInventory = (
+  inventory: GameItem[],
+  rewards: MiningExpeditionReward[],
+  maxSlots: number
+): { inventory: GameItem[]; added: boolean } => {
+  let next = inventory.map(item => ({ ...item }));
+  for (const reward of rewards) {
+    const item: GameItem = {
+      id: 'expedition_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      templateId: 'expedition_' + reward.name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '_'),
+      name: reward.name,
+      type: reward.type,
+      rarity: reward.rarity,
+      level: 1,
+      upgradeLevel: 0,
+      icon: reward.icon,
+      description: 'Добыто в шахтёрской экспедиции.',
+      stats: {},
+      sellPrice: Math.max(2, reward.count * 2),
+      disassembleYield: reward.type === 'ore' ? { ore: 1 } : { silver: 2 },
+      stackCount: reward.count
+    };
+    const added = addOrStackInventoryItem(next, item, maxSlots);
+    if (!added.added) return { inventory, added: false };
+    next = added.inventory;
+  }
+  return { inventory: next, added: true };
+};
+
 const SAVE_KEY = 'aethelgard_save_v1_data';
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, alchemy: 5, upgrade: 4, inventory: 0, quest: 2 };
 
@@ -320,13 +423,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [onlinePlayersCount, setOnlinePlayersCount] = useState<number>(142);
-  const [offlineReport, setOfflineReport] = useState<{ minutes: number; gold: number; exp: number; kills: number; itemsCount: number } | null>(null);
+  const [offlineReport, setOfflineReport] = useState<{ minutes: number; gold: number; exp: number; kills: number; itemsCount: number; miningRewards?: MiningExpeditionReward[] } | null>(null);
+  const [pendingOfflineMinutes, setPendingOfflineMinutes] = useState(0);
   const [premium, setPremium] = useState({
     active: false,
     premiumUntil: null as string | null,
     priceStars: 150,
     periodDays: 30,
-    loading: false
+    loading: true
   });
 
   const [autoBattle, setAutoBattle] = useState<AutoBattleSettings>({
@@ -369,6 +473,51 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAutoBattle(prev => prev.enabled ? { ...prev, enabled: false } : prev);
     }
   }, [premium.active]);
+
+  useEffect(() => {
+    if (!player || premium.loading || pendingOfflineMinutes <= 0) return;
+
+    const minutes = pendingOfflineMinutes;
+    setPendingOfflineMinutes(0);
+
+    // Automatic offline mining is a Premium-only benefit.
+    if (!premium.active || minutes < 30) return;
+
+    const hours = Math.max(1, Math.min(8, minutes / 60));
+    const rewards = generateMiningExpeditionRewards(hours, player.miningLevel, 1.15);
+    const added = addMiningRewardsToInventory(player.inventory, rewards, player.maxInventorySlots);
+    if (!added.added) {
+      setOfflineReport({
+        minutes,
+        gold: 0,
+        exp: 0,
+        kills: 0,
+        itemsCount: 0,
+        miningRewards: []
+      });
+      return;
+    }
+
+    const minedCount = rewards.reduce((sum, reward) => sum + reward.count, 0);
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory: added.inventory,
+      miningExp: prev.miningExp + Math.max(5, Math.round(hours * 12)),
+      statsSummary: {
+        ...prev.statsSummary,
+        oresMined: prev.statsSummary.oresMined + minedCount
+      }
+    } : prev);
+
+    setOfflineReport({
+      minutes,
+      gold: 0,
+      exp: 0,
+      kills: 0,
+      itemsCount: rewards.length,
+      miningRewards: rewards
+    });
+  }, [player?.id, premium.loading, premium.active, pendingOfflineMinutes]);
 
   const purchasePremium = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     try {
@@ -510,24 +659,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const elapsedMins = Math.floor(elapsedMs / (1000 * 60));
           
           if (elapsedMins >= 2) {
-            const cappedMins = Math.min(elapsedMins, 480); // max 8 hours
-            const kills = Math.floor(cappedMins * 0.9);
-            const goldEarned = kills * (8 + parsed.player.level * 2);
-            const expEarned = kills * (16 + parsed.player.level * 4);
-            
-            parsed.player.gold += goldEarned;
-            parsed.player = addExperience(parsed.player, expEarned).player;
-            parsed.player.statsSummary.monstersKilled += kills;
-            parsed.player.lastActiveTimestamp = now;
-
-            setOfflineReport({
-              minutes: cappedMins,
-              gold: goldEarned,
-              exp: expEarned,
-              kills: kills,
-              itemsCount: Math.floor(kills * 0.08)
-            });
+            setPendingOfflineMinutes(Math.min(elapsedMins, 480));
           }
+          parsed.player.lastActiveTimestamp = now;
 
           // Migrate old saves to the two-currency economy.
           const legacyShards = Number(parsed.player.shards || 0);
@@ -2281,9 +2415,68 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sound.playClick();
   }, []);
 
+  const startMiningExpedition = useCallback((hours: 1 | 3 | 7): { success: boolean; message: string } => {
+    if (!player) return { success: false, message: 'Персонаж не найден.' };
+    if (player.miningExpedition) return { success: false, message: 'Шахтёрская экспедиция уже идёт.' };
+
+    const now = Date.now();
+    const rewards = generateMiningExpeditionRewards(hours, player.miningLevel);
+    setPlayer(prev => prev ? {
+      ...prev,
+      miningExpedition: {
+        durationHours: hours,
+        startedAt: now,
+        endsAt: now + hours * 60 * 60 * 1000,
+        rewards
+      }
+    } : prev);
+
+    triggerHaptic('medium');
+    sound.playMining();
+    return { success: true, message: `Экспедиция на ${hours} ч. началась.` };
+  }, [player]);
+
+  const claimMiningExpedition = useCallback((): { success: boolean; message: string } => {
+    if (!player?.miningExpedition) return { success: false, message: 'Нет активной экспедиции.' };
+    if (Date.now() < player.miningExpedition.endsAt) return { success: false, message: 'Экспедиция ещё не завершена.' };
+
+    const rewards = player.miningExpedition.rewards || [];
+    const added = addMiningRewardsToInventory(player.inventory, rewards, player.maxInventorySlots);
+    if (!added.added) return { success: false, message: 'Освободите место в рюкзаке для добычи.' };
+
+    const minedCount = rewards.reduce((sum, reward) => sum + reward.count, 0);
+    const durationHours = player.miningExpedition.durationHours;
+    setPlayer(prev => {
+      if (!prev?.miningExpedition) return prev;
+      const miningExp = prev.miningExp + durationHours * 25;
+      let miningLevel = prev.miningLevel;
+      while (miningExp >= miningLevel * 175 && miningLevel < 100) miningLevel += 1;
+      return {
+        ...prev,
+        inventory: added.inventory,
+        miningExp,
+        miningLevel,
+        miningExpedition: undefined,
+        statsSummary: {
+          ...prev.statsSummary,
+          oresMined: prev.statsSummary.oresMined + minedCount
+        }
+      };
+    });
+    setQuests(prev => prev.map(q => q.category === 'mining'
+      ? { ...q, currentCount: Math.min(q.targetCount, q.currentCount + minedCount), completed: q.currentCount + minedCount >= q.targetCount }
+      : q
+    ));
+
+    triggerHaptic('success');
+    sound.playUpgradeSuccess();
+    return { success: true, message: `Экспедиция завершена: получено ${minedCount} ресурсов.` };
+  }, [player]);
+
   // Mining
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
     if (!player) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
+    if (player.miningExpedition) return { success: false, yieldCount: 0, isCrit: false, oreName: 'экспедиция уже идёт' };
 
     const node = MINING_NODES.find(n => n.id === nodeId);
     if (!node) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
@@ -2776,6 +2969,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       proceedDungeonRoom,
       exitDungeon,
       mineNode,
+      startMiningExpedition,
+      claimMiningExpedition,
       craftAlchemy,
       listMarketItem,
       buyMarketListing,
