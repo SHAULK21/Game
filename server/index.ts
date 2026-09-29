@@ -412,6 +412,15 @@ app.post('/api/market/:listingId/buy', auth, async (req, res) => {
 app.use(express.static(path.resolve(__dirname, '../dist'), {
   maxAge: isProduction ? '1d' : 0,
   index: 'index.html',
+  setHeaders: (res, filePath) => {
+    // Never cache HTML: Telegram Mini App / WebView must always receive
+    // the latest Vite asset manifest after a deployment.
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  },
 }));
 
 app.get('*', async (_req, res) => {
