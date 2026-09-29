@@ -176,7 +176,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
                   <span>🧘</span>
                   <span>Быстрая медитация</span>
                 </div>
-                <span className="text-amber-300 font-mono">+10 ⚡ · 1 раз / 60с</span>
+                <span className="text-amber-300 font-mono">+10 ⚡ · 1 раз / 30 мин</span>
               </button>
 
               <button
