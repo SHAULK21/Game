@@ -1314,6 +1314,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
       { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
     ];
+    const dungeonRoom = activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex];
+    const completesDungeon =
+      Boolean(dungeonRoom) &&
+      dungeonRoom?.monster?.id === monster.id &&
+      !dungeonRoom?.resolved &&
+      activeDungeonRun!.currentRoomIndex === activeDungeonRun!.totalRooms - 1;
+
     const lootResult = generateCombatLoot({
       monster,
       rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
@@ -1351,13 +1358,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'system'
       });
     });
-
-    const dungeonRoom = activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex];
-    const completesDungeon =
-      Boolean(dungeonRoom) &&
-      dungeonRoom?.monster?.id === monster.id &&
-      !dungeonRoom?.resolved &&
-      activeDungeonRun!.currentRoomIndex === activeDungeonRun!.totalRooms - 1;
 
     setPlayer(prev => {
       if (!prev) return prev;
@@ -1484,8 +1484,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
-    if (player.energy < ENERGY_COSTS.combat) { triggerHaptic('error'); setBattleLog(prev => [...prev, { id: 'energy_' + Date.now(), turn: prev.length + 1, text: '⚡ Недостаточно энергии для действия.', type: 'system' }]); return; }
-    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.combat) } : prev);
 
     const currentTurn = battleLog.length + 1;
     const newLogs: BattleLogEntry[] = [];
