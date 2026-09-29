@@ -51,6 +51,19 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+const ensureGlobalChatSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS global_chat_messages (
+      id BIGSERIAL PRIMARY KEY,
+      telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+      text VARCHAR(500) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_global_chat_created
+      ON global_chat_messages(created_at DESC);
+  `);
+};
+
 app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
@@ -361,23 +374,45 @@ app.post('/api/clan/chat', auth, requireClan, async (req, res) => {
 });
 
 app.get('/api/chat/global', auth, async (_req, res) => {
-  const result = await pool.query(
-    `SELECT m.id, m.text, m.created_at, p.display_name, p.username
-     FROM global_chat_messages m JOIN players p ON p.telegram_id = m.telegram_id
-     ORDER BY m.created_at DESC LIMIT 80`
-  );
-  res.json({ messages: result.rows.reverse() });
+  try {
+    await ensureGlobalChatSchema();
+    const result = await pool.query(
+      `SELECT m.id, m.text, m.created_at, p.display_name, p.username
+       FROM global_chat_messages m
+       JOIN players p ON p.telegram_id = m.telegram_id
+       ORDER BY m.created_at DESC
+       LIMIT 80`
+    );
+    res.json({ messages: result.rows.reverse() });
+  } catch (error) {
+    console.error('Global chat read failed:', error);
+    res.status(500).json({ error: 'Чат временно недоступен. Сервер не смог прочитать сообщения.' });
+  }
 });
 
 app.post('/api/chat/global', auth, async (req, res) => {
   const text = String(req.body?.text || '').trim();
   if (!text || text.length > 500) return res.status(400).json({ error: 'Сообщение: 1–500 символов.' });
-  const result = await pool.query(
-    `INSERT INTO global_chat_messages (telegram_id, text) VALUES ($1, $2)
-     RETURNING id, text, created_at`,
-    [req.authUser!.id, text]
-  );
-  res.status(201).json({ message: { ...result.rows[0], display_name: req.authUser!.displayName, username: req.authUser!.username } });
+
+  try {
+    await ensureGlobalChatSchema();
+    const result = await pool.query(
+      `INSERT INTO global_chat_messages (telegram_id, text)
+       VALUES ($1, $2)
+       RETURNING id, text, created_at`,
+      [req.authUser!.id, text]
+    );
+    res.status(201).json({
+      message: {
+        ...result.rows[0],
+        display_name: req.authUser!.displayName,
+        username: req.authUser!.username
+      }
+    });
+  } catch (error) {
+    console.error('Global chat send failed:', error);
+    res.status(500).json({ error: 'Чат временно недоступен. Сервер не смог сохранить сообщение.' });
+  }
 });
 
 app.get('/api/market/listings', auth, async (req, res) => {
@@ -568,6 +603,7 @@ app.get('*', async (_req, res) => {
 const bootstrap = async () => {
   const schema = await fs.readFile(path.resolve(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
+  await ensureGlobalChatSchema();
 
   if (telegramBotToken && publicBaseUrl && telegramWebhookSecret) {
     try {
