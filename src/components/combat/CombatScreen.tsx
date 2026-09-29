@@ -164,6 +164,7 @@ export const CombatScreen: React.FC = () => {
   if (!isInCombat || !activeMonster) {
     return (
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+        {premiumModal}
         {/* Banner */}
         <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 p-4 bg-gradient-to-b from-[#0c1322] to-[#07090e] shadow-lg shadow-cyan-950/30">
           <div className="flex items-center justify-between mb-2">
@@ -198,6 +199,22 @@ export const CombatScreen: React.FC = () => {
               Ваша энергия: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
             </div>
           </div>
+
+          {player.miningExpedition && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40">
+              <div className="text-xs font-bold text-amber-200">⛏ Персонаж сейчас в шахте</div>
+              <div className="text-[10px] text-slate-400 mt-1">Пока идёт экспедиция, вступать в бой нельзя.</div>
+              <button
+                onClick={() => {
+                  const result = leaveMiningExpedition();
+                  setEnergyError(result.message);
+                }}
+                className="mt-2 w-full py-2 rounded-lg bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-bold"
+              >
+                Уйти с шахты
+              </button>
+            </div>
+          )}
 
           {/* Energy Warning alert */}
           {energyError && (
@@ -243,6 +260,16 @@ export const CombatScreen: React.FC = () => {
               <Settings2 className="w-5 h-5" />
             </button>
           </div>
+
+          {!premium.active && (
+            <button
+              onClick={() => setPremiumPromptOpen(true)}
+              className="mt-2 w-full py-2.5 rounded-xl border border-yellow-500/40 bg-yellow-950/25 text-yellow-200 font-bold text-xs flex items-center justify-center gap-2 active:scale-95"
+            >
+              <Crown className="w-4 h-4" />
+              Купить Premium · 150 ⭐ / 30 дней
+            </button>
+          )}
         </div>
 
         {/* Auto Battle Configuration Dialog */}
@@ -411,6 +438,7 @@ export const CombatScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
+      {premiumModal}
       {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
       <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] shadow-2xl h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
         {/* Atmospheric Background with gradient lighting */}
@@ -618,7 +646,7 @@ export const CombatScreen: React.FC = () => {
 
           {/* Auto-Battle Toggle */}
           <button
-            onClick={toggleAutoBattle}
+            onClick={handleAutoBattleClick}
             title={premium.active ? 'Автобой' : 'Доступно с Aethelgard Premium'}
             className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
               autoBattle.enabled
