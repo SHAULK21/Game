@@ -516,6 +516,7 @@ export interface PlayerCharacter {
 
   arenaRating: number;
   arenaTickets: number;
+  lastArenaTicketRefresh?: string;
   arenaLeague: string;
 
   clanId?: string;

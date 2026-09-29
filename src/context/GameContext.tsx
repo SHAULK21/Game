@@ -868,6 +868,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? parsed.player.craftedPetIds
             : [parsed.player.activePet?.id || 'pet_wolf'];
           parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
+          const arenaDay = new Date().toISOString().slice(0, 10);
+          if (!parsed.player.lastArenaTicketRefresh || parsed.player.lastArenaTicketRefresh !== arenaDay) {
+            parsed.player.arenaTickets = 5;
+            parsed.player.lastArenaTicketRefresh = arenaDay;
+          }
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           // Migrate old saves to the current steep XP curve.
           parsed.player.nextExp = getNextExperience(parsed.player.level);
@@ -899,6 +904,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       { id: '2', sender: 'ТеневойРыцарь', clanTag: 'NEXUS', text: 'Кто на Королеву Мышей в пещеру? Собираю группу ур. 8+', channel: 'global', timestamp: '12:04' },
       { id: '3', sender: 'МагистрОгня', text: 'Заточил посох на +9 с первой попытки! Невероятно повезло.', channel: 'global', timestamp: '12:11' }
     ]);
+  }, []);
+
+  // Arena tickets return each UTC day, including while the game stays open.
+  useEffect(() => {
+    const refreshTickets = () => {
+      const today = new Date().toISOString().slice(0, 10);
+      setPlayer(prev => prev && prev.lastArenaTicketRefresh !== today
+        ? { ...prev, arenaTickets: 5, lastArenaTicketRefresh: today }
+        : prev);
+    };
+    const timer = setInterval(refreshTickets, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   // Keep the public leaderboard profile synchronized without sending every inventory/gold change.
@@ -1195,6 +1212,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       maxAlchemyEnergy: 100,
       arenaRating: 1000,
       arenaTickets: 5,
+      lastArenaTicketRefresh: new Date().toISOString().slice(0, 10),
       arenaLeague: 'Бронза',
       clanId: undefined,
       statsSummary: {
@@ -3225,7 +3243,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Arena
   const challengeArena = useCallback((opponent: ArenaOpponent): boolean => {
-    if (!player || player.arenaTickets <= 0) {
+    if (!player || player.arenaTickets <= 0 || activeDungeonRun) {
       triggerHaptic('error');
       sound.playUpgradeFail();
       return false;
@@ -3263,7 +3281,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayer(prev => prev ? { ...prev, arenaTickets: Math.max(0, prev.arenaTickets - 1) } : prev);
     }
     return started;
-  }, [player, startBattleWithMonster]);
+  }, [player, activeDungeonRun, startBattleWithMonster]);
 
   // Quests & Achievements Claims
   const claimQuestReward = useCallback((questId: string) => {
