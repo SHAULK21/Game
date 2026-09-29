@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType } from '../../types/game';
-import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES, REGIONS, REGIONAL_TROPHIES, MINING_NODES, MINE_CATALYST_BY_ORE, MONSTERS, getCraftIngredients, CRAFT_RARITY_CHANCES } from '../../data/gameData';
+import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -20,6 +20,7 @@ import { ItemArtwork } from '../ui/ItemArtwork';
 
 interface InventoryScreenProps {
   onNavigateToBlacksmith?: () => void;
+  onNavigateToCrafting?: () => void;
 }
 
 type InventoryTab = 'equipment' | 'potions' | 'resources';
@@ -137,7 +138,7 @@ const getResourceUse = (item: GameItem) => {
   return 'Ремесло и специальные рецепты';
 };
 
-export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBlacksmith }) => {
+export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBlacksmith, onNavigateToCrafting }) => {
   const {
     player,
     combatStats,
@@ -146,14 +147,11 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     sellItem,
     disassembleItem,
     toggleItemLock,
-    expandInventory,
-    craftBasicItem
+    expandInventory
   } = useGame();
 
   const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
   const [tab, setTab] = useState<InventoryTab>('equipment');
-  const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
-  const [craftRegionId, setCraftRegionId] = useState<string | null>(null);
 
   if (!player) return null;
 
@@ -392,98 +390,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
       {tab === 'resources' && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-amber-500/25 bg-amber-950/10 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="text-xs font-bold text-amber-300">Крафт из трофеев и руды</div>
-                <div className="text-[10px] text-slate-500">Местные трофеи и случайный набор доступных жил. После создания набор обновится.</div>
-              </div>
-              <Hammer className="w-4 h-4 text-amber-400" />
-            </div>
-
-            {craftFeedback && (
-              <div className="mb-2 rounded-lg border border-slate-700 bg-slate-950/70 p-2 text-[10px] text-slate-300">
-                {craftFeedback}
-              </div>
-            )}
-
-            <select
-              aria-label="Регион рецептов"
-              value={craftRegionId || player.currentRegionId}
-              onChange={event => setCraftRegionId(event.target.value)}
-              className="w-full mb-2 rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs text-slate-200"
-            >
-              {REGIONS.map(region => <option key={region.id} value={region.id}>{region.name} · с {region.minLevel} ур.</option>)}
-            </select>
-
-            <div className="space-y-2">
-              {BASIC_CRAFT_RECIPES.filter(recipe => !recipe.regionId || recipe.regionId === (craftRegionId || player.currentRegionId)).map(recipe => {
-                const ingredients = getCraftIngredients(recipe, player.userId, player.craftRolls?.[recipe.id] ?? 0);
-                const unlocked = player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
-                const canCraft = unlocked && ingredients.every(ingredient => {
-                  const have = player.inventory.reduce(
-                    (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
-                    0
-                  );
-                  return have >= ingredient.count;
-                });
-                return (
-                  <div key={recipe.id} className="rounded-lg border border-slate-800 bg-slate-950/50 p-2.5">
-                    <div className="flex items-start gap-2">
-                      <span className="text-2xl shrink-0">{recipe.icon}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-bold text-slate-100">{recipe.name}</div>
-                        <div className="text-[9px] text-slate-500 mt-0.5">{recipe.description}</div>
-                        {recipe.regionId && <div className="text-[9px] text-cyan-300 mt-0.5">
-                          {REGIONS.find(region => region.id === recipe.regionId)?.name} · персонаж {recipe.levelReq} ур. · шахта {recipe.miningLevelReq} ур. · качество: {CRAFT_RARITY_CHANCES.map(entry => `${RARITY_COLORS[entry.rarity].label} ${Math.round(entry.chance * 100)}%`).join(' / ')}
-                        </div>}
-                        {!recipe.regionId && recipe.result && ['gloves', 'boots'].includes(recipe.result.type) && <div className="text-[9px] text-cyan-300 mt-0.5">
-                          Качество: {CRAFT_RARITY_CHANCES.map(entry => `${RARITY_COLORS[entry.rarity].label} ${Math.round(entry.chance * 100)}%`).join(' / ')}
-                        </div>}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {ingredients.map(ingredient => {
-                            const have = player.inventory.reduce(
-                              (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
-                              0
-                            );
-                            return (
-                              <span key={ingredient.name} className={`text-[9px] px-1.5 py-0.5 rounded border ${
-                                have >= ingredient.count
-                                  ? 'border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
-                                  : 'border-rose-500/30 bg-rose-950/30 text-rose-300'
-                              }`}>
-                                {ingredient.name} {have}/{ingredient.count}
-                                {recipe.regionId && <span className="block text-[8px] opacity-70">{
-                                  (() => {
-                                    const source = Object.entries(REGIONAL_TROPHIES).flatMap(([regionId, mobs]) => Object.entries(mobs).map(([mobId, drop]) => ({ regionId, mobId, name: drop.name }))).find(entry => entry.name === ingredient.name);
-                                    if (source) return `${REGIONS.find(region => region.id === source.regionId)?.name}: ${MONSTERS[source.mobId]?.name}`;
-                                    const ore = MINING_NODES.find(node => node.oreYield === ingredient.name);
-                                    if (ore) return `Шахта: ${ore.name}`;
-                                    const catalystOre = Object.entries(MINE_CATALYST_BY_ORE).find(([, catalyst]) => catalyst === ingredient.name)?.[0];
-                                    return catalystOre ? `Шахта: жила ${catalystOre}` : '';
-                                  })()
-                                }</span>}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const result = craftBasicItem(recipe.id);
-                          setCraftFeedback(result.message);
-                        }}
-                        disabled={!canCraft}
-                        className="shrink-0 px-2 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 disabled:cursor-not-allowed text-[10px] font-bold text-slate-950 active:scale-95"
-                      >
-                        Создать
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <button
+            onClick={onNavigateToCrafting}
+            className="w-full rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-left text-xs text-amber-200"
+          >
+            ⚒️ Открыть мастерскую снаряжения — рецепты, трофеи мобов и ресурсы шахты
+          </button>
 
           {groupedResources.length > 0 ? (
             <div className="space-y-1.5">{groupedResources.map(renderResource)}</div>

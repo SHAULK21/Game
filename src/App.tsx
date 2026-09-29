@@ -7,6 +7,7 @@ import { WorldScreen } from './components/world/WorldScreen';
 import { ArenaScreen } from './components/arena/ArenaScreen';
 import { InventoryScreen } from './components/inventory/InventoryScreen';
 import { BlacksmithScreen } from './components/blacksmith/BlacksmithScreen';
+import { CraftingScreen } from './components/crafting/CraftingScreen';
 import { AlchemyScreen } from './components/alchemy/AlchemyScreen';
 import { MiningScreen } from './components/mining/MiningScreen';
 import { ClanScreen } from './components/clan/ClanScreen';
@@ -51,8 +52,9 @@ const MainGameContent: React.FC = () => {
             {currentTab === 'hunter' && <CombatScreen />}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
-            {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} />}
+            {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
+            {currentTab === 'crafting' && <CraftingScreen />}
             {currentTab === 'alchemy' && <AlchemyScreen />}
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'clan' && <ClanScreen />}

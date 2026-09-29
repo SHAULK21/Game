@@ -516,7 +516,6 @@ export interface PlayerCharacter {
   alchemyExp: number;
   alchemyEnergy: number;
   maxAlchemyEnergy: number;
-  craftRolls?: Record<string, number>;
   miningExpedition?: MiningExpedition;
 
   arenaRating: number;

@@ -5,6 +5,7 @@ import {
   Trophy, 
   Backpack, 
   Anvil, 
+  Hammer,
   FlaskConical, 
   Pickaxe, 
   ShieldCheck, 
@@ -25,6 +26,7 @@ export type TabId =
   | 'arena' 
   | 'inventory' 
   | 'blacksmith' 
+  | 'crafting'
   | 'alchemy' 
   | 'mine' 
   | 'clan' 
@@ -85,11 +87,18 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 Дополнительные разделы
               </span>
               <span className="text-[11px] text-slate-400">
-                10 разделов Аэтельгарда
+                Разделы Аэтельгарда
               </span>
             </div>
 
             <div className="grid grid-cols-4 gap-2.5">
+              <button
+                onClick={() => selectSecondaryTab('blacksmith')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${currentTab === 'blacksmith' ? 'bg-cyan-950/50 border-cyan-400 text-cyan-300' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'}`}
+              >
+                <Anvil className="w-5 h-5 mb-1 text-amber-400" />
+                <span className="text-[11px] font-medium">Кузница</span>
+              </button>
               <button
                 onClick={() => selectSecondaryTab('alchemy')}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
@@ -228,22 +237,22 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             <span className="text-[10px] mt-0.5 tracking-tight">Сумка</span>
           </button>
 
-          {/* 5. Кузница (Blacksmith) */}
+          {/* 5. Крафт (Crafting) */}
           <button
-            onClick={() => handleTabClick('blacksmith')}
+            onClick={() => handleTabClick('crafting')}
             className={`flex flex-col items-center justify-center h-full transition-colors ${
-              currentTab === 'blacksmith' ? 'text-cyan-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
+              currentTab === 'crafting' ? 'text-cyan-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Anvil className={`w-5 h-5 ${currentTab === 'blacksmith' ? 'text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]' : ''}`} />
-            <span className="text-[10px] mt-0.5 tracking-tight">Кузня</span>
+            <Hammer className={`w-5 h-5 ${currentTab === 'crafting' ? 'text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]' : ''}`} />
+            <span className="text-[10px] mt-0.5 tracking-tight">Крафт</span>
           </button>
 
           {/* 6. Ещё (More Drawer) */}
           <button
             onClick={() => handleTabClick('more')}
             className={`relative flex flex-col items-center justify-center h-full transition-colors ${
-              isMoreDrawerOpen || ['alchemy', 'mine', 'clan', 'chat', 'market', 'pets', 'leaderboard', 'more'].includes(currentTab)
+              isMoreDrawerOpen || ['blacksmith', 'alchemy', 'mine', 'clan', 'chat', 'market', 'pets', 'leaderboard', 'more'].includes(currentTab)
                 ? 'text-purple-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
