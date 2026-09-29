@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType } from '../../types/game';
-import { RARITY_COLORS } from '../../data/gameData';
+import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -15,6 +15,7 @@ import {
   Gem,
   Swords
 } from 'lucide-react';
+import { RpgIcon, getRpgIconKind } from '../ui/RpgIcon';
 
 interface InventoryScreenProps {
   onNavigateToBlacksmith?: () => void;
@@ -113,22 +114,16 @@ const getItemScore = (item: GameItem): number => {
 const formatStat = (stat: string, value: number) =>
   PERCENT_STATS.has(stat) ? `${value}%` : String(Math.round(value));
 
-const ItemTypeIcon: React.FC<{ type: ItemType; className?: string }> = ({ type, className = 'w-4 h-4' }) => {
-  if (type === 'weapon') return <Swords className={className} />;
-  if (['armor', 'helmet', 'pants', 'gloves', 'boots', 'offhand'].includes(type)) return <Shield className={className} />;
-  if (type === 'potion') return <FlaskConical className={className} />;
-  if (type === 'ore') return <Pickaxe className={className} />;
-  if (type === 'artifact') return <Gem className={className} />;
-  return <Sparkles className={className} />;
-};
+const ItemTypeIcon: React.FC<{ type: ItemType; className?: string }> = ({ type, className = 'text-slate-500' }) => (
+  <RpgIcon kind={type} size={22} className={className} />
+);
 
 const getResourceUse = (item: GameItem) => {
   if (item.type === 'ore') return 'Кузница · заточка экипировки';
-  if (item.name === 'Сырой самоцвет') return 'Огранка · превращается в кристаллы';
+  if (item.name === 'Сырой самоцвет') return 'Огранка · переработка в серебро';
   if (item.name === 'Лечебная трава' || item.name === 'Чистая вода' || item.name === 'Лунная пыльца' || item.name === 'Ядовитая железа' || item.name === 'Острый клык' || item.name === 'Огненный цветок' || item.name === 'Горный корень' || item.name === 'Магическая эссенция') {
     return 'Алхимия · создание зелий';
   }
-  if (item.name === 'Магический осколок') return 'Кузница · усиление экипировки';
   return 'Ремесло и специальные рецепты';
 };
 
@@ -213,7 +208,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           {item.image ? (
             <img src={item.image} alt="" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
           ) : (
-            <span className="text-2xl">{item.icon}</span>
+            <RpgIcon kind={getRpgIconKind(item)} size={28} className={RARITY_COLORS[item.rarity].text} />
           )}
         </div>
         <div className="mt-1 text-[10px] text-slate-100 font-medium truncate">{item.name}</div>
@@ -232,7 +227,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       className="w-full p-2.5 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center gap-3 text-left active:scale-[0.99]"
     >
       <div className="w-10 h-10 shrink-0 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center">
-        <span className="text-xl">{item.icon}</span>
+        <RpgIcon kind={getRpgIconKind(item)} size={24} className="text-cyan-300" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -261,30 +256,47 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
-          {(EQUIPMENT_TYPES).map(type => {
-            const item = player.equipped[type];
-            return (
-              <button
-                key={type}
-                onClick={() => item && setSelectedItem(item)}
-                className={`min-h-[62px] rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg}` : 'border-slate-800 bg-slate-950/50'}`}
-              >
-                {item ? (
-                  <>
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="text-[8px] text-slate-200 max-w-full px-1 truncate">{item.name}</span>
-                    {item.upgradeLevel > 0 && <span className="absolute" />}
-                  </>
-                ) : (
-                  <>
-                    <ItemTypeIcon type={type} className="w-4 h-4 text-slate-600" />
-                    <span className="text-[8px] text-slate-500 text-center px-1">{TYPE_LABELS[type]}</span>
-                  </>
-                )}
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-[1fr_92px_1fr] gap-2 items-center">
+          <div className="space-y-2">
+            {(['helmet','weapon','gloves','pants','boots','cloak'] as ItemType[]).map(type => {
+              const item = player.equipped[type];
+              return (
+                <button key={type} onClick={() => item && setSelectedItem(item)}
+                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
+                  <ItemTypeIcon type={type} className={item ? RARITY_COLORS[item.rarity].text : 'text-slate-600'} />
+                  <div className="min-w-0">
+                    <div className="text-[8px] text-slate-500 uppercase">{TYPE_LABELS[type]}</div>
+                    <div className="text-[9px] text-slate-200 truncate">{item?.name || 'Пусто'}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative flex flex-col items-center">
+            <div className="w-[88px] h-[150px] rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950 shadow-lg shadow-cyan-950/50">
+              <img src={(player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter} alt={player.name} className="w-full h-full object-cover opacity-80" />
+            </div>
+            <div className="absolute bottom-1 px-2 py-1 rounded bg-black/75 border border-cyan-500/30 text-[9px] font-bold text-cyan-200">
+              {player.name}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {(['amulet','offhand','armor','ring','belt','artifact'] as ItemType[]).map(type => {
+              const item = player.equipped[type];
+              return (
+                <button key={type} onClick={() => item && setSelectedItem(item)}
+                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
+                  <ItemTypeIcon type={type} className={item ? RARITY_COLORS[item.rarity].text : 'text-slate-600'} />
+                  <div className="min-w-0">
+                    <div className="text-[8px] text-slate-500 uppercase">{TYPE_LABELS[type]}</div>
+                    <div className="text-[9px] text-slate-200 truncate">{item?.name || 'Пусто'}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -340,7 +352,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 onClick={() => setSelectedItem(item)}
                 className="w-full rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-3 flex items-center gap-3 text-left"
               >
-                <span className="text-2xl">{item.icon}</span>
+                <RpgIcon kind={getRpgIconKind(item)} size={28} className={RARITY_COLORS[item.rarity].text} />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-100 truncate">{item.name}</div>
                   <div className="text-[10px] text-slate-400 mt-0.5">{item.description}</div>
@@ -378,7 +390,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-14 h-14 shrink-0 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center">
-                  <span className="text-3xl">{currentSelected.icon}</span>
+                  <RpgIcon kind={getRpgIconKind(currentSelected)} size={38} className={RARITY_COLORS[currentSelected.rarity].text} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -507,7 +519,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </button>
               )}
 
-              {((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.crystals)) && (
+              {((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.silver)) && (
                 <button
                   onClick={() => {
                     disassembleItem(currentSelected);
@@ -516,7 +528,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <Sparkles className="w-4 h-4 text-cyan-400" />
-                  {currentSelected.name === 'Сырой самоцвет' ? 'Огранить → кристалл' : 'Разобрать'}
+                  {currentSelected.name === 'Сырой самоцвет' ? 'Огранить → серебро' : 'Разобрать'}
                 </button>
               )}
 
