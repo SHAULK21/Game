@@ -3,7 +3,8 @@ import {
   ItemRarity, 
   Monster, 
   MiningNode, 
-  AlchemyRecipe, 
+  AlchemyRecipe,
+  BasicCraftRecipe, 
   Quest, 
   Achievement, 
   Pet, 
@@ -1193,6 +1194,65 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
       { name: 'Драконит', count: 1 },
       { name: 'Магическая эссенция', count: 5 }
     ]
+  }
+];
+
+export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
+  {
+    id: 'basic_boar_ration',
+    name: 'Сытный паёк из вепря',
+    description: 'Переработать мясо в компактный боевой расходник. Восстанавливает 100 HP.',
+    icon: '🍖',
+    ingredients: [{ name: 'Мясо вепря', count: 3 }],
+    result: {
+      name: 'Сытный паёк из вепря',
+      type: 'potion',
+      rarity: 'common',
+      icon: '🍖',
+      stats: { heal: 100 },
+      sellPrice: 12,
+      count: 1
+    }
+  },
+  {
+    id: 'basic_wolf_gloves',
+    name: 'Перчатки следопыта',
+    description: 'Простая экипировка из волчьих шкур.',
+    icon: '🧤',
+    ingredients: [{ name: 'Волчья шкура', count: 4 }],
+    result: {
+      name: 'Перчатки следопыта',
+      type: 'gloves',
+      rarity: 'uncommon',
+      icon: '🧤',
+      stats: { defense: 4, maxHp: 12 },
+      sellPrice: 28,
+      count: 1
+    }
+  },
+  {
+    id: 'basic_wolf_boots',
+    name: 'Сапоги охотника',
+    description: 'Базовые сапоги из обработанной волчьей шкуры.',
+    icon: '👢',
+    ingredients: [{ name: 'Волчья шкура', count: 5 }],
+    result: {
+      name: 'Сапоги охотника',
+      type: 'boots',
+      rarity: 'uncommon',
+      icon: '👢',
+      stats: { defense: 3, speed: 2 },
+      sellPrice: 32,
+      count: 1
+    }
+  },
+  {
+    id: 'basic_goblin_coin_exchange',
+    name: 'Переплавить монеты гоблинов',
+    description: 'Ненужные медные монеты превращаются в обычное серебро.',
+    icon: '🥈',
+    ingredients: [{ name: 'Медная монета гоблинов', count: 5 }],
+    silverReward: 30
   }
 ];
 
