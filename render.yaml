@@ -23,3 +23,5 @@ services:
         sync: false
       - key: PUBLIC_BASE_URL
         sync: false
+      - key: ADMIN_TELEGRAM_ID
+        sync: false
