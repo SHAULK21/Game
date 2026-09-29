@@ -143,6 +143,50 @@ const pickBestFallback = (drops: MonsterDrop[], exclude = new Set<string>()) => 
   })[0];
 };
 
+const PROCEDURAL_NAMES: Partial<Record<ItemType, string[]>> = {
+  weapon: ['Клинок охотника', 'Сабля странника', 'Боевой топор', 'Костяной меч', 'Рунический жезл'],
+  offhand: ['Щит дозорного', 'Рунический фокус', 'Баклер наёмника'],
+  helmet: ['Капюшон следопыта', 'Шлем стража', 'Маска охотника'],
+  armor: ['Кожаный панцирь', 'Кольчуга странника', 'Роба заклинателя'],
+  pants: ['Поножи дозорного', 'Штаны охотника', 'Рунические поножи'],
+  gloves: ['Перчатки следопыта', 'Боевые рукавицы', 'Чародейские перчатки'],
+  boots: ['Сапоги разведчика', 'Ботфорты стража', 'Шаги тени'],
+  amulet: ['Амулет охотника', 'Талисман искр', 'Оберег древних'],
+  ring: ['Кольцо удачи', 'Печатка воина', 'Руническое кольцо'],
+  belt: ['Пояс наёмника', 'Ремень мастера', 'Пояс клыков'],
+  cloak: ['Плащ тумана', 'Накидка охотника', 'Плащ странника'],
+  artifact: ['Осколок реликвии', 'Древний тотем', 'Руническое ядро']
+};
+
+const rollProceduralRarity = (monster: Monster, rareDropMult: number): ItemRarity => {
+  const roll = Math.random() / Math.max(0.65, Math.min(2.5, rareDropMult));
+  if (monster.isBoss && roll < 0.05) return 'legendary';
+  if (roll < 0.02) return 'epic';
+  if (roll < 0.10) return 'rare';
+  if (roll < 0.30) return 'uncommon';
+  return 'common';
+};
+
+const makeProceduralEquipment = (monster: Monster, rareDropMult: number, index: number): GameItem => {
+  const type = EQUIPMENT_TYPES[Math.floor(Math.random() * EQUIPMENT_TYPES.length)];
+  const names = PROCEDURAL_NAMES[type] || ['Трофей странника'];
+  const rarity = rollProceduralRarity(monster, rareDropMult);
+  const prefix =
+    rarity === 'legendary' ? 'Легендарный ' :
+    rarity === 'epic' ? 'Эпический ' :
+    rarity === 'rare' ? 'Редкий ' :
+    rarity === 'uncommon' ? 'Улучшенный ' : '';
+  const drop: MonsterDrop = {
+    itemName: prefix + names[Math.floor(Math.random() * names.length)],
+    type,
+    rarity,
+    chance: 1,
+    minQty: 1,
+    maxQty: 1
+  };
+  return makeDropItem(drop, monster.level, index);
+};
+
 export function generateCombatLoot(opts: GenerateLootOptions): {
   items: GameItem[];
   gold: number;
@@ -191,6 +235,17 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
   if (items.length < 2 && drops.some(isEquipmentDrop) && Math.random() < 0.55 * Math.max(0.5, rareDropMult)) {
     const equipment = pickBestFallback(drops.filter(isEquipmentDrop), droppedKeys);
     if (equipment) items.push(makeDropItem(equipment, monster.level, 102));
+  }
+
+  // Procedural equipment keeps ordinary fights visually diverse even when a monster has a small fixed drop table.
+  const proceduralChance = monster.isBoss ? 0.95 : monster.isElite ? 0.72 : 0.48;
+  if (items.length < 4 && Math.random() < proceduralChance * Math.min(1.35, Math.max(0.75, rareDropMult))) {
+    items.push(makeProceduralEquipment(monster, rareDropMult, 200 + items.length));
+  }
+
+  // Bosses always leave at least two distinct tangible rewards.
+  while (monster.isBoss && items.length < 2) {
+    items.push(makeProceduralEquipment(monster, Math.max(1.25, rareDropMult), 300 + items.length));
   }
 
   const goldVariance = 0.9 + Math.random() * 0.2;
