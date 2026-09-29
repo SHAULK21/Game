@@ -13,6 +13,7 @@ import {
   Check
 } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { getTelegramUser } from '../../utils/telegram';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -34,7 +35,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const [broadcastText, setBroadcastText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  if (!isOpen || !player) return null;
+  const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
+  const isAdmin = Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
+
+  if (!isOpen || !player || !isAdmin) return null;
 
   const showNotice = (msg: string) => {
     setFeedback(msg);
