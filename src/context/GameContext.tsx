@@ -82,6 +82,7 @@ interface GameContextType {
   sellItem: (item: GameItem) => void;
   disassembleItem: (item: GameItem) => void;
   toggleItemLock: (itemId: string) => void;
+  refreshServerInventory: () => Promise<void>;
   expandInventory: () => void;
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
@@ -714,6 +715,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
+    if (item.serverOwned) return { success: false, message: 'Серверные предметы пока нельзя выставить на старый рынок.' };
     if (item.isLocked || item.boundToClan) return { success: false, message: 'Запертый или клановый предмет нельзя выставить на рынок.' };
     if (!player.inventory.some(i => i.id === item.id && !i.isLocked && !i.boundToClan)) return { success: false, message: 'Предмета нет в инвентаре.' };
     const stack = item.stackCount || 1;
@@ -1315,8 +1317,41 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const refreshServerInventory = useCallback(async () => {
+    const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
+    const canonical = response.items.map(row => ({
+      ...row.item_json, id: row.id, stackCount: row.quantity, isLocked: row.locked,
+      boundToClan: row.bound_clan_id || undefined, serverOwned: true,
+      isEquipped: Boolean(row.equipped_slot), slot: row.equipped_slot
+    }));
+    setPlayer(prev => {
+      if (!prev) return prev;
+      const inventory = prev.inventory.filter(item => !item.serverOwned);
+      const equipped = { ...prev.equipped };
+      for (const [slot, item] of Object.entries(equipped)) if (item?.serverOwned) delete equipped[slot as ItemType];
+      for (const item of canonical) {
+        if (item.slot) {
+          if (equipped[item.slot]) inventory.push({ ...equipped[item.slot]!, isEquipped: false });
+          equipped[item.slot] = item;
+        } else inventory.push(item);
+      }
+      return { ...prev, inventory, equipped };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!player?.userId) return;
+    refreshServerInventory().catch(() => undefined);
+  }, [player?.userId, refreshServerInventory]);
+
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
+    if (item.serverOwned) {
+      if (!player || item.level > player.level) return;
+      apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' })
+        .then(() => refreshServerInventory()).catch(error => console.error('Could not equip item:', error));
+      return;
+    }
     setPlayer(prev => {
       if (prev && prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       if (!prev || item.isEquipped || item.level > prev.level) return prev;
@@ -1339,9 +1374,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
-  }, []);
+  }, [player, refreshServerInventory]);
 
   const unequipItem = useCallback((type: ItemType) => {
+    const equippedItem = player?.equipped[type];
+    if (equippedItem?.serverOwned) {
+      apiRequest('/api/items/' + encodeURIComponent(equippedItem.id) + '/unequip', { method: 'POST', body: '{}' })
+        .then(() => refreshServerInventory()).catch(error => console.error('Could not unequip item:', error));
+      return;
+    }
     setPlayer(prev => {
       if (!prev) return prev;
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
@@ -1363,9 +1404,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
-  }, []);
+  }, [player, refreshServerInventory]);
 
   const sellItem = useCallback((item: GameItem) => {
+    if (item.serverOwned) {
+      apiRequest<{ gold: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'sell' }) })
+        .then(async result => { setPlayer(prev => prev ? { ...prev, gold: prev.gold + result.gold } : prev); await refreshServerInventory(); })
+        .catch(error => console.error('Could not sell item:', error));
+      return;
+    }
     setPlayer(prev => {
       if (!prev || item.isEquipped || prev.inventory.find(i => i.id === item.id)?.isLocked) return prev;
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
@@ -1379,9 +1426,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
       };
     });
-  }, []);
+  }, [refreshServerInventory]);
 
   const disassembleItem = useCallback((item: GameItem) => {
+    if (item.serverOwned) {
+      apiRequest<{ silver: number; ore: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'disassemble' }) })
+        .then(async result => {
+          setPlayer(prev => {
+            if (!prev) return prev;
+            const material: GameItem = { id: crypto.randomUUID(), templateId:'iron_ore', name:'Железная руда', type:'ore', rarity:'common', level:1, upgradeLevel:0, icon:'⚪', stats:{}, sellPrice:12, disassembleYield:{ore:1}, stackCount:result.ore };
+            const inventory = result.ore > 0 ? addOrStackInventoryItem(prev.inventory, material, prev.maxInventorySlots).inventory : prev.inventory;
+            return { ...prev, inventory, silver: prev.silver + result.silver };
+          });
+          await refreshServerInventory();
+        }).catch(error => console.error('Could not disassemble item:', error));
+      return;
+    }
     setPlayer(prev => {
       if (!prev || item.isEquipped || prev.inventory.find(i => i.id === item.id)?.isLocked) return prev;
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
@@ -1421,15 +1481,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         silver: prev.silver + salvageSilver
       };
     });
-  }, []);
+  }, [refreshServerInventory]);
 
   const toggleItemLock = useCallback((itemId: string) => {
+    if (player?.inventory.some(i => i.id === itemId && i.serverOwned) || Object.values(player?.equipped || {}).some(i => i?.id === itemId && i.serverOwned)) {
+      apiRequest('/api/items/' + encodeURIComponent(itemId) + '/lock', { method: 'POST', body: '{}' })
+        .then(() => refreshServerInventory()).catch(error => console.error('Could not lock item:', error));
+      return;
+    }
     setPlayer(prev => prev ? {
       ...prev,
       inventory: prev.inventory.map(i => i.id === itemId ? { ...i, isLocked: !i.isLocked } : i),
       equipped: Object.fromEntries(Object.entries(prev.equipped).map(([slot, i]) => [slot, i?.id === itemId ? { ...i, isLocked: !i.isLocked } : i]))
     } : prev);
-  }, []);
+  }, [player]);
 
   const expandInventory = useCallback(() => {
     setPlayer(prev => {
@@ -1452,6 +1517,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Blacksmith sharpening
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
+    if (item.serverOwned) return { success: false, message: 'Заточка серверного предмета появится после переноса руды и кошелька на сервер.' };
 
     if (player.energy < ENERGY_COSTS.upgrade) return { success: false, message: `Недостаточно энергии (нужно ${ENERGY_COSTS.upgrade}).` };
     const currentLevel = item.upgradeLevel || 0;
@@ -3370,6 +3436,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sellItem,
       disassembleItem,
       toggleItemLock,
+      refreshServerInventory,
       expandInventory,
       upgradeItem,
       meditateOrRefillEnergy,

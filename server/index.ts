@@ -4,7 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -288,7 +288,9 @@ app.get('/api/clans', auth, async (req, res) => {
 
 app.get('/api/clan/me', auth, async (req, res) => {
   const result = await pool.query(
-    `SELECT c.*, cm.role
+    `SELECT c.*, cm.role,
+            (SELECT COUNT(*)::int FROM clan_members members WHERE members.clan_id = c.id) AS members_count,
+            'Страж клановых врат' AS raid_name
      FROM players p
      JOIN clans c ON c.id = p.clan_id
      JOIN clan_members cm ON cm.clan_id = c.id AND cm.telegram_id = p.telegram_id
@@ -358,14 +360,10 @@ app.post('/api/clan/:clanId/join', auth, async (req, res) => {
     const player = await client.query('SELECT clan_id FROM players WHERE telegram_id = $1 FOR UPDATE', [req.authUser!.id]);
     if (player.rows[0]?.clan_id) throw new Error('Вы уже состоите в клане.');
 
-    const clan = await client.query(
-      `SELECT c.id, c.max_members, COUNT(cm.telegram_id)::int AS members
-       FROM clans c LEFT JOIN clan_members cm ON cm.clan_id = c.id
-       WHERE c.id = $1 GROUP BY c.id FOR UPDATE`,
-      [req.params.clanId]
-    );
+    const clan = await client.query('SELECT id, max_members FROM clans WHERE id = $1 FOR UPDATE', [req.params.clanId]);
     if (!clan.rows[0]) throw new Error('Клан не найден.');
-    if (clan.rows[0].members >= clan.rows[0].max_members) throw new Error('Клан заполнен.');
+    const members = await client.query('SELECT COUNT(*)::int AS count FROM clan_members WHERE clan_id = $1', [req.params.clanId]);
+    if (Number(members.rows[0].count) >= Number(clan.rows[0].max_members)) throw new Error('Клан заполнен.');
 
     await client.query('INSERT INTO clan_members (clan_id, telegram_id) VALUES ($1, $2)', [req.params.clanId, req.authUser!.id]);
     await client.query('UPDATE players SET clan_id = $1, updated_at = NOW() WHERE telegram_id = $2', [req.params.clanId, req.authUser!.id]);
@@ -423,14 +421,227 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
 
     const nextHp = Math.max(0, Number(row.raid_hp) - damage);
     await client.query('UPDATE clans SET raid_hp = $1, updated_at = NOW() WHERE id = $2', [nextHp, row.id]);
+    // A single server-minted personal item per player per UTC week. The client
+    // supplies neither its stats nor its rarity, so it cannot forge a deposit.
+    const periodStart = new Date();
+    periodStart.setUTCHours(0, 0, 0, 0);
+    periodStart.setUTCDate(periodStart.getUTCDate() - (periodStart.getUTCDay() + 6) % 7);
+    const claim = await client.query(
+      `INSERT INTO clan_raid_item_claims (clan_id, telegram_id, period_start)
+       VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING telegram_id`,
+      [row.id, req.authUser!.id, periodStart.toISOString().slice(0, 10)]
+    );
+    let reward = null;
+    if (claim.rowCount) {
+      const rare = crypto.randomInt(100) < 15;
+      const item = {
+        templateId: rare ? 'raid_relic' : 'raid_medallion',
+        name: rare ? 'Реликвия кланового рейда' : 'Медальон кланового рейда',
+        type: 'amulet', rarity: rare ? 'rare' : 'uncommon', level: 1, upgradeLevel: 0,
+        icon: rare ? '🔮' : '📿', stats: { maxHp: rare ? 100 : 45, maxMp: rare ? 50 : 20 },
+        sellPrice: rare ? 120 : 40, disassembleYield: { silver: rare ? 60 : 20, ore: rare ? 3 : 1 }
+      };
+      const inserted = await client.query(
+        `INSERT INTO owned_items (owner_telegram_id, item_json, origin)
+         VALUES ($1, $2::jsonb, 'clan_raid') RETURNING id, item_json`,
+        [req.authUser!.id, JSON.stringify(item)]
+      );
+      reward = inserted.rows[0];
+    }
     await client.query('COMMIT');
-    res.json({ ok: true, raidHp: nextHp, raidMaxHp: Number(row.raid_max_hp), defeated: nextHp === 0 });
+    res.json({ ok: true, raidHp: nextHp, raidMaxHp: Number(row.raid_max_hp), defeated: nextHp === 0, reward });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error instanceof Error ? error.message : 'Ошибка рейда.' });
   } finally {
     client.release();
   }
+});
+
+// All vault transfers lock the canonical item row and the membership record in
+// one transaction. The request body contains IDs and quantities, never item stats.
+const vaultRole = async (client: PoolClient, clanId: string, userId: number) => {
+  const membership = await client.query(
+    `SELECT cm.role FROM clan_members cm JOIN players p ON p.telegram_id = cm.telegram_id
+     WHERE cm.clan_id = $1 AND cm.telegram_id = $2 AND p.clan_id = $1 FOR SHARE OF cm, p`,
+    [clanId, userId]
+  );
+  if (!membership.rows[0]) throw new Error('Вы больше не состоите в этом клане.');
+  return membership.rows[0].role as 'owner' | 'officer' | 'member';
+};
+
+const recordVaultEvent = async (client: PoolClient, clanId: string, actor: number, action: string, item: any, quantity: number, gold = 0, silver = 0, ore = 0) => {
+  await client.query(
+    `INSERT INTO clan_storage_events (clan_id, actor_telegram_id, action, item_name, quantity, gold_delta, silver_delta, ore_delta)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [clanId, actor, action, String(item.name || 'Предмет').slice(0, 80), quantity, gold, silver, ore]
+  );
+};
+
+app.get('/api/items/owned', auth, async (req, res) => {
+  const items = await pool.query(
+    `SELECT id, item_json, quantity, locked, bound_clan_id, equipped_slot, origin
+     FROM owned_items WHERE owner_telegram_id = $1 ORDER BY created_at DESC`,
+    [req.authUser!.id]
+  );
+  res.json({ items: items.rows });
+});
+
+app.post('/api/items/:itemId/equip', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query(`SELECT id, item_json, equipped_slot FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
+    const row = found.rows[0];
+    if (!row) throw new Error('Предмет не принадлежит персонажу.');
+    const slot = String(row.item_json.type || '');
+    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
+    await client.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE owner_telegram_id = $1 AND equipped_slot = $2`, [req.authUser!.id, slot]);
+    await client.query(`UPDATE owned_items SET equipped_slot = $1, updated_at = NOW() WHERE id = $2`, [slot, row.id]);
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось надеть предмет.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/items/:itemId/unequip', auth, async (req, res) => {
+  await pool.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE id = $1 AND owner_telegram_id = $2`, [req.params.itemId, req.authUser!.id]);
+  res.json({ ok: true });
+});
+
+app.post('/api/items/:itemId/lock', auth, async (req, res) => {
+  const result = await pool.query(`UPDATE owned_items SET locked = NOT locked, updated_at = NOW() WHERE id = $1 AND owner_telegram_id = $2 RETURNING locked`, [req.params.itemId, req.authUser!.id]);
+  if (!result.rows[0]) return res.status(404).json({ error: 'Предмет не найден.' });
+  res.json({ locked: result.rows[0].locked });
+});
+
+app.post('/api/items/:itemId/dispose', auth, async (req, res) => {
+  const action = String(req.body?.action || '');
+  if (!['sell', 'disassemble'].includes(action)) return res.status(400).json({ error: 'Недопустимое действие.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
+    const row = found.rows[0];
+    if (!row || row.locked || row.equipped_slot) throw new Error('Предмет недоступен.');
+    const item = row.item_json;
+    const quantity = Number(row.quantity);
+    const gold = action === 'sell' ? Math.max(0, Math.min(100000, Number(item.sellPrice || 0))) * quantity : 0;
+    const silver = action === 'disassemble' ? Math.max(0, Math.min(100000, Number(item.disassembleYield?.silver || 0))) * quantity : 0;
+    const ore = action === 'disassemble' ? Math.max(0, Math.min(1000, Number(item.disassembleYield?.ore || 0))) * quantity : 0;
+    await client.query('DELETE FROM owned_items WHERE id = $1', [row.id]);
+    await client.query('COMMIT');
+    res.json({ ok: true, gold, silver, ore });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось обработать предмет.' });
+  } finally { client.release(); }
+});
+
+app.get('/api/clan/storage', auth, requireClan, async (req, res) => {
+  const clanId = res.locals.clan.id;
+  const [stored, personal, events] = await Promise.all([
+    pool.query(`SELECT id, item_json, quantity, origin FROM owned_items WHERE clan_id = $1 ORDER BY created_at DESC LIMIT 200`, [clanId]),
+    pool.query(`SELECT id, item_json, quantity, locked, bound_clan_id, equipped_slot, origin FROM owned_items WHERE owner_telegram_id = $1 ORDER BY created_at DESC LIMIT 200`, [req.authUser!.id]),
+    pool.query(`SELECT e.action, e.item_name, e.quantity, e.gold_delta, e.silver_delta, e.ore_delta, e.created_at, p.display_name
+                FROM clan_storage_events e JOIN players p ON p.telegram_id = e.actor_telegram_id
+                WHERE e.clan_id = $1 ORDER BY e.id DESC LIMIT 30`, [clanId])
+  ]);
+  res.json({ stored: stored.rows, personal: personal.rows, events: events.rows, role: res.locals.clan.role });
+});
+
+app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res) => {
+  const clanId = res.locals.clan.id;
+  const quantity = Number(req.body?.quantity || 1);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await vaultRole(client, clanId, req.authUser!.id);
+    const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
+    const row = found.rows[0];
+    if (!row || row.locked || row.equipped_slot || row.quantity < quantity || (row.bound_clan_id && row.bound_clan_id !== clanId)) throw new Error('Предмет недоступен для вклада.');
+    if (row.quantity === quantity) {
+      await client.query(`UPDATE owned_items SET owner_telegram_id = NULL, clan_id = $1, bound_clan_id = $1, updated_at = NOW() WHERE id = $2`, [clanId, row.id]);
+    } else {
+      await client.query(`UPDATE owned_items SET quantity = quantity - $1, updated_at = NOW() WHERE id = $2`, [quantity, row.id]);
+      await client.query(`INSERT INTO owned_items (clan_id, bound_clan_id, item_json, quantity, origin) VALUES ($1,$1,$2::jsonb,$3,$4)`, [clanId, JSON.stringify(row.item_json), quantity, row.origin]);
+    }
+    await recordVaultEvent(client, clanId, req.authUser!.id, 'deposit', row.item_json, quantity);
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось положить предмет.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/clan/storage/:itemId/withdraw', auth, requireClan, async (req, res) => {
+  const clanId = res.locals.clan.id;
+  const quantity = Number(req.body?.quantity || 1);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const role = await vaultRole(client, clanId, req.authUser!.id);
+    if (role === 'member') throw new Error('Забирать вещи могут глава и офицеры.');
+    const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND clan_id = $2 FOR UPDATE`, [req.params.itemId, clanId]);
+    const row = found.rows[0];
+    if (!row || row.quantity < quantity) throw new Error('Предмет уже забрали.');
+    if (row.quantity === quantity) {
+      await client.query(`UPDATE owned_items SET clan_id = NULL, owner_telegram_id = $1, updated_at = NOW() WHERE id = $2`, [req.authUser!.id, row.id]);
+    } else {
+      await client.query(`UPDATE owned_items SET quantity = quantity - $1, updated_at = NOW() WHERE id = $2`, [quantity, row.id]);
+      await client.query(`INSERT INTO owned_items (owner_telegram_id, bound_clan_id, item_json, quantity, origin) VALUES ($1,$2,$3::jsonb,$4,$5)`, [req.authUser!.id, clanId, JSON.stringify(row.item_json), quantity, row.origin]);
+    }
+    await recordVaultEvent(client, clanId, req.authUser!.id, 'withdraw', row.item_json, quantity);
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось забрать предмет.' });
+  } finally { client.release(); }
+});
+
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'ancient', 'divine'];
+app.post('/api/clan/storage/dispose', auth, requireClan, async (req, res) => {
+  const clanId = res.locals.clan.id;
+  const action = String(req.body?.action || '');
+  const rarity = String(req.body?.upToRarity || '');
+  const itemId = req.body?.itemId ? String(req.body.itemId) : '';
+  if (!['sell', 'disassemble'].includes(action) || (!itemId && !RARITY_ORDER.includes(rarity))) return res.status(400).json({ error: 'Выберите предмет или предел редкости и действие.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const role = await vaultRole(client, clanId, req.authUser!.id);
+    if (role === 'member') throw new Error('Продавать и разбирать вещи могут глава и офицеры.');
+    const result = await client.query(`SELECT * FROM owned_items WHERE clan_id = $1 ${itemId ? 'AND id = $2' : ''} ORDER BY created_at, id LIMIT 200 FOR UPDATE`, itemId ? [clanId, itemId] : [clanId]);
+    const selected = result.rows.filter(row => itemId || RARITY_ORDER.indexOf(String(row.item_json.rarity)) <= RARITY_ORDER.indexOf(rarity));
+    if (!selected.length) throw new Error('Подходящих вещей в хранилище нет.');
+    let gold = 0, silver = 0, ore = 0;
+    for (const row of selected) {
+      const qty = Number(row.quantity);
+      const item = row.item_json;
+      if (action === 'sell') gold += Math.max(0, Math.min(100000, Number(item.sellPrice || 0))) * qty;
+      else {
+        silver += Math.max(0, Math.min(100000, Number(item.disassembleYield?.silver || 0))) * qty;
+        ore += Math.max(0, Math.min(1000, Number(item.disassembleYield?.ore || 0))) * qty;
+      }
+      await client.query('DELETE FROM owned_items WHERE id = $1', [row.id]);
+      await recordVaultEvent(client, clanId, req.authUser!.id, action, item, qty,
+        action === 'sell' ? Math.max(0, Math.min(100000, Number(item.sellPrice || 0))) * qty : 0,
+        action === 'disassemble' ? Math.max(0, Math.min(100000, Number(item.disassembleYield?.silver || 0))) * qty : 0,
+        action === 'disassemble' ? Math.max(0, Math.min(1000, Number(item.disassembleYield?.ore || 0))) * qty : 0);
+    }
+    await client.query('UPDATE clans SET treasury_gold = treasury_gold + $1, treasury_silver = treasury_silver + $2, treasury_ore = treasury_ore + $3, updated_at = NOW() WHERE id = $4', [gold, silver, ore, clanId]);
+    await client.query('COMMIT');
+    res.json({ ok: true, count: selected.length, gold, silver, ore });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось обработать вещи.' });
+  } finally { client.release(); }
 });
 
 app.post('/api/clan/chat', auth, requireClan, async (req, res) => {

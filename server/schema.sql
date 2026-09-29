@@ -47,6 +47,9 @@ ALTER TABLE clans ADD COLUMN IF NOT EXISTS raid_max_hp INTEGER NOT NULL DEFAULT 
 ALTER TABLE clans ADD COLUMN IF NOT EXISTS raid_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '7 days';
 ALTER TABLE clans ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE clans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS treasury_gold BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS treasury_silver BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS treasury_ore BIGINT NOT NULL DEFAULT 0;
 
 DO $$
 BEGIN
@@ -78,6 +81,48 @@ CREATE TABLE IF NOT EXISTS clan_chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_clan_chat_created ON clan_chat_messages(clan_id, created_at DESC);
+
+-- Transferable items are minted and moved only by the server. Local legacy saves
+-- are deliberately excluded from this ledger until their origin can be verified.
+CREATE TABLE IF NOT EXISTS owned_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_telegram_id BIGINT REFERENCES players(telegram_id) ON DELETE CASCADE,
+  clan_id UUID REFERENCES clans(id) ON DELETE CASCADE,
+  bound_clan_id UUID REFERENCES clans(id) ON DELETE SET NULL,
+  item_json JSONB NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity BETWEEN 1 AND 999),
+  equipped_slot VARCHAR(20),
+  locked BOOLEAN NOT NULL DEFAULT FALSE,
+  origin VARCHAR(32) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT owned_items_one_holder CHECK ((owner_telegram_id IS NULL) <> (clan_id IS NULL))
+);
+ALTER TABLE owned_items ADD COLUMN IF NOT EXISTS equipped_slot VARCHAR(20);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_owned_items_equipped_slot ON owned_items(owner_telegram_id, equipped_slot) WHERE equipped_slot IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_owned_items_player ON owned_items(owner_telegram_id) WHERE owner_telegram_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_owned_items_clan ON owned_items(clan_id) WHERE clan_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS clan_storage_events (
+  id BIGSERIAL PRIMARY KEY,
+  clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+  actor_telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  action VARCHAR(24) NOT NULL,
+  item_name VARCHAR(80) NOT NULL,
+  quantity INTEGER NOT NULL,
+  gold_delta BIGINT NOT NULL DEFAULT 0,
+  silver_delta BIGINT NOT NULL DEFAULT 0,
+  ore_delta BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_clan_storage_events ON clan_storage_events(clan_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS clan_raid_item_claims (
+  clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  period_start DATE NOT NULL,
+  PRIMARY KEY (telegram_id, period_start)
+);
 
 CREATE TABLE IF NOT EXISTS global_chat_messages (
   id BIGSERIAL PRIMARY KEY,

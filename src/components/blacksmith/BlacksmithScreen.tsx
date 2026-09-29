@@ -244,7 +244,7 @@ export const BlacksmithScreen: React.FC = () => {
           )}
 
           {/* Upgrade Button */}
-          {currentLevel >= 25 ? <div className="w-full py-3 rounded-xl border border-emerald-500/40 text-center text-emerald-300 text-sm font-bold">✅ Заточено до предела +25</div> : <button
+          {currentItem.serverOwned ? <div className="w-full py-3 rounded-xl border border-slate-700 text-center text-slate-400 text-xs">Для заточки серверной вещи нужна серверная кузница и учёт руды.</div> : currentLevel >= 25 ? <div className="w-full py-3 rounded-xl border border-emerald-500/40 text-center text-emerald-300 text-sm font-bold">✅ Заточено до предела +25</div> : <button
             onClick={handleUpgrade}
             disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || oreHave < oreCount}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${

@@ -40,8 +40,18 @@ type ClanMessage = {
   username?: string;
 };
 
+type StoredItem = {
+  id: string;
+  item_json: { name: string; icon: string; rarity: string; level: number };
+  quantity: number;
+  locked?: boolean;
+  bound_clan_id?: string | null;
+  equipped_slot?: string | null;
+};
+type StorageEvent = { action: string; item_name: string; quantity: number; display_name: string; created_at: string };
+
 export const ClanScreen: React.FC = () => {
-  const { player } = useGame();
+  const { player, refreshServerInventory } = useGame();
   const [clan, setClan] = useState<Clan | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<ClanMessage[]>([]);
@@ -55,6 +65,10 @@ export const ClanScreen: React.FC = () => {
   const [description, setDescription] = useState('');
   const [search, setSearch] = useState('');
   const [chatText, setChatText] = useState('');
+  const [storedItems, setStoredItems] = useState<StoredItem[]>([]);
+  const [personalItems, setPersonalItems] = useState<StoredItem[]>([]);
+  const [storageEvents, setStorageEvents] = useState<StorageEvent[]>([]);
+  const [bulkRarity, setBulkRarity] = useState('common');
 
   const load = async () => {
     setLoading(true);
@@ -64,6 +78,14 @@ export const ClanScreen: React.FC = () => {
       setClan(me.clan);
       setMembers(me.members || []);
       setMessages(me.messages || []);
+      if (me.clan) {
+        const storage = await apiRequest<{ stored: StoredItem[]; personal: StoredItem[]; events: StorageEvent[] }>('/api/clan/storage');
+        setStoredItems(storage.stored);
+        setPersonalItems(storage.personal);
+        setStorageEvents(storage.events);
+      } else {
+        setStoredItems([]); setPersonalItems([]); setStorageEvents([]);
+      }
       if (!me.clan) {
         const list = await apiRequest<{ clans: Clan[] }>('/api/clans');
         setClans(list.clans);
@@ -82,6 +104,7 @@ export const ClanScreen: React.FC = () => {
     setError('');
     try {
       await fn();
+      await refreshServerInventory();
       triggerHaptic('success');
       await load();
     } catch (e) {
@@ -111,6 +134,16 @@ export const ClanScreen: React.FC = () => {
   };
 
   const attackRaid = () => run(() => apiRequest('/api/clan/raid/attack', { method: 'POST', body: '{}' }));
+
+  const moveItem = (item: StoredItem, action: 'deposit' | 'withdraw') => run(() =>
+    apiRequest(`/api/clan/storage/${encodeURIComponent(item.id)}/${action}`, {
+      method: 'POST', body: JSON.stringify({ quantity: item.quantity })
+    })
+  );
+  const disposeStored = (action: 'sell' | 'disassemble', itemId?: string, upToRarity?: string) => {
+    if (!window.confirm(`Обработать ${itemId ? 'выбранную вещь' : `все вещи до редкости ${upToRarity}`} в хранилище?`)) return;
+    run(() => apiRequest('/api/clan/storage/dispose', { method: 'POST', body: JSON.stringify({ action, itemId, upToRarity }) }));
+  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +261,51 @@ export const ClanScreen: React.FC = () => {
               <div className="h-full bg-gradient-to-r from-purple-600 to-rose-500 transition-all" style={{ width: `${Math.max(0, Number(clan.raid_hp) / Number(clan.raid_max_hp) * 100)}%` }} />
             </div>
             <div className="text-[9px] text-slate-500 mt-2">Урон рассчитывается сервером — клиент не может подменить значение.</div>
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/30 bg-[#0d111b] p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-cinzel text-sm font-bold text-amber-200">🏦 Хранилище клана</h3>
+              <span className="text-[10px] text-slate-400">{storedItems.length} вещей</span>
+            </div>
+            <div className="text-[10px] text-slate-400">Вносить можно вещи с подтверждённым сервером происхождением. Старые локальные трофеи остаются личными.</div>
+            <div className="text-[10px] text-amber-300">Казна: {Number(clan.treasury_gold || 0)} 🪙 · {Number((clan as Clan & { treasury_silver?: number }).treasury_silver || 0)} 🥈 · {Number((clan as Clan & { treasury_ore?: number }).treasury_ore || 0)} руды</div>
+            <div className="space-y-1.5 max-h-44 overflow-y-auto">
+              <div className="text-[10px] uppercase text-slate-500">Мои серверные вещи</div>
+              {personalItems.filter(i => !i.locked && !i.equipped_slot && (!i.bound_clan_id || i.bound_clan_id === clan.id)).map(item => (
+                <div key={item.id} className="flex items-center gap-2 rounded-lg border border-slate-800 p-2 text-xs">
+                  <span>{item.item_json.icon}</span><span className="flex-1 truncate">{item.item_json.name} ×{item.quantity}</span>
+                  <button disabled={action} onClick={() => moveItem(item, 'deposit')} className="text-amber-300 disabled:opacity-40">Положить</button>
+                </div>
+              ))}
+              {!personalItems.length && <div className="text-[10px] text-slate-600">Серверных вещей пока нет. Первое участие в рейде выдаёт личный предмет раз в неделю.</div>}
+            </div>
+            <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              <div className="text-[10px] uppercase text-slate-500">Общие вещи</div>
+              {storedItems.map(item => (
+                <div key={item.id} className="rounded-lg border border-slate-800 p-2 flex items-center gap-2 text-xs">
+                  <span>{item.item_json.icon}</span>
+                  <span className="flex-1 truncate">{item.item_json.name} ×{item.quantity} · {item.item_json.rarity}</span>
+                  {clan.role !== 'member' && <div className="flex gap-2 text-[10px]">
+                    <button disabled={action} onClick={() => moveItem(item, 'withdraw')} className="text-cyan-300">Забрать</button>
+                    <button disabled={action} onClick={() => disposeStored('sell', item.id)} className="text-amber-300">Продать</button>
+                    <button disabled={action} onClick={() => disposeStored('disassemble', item.id)} className="text-violet-300">Разобрать</button>
+                  </div>}
+                </div>
+              ))}
+              {!storedItems.length && <div className="text-[10px] text-slate-600">Хранилище пусто.</div>}
+            </div>
+            {clan.role !== 'member' && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[10px]">
+              <span className="text-slate-400">До редкости:</span>
+              <select value={bulkRarity} onChange={e => setBulkRarity(e.target.value)} className="bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+                {['common','uncommon','rare','epic','legendary','mythic','ancient','divine'].map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <button disabled={action} onClick={() => disposeStored('sell', undefined, bulkRarity)} className="text-amber-300">Продать пачкой</button>
+              <button disabled={action} onClick={() => disposeStored('disassemble', undefined, bulkRarity)} className="text-violet-300">Разобрать пачкой</button>
+            </div>}
+            {storageEvents.length > 0 && <div className="border-t border-slate-800 pt-2 space-y-1 max-h-24 overflow-y-auto text-[9px] text-slate-500">
+              {storageEvents.map((event, index) => <div key={index}>{event.display_name}: {event.action} · {event.item_name} ×{event.quantity}</div>)}
+            </div>}
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-[#090e18] p-3">

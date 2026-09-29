@@ -53,9 +53,6 @@ export const CharacterCreationModal: React.FC = () => {
               <span>{activeClassDef?.icon}</span>
               <span>Класс: {activeClassDef?.name}</span>
             </span>
-            <span className="font-mono text-cyan-400 text-[11px]">
-              ID: {tgUser.id}
-            </span>
           </div>
         </div>
 
