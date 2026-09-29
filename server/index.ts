@@ -224,6 +224,18 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.get('/api/admin/status', auth, async (req, res) => {
+  const configuredAdminId = String(
+    process.env.ADMIN_TELEGRAM_ID ||
+    process.env.VITE_ADMIN_TELEGRAM_ID ||
+    ''
+  ).trim();
+
+  res.json({
+    isAdmin: Boolean(configuredAdminId) && String(req.authUser!.id) === configuredAdminId
+  });
+});
+
 app.post('/api/profile/sync', auth, async (req, res) => {
   const level = Math.max(1, Math.min(120, Math.floor(Number(req.body?.level || 1))));
   const arenaRating = Math.max(0, Math.min(10000, Math.floor(Number(req.body?.arenaRating || 1000))));
