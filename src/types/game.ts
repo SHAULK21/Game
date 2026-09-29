@@ -440,7 +440,6 @@ export interface PlayerCharacter {
   lastEnergyRegenTimestamp?: number;
   stamina: number;
   maxStamina: number;
-  arcaneEnergy: number;
 
   attributes: CharacterAttributes;
   equipped: Partial<Record<ItemType, GameItem>>;
