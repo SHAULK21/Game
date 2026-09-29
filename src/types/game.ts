@@ -487,6 +487,8 @@ export interface PlayerCharacter {
   miningExp: number;
   alchemyLevel: number;
   alchemyExp: number;
+  alchemyEnergy: number;
+  maxAlchemyEnergy: number;
   miningExpedition?: MiningExpedition;
 
   arenaRating: number;
