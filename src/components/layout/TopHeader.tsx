@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
-import { Volume2, VolumeX, ShieldAlert, Zap, Plus, Sparkles, X } from 'lucide-react';
+import { Volume2, VolumeX, ShieldAlert, Zap, Plus, X } from 'lucide-react';
 import { CLASSES, ASSETS } from '../../data/gameData';
 
 interface TopHeaderProps {
@@ -124,16 +124,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
               <span className="font-bold">{player.silver ?? 150}</span>
             </div>
 
-            {/* Shards */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-cyan-500/20 text-cyan-300">
-              <span>💠</span>
-              <span className="font-bold">{player.shards ?? 15}</span>
-            </div>
-
-            {/* Crystals */}
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-purple-500/20 text-purple-300">
-              <span>💎</span>
-              <span className="font-bold">{player.crystals}</span>
+              <span className="text-[10px] font-bold">ЭНЕРГИЯ</span>
             </div>
           </div>
         </div>
@@ -156,7 +148,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
             </div>
 
             <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-              Энергия расходуется на вступление в бой и переходы между регионами. Она восстанавливается автоматически со временем (+1 каждые 5 сек).
+              Энергия расходуется на вступление в бой и переходы. Бой стоит 2 ⚡. Естественное восстановление: +1 ⚡ каждые 120 секунд.
             </p>
 
             <div className="mb-4 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
@@ -184,7 +176,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
                   <span>🧘</span>
                   <span>Быстрая медитация</span>
                 </div>
-                <span className="text-amber-300 font-mono">+25 ⚡ (Бесплатно)</span>
+                <span className="text-amber-300 font-mono">+10 ⚡ · 1 раз / 60с</span>
               </button>
 
               <button
@@ -192,14 +184,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
                   meditateOrRefillEnergy('silver');
                   setShowEnergyModal(false);
                 }}
-                disabled={(player.silver ?? 0) < 50}
+                disabled={(player.silver ?? 0) < 100}
                 className="w-full py-2 px-3 rounded-lg bg-amber-950/70 hover:bg-amber-900 disabled:opacity-50 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <span>🧪</span>
                   <span>Купить Эликсир Бодрости</span>
                 </div>
-                <span className="text-slate-200 font-mono">+50 ⚡ (50 🥈)</span>
+                <span className="text-slate-200 font-mono">+30 ⚡ (100 🥈)</span>
               </button>
             </div>
           </div>
