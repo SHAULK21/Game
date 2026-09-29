@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
-import { Pickaxe, Sparkles, Zap, Flame, CheckCircle2 } from 'lucide-react';
+import { Pickaxe } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 
@@ -34,7 +34,7 @@ export const MiningScreen: React.FC = () => {
         }
       } else {
         setMiningLog(prev => [
-          `❌ Не удалось добыть ${res.oreName || 'руду'}: недостаточно выносливости, уровень или место в сумке.`,
+          `❌ Не удалось добыть ${res.oreName || 'руду'}: недостаточно энергии шахты, уровня или места в сумке.`,
           ...prev.slice(0, 8)
         ]);
       }
@@ -66,7 +66,7 @@ export const MiningScreen: React.FC = () => {
             <span className="text-[10px] font-mono text-slate-400 block">Опыт шахтера:</span>
             <span className="text-xs font-mono text-amber-300 font-bold">{player.miningExp} EXP</span>
             <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
-              Выносливость: <span className="text-emerald-300 font-bold">{player.stamina}/{player.maxStamina}</span>
+              Энергия шахты: <span className="text-emerald-300 font-bold">{player.stamina}/{player.maxStamina}</span>
             </span>
           </div>
         </div>
@@ -110,7 +110,7 @@ export const MiningScreen: React.FC = () => {
                       {node.name}
                     </span>
                     <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                      Добыча: {node.oreYield} (x{node.baseYieldMin}-{node.baseYieldMax}) · ⚡{node.staminaCost}
+                      Добыча: {node.oreYield} (x{node.baseYieldMin}-{node.baseYieldMax}) · ⛏ {node.staminaCost} энергии шахты
                     </div>
                     <div className="text-[10px] font-mono text-cyan-400/80 mt-0.5">
                       ⛏ → Кузница · руда нужна для заточки
