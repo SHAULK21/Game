@@ -103,7 +103,7 @@ interface GameContextType {
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
 
   // Arena & Clan
-  challengeArena: (opponent: ArenaOpponent) => void;
+  challengeArena: (opponent: ArenaOpponent) => boolean;
   claimQuestReward: (questId: string) => void;
   claimAchievementReward: (achievementId: string) => void;
   sendChatMessage: (text: string, channel: 'global' | 'clan') => void;
@@ -2390,11 +2390,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player]);
 
   // Arena
-  const challengeArena = useCallback((opponent: ArenaOpponent) => {
+  const challengeArena = useCallback((opponent: ArenaOpponent): boolean => {
     if (!player || player.arenaTickets <= 0) {
       triggerHaptic('error');
       sound.playUpgradeFail();
-      return;
+      return false;
     }
     sound.playClick();
     triggerHaptic('heavy');
@@ -2428,6 +2428,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (started) {
       setPlayer(prev => prev ? { ...prev, arenaTickets: Math.max(0, prev.arenaTickets - 1) } : prev);
     }
+    return started;
   }, [player, startBattleWithMonster]);
 
   // Quests & Achievements Claims
