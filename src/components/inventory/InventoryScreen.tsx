@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType } from '../../types/game';
-import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES, REGIONS, REGIONAL_TROPHIES, MINING_NODES, REGION_CRAFT_TIERS, MONSTERS } from '../../data/gameData';
+import { RARITY_COLORS, CLASSES, ASSETS, BASIC_CRAFT_RECIPES, REGIONS, REGIONAL_TROPHIES, MINING_NODES, MINE_CATALYST_BY_ORE, MONSTERS, getCraftIngredients, CRAFT_RARITY_CHANCES } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -396,7 +396,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             <div className="flex items-center justify-between mb-2">
               <div>
                 <div className="text-xs font-bold text-amber-300">Крафт из трофеев и руды</div>
-                <div className="text-[10px] text-slate-500">Выберите регион и соберите материалы с указанных мобов и жил.</div>
+                <div className="text-[10px] text-slate-500">Местные трофеи и случайный набор доступных жил. После создания набор обновится.</div>
               </div>
               <Hammer className="w-4 h-4 text-amber-400" />
             </div>
@@ -418,8 +418,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
             <div className="space-y-2">
               {BASIC_CRAFT_RECIPES.filter(recipe => !recipe.regionId || recipe.regionId === (craftRegionId || player.currentRegionId)).map(recipe => {
+                const ingredients = getCraftIngredients(recipe, player.userId, player.craftRolls?.[recipe.id] ?? 0);
                 const unlocked = player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
-                const canCraft = unlocked && recipe.ingredients.every(ingredient => {
+                const canCraft = unlocked && ingredients.every(ingredient => {
                   const have = player.inventory.reduce(
                     (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
                     0
@@ -434,10 +435,13 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                         <div className="text-[11px] font-bold text-slate-100">{recipe.name}</div>
                         <div className="text-[9px] text-slate-500 mt-0.5">{recipe.description}</div>
                         {recipe.regionId && <div className="text-[9px] text-cyan-300 mt-0.5">
-                          {REGIONS.find(region => region.id === recipe.regionId)?.name} · персонаж {recipe.levelReq} ур. · шахта {recipe.miningLevelReq} ур.
+                          {REGIONS.find(region => region.id === recipe.regionId)?.name} · персонаж {recipe.levelReq} ур. · шахта {recipe.miningLevelReq} ур. · качество: {CRAFT_RARITY_CHANCES.map(entry => `${RARITY_COLORS[entry.rarity].label} ${Math.round(entry.chance * 100)}%`).join(' / ')}
+                        </div>}
+                        {!recipe.regionId && recipe.result && ['gloves', 'boots'].includes(recipe.result.type) && <div className="text-[9px] text-cyan-300 mt-0.5">
+                          Качество: {CRAFT_RARITY_CHANCES.map(entry => `${RARITY_COLORS[entry.rarity].label} ${Math.round(entry.chance * 100)}%`).join(' / ')}
                         </div>}
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {recipe.ingredients.map(ingredient => {
+                          {ingredients.map(ingredient => {
                             const have = player.inventory.reduce(
                               (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
                               0
@@ -451,12 +455,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                                 {ingredient.name} {have}/{ingredient.count}
                                 {recipe.regionId && <span className="block text-[8px] opacity-70">{
                                   (() => {
-                                    const mobId = Object.entries(REGIONAL_TROPHIES[recipe.regionId] || {}).find(([, drop]) => drop.name === ingredient.name)?.[0];
-                                    if (mobId) return `С моба: ${MONSTERS[mobId]?.name}`;
+                                    const source = Object.entries(REGIONAL_TROPHIES).flatMap(([regionId, mobs]) => Object.entries(mobs).map(([mobId, drop]) => ({ regionId, mobId, name: drop.name }))).find(entry => entry.name === ingredient.name);
+                                    if (source) return `${REGIONS.find(region => region.id === source.regionId)?.name}: ${MONSTERS[source.mobId]?.name}`;
                                     const ore = MINING_NODES.find(node => node.oreYield === ingredient.name);
                                     if (ore) return `Шахта: ${ore.name}`;
-                                    const tier = REGION_CRAFT_TIERS.find(entry => entry.regionId === recipe.regionId && entry.catalyst === ingredient.name);
-                                    return tier ? `Шахта: жила ${tier.ore}` : '';
+                                    const catalystOre = Object.entries(MINE_CATALYST_BY_ORE).find(([, catalyst]) => catalyst === ingredient.name)?.[0];
+                                    return catalystOre ? `Шахта: жила ${catalystOre}` : '';
                                   })()
                                 }</span>}
                               </span>
