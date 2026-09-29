@@ -19,8 +19,10 @@ interface MoreMenuScreenProps {
 }
 
 export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) => {
-  const { player, quests, achievements, claimQuestReward, claimAchievementReward } = useGame();
-  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard'>('quests');
+  const { player, quests, achievements, premium, purchasePremium, claimQuestReward, claimAchievementReward } = useGame();
+  const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
+  const [premiumBusy, setPremiumBusy] = useState(false);
+  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium'>('quests');
 
   if (!player) return null;
   const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
@@ -29,7 +31,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Navigation Sub-Tabs */}
-      <div className="grid grid-cols-4 gap-1.5 text-xs font-cinzel font-bold">
+      <div className="grid grid-cols-5 gap-1.5 text-[10px] font-cinzel font-bold">
         <button
           onClick={() => setActiveSection('quests')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
@@ -72,6 +74,17 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           }`}
         >
           Рейтинг
+        </button>
+
+        <button
+          onClick={() => setActiveSection('premium')}
+          className={`py-2 px-1 text-center rounded-lg border transition-all ${
+            activeSection === 'premium'
+              ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50 shadow-sm'
+              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Premium
         </button>
       </div>
 
@@ -242,6 +255,83 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           <p className="text-[10px] text-slate-500 mt-1">
             Глобальный рейтинг будет показываться только из серверной базы. Тестовые персонажи больше не используются.
           </p>
+        </div>
+      )}
+
+      {activeSection === 'premium' && (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-yellow-500/40 bg-gradient-to-b from-yellow-950/35 to-[#0a0f1d] p-4 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-yellow-300" />
+                  <h3 className="font-cinzel text-base font-bold text-yellow-200">Aethelgard Premium</h3>
+                </div>
+                <div className="mt-1 text-xs text-slate-300">150 ⭐ / 30 дней · автоматическое продление через Telegram Stars</div>
+              </div>
+              <span className={`px-2 py-1 rounded-lg border text-[10px] font-bold ${
+                premium.active
+                  ? 'border-emerald-500/40 bg-emerald-950/50 text-emerald-300'
+                  : 'border-slate-700 bg-slate-900 text-slate-400'
+              }`}>
+                {premium.active ? 'АКТИВЕН' : 'НЕ АКТИВЕН'}
+              </span>
+            </div>
+
+            {premium.active && premium.premiumUntil && (
+              <div className="mt-3 text-[11px] text-emerald-300 font-mono">
+                Активен до: {new Date(premium.premiumUntil).toLocaleDateString()}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-2">
+              {[
+                ['⚔️', 'Автобой', 'Сам выполняет ходы в бою.'],
+                ['🔁', 'Автопродолжение серии', 'Переходит к следующему врагу без нажатий.'],
+                ['⚙️', 'Расширенные настройки автобоя', 'Порог лечения, навыки, ультимейт и отступление.'],
+                ['👑', 'VIP-статус', 'Premium-метка в игровых сообщениях.']
+              ].map(([icon, title, desc]) => (
+                <div key={title} className="rounded-xl border border-yellow-500/15 bg-black/20 p-2.5 flex gap-2.5">
+                  <span className="text-lg">{icon}</span>
+                  <div>
+                    <div className="text-xs font-bold text-slate-100">{title}</div>
+                    <div className="text-[10px] text-slate-400">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!premium.active && (
+              <button
+                disabled={premiumBusy || premium.loading}
+                onClick={async () => {
+                  setPremiumBusy(true);
+                  setPremiumFeedback(null);
+                  const result = await purchasePremium();
+                  setPremiumFeedback(result.message);
+                  setPremiumBusy(false);
+                }}
+                className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95 transition-all"
+              >
+                {premiumBusy ? 'Открываю оплату…' : 'Подключить Premium · 150 ⭐'}
+              </button>
+            )}
+
+            {premiumFeedback && (
+              <div className="mt-2 rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-[11px] text-slate-300 text-center">
+                {premiumFeedback}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3">
+            <div className="text-xs font-bold text-purple-300 mb-2">Следующие Premium-функции</div>
+            <div className="space-y-1 text-[11px] text-slate-400">
+              <div>• Профили автобоя для разных классов и локаций.</div>
+              <div>• Массовый разбор и фильтры автолута.</div>
+              <div>• Расширенная статистика боёв и добычи.</div>
+            </div>
+          </div>
         </div>
       )}
 
