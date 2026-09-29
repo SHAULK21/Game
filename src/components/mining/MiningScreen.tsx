@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
 import { Pickaxe, Clock3, Crown, PackageCheck } from 'lucide-react';
@@ -58,10 +58,7 @@ export const MiningScreen: React.FC = () => {
   const expeditionReady = Boolean(expedition && now >= expedition.endsAt);
   const remainingMs = expedition ? Math.max(0, expedition.endsAt - now) : 0;
 
-  const unlockedOres = useMemo(
-    () => MINING_NODES.filter(node => player.miningLevel >= node.levelReq),
-    [player.miningLevel]
-  );
+  const unlockedOres = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
 
   const handleMine = (nodeId: string) => {
     if (isMining || !premium.active || expedition) return;
