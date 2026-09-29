@@ -482,6 +482,7 @@ export interface PlayerCharacter {
   talents: Talent[];
   skills: Skill[];
   activePet?: Pet;
+  craftedPetIds?: string[];
 
   miningLevel: number;
   miningExp: number;
