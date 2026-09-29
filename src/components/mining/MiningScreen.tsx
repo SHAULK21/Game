@@ -62,7 +62,7 @@ export const MiningScreen: React.FC = () => {
   const unlockedOres = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
 
   const handleMine = (nodeId: string) => {
-    if (isMining || !premium.active || expedition) return;
+    if (isMining) return;
     setIsMining(true);
     setActiveMiningNodeId(nodeId);
 
