@@ -81,7 +81,7 @@ interface GameContextType {
   setActivePet: (petId: string) => boolean;
   
   // Combat
-  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean }) => boolean;
+  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number }) => boolean;
   startNextCombatBattle: () => boolean;
   performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => void;
   toggleAutoBattle: () => void;
@@ -1148,10 +1148,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // START BATTLE with Energy Check
-  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean }): boolean => {
+  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean; energyCost?: number }): boolean => {
     const activeModId = player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
-    const energyCost = ENERGY_COSTS.combat;
+    const energyCost = options?.energyCost ?? ENERGY_COSTS.combat;
     const useChain = options?.chain !== false;
 
     if (player && player.energy < energyCost) {
@@ -1296,7 +1296,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               attack: Math.round(baseMob.attack * (activeMod.damageMultiplier || 1.0)),
               expReward: Math.round(baseMob.expReward * (activeMod.expMultiplier || 1.0) * 1.5),
               goldReward: Math.round(baseMob.goldReward * (activeMod.goldMultiplier || 1.0) * 1.5)
-            });
+            }, { energyCost: 0 });
           }, 1400);
         } else {
           sound.playVictory();
@@ -2126,7 +2126,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentRoom.type === 'combat' || currentRoom.type === 'boss') {
       if (!currentRoom.monster) return;
-      const started = startBattleWithMonster(currentRoom.monster, { chain: false });
+      const started = startBattleWithMonster(currentRoom.monster, { chain: false, energyCost: 0 });
       if (!started) return;
       // Combat rooms are resolved only by completeCombatVictory().
       return;
@@ -2134,7 +2134,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentRoom.type === 'elite') {
       if (!currentRoom.monster) return;
-      const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true }, { chain: false });
+      const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true }, { chain: false, energyCost: 0 });
       if (!started) return;
       return;
     }
@@ -2391,6 +2391,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Arena
   const challengeArena = useCallback((opponent: ArenaOpponent) => {
+    if (!player || player.arenaTickets <= 0) {
+      triggerHaptic('error');
+      sound.playUpgradeFail();
+      return;
+    }
     sound.playClick();
     triggerHaptic('heavy');
     // Convert opponent to monster model for battle engine
@@ -2419,8 +2424,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]
     };
 
-    startBattleWithMonster(oppMonster, { chain: false });
-  }, [startBattleWithMonster]);
+    const started = startBattleWithMonster(oppMonster, { chain: false, energyCost: 0 });
+    if (started) {
+      setPlayer(prev => prev ? { ...prev, arenaTickets: Math.max(0, prev.arenaTickets - 1) } : prev);
+    }
+  }, [player, startBattleWithMonster]);
 
   // Quests & Achievements Claims
   const claimQuestReward = useCallback((questId: string) => {
