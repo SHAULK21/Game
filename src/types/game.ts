@@ -104,6 +104,7 @@ export interface GameItem {
   armorClass?: 'heavy' | 'medium' | 'light';
   weaponClass?: 'twoHanded' | 'dagger' | 'staff' | 'shield' | 'bow';
   boundToClan?: string;
+  serverOwned?: boolean;
 }
 
 export interface CharacterAttributes {

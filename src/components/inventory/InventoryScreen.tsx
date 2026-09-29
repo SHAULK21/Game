@@ -491,6 +491,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   <div className="text-[10px] text-slate-400 mt-0.5">
                     {TYPE_LABELS[currentSelected.type]} · Ур. {currentSelected.level} · {RARITY_COLORS[currentSelected.rarity].label}
                   </div>
+                  {currentSelected.serverOwned && <div className="text-[10px] text-emerald-300 mt-0.5">✓ Серверный предмет{currentSelected.boundToClan ? ' · привязан к клану' : ''}</div>}
                   {(currentSelected.armorClass || currentSelected.weaponClass) && <div className="text-[10px] text-cyan-300 mt-0.5">
                     {({heavy:'Тяжёлая броня',medium:'Средняя броня',light:'Лёгкая броня',twoHanded:'Двуручное оружие',dagger:'Кинжал',staff:'Посох',shield:'Щит',bow:'Лук'} as Record<string,string>)[currentSelected.armorClass || currentSelected.weaponClass || '']}
                   </div>}
