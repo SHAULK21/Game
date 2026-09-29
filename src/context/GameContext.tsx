@@ -588,7 +588,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await new Promise(resolve => setTimeout(resolve, 450));
         try {
           const status = await apiRequest<{ active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number }>('/api/premium/status');
-          setPremium({ ...status, loading: false });
+          setPremium(prev => ({ ...prev, ...status, loading: false }));
           if (status.active) return { success: true, message: 'Premium активирован на 30 дней.' };
         } catch {}
       }
