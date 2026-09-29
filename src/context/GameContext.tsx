@@ -1107,7 +1107,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => {
       if (!prev) return prev;
       if (mode === 'meditate') {
-        const cooldownMs = 60_000;
+        const cooldownMs = 30 * 60_000;
         const lastMeditation = prev.lastMeditationTimestamp || 0;
         if (now - lastMeditation < cooldownMs || prev.energy >= prev.maxEnergy) {
           triggerHaptic('error');
