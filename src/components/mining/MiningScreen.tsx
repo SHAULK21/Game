@@ -59,8 +59,11 @@ export const MiningScreen: React.FC = () => {
   const remainingMs = expedition ? Math.max(0, expedition.endsAt - now) : 0;
   const unlockedNodes = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
   const nextNode = MINING_NODES.find(node => node.levelReq > player.miningLevel);
-  const currentLevelExp = Math.max(175, player.miningLevel * 175);
-  const levelProgress = Math.min(100, Math.round((player.miningExp / currentLevelExp) * 100));
+  const previousLevelExp = Math.max(0, (player.miningLevel - 1) * 175);
+  const nextLevelExp = Math.max(175, player.miningLevel * 175);
+  const currentLevelExp = Math.max(0, player.miningExp - previousLevelExp);
+  const currentLevelNeed = Math.max(175, nextLevelExp - previousLevelExp);
+  const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
   const handleMine = (nodeId: string) => {
     if (isMining) return;
@@ -108,7 +111,7 @@ export const MiningScreen: React.FC = () => {
 
         <div className="mt-3">
           <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
-            <span>Опыт шахтёра: {player.miningExp}/{currentLevelExp}</span>
+            <span>Опыт шахтёра: {currentLevelExp}/{currentLevelNeed}</span>
             <span>{levelProgress}%</span>
           </div>
           <div className="mt-1 h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
