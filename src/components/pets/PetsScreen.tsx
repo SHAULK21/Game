@@ -33,7 +33,7 @@ export const PetsScreen: React.FC = () => {
         {PETS_LIST.map(pet => {
           const active = pet.id === activeId;
           return (
-            <div key={pet.id} className={\`rounded-xl border p-3 \${active ? 'border-teal-400/60 bg-teal-950/20' : 'border-slate-800 bg-[#0a0f1d]'}\`}>
+            <div key={pet.id} className={`rounded-xl border p-3 ${active ? 'border-teal-400/60 bg-teal-950/20' : 'border-slate-800 bg-[#0a0f1d]'}`}>
               <div className="flex items-center gap-3">
                 <div className="text-4xl w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center">{pet.icon}</div>
                 <div className="flex-1 min-w-0">
@@ -44,7 +44,7 @@ export const PetsScreen: React.FC = () => {
                   <div className="text-[10px] text-emerald-300 mt-1">{pet.passiveBonus}</div>
                   <div className="text-[10px] text-slate-500 mt-1">{pet.activeSkillName}: {pet.activeSkillDesc}</div>
                 </div>
-                <button onClick={() => selectPet(pet.id)} className={\`shrink-0 px-2.5 py-2 rounded-lg text-[10px] font-bold \${active ? 'bg-teal-500 text-slate-950' : 'bg-slate-800 text-slate-200'}\`}>
+                <button onClick={() => selectPet(pet.id)} className={`shrink-0 px-2.5 py-2 rounded-lg text-[10px] font-bold ${active ? 'bg-teal-500 text-slate-950' : 'bg-slate-800 text-slate-200'}`}>
                   {active ? <><Check className="w-3 h-3 inline mr-1" />Активен</> : 'Выбрать'}
                 </button>
               </div>
