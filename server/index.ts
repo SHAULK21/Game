@@ -484,30 +484,36 @@ app.get('/api/premium/status', auth, async (req, res) => {
 });
 
 app.post('/api/premium/invoice', auth, async (req, res) => {
-  const status = await pool.query(
-    'SELECT premium_until FROM players WHERE telegram_id = $1',
-    [req.authUser!.id]
-  );
-  const currentUntil = status.rows[0]?.premium_until ? new Date(status.rows[0].premium_until) : null;
-  if (currentUntil && currentUntil.getTime() > Date.now()) {
-    return res.json({ alreadyActive: true, premiumUntil: currentUntil.toISOString() });
+  try {
+    const status = await pool.query(
+      'SELECT premium_until FROM players WHERE telegram_id = $1',
+      [req.authUser!.id]
+    );
+    const currentUntil = status.rows[0]?.premium_until ? new Date(status.rows[0].premium_until) : null;
+    if (currentUntil && currentUntil.getTime() > Date.now()) {
+      return res.json({ alreadyActive: true, premiumUntil: currentUntil.toISOString() });
+    }
+
+    const payload = `aethelgard_premium:${req.authUser!.id}`;
+    const invoiceLink = await telegramBotApi<string>('createInvoiceLink', {
+      title: 'Aethelgard Premium',
+      description: 'Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.',
+      payload,
+      currency: 'XTR',
+      prices: [{ label: 'Aethelgard Premium · 30 дней', amount: PREMIUM_PRICE_STARS }],
+      subscription_period: PREMIUM_PERIOD_SECONDS
+    });
+
+    res.json({
+      invoiceLink,
+      priceStars: PREMIUM_PRICE_STARS,
+      periodDays: 30
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Не удалось создать счёт Telegram Stars.';
+    console.error('Premium invoice creation failed:', error);
+    res.status(502).json({ error: `Telegram Stars: ${message}` });
   }
-
-  const payload = `aethelgard_premium:${req.authUser!.id}`;
-  const invoiceLink = await telegramBotApi<string>('createInvoiceLink', {
-    title: 'Aethelgard Premium',
-    description: 'Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.',
-    payload,
-    currency: 'XTR',
-    prices: [{ label: 'Aethelgard Premium · 30 дней', amount: PREMIUM_PRICE_STARS }],
-    subscription_period: PREMIUM_PERIOD_SECONDS
-  });
-
-  res.json({
-    invoiceLink,
-    priceStars: PREMIUM_PRICE_STARS,
-    periodDays: 30
-  });
 });
 
 app.post('/api/telegram/webhook', async (req, res) => {
