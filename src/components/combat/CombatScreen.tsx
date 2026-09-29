@@ -15,7 +15,9 @@ import {
   Gift,
   Plus,
   Hourglass,
-  Clock
+  Clock,
+  Crown,
+  X
 } from 'lucide-react';
 import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } from '../../data/gameData';
 import { sound } from '../../utils/audio';
@@ -55,13 +57,18 @@ export const CombatScreen: React.FC = () => {
     toggleAutoBattle,
     updateAutoBattleSettings,
     exitCombat,
-    meditateOrRefillEnergy
+    meditateOrRefillEnergy,
+    purchasePremium,
+    leaveMiningExpedition
   } = useGame();
 
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedMonsterId, setSelectedMonsterId] = useState<string>('m_wolf');
   const [energyError, setEnergyError] = useState<string | null>(null);
+  const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
+  const [premiumBusy, setPremiumBusy] = useState(false);
+  const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll combat log
@@ -85,12 +92,71 @@ export const CombatScreen: React.FC = () => {
 
   const handleStartBattle = (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
+    if (player.miningExpedition) {
+      setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
+      return;
+    }
     const success = startBattleWithMonster(mon);
     if (!success) {
       setEnergyError(`Недостаточно энергии! Требуется ${combatEnergyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
       setTimeout(() => setEnergyError(null), 5000);
     }
   };
+
+  const handleAutoBattleClick = () => {
+    if (!premium.active) {
+      setPremiumFeedback(null);
+      setPremiumPromptOpen(true);
+      return;
+    }
+    toggleAutoBattle();
+  };
+
+  const premiumModal = premiumPromptOpen ? (
+    <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/50 bg-[#0a0f1d] p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-yellow-950/60 border border-yellow-500/40">
+              <Crown className="w-5 h-5 text-yellow-300" />
+            </div>
+            <div>
+              <div className="font-cinzel font-bold text-yellow-200">Aethelgard Premium</div>
+              <div className="text-[11px] text-slate-400">Автобой доступен с Premium</div>
+            </div>
+          </div>
+          <button onClick={() => setPremiumPromptOpen(false)} className="p-1.5 rounded-lg bg-slate-900 text-slate-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="mt-4 space-y-2 text-[11px] text-slate-300">
+          <div>⚔️ Автобой и автопродолжение серии</div>
+          <div>⛏️ Автоматическая офлайн-добыча</div>
+          <div>⚙️ Расширенные настройки автобоя</div>
+          <div>👑 VIP-статус</div>
+        </div>
+        <div className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3 text-center">
+          <div className="text-2xl font-bold text-yellow-200">150 ⭐</div>
+          <div className="text-[10px] text-slate-400">30 дней · Telegram Stars</div>
+        </div>
+        <button
+          disabled={premiumBusy}
+          onClick={async () => {
+            setPremiumBusy(true);
+            setPremiumFeedback(null);
+            const result = await purchasePremium();
+            setPremiumFeedback(result.message);
+            setPremiumBusy(false);
+            if (result.success) setTimeout(() => setPremiumPromptOpen(false), 900);
+          }}
+          className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95"
+        >
+          {premiumBusy ? 'Открываю оплату…' : 'Купить Premium · 150 ⭐'}
+        </button>
+        {premiumFeedback && <div className="mt-2 text-center text-[11px] text-slate-300">{premiumFeedback}</div>}
+      </div>
+    </div>
+  ) : null;
 
   const isMonsterImg = (avatar: string) => avatar.startsWith('/') || avatar.startsWith('http') || avatar.includes('.');
 
