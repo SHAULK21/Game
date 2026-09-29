@@ -46,6 +46,8 @@ interface GameContextType {
   activeMonster: Monster | null;
   combatChain: { total: number; defeated: number; remaining: number } | null;
   battleLog: BattleLogEntry[];
+  combatRound: number;
+  lastCombatReward: { gold: number; silver: number; exp: number; items: GameItem[] } | null;
   isInCombat: boolean;
   isCombatEnded: boolean;
   combatOutcome: 'victory' | 'defeat' | 'flee' | null;
@@ -297,6 +299,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
+  const [combatRound, setCombatRound] = useState<number>(1);
+  const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[] } | null>(null);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
@@ -1180,6 +1184,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMonsterIntent(null);
     setPlayerEffects([]);
     setMonsterEffects([]);
+    setCombatRound(1);
+    setLastCombatReward(null);
     setBattleLog([
       {
         id: 'start_' + Date.now(),
@@ -1206,13 +1212,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCombatChain(prev => prev ? { ...prev, queue: prev.queue.slice(1) } : prev);
     setActiveMonster({ ...nextMonster, hp: nextMonster.maxHp });
     setMonsterEffects([]);
+    setCombatRound(1);
+    setLastCombatReward(null);
     setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + Math.floor(combatStats.maxMp * 0.05)));
     setIsCombatEnded(false);
     setCombatOutcome(null);
     setTurnPhase('player');
     setBattleLog(prev => [...prev, {
       id: 'next_enemy_' + Date.now(),
-      turn: prev.length + 1,
+      turn: 1,
       text: `⚔️ Следующий противник: ${nextMonster.name} (Ур. ${nextMonster.level}). После этого останется ${remaining}.`,
       type: 'system'
     }]);
@@ -1354,6 +1362,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
     }
+    setLastCombatReward({
+      gold: lootResult.gold,
+      silver: lootResult.silver,
+      exp: expReward,
+      items: lootResult.items.map(item => ({ ...item }))
+    });
     const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
     const logs = [...baseLogs];
 
@@ -1507,7 +1521,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee' | 'execute', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
 
-    const currentTurn = battleLog.length + 1;
+    const currentTurn = combatRound;
     const newLogs: BattleLogEntry[] = [];
     const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
 
@@ -1841,7 +1855,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player || monsterIntent) return;
 
     const timer = setTimeout(() => {
-      const currentTurn = battleLog.length + 1;
+      const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
       const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
       const monsterTick = tickStatusEffects(monsterEffects);
@@ -1915,7 +1929,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sound.playDefeat(); triggerHaptic('error');
           setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
           setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended');
-        } else setTurnPhase('player');
+        } else {
+          setCombatRound(prev => prev + 1);
+          setTurnPhase('player');
+        }
         return nextHp;
       });
       setActiveMonster(prev => prev ? { ...prev, hp: workingHp, skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
@@ -1930,7 +1947,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!monsterIntent || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'monster') return;
     const timer = setTimeout(() => {
       const skill = monsterIntent;
-      const currentTurn = battleLog.length + 1;
+      const currentTurn = combatRound;
       const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
       const playerMods = getStatusModifiers(playerEffects);
       const power = skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
@@ -2565,6 +2582,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeMonster,
       combatChain: combatChain ? { total: combatChain.total, defeated: combatChain.defeated, remaining: combatChain.queue.length } : null,
       battleLog,
+      combatRound,
+      lastCombatReward,
       isInCombat,
       isCombatEnded,
       combatOutcome,
