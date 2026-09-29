@@ -1,4 +1,3 @@
-[object Object]
 CREATE UNIQUE INDEX IF NOT EXISTS idx_clans_name_lower ON clans (LOWER(name));
 
 
@@ -27,3 +26,21 @@ CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_telegram_
 -- Leaderboard profile fields; additive migration for existing databases.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS arena_rating INTEGER NOT NULL DEFAULT 1000;
+
+
+-- Telegram Stars Premium subscription.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_until TIMESTAMPTZ;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_charge_id TEXT;
+
+CREATE TABLE IF NOT EXISTS premium_payments (
+  id BIGSERIAL PRIMARY KEY,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  telegram_payment_charge_id TEXT NOT NULL UNIQUE,
+  amount_stars INTEGER NOT NULL CHECK (amount_stars > 0),
+  subscription_expiration_date TIMESTAMPTZ NOT NULL,
+  is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+  is_first_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_premium_payments_user
+  ON premium_payments(telegram_id, created_at DESC);
