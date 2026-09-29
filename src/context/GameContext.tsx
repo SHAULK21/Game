@@ -27,6 +27,9 @@ import {
   MONSTERS, 
   getRegionMonster,
   getUpgradeRequirements,
+  getCraftIngredients,
+  rollCraftRarity,
+  RARITY_COLORS,
   STARTER_ITEMS, 
   INITIAL_QUESTS, 
   INITIAL_ACHIEVEMENTS, 
@@ -1224,6 +1227,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       arenaTickets: 5,
       lastArenaTicketRefresh: new Date().toISOString().slice(0, 10),
       arenaLeague: 'Бронза',
+      craftRolls: {},
       clanId: undefined,
       statsSummary: {
         monstersKilled: 0,
@@ -3091,15 +3095,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!recipe) return { success: false, message: 'Рецепт не найден.' };
     if (player.level < (recipe.levelReq || 1)) return { success: false, message: `Нужен ${recipe.levelReq}-й уровень персонажа.` };
     if (player.miningLevel < (recipe.miningLevelReq || 1)) return { success: false, message: `Нужен ${recipe.miningLevelReq}-й уровень шахты.` };
+    const ingredients = getCraftIngredients(recipe, player.userId, player.craftRolls?.[recipe.id] ?? 0);
 
-    for (const ingredient of recipe.ingredients) {
+    for (const ingredient of ingredients) {
       const have = countIngredient(player.inventory, ingredient.name);
       if (have < ingredient.count) {
         return { success: false, message: `Не хватает: ${ingredient.name} ×${ingredient.count}.` };
       }
     }
 
-    let inventory = consumeIngredients(player.inventory, recipe.ingredients);
+    let inventory = consumeIngredients(player.inventory, ingredients);
+    const quality = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type)
+      ? rollCraftRarity() : null;
 
     if (recipe.result) {
       const output: GameItem = {
@@ -3107,14 +3114,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         templateId: recipe.id,
         name: recipe.result.name,
         type: recipe.result.type,
-        rarity: recipe.result.rarity,
+        rarity: quality?.rarity || recipe.result.rarity,
         level: recipe.result.level || Math.max(1, Math.min(10, player.level)),
         upgradeLevel: 0,
         icon: recipe.result.icon,
-        description: recipe.description,
-        stats: { ...recipe.result.stats },
-        sellPrice: recipe.result.sellPrice,
-        disassembleYield: { silver: Math.max(4, Math.round(recipe.result.sellPrice * 0.35)) },
+        description: quality ? `${recipe.description} Качество: ${RARITY_COLORS[quality.rarity].label}.` : recipe.description,
+        stats: Object.fromEntries(Object.entries(recipe.result.stats).map(([stat, value]) => [
+          stat, quality && !['speed', 'critChance', 'evasion'].includes(stat) ? Math.round(value * quality.multiplier) : value
+        ])),
+        sellPrice: Math.round(recipe.result.sellPrice * (quality?.multiplier || 1)),
+        disassembleYield: { silver: Math.max(4, Math.round(recipe.result.sellPrice * (quality?.multiplier || 1) * 0.35)) },
         stackCount: recipe.result.count
       };
       const added = addOrStackInventoryItem(inventory, output, player.maxInventorySlots);
@@ -3125,6 +3134,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => prev ? {
       ...prev,
       inventory,
+      craftRolls: recipe.regionId ? { ...prev.craftRolls, [recipe.id]: (prev.craftRolls?.[recipe.id] ?? 0) + 1 } : prev.craftRolls,
       silver: prev.silver + (recipe.silverReward || 0)
     } : prev);
 
@@ -3134,7 +3144,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       success: true,
       message: recipe.silverReward
         ? `Переработано: +${recipe.silverReward} серебра.`
-        : `Создано: ${recipe.result?.name || recipe.name}.`
+        : `Создано: ${recipe.result?.name || recipe.name}${quality ? ` (${RARITY_COLORS[quality.rarity].label})` : ''}.${recipe.regionId ? ' Следующий набор материалов обновлён.' : ''}`
     };
   }, [player]);
 

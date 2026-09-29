@@ -1179,6 +1179,72 @@ export const REGION_CRAFT_TIERS = [
   { regionId: 'reg_dragon', level: 100, miningLevel: 95, ore: 'Эфириум', catalyst: 'Звёздное ядро', weaponMaterial: 'Первородная чешуя Аэтельгора', armorMaterial: 'Сердце драконьего стража', weaponName: 'Эфирный клинок Прадракона', armorName: 'Эфирный доспех Прадракона', rarity: 'divine' }
 ] as const;
 
+// A catalyst is a secondary find from the same mine node as its ore.
+export const MINE_CATALYST_BY_ORE: Record<string, string> = {
+  'Уголь': 'Кварц',
+  'Медная руда': 'Медный кристалл',
+  'Железная руда': 'Магнетит',
+  'Серебряная руда': 'Осколок лунного камня',
+  'Золотая руда': 'Янтарный кристалл',
+  'Кобальтовая руда': 'Синяя кристаллическая пыль',
+  'Мифриловая руда': 'Арканная пыль',
+  'Адамантит': 'Осколок титана',
+  'Кровавый обсидиан': 'Демонический уголь',
+  'Драконит': 'Осколок драконьей чешуи',
+  'Эфириум': 'Эфирная пыль'
+};
+
+// The roll changes only after a successful craft. Requirements therefore remain
+// visible and stable while the player farms them, including after reloading.
+export const getCraftIngredients = (recipe: BasicCraftRecipe, playerId: string, roll = 0) => {
+  if (!recipe.regionId) return recipe.ingredients;
+  const index = REGION_CRAFT_TIERS.findIndex(tier => tier.regionId === recipe.regionId && tier.level === recipe.levelReq);
+  if (index < 0) return recipe.ingredients;
+  const tier = REGION_CRAFT_TIERS[index];
+  const previous = REGION_CRAFT_TIERS[Math.max(0, index - 1)];
+  let seed = 2166136261;
+  for (const char of `${playerId}:${recipe.id}:${roll}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
+  const randomIndex = (size: number) => {
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return (seed >>> 0) % size;
+  };
+
+  const local = [tier.weaponMaterial, tier.armorMaterial];
+  const firstTrophy = local[randomIndex(local.length)];
+  const nearby = [...new Set([...local, previous.weaponMaterial, previous.armorMaterial])].filter(name => name !== firstTrophy);
+  const secondTrophy = nearby[randomIndex(nearby.length)];
+  const availableNodes = MINING_NODES.filter(node => node.levelReq <= tier.miningLevel);
+  const firstOre = availableNodes[randomIndex(availableNodes.length)];
+  const otherNodes = availableNodes.filter(node => node.id !== firstOre.id);
+  const secondOre = otherNodes[randomIndex(otherNodes.length)];
+  const catalystOre = [firstOre, secondOre][randomIndex(2)].oreYield;
+
+  return [
+    { name: firstTrophy, count: 3 },
+    { name: secondTrophy, count: 2 },
+    { name: firstOre.oreYield, count: 3 + Math.floor(tier.level / 40) },
+    { name: secondOre.oreYield, count: 2 + Math.floor(tier.level / 50) },
+    { name: MINE_CATALYST_BY_ORE[catalystOre], count: 1 }
+  ];
+};
+
+export const CRAFT_RARITY_CHANCES = [
+  { rarity: 'common', chance: 0.50, multiplier: 1 },
+  { rarity: 'uncommon', chance: 0.27, multiplier: 1.15 },
+  { rarity: 'rare', chance: 0.14, multiplier: 1.35 },
+  { rarity: 'epic', chance: 0.07, multiplier: 1.65 },
+  { rarity: 'legendary', chance: 0.02, multiplier: 2.1 }
+] as const;
+
+export const rollCraftRarity = (roll = Math.random()) => {
+  let threshold = 0;
+  for (const entry of CRAFT_RARITY_CHANCES) {
+    threshold += Math.round(entry.chance * 100);
+    if (roll * 100 < threshold) return entry;
+  }
+  return CRAFT_RARITY_CHANCES[CRAFT_RARITY_CHANCES.length - 1];
+};
+
 export const getCraftTierForLevel = (level: number) =>
   [...REGION_CRAFT_TIERS].reverse().find(tier => level >= tier.level) || REGION_CRAFT_TIERS[0];
 
