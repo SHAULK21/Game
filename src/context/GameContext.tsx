@@ -68,7 +68,7 @@ interface GameContextType {
   combatStats: CombatStats;
   offlineReport: { minutes: number; gold: number; exp: number; kills: number; itemsCount: number; miningRewards?: MiningExpeditionReward[] } | null;
   travelState: TravelState;
-  premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean };
+  premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean; invoiceLink?: string | null };
   
   // Actions
   createCharacter: (name: string, classId: CharacterClassId) => void;
@@ -111,7 +111,8 @@ interface GameContextType {
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
   craftBasicItem: (recipeId: string) => { success: boolean; message: string };
   refreshPremiumStatus: () => Promise<void>;
-  purchasePremium: () => Promise<{ success: boolean; message: string }>;
+  preparePremiumInvoice: () => Promise<string | null>;
+  purchasePremium: (preparedInvoiceLink?: string | null) => Promise<{ success: boolean; message: string }>;
 
   // Arena & Clan
   challengeArena: (opponent: ArenaOpponent) => boolean;
@@ -431,7 +432,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     premiumUntil: null as string | null,
     priceStars: 150,
     periodDays: 30,
-    loading: true
+    loading: true,
+    invoiceLink: null as string | null
   });
 
   const [autoBattle, setAutoBattle] = useState<AutoBattleSettings>({
@@ -458,7 +460,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPremium(prev => ({ ...prev, loading: true }));
     try {
       const status = await apiRequest<{ active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number }>('/api/premium/status');
-      setPremium({ ...status, loading: false });
+      setPremium(prev => ({ ...prev, ...status, loading: false }));
     } catch {
       setPremium(prev => ({ ...prev, active: false, loading: false }));
     }
@@ -530,25 +532,44 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [player?.id, premium.loading, premium.active, pendingOfflineMinutes]);
 
-  const purchasePremium = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+  const preparePremiumInvoice = useCallback(async (): Promise<string | null> => {
+    if (premium.active) return null;
+    if (premium.invoiceLink) return premium.invoiceLink;
     try {
       const invoice = await apiRequest<{ invoiceLink?: string; alreadyActive?: boolean; premiumUntil?: string }>('/api/premium/invoice', {
         method: 'POST',
         body: '{}'
       });
-
       if (invoice.alreadyActive) {
         await refreshPremiumStatus();
-        return { success: true, message: 'Premium уже активен.' };
+        return null;
+      }
+      const link = invoice.invoiceLink || null;
+      if (link) setPremium(prev => ({ ...prev, invoiceLink: link }));
+      return link;
+    } catch {
+      return null;
+    }
+  }, [premium.active, premium.invoiceLink, refreshPremiumStatus]);
+
+  const purchasePremium = useCallback(async (preparedInvoiceLink?: string | null): Promise<{ success: boolean; message: string }> => {
+    try {
+      if (premium.active) return { success: true, message: 'Premium уже активен.' };
+
+      const invoiceLink = preparedInvoiceLink || premium.invoiceLink || await preparePremiumInvoice();
+      if (!invoiceLink) {
+        return { success: false, message: 'Не удалось создать счёт Premium. Попробуйте ещё раз.' };
       }
 
       const tg = getTelegramWebApp();
-      if (!tg?.openInvoice || !invoice.invoiceLink) {
-        return { success: false, message: 'Оплата Stars доступна внутри Telegram Mini App.' };
+      if (!tg?.openInvoice) {
+        // Fallback for clients where the WebApp invoice bridge is unavailable.
+        window.location.href = invoiceLink;
+        return { success: true, message: 'Открываю оплату Telegram Stars…' };
       }
 
       const invoiceStatus = await new Promise<'paid' | 'cancelled' | 'failed' | 'pending'>((resolve) => {
-        tg.openInvoice!(invoice.invoiceLink!, resolve);
+        tg.openInvoice!(invoiceLink, resolve);
       });
 
       if (invoiceStatus !== 'paid') {
@@ -571,7 +592,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       return { success: false, message: error instanceof Error ? error.message : 'Не удалось открыть оплату Premium.' };
     }
-  }, [refreshPremiumStatus]);
+  }, [premium.active, premium.invoiceLink, preparePremiumInvoice, refreshPremiumStatus]);
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
@@ -2469,10 +2490,63 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const leaveMiningExpedition = useCallback((): { success: boolean; message: string } => {
     if (!player?.miningExpedition) return { success: false, message: 'Персонаж сейчас не в шахте.' };
-    setPlayer(prev => prev ? { ...prev, miningExpedition: undefined } : prev);
+
+    const expedition = player.miningExpedition;
+    const elapsed = Math.max(0, Date.now() - expedition.startedAt);
+    const total = Math.max(1, expedition.endsAt - expedition.startedAt);
+    const progress = Math.min(1, elapsed / total);
+    const payoutRatio = Math.max(0, Math.min(1, progress * 0.85));
+    const minimumElapsedMs = 5 * 60 * 1000;
+
+    let partialRewards: MiningExpeditionReward[] = [];
+    if (elapsed >= minimumElapsedMs && payoutRatio > 0) {
+      partialRewards = (expedition.rewards || [])
+        .map(reward => ({ ...reward, count: Math.floor(reward.count * payoutRatio) }))
+        .filter(reward => reward.count > 0);
+
+      if (partialRewards.length === 0 && expedition.rewards?.length) {
+        const first = expedition.rewards[0];
+        partialRewards = [{ ...first, count: 1 }];
+      }
+    }
+
+    const added = addMiningRewardsToInventory(player.inventory, partialRewards, player.maxInventorySlots);
+    if (!added.added) {
+      return { success: false, message: 'Освободите место в рюкзаке перед выходом с шахты.' };
+    }
+
+    const minedCount = partialRewards.reduce((sum, reward) => sum + reward.count, 0);
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory: added.inventory,
+      miningExp: prev.miningExp + Math.max(0, Math.round(expedition.durationHours * 25 * payoutRatio)),
+      miningExpedition: undefined,
+      statsSummary: {
+        ...prev.statsSummary,
+        oresMined: prev.statsSummary.oresMined + minedCount
+      }
+    } : prev);
+
+    if (minedCount > 0) {
+      setQuests(prev => prev.map(q => q.category === 'mining'
+        ? { ...q, currentCount: Math.min(q.targetCount, q.currentCount + minedCount), completed: q.currentCount + minedCount >= q.targetCount }
+        : q
+      ));
+      setAchievements(prev => prev.map(a => {
+        if (a.id !== 'ach_4') return a;
+        const progressValue = Math.min(a.maxProgress, a.progress + minedCount);
+        return { ...a, progress: progressValue, completed: progressValue >= a.maxProgress };
+      }));
+    }
+
     triggerHaptic('warning');
-    return { success: true, message: 'Вы ушли с шахты. Прогресс текущей экспедиции потерян.' };
-  }, [player?.miningExpedition]);
+    return {
+      success: true,
+      message: minedCount > 0
+        ? `Вы ушли с шахты раньше и сохранили ${minedCount} ед. уже добытых ресурсов.`
+        : 'Вы ушли с шахты слишком рано — добыть ничего не успели.'
+    };
+  }, [player]);
 
   const claimMiningExpedition = useCallback((): { success: boolean; message: string } => {
     if (!player?.miningExpedition) return { success: false, message: 'Нет активной экспедиции.' };
@@ -3027,6 +3101,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       buyBasicConsumable,
       craftBasicItem,
       refreshPremiumStatus,
+      preparePremiumInvoice,
       purchasePremium,
       challengeArena,
       claimQuestReward,
