@@ -23,7 +23,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const {
     player,
     adminAddGold,
-    adminAddCrystals,
+    adminAddSilver,
     adminLevelUp,
     adminSpawnLegendaryItem,
     adminHealAll,
@@ -103,12 +103,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             <button
               onClick={() => {
                 adminAddCrystals(500);
-                showNotice('+500 Кристаллов добавлено!');
+                showNotice('+500 Серебра добавлено!');
               }}
               className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-300 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Gem className="w-4 h-4" />
-              <span>+500 💎 Кристаллов</span>
+              <span>+500 🥈 Серебра</span>
             </button>
 
             <button
