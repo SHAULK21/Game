@@ -32,10 +32,11 @@ import {
   ASSETS,
   REGION_MODIFIERS,
   MINING_NODES,
-  ALCHEMY_RECIPES
+  ALCHEMY_RECIPES,
+  BASIC_CRAFT_RECIPES
 } from '../data/gameData';
 import { sound } from '../utils/audio';
-import { getTelegramUser, triggerHaptic, TelegramUser } from '../utils/telegram';
+import { getTelegramUser, getTelegramWebApp, triggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
@@ -66,6 +67,7 @@ interface GameContextType {
   combatStats: CombatStats;
   offlineReport: { minutes: number; gold: number; exp: number; kills: number; itemsCount: number } | null;
   travelState: TravelState;
+  premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean };
   
   // Actions
   createCharacter: (name: string, classId: CharacterClassId) => void;
@@ -103,6 +105,9 @@ interface GameContextType {
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
+  craftBasicItem: (recipeId: string) => { success: boolean; message: string };
+  refreshPremiumStatus: () => Promise<void>;
+  purchasePremium: () => Promise<{ success: boolean; message: string }>;
 
   // Arena & Clan
   challengeArena: (opponent: ArenaOpponent) => boolean;
@@ -292,7 +297,7 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
 };
 
 const SAVE_KEY = 'aethelgard_save_v1_data';
-const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, mining: 8, alchemy: 5, upgrade: 4, inventory: 0, quest: 2 };
+const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, alchemy: 5, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
@@ -316,6 +321,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [onlinePlayersCount, setOnlinePlayersCount] = useState<number>(142);
   const [offlineReport, setOfflineReport] = useState<{ minutes: number; gold: number; exp: number; kills: number; itemsCount: number } | null>(null);
+  const [premium, setPremium] = useState({
+    active: false,
+    premiumUntil: null as string | null,
+    priceStars: 150,
+    periodDays: 30,
+    loading: false
+  });
 
   const [autoBattle, setAutoBattle] = useState<AutoBattleSettings>({
     enabled: false,
@@ -335,6 +347,71 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAmbush: false,
     message: ''
   });
+
+  const refreshPremiumStatus = useCallback(async () => {
+    if (!player) return;
+    setPremium(prev => ({ ...prev, loading: true }));
+    try {
+      const status = await apiRequest<{ active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number }>('/api/premium/status');
+      setPremium({ ...status, loading: false });
+    } catch {
+      setPremium(prev => ({ ...prev, active: false, loading: false }));
+    }
+  }, [player?.userId]);
+
+  useEffect(() => {
+    if (!player) return;
+    refreshPremiumStatus();
+  }, [player?.userId, refreshPremiumStatus]);
+
+  useEffect(() => {
+    if (!premium.active) {
+      setAutoBattle(prev => prev.enabled ? { ...prev, enabled: false } : prev);
+    }
+  }, [premium.active]);
+
+  const purchasePremium = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const invoice = await apiRequest<{ invoiceLink?: string; alreadyActive?: boolean; premiumUntil?: string }>('/api/premium/invoice', {
+        method: 'POST',
+        body: '{}'
+      });
+
+      if (invoice.alreadyActive) {
+        await refreshPremiumStatus();
+        return { success: true, message: 'Premium уже активен.' };
+      }
+
+      const tg = getTelegramWebApp();
+      if (!tg?.openInvoice || !invoice.invoiceLink) {
+        return { success: false, message: 'Оплата Stars доступна внутри Telegram Mini App.' };
+      }
+
+      const invoiceStatus = await new Promise<'paid' | 'cancelled' | 'failed' | 'pending'>((resolve) => {
+        tg.openInvoice!(invoice.invoiceLink!, resolve);
+      });
+
+      if (invoiceStatus !== 'paid') {
+        return {
+          success: false,
+          message: invoiceStatus === 'cancelled' ? 'Оплата отменена.' : 'Оплата не завершена.'
+        };
+      }
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 450));
+        try {
+          const status = await apiRequest<{ active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number }>('/api/premium/status');
+          setPremium({ ...status, loading: false });
+          if (status.active) return { success: true, message: 'Premium активирован на 30 дней.' };
+        } catch {}
+      }
+
+      return { success: true, message: 'Платёж принят. Premium появится после подтверждения Telegram.' };
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Не удалось открыть оплату Premium.' };
+    }
+  }, [refreshPremiumStatus]);
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
@@ -407,7 +484,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, []);
 
-  // Natural stamina regeneration (+1 every 10 seconds).
+  // Separate mining energy regeneration (+1 every 10 seconds).
   useEffect(() => {
     const timer = setInterval(() => {
       setPlayer(prev => {
@@ -2034,12 +2111,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [autoBattle.enabled, isInCombat, isCombatEnded, activeMonster, turnPhase, player, combatPlayerHp, combatPlayerMp, combatStats.maxHp, performPlayerAction]);
 
   const toggleAutoBattle = useCallback(() => {
+    if (!premium.active) {
+      triggerHaptic('error');
+      setAutoBattle(prev => ({ ...prev, enabled: false }));
+      return;
+    }
     setAutoBattle(prev => {
       const nextState = !prev.enabled;
       triggerHaptic(nextState ? 'medium' : 'light');
       return { ...prev, enabled: nextState };
     });
-  }, []);
+  }, [premium.active]);
 
   const updateAutoBattleSettings = useCallback((settings: Partial<AutoBattleSettings>) => {
     setAutoBattle(prev => ({ ...prev, ...settings }));
@@ -2209,7 +2291,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerHaptic('error');
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
     }
-    if (player.energy < ENERGY_COSTS.mining) { triggerHaptic('error'); return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield }; }
     if (player.stamina < node.staminaCost) {
       triggerHaptic('error');
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
@@ -2282,7 +2363,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!prev) return prev;
       return {
         ...prev,
-        energy: Math.max(0, prev.energy - ENERGY_COSTS.mining),
         stamina: Math.max(0, prev.stamina - node.staminaCost),
         miningExp,
         miningLevel,
@@ -2307,6 +2387,70 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (gemFound) sound.playUpgradeSuccess();
 
     return result;
+  }, [player]);
+
+  const craftBasicItem = useCallback((recipeId: string): { success: boolean; message: string } => {
+    if (!player) return { success: false, message: 'Персонаж не найден.' };
+    const recipe = BASIC_CRAFT_RECIPES.find(r => r.id === recipeId);
+    if (!recipe) return { success: false, message: 'Рецепт не найден.' };
+
+    for (const ingredient of recipe.ingredients) {
+      const have = player.inventory.reduce(
+        (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
+        0
+      );
+      if (have < ingredient.count) {
+        return { success: false, message: `Не хватает: ${ingredient.name} ×${ingredient.count}.` };
+      }
+    }
+
+    let inventory = player.inventory.map(item => ({ ...item }));
+    for (const ingredient of recipe.ingredients) {
+      let remaining = ingredient.count;
+      inventory = inventory.map(item => {
+        if (remaining <= 0 || item.name !== ingredient.name) return item;
+        const stack = item.stackCount || 1;
+        const take = Math.min(stack, remaining);
+        remaining -= take;
+        return { ...item, stackCount: stack - take };
+      }).filter(item => (item.stackCount || 0) > 0);
+    }
+
+    if (recipe.result) {
+      const output: GameItem = {
+        id: 'basic_craft_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        templateId: recipe.id,
+        name: recipe.result.name,
+        type: recipe.result.type,
+        rarity: recipe.result.rarity,
+        level: Math.max(1, Math.min(10, player.level)),
+        upgradeLevel: 0,
+        icon: recipe.result.icon,
+        description: recipe.description,
+        stats: { ...recipe.result.stats },
+        sellPrice: recipe.result.sellPrice,
+        disassembleYield: { silver: Math.max(4, Math.round(recipe.result.sellPrice * 0.35)) },
+        stackCount: recipe.result.count
+      };
+      const added = addOrStackInventoryItem(inventory, output, player.maxInventorySlots);
+      if (!added.added) return { success: false, message: 'Нет места для результата крафта.' };
+      inventory = added.inventory;
+    }
+
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory,
+      silver: prev.silver + (recipe.silverReward || 0)
+    } : prev);
+
+    sound.playUpgradeSuccess();
+    triggerHaptic('success');
+    return {
+      success: true,
+      message: recipe.silverReward
+        ? `Переработано: +${recipe.silverReward} серебра.`
+        : `Создано: ${recipe.result?.name || recipe.name}.`
+    };
   }, [player]);
 
   // Alchemy
@@ -2511,13 +2655,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newMsg: ChatMessage = {
       id: 'msg_' + Date.now(),
       sender: player.name,
+      isVip: premium.active,
       clanTag: player.clanId ? 'GUILD' : undefined,
       text: text.trim(),
       channel,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setChatMessages(prev => [...prev, newMsg]);
-  }, [player]);
+  }, [player, premium.active]);
 
   const dismissOfflineReport = useCallback(() => {
     setOfflineReport(null);
@@ -2605,6 +2750,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       combatStats,
       offlineReport,
       travelState,
+      premium,
       createCharacter,
       resetCharacter,
       allocateAttribute,
@@ -2634,6 +2780,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       listMarketItem,
       buyMarketListing,
       buyBasicConsumable,
+      craftBasicItem,
+      refreshPremiumStatus,
+      purchasePremium,
       challengeArena,
       claimQuestReward,
       claimAchievementReward,
