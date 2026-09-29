@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
-import { Volume2, VolumeX, ShieldAlert, Zap, Plus, X } from 'lucide-react';
+import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 
 interface TopHeaderProps {
-  onOpenAdmin: () => void;
   onOpenCharacterSheet: () => void;
 }
 
-export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharacterSheet }) => {
+export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
   const { player, combatStats, meditateOrRefillEnergy } = useGame();
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [showEnergyModal, setShowEnergyModal] = useState(false);
@@ -100,14 +99,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAdmin, onOpenCharact
                 {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
               </button>
 
-              {/* Admin shortcut */}
-              <button
-                onClick={onOpenAdmin}
-                aria-label="Админ Панель"
-                className="w-8 h-8 rounded bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-300 hover:text-purple-100 active:scale-90 transition-transform"
-              >
-                <ShieldAlert className="w-4 h-4 text-purple-400" />
-              </button>
             </div>
           </div>
 
