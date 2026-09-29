@@ -33,12 +33,17 @@ export const ChatScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [onlinePlayers, setOnlinePlayers] = useState(0);
 
   const load = async () => {
     setLoading(true);
     try {
-      const response = await apiRequest<{ messages?: unknown }>('/api/chat/global');
+      const [response, stats] = await Promise.all([
+        apiRequest<{ messages?: unknown }>('/api/chat/global'),
+        apiRequest<{ onlinePlayers: number }>('/api/community/stats')
+      ]);
       setMessages(normalizeMessages(response?.messages));
+      setOnlinePlayers(Number(stats?.onlinePlayers || 0));
       setError('');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Не удалось подключиться к общему чату.';
@@ -53,9 +58,13 @@ export const ChatScreen: React.FC = () => {
     const refresh = async () => {
       if (!alive) return;
       try {
-        const response = await apiRequest<{ messages?: unknown }>('/api/chat/global');
+        const [response, stats] = await Promise.all([
+          apiRequest<{ messages?: unknown }>('/api/chat/global'),
+          apiRequest<{ onlinePlayers: number }>('/api/community/stats')
+        ]);
         if (!alive) return;
         setMessages(normalizeMessages(response?.messages));
+        setOnlinePlayers(Number(stats?.onlinePlayers || 0));
         setError('');
       } catch (e) {
         if (!alive) return;
@@ -112,7 +121,12 @@ export const ChatScreen: React.FC = () => {
             <RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-        <div className="text-[9px] text-slate-500 mt-1">Серверный канал · сообщения видят все игроки</div>
+        <div className="flex items-center justify-between gap-2 text-[9px] mt-1">
+          <span className="text-slate-500">Серверный канал · сообщения видят все игроки</span>
+          <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-2 py-0.5 font-mono font-bold text-emerald-300">
+            ● Онлайн: {onlinePlayers}
+          </span>
+        </div>
       </div>
 
       {error && (
