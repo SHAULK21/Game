@@ -16,4 +16,10 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: DATABASE_SSL
-        value: "true"
+        value: "false"
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
