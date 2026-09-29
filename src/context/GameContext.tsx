@@ -84,6 +84,7 @@ interface GameContextType {
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
   setActiveRegionMod: (modId: string) => void;
   setActivePet: (petId: string) => boolean;
+  craftPet: (petId: string) => { success: boolean; message: string };
   
   // Combat
   startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number }) => boolean;
@@ -161,12 +162,28 @@ const getMonsterPlannedSkill = (monster: Monster): MonsterSkill | null => {
   )[0] || null;
 };
 
-const prepareMonsterForCombat = (monster: Monster): Monster => ({
-  ...monster,
-  hp: monster.maxHp,
-  mp: monster.maxMp,
-  skills: getMonsterCombatSkills(monster)
-});
+const prepareMonsterForCombat = (monster: Monster): Monster => {
+  const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
+  const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;
+  const hpMultiplier = 2.15 * levelFactor * roleFactor;
+  const damageMultiplier = 1.35 * Math.sqrt(levelFactor) * (monster.isBoss ? 1.12 : 1);
+  const defenseMultiplier = 1.28 * Math.sqrt(levelFactor);
+
+  return {
+    ...monster,
+    hp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
+    maxHp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
+    mp: monster.maxMp,
+    maxMp: monster.maxMp,
+    attack: Math.max(1, Math.round(monster.attack * damageMultiplier)),
+    magicAttack: Math.max(0, Math.round(monster.magicAttack * damageMultiplier)),
+    defense: Math.max(0, Math.round(monster.defense * defenseMultiplier)),
+    magicDefense: Math.max(0, Math.round(monster.magicDefense * defenseMultiplier)),
+    expReward: Math.max(1, Math.round(monster.expReward * 1.2)),
+    goldReward: Math.max(1, Math.round(monster.goldReward * 1.12)),
+    skills: getMonsterCombatSkills(monster)
+  };
+};
 
 const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stats: CombatStats, regionId: string) => {
   const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
@@ -293,8 +310,107 @@ const MINING_EXPEDITION_POOLS: Array<{
   { name: 'Мифриловая руда', icon: '💠', type: 'ore', rarity: 'rare', minLevel: 40, weight: 3 },
   { name: 'Магическая эссенция', icon: '🔮', type: 'material', rarity: 'rare', minLevel: 40, weight: 2 },
   { name: 'Адамантит', icon: '🟣', type: 'ore', rarity: 'epic', minLevel: 60, weight: 1.5 },
-  { name: 'Драконит', icon: '🔥', type: 'ore', rarity: 'ancient', minLevel: 85, weight: 0.5 }
+  { name: 'Кобальтовая руда', icon: '🔷', type: 'ore', rarity: 'rare', minLevel: 35, weight: 4 },
+  { name: 'Кровавый обсидиан', icon: '🩸', type: 'ore', rarity: 'epic', minLevel: 72, weight: 1.2 },
+  { name: 'Драконит', icon: '🔥', type: 'ore', rarity: 'ancient', minLevel: 85, weight: 0.5 },
+  { name: 'Эфириум', icon: '🌌', type: 'ore', rarity: 'ancient', minLevel: 95, weight: 0.35 },
+  { name: 'Арканная пыль', icon: '✨', type: 'material', rarity: 'rare', minLevel: 40, weight: 2.3 },
+  { name: 'Руническое ядро', icon: '🧿', type: 'material', rarity: 'epic', minLevel: 60, weight: 0.8 },
+  { name: 'Осколок драконьей чешуи', icon: '🐲', type: 'material', rarity: 'epic', minLevel: 85, weight: 0.7 },
+  { name: 'Эфирная пыль', icon: '🌌', type: 'material', rarity: 'ancient', minLevel: 95, weight: 0.45 }
 ];
+
+const MINING_BONUS_MATERIALS: Record<string, Array<{
+  name: string;
+  icon: string;
+  rarity: ItemRarity;
+  chance: number;
+  minQty: number;
+  maxQty: number;
+}>> = {
+  ore_coal: [
+    { name: 'Каменная пыль', icon: '🌫️', rarity: 'common', chance: 0.32, minQty: 1, maxQty: 3 },
+    { name: 'Кварц', icon: '🔹', rarity: 'common', chance: 0.18, minQty: 1, maxQty: 2 }
+  ],
+  ore_copper: [
+    { name: 'Кварц', icon: '🔹', rarity: 'common', chance: 0.24, minQty: 1, maxQty: 2 },
+    { name: 'Медный кристалл', icon: '🟠', rarity: 'uncommon', chance: 0.12, minQty: 1, maxQty: 1 }
+  ],
+  ore_iron: [
+    { name: 'Соляной кристалл', icon: '🧂', rarity: 'common', chance: 0.25, minQty: 1, maxQty: 2 },
+    { name: 'Магнетит', icon: '🧲', rarity: 'uncommon', chance: 0.13, minQty: 1, maxQty: 1 }
+  ],
+  ore_silver: [
+    { name: 'Осколок лунного камня', icon: '🌙', rarity: 'uncommon', chance: 0.22, minQty: 1, maxQty: 2 },
+    { name: 'Лунная пыльца', icon: '✨', rarity: 'uncommon', chance: 0.10, minQty: 1, maxQty: 1 }
+  ],
+  ore_gold: [
+    { name: 'Янтарный кристалл', icon: '🟡', rarity: 'uncommon', chance: 0.20, minQty: 1, maxQty: 2 },
+    { name: 'Сырой самоцвет', icon: '💎', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 }
+  ],
+  ore_cobalt: [
+    { name: 'Синяя кристаллическая пыль', icon: '🔷', rarity: 'uncommon', chance: 0.24, minQty: 1, maxQty: 2 },
+    { name: 'Рунический осколок', icon: '🔹', rarity: 'rare', chance: 0.11, minQty: 1, maxQty: 1 }
+  ],
+  ore_mithril: [
+    { name: 'Арканная пыль', icon: '✨', rarity: 'rare', chance: 0.25, minQty: 1, maxQty: 2 },
+    { name: 'Магическая эссенция', icon: '🔮', rarity: 'rare', chance: 0.10, minQty: 1, maxQty: 1 }
+  ],
+  ore_adamantite: [
+    { name: 'Руническое ядро', icon: '🧿', rarity: 'epic', chance: 0.18, minQty: 1, maxQty: 1 },
+    { name: 'Осколок титана', icon: '🪨', rarity: 'rare', chance: 0.24, minQty: 1, maxQty: 2 }
+  ],
+  ore_blood_obsidian: [
+    { name: 'Демонический уголь', icon: '🌋', rarity: 'epic', chance: 0.22, minQty: 1, maxQty: 1 },
+    { name: 'Кровавый кристалл', icon: '🩸', rarity: 'epic', chance: 0.14, minQty: 1, maxQty: 1 }
+  ],
+  ore_draconite: [
+    { name: 'Осколок драконьей чешуи', icon: '🐲', rarity: 'epic', chance: 0.28, minQty: 1, maxQty: 2 },
+    { name: 'Драконья искра', icon: '🔥', rarity: 'ancient', chance: 0.10, minQty: 1, maxQty: 1 }
+  ],
+  ore_aetherium: [
+    { name: 'Эфирная пыль', icon: '🌌', rarity: 'ancient', chance: 0.34, minQty: 1, maxQty: 2 },
+    { name: 'Звёздное ядро', icon: '⭐', rarity: 'mythic', chance: 0.12, minQty: 1, maxQty: 1 }
+  ]
+};
+
+const PET_CRAFT_RECIPES: Record<string, {
+  miningLevelReq: number;
+  ingredients: Array<{ name: string; count: number }>;
+}> = {
+  pet_dragon: {
+    miningLevelReq: 85,
+    ingredients: [
+      { name: 'Драконит', count: 12 },
+      { name: 'Осколок драконьей чешуи', count: 8 },
+      { name: 'Драконья искра', count: 2 }
+    ]
+  },
+  pet_fairy: {
+    miningLevelReq: 40,
+    ingredients: [
+      { name: 'Мифриловая руда', count: 10 },
+      { name: 'Арканная пыль', count: 8 },
+      { name: 'Магическая эссенция', count: 4 }
+    ]
+  },
+  pet_golem: {
+    miningLevelReq: 60,
+    ingredients: [
+      { name: 'Адамантит', count: 10 },
+      { name: 'Руническое ядро', count: 4 },
+      { name: 'Осколок титана', count: 8 }
+    ]
+  },
+  pet_voidling: {
+    miningLevelReq: 95,
+    ingredients: [
+      { name: 'Эфириум', count: 10 },
+      { name: 'Эфирная пыль', count: 12 },
+      { name: 'Звёздное ядро', count: 3 }
+    ]
+  }
+};
 
 const generateMiningExpeditionRewards = (
   hours: number,
@@ -721,6 +837,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
           parsed.player.alchemyEnergy = parsed.player.alchemyEnergy ?? 100;
           parsed.player.maxAlchemyEnergy = parsed.player.maxAlchemyEnergy ?? 100;
+          parsed.player.craftedPetIds = Array.isArray(parsed.player.craftedPetIds)
+            ? parsed.player.craftedPetIds
+            : [parsed.player.activePet?.id || 'pet_wolf'];
           parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           // Migrate old saves to the current steep XP curve.
@@ -1036,6 +1155,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       talents: classDef.talents.map(t => ({ ...t })),
       skills: classDef.startingSkills.map(s => ({ ...s })),
       activePet: PETS_LIST[0],
+      craftedPetIds: ['pet_wolf'],
       miningLevel: 1,
       miningExp: 0,
       alchemyLevel: 1,
@@ -1079,16 +1199,56 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setActivePet = useCallback((petId: string): boolean => {
     const pet = PETS_LIST.find(p => p.id === petId);
     if (!pet || !player) return false;
+    if (!(player.craftedPetIds || ['pet_wolf']).includes(petId)) {
+      triggerHaptic('error');
+      return false;
+    }
     if (player.activePet?.id === pet.id) return true;
-    if (player.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return false; }
-    setPlayer(prev => prev ? {
-      ...prev,
-      activePet: pet,
-      energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
-    } : prev);
+    setPlayer(prev => prev ? { ...prev, activePet: pet } : prev);
     sound.playClick();
     triggerHaptic('success');
     return true;
+  }, [player]);
+
+  const craftPet = useCallback((petId: string): { success: boolean; message: string } => {
+    if (!player) return { success: false, message: 'Персонаж не найден.' };
+    const pet = PETS_LIST.find(p => p.id === petId);
+    const recipe = PET_CRAFT_RECIPES[petId];
+    if (!pet || !recipe) return { success: false, message: 'Для этого питомца нет рецепта.' };
+    if ((player.craftedPetIds || []).includes(petId)) return { success: false, message: 'Этот питомец уже создан.' };
+    if (player.miningLevel < recipe.miningLevelReq) {
+      return { success: false, message: `Нужен ${recipe.miningLevelReq} уровень горного дела.` };
+    }
+
+    for (const ingredient of recipe.ingredients) {
+      const have = player.inventory.reduce((sum, item) =>
+        sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0), 0);
+      if (have < ingredient.count) {
+        return { success: false, message: `Не хватает: ${ingredient.name} ×${ingredient.count}. Есть: ${have}.` };
+      }
+    }
+
+    let inventory = player.inventory.map(item => ({ ...item }));
+    for (const ingredient of recipe.ingredients) {
+      let remaining = ingredient.count;
+      inventory = inventory.map(item => {
+        if (remaining <= 0 || item.name !== ingredient.name) return item;
+        const stack = item.stackCount || 1;
+        const take = Math.min(stack, remaining);
+        remaining -= take;
+        return { ...item, stackCount: stack - take };
+      }).filter(item => (item.stackCount || 0) > 0);
+    }
+
+    setPlayer(prev => prev ? {
+      ...prev,
+      inventory,
+      craftedPetIds: [...new Set([...(prev.craftedPetIds || ['pet_wolf']), petId])],
+      activePet: pet
+    } : prev);
+    sound.playUpgradeSuccess();
+    triggerHaptic('success');
+    return { success: true, message: `${pet.name} создан и сразу выбран активным питомцем.` };
   }, [player]);
 
   const allocateAttribute = useCallback((attr: keyof PlayerCharacter['attributes']) => {
@@ -2621,6 +2781,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!oreAdded.added) return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
     inventory = oreAdded.inventory;
 
+    const bonusMaterialsFound: string[] = [];
+    for (const bonus of MINING_BONUS_MATERIALS[node.id] || []) {
+      if (Math.random() > bonus.chance) continue;
+      const count = bonus.minQty + Math.floor(Math.random() * (bonus.maxQty - bonus.minQty + 1));
+      const bonusItem: GameItem = {
+        id: 'mine_mat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        templateId: 'mine_mat_' + bonus.name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '_'),
+        name: bonus.name,
+        type: 'material',
+        rarity: bonus.rarity,
+        level: node.levelReq,
+        upgradeLevel: 0,
+        icon: bonus.icon,
+        description: `Редкий материал из жилы «${node.name}».`,
+        stats: {},
+        sellPrice: Math.max(5, node.levelReq * 2),
+        disassembleYield: { silver: Math.max(2, Math.floor(node.levelReq / 3)) },
+        stackCount: count
+      };
+      const bonusAdded = addOrStackInventoryItem(inventory, bonusItem, player.maxInventorySlots);
+      if (bonusAdded.added) {
+        inventory = bonusAdded.inventory;
+        bonusMaterialsFound.push(`${bonus.name} ×${count}`);
+      }
+    }
+
     let gemFound = false;
     if (Math.random() < node.gemChance) {
       const gemItem: GameItem = {
@@ -2649,7 +2835,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let miningLevel = player.miningLevel;
     while (miningExp >= miningLevel * 175 && miningLevel < 100) miningLevel += 1;
 
-    const result = { success: true, yieldCount, isCrit, oreName: node.oreYield };
+    const result = { success: true, yieldCount, isCrit, oreName: bonusMaterialsFound.length ? `${node.oreYield} + ${bonusMaterialsFound.join(', ')}` : node.oreYield };
 
     setPlayer(prev => {
       if (!prev) return prev;
@@ -3066,6 +3252,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meditateOrRefillEnergy,
       setActiveRegionMod,
       setActivePet,
+      craftPet,
       startBattleWithMonster,
       startNextCombatBattle,
       performPlayerAction,
