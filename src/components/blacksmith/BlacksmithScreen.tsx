@@ -32,6 +32,7 @@ export const BlacksmithScreen: React.FC = () => {
     { name: 'Золотая руда', icon: '🪙', base: 7 }, { name: 'Мифриловая руда', icon: '💎', base: 8 },
     { name: 'Адамантит', icon: '🟣', base: 10 }, { name: 'Драконит', icon: '🔥', base: 12 }
   ];
+  const protectionCost = useProtection ? Math.max(250, Math.round(costSilver * 1.5)) : 0;
   const oreReq = oreTiers[Math.min(oreTiers.length - 1, Math.floor(currentLevel / 3))];
   const oreCount = oreReq.base + Math.floor(currentLevel / 4);
   const oreHave = player.inventory.reduce((sum, item) => sum + (item.name === oreReq.name ? (item.stackCount || 1) : 0), 0);
@@ -203,7 +204,7 @@ export const BlacksmithScreen: React.FC = () => {
             <span className="text-slate-400">На попытку:</span>
             <div className="flex items-center gap-3">
               <span className="text-amber-300 font-bold">{costGold} 🪙</span>
-              <span className="text-slate-200 font-bold">{costSilver} 🥈</span>
+              <span className="text-slate-200 font-bold">{costSilver + protectionCost} 🥈</span>
               <span className={oreHave >= oreCount ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
                 {oreReq.icon} {oreHave}/{oreCount}
               </span>
@@ -224,7 +225,7 @@ export const BlacksmithScreen: React.FC = () => {
               />
               <span className="flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Использовать свиток защиты от понижения уровня</span>
+                <span>Защита от понижения уровня (+{protectionCost || Math.max(250, Math.round(costSilver * 1.5))} 🥈)</span>
               </span>
             </label>
           )}
@@ -245,7 +246,7 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Upgrade Button */}
           <button
             onClick={handleUpgrade}
-            disabled={isUpgrading || player.gold < costGold || player.silver < costSilver || oreHave < oreCount}
+            disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || oreHave < oreCount}
             className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
               (player.gold < costGold || player.silver < costSilver || oreHave < oreCount)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
