@@ -26,6 +26,7 @@ import {
   CAVES, 
   MONSTERS, 
   getRegionMonster,
+  getUpgradeRequirements,
   STARTER_ITEMS, 
   INITIAL_QUESTS, 
   INITIAL_ACHIEVEMENTS, 
@@ -206,19 +207,21 @@ const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stat
   return chain;
 };
 
-const getUpgradeOreRequirement = (currentLevel: number) => {
-  const tiers = [
-    { name: 'Уголь', icon: '🪨', min: 3 },
-    { name: 'Медная руда', icon: '🟤', min: 4 },
-    { name: 'Железная руда', icon: '⚪', min: 5 },
-    { name: 'Серебряная руда', icon: '✨', min: 6 },
-    { name: 'Золотая руда', icon: '🪙', min: 7 },
-    { name: 'Мифриловая руда', icon: '💎', min: 8 },
-    { name: 'Адамантит', icon: '🟣', min: 10 },
-    { name: 'Драконит', icon: '🔥', min: 12 }
-  ];
-  const tier = tiers[Math.min(tiers.length - 1, Math.floor(currentLevel / 3))];
-  return { ...tier, count: tier.min + Math.floor(currentLevel / 4) };
+const countIngredient = (inventory: GameItem[], name: string) =>
+  inventory.reduce((sum, item) => sum + (item.name === name ? (item.stackCount ?? 1) : 0), 0);
+
+const consumeIngredients = (inventory: GameItem[], ingredients: Array<{ name: string; count: number }>) => {
+  let next = inventory.map(item => ({ ...item }));
+  for (const ingredient of ingredients) {
+    let remaining = ingredient.count;
+    next = next.map(item => {
+      if (remaining <= 0 || item.name !== ingredient.name) return item;
+      const take = Math.min(item.stackCount ?? 1, remaining);
+      remaining -= take;
+      return { ...item, stackCount: (item.stackCount ?? 1) - take };
+    }).filter(item => (item.stackCount ?? 1) > 0);
+  }
+  return next;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -1553,16 +1556,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
     const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
     const protectionCost = useProtection ? Math.max(250, Math.round(costSilver * 1.5)) : 0;
-    const oreReq = getUpgradeOreRequirement(currentLevel);
-    const oreHave = player.inventory.reduce((sum, invItem) => sum + (invItem.name === oreReq.name ? (invItem.stackCount || 1) : 0), 0);
+    const requirements = getUpgradeRequirements(item, currentLevel);
+    const ingredients = [
+      { name: requirements.ore, count: requirements.oreCount },
+      { name: requirements.trophy, count: requirements.trophyCount },
+      ...(requirements.catalyst ? [{ name: requirements.catalyst, count: requirements.catalystCount }] : [])
+    ];
     if (player.gold < costGold) {
       return { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
     }
     if (player.silver < costSilver + protectionCost) {
       return { success: false, message: `Недостаточно серебра (нужно ${costSilver + protectionCost} 🥈${useProtection ? ' с защитой' : ''})!` };
     }
-    if (oreHave < oreReq.count) {
-      return { success: false, message: `Нужна руда: ${oreReq.name} ×${oreReq.count} ${oreReq.icon}. Есть: ${oreHave}.` };
+    const missing = ingredients.find(ingredient => countIngredient(player.inventory, ingredient.name) < ingredient.count);
+    if (missing) {
+      return { success: false, message: `Нужно: ${missing.name} ×${missing.count}. Есть: ${countIngredient(player.inventory, missing.name)}.` };
     }
 
     let successRate = 1;
@@ -1586,17 +1594,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updateItem = (i: GameItem) =>
       i.id === item.id ? { ...i, upgradeLevel: newLevel } : i;
 
-    const consumeOre = (inventory: GameItem[]) => {
-      let remaining = oreReq.count;
-      return inventory.map(i => {
-        if (remaining <= 0 || i.name !== oreReq.name) return i;
-        const stack = i.stackCount || 1;
-        const take = Math.min(stack, remaining);
-        remaining -= take;
-        return { ...i, stackCount: stack - take };
-      }).filter(i => (i.stackCount || 1) > 0);
-    };
-
     setPlayer(prev => {
       if (!prev) return prev;
       return {
@@ -1607,7 +1604,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         equipped: Object.fromEntries(
           Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
         ) as Partial<Record<ItemType, GameItem>>,
-        inventory: consumeOre(prev.inventory.map(updateItem)),
+        inventory: consumeIngredients(prev.inventory.map(updateItem), ingredients),
         statsSummary: isSuccess
           ? {
               ...prev.statsSummary,
@@ -1621,7 +1618,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSuccess) {
       sound.playUpgradeSuccess();
       triggerHaptic('success');
-      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙 и ${costSilver + protectionCost} 🥈${useProtection ? ' (с защитой)' : ''}.` };
+      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${ingredients.map(i => `${i.name} ×${i.count}`).join(', ')}, ${costGold} 🪙 и ${costSilver + protectionCost} 🥈${useProtection ? ' (с защитой)' : ''}.` };
     }
 
     sound.playUpgradeFail();
@@ -3092,28 +3089,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player) return { success: false, message: 'Персонаж не найден.' };
     const recipe = BASIC_CRAFT_RECIPES.find(r => r.id === recipeId);
     if (!recipe) return { success: false, message: 'Рецепт не найден.' };
+    if (player.level < (recipe.levelReq || 1)) return { success: false, message: `Нужен ${recipe.levelReq}-й уровень персонажа.` };
+    if (player.miningLevel < (recipe.miningLevelReq || 1)) return { success: false, message: `Нужен ${recipe.miningLevelReq}-й уровень шахты.` };
 
     for (const ingredient of recipe.ingredients) {
-      const have = player.inventory.reduce(
-        (sum, item) => sum + (item.name === ingredient.name ? (item.stackCount || 1) : 0),
-        0
-      );
+      const have = countIngredient(player.inventory, ingredient.name);
       if (have < ingredient.count) {
         return { success: false, message: `Не хватает: ${ingredient.name} ×${ingredient.count}.` };
       }
     }
 
-    let inventory = player.inventory.map(item => ({ ...item }));
-    for (const ingredient of recipe.ingredients) {
-      let remaining = ingredient.count;
-      inventory = inventory.map(item => {
-        if (remaining <= 0 || item.name !== ingredient.name) return item;
-        const stack = item.stackCount || 1;
-        const take = Math.min(stack, remaining);
-        remaining -= take;
-        return { ...item, stackCount: stack - take };
-      }).filter(item => (item.stackCount || 0) > 0);
-    }
+    let inventory = consumeIngredients(player.inventory, recipe.ingredients);
 
     if (recipe.result) {
       const output: GameItem = {
@@ -3122,7 +3108,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: recipe.result.name,
         type: recipe.result.type,
         rarity: recipe.result.rarity,
-        level: Math.max(1, Math.min(10, player.level)),
+        level: recipe.result.level || Math.max(1, Math.min(10, player.level)),
         upgradeLevel: 0,
         icon: recipe.result.icon,
         description: recipe.description,

@@ -1117,6 +1117,153 @@ export const MONSTERS: Record<string, Monster> = {
   }
 };
 
+// Each material has a concrete mob and a concrete region. Reused monster templates
+// get a different trophy when encountered in a later zone.
+export const REGIONAL_TROPHIES: Record<string, Record<string, { name: string; rarity: ItemRarity; chance: number }>> = {
+  reg_plains: {
+    m_wolf: { name: 'Волчья шкура', rarity: 'common', chance: 0.8 },
+    m_goblin: { name: 'Гоблинский механизм', rarity: 'common', chance: 0.75 },
+    m_boar: { name: 'Крепкая шкура вепря', rarity: 'common', chance: 0.8 },
+    m_bandit: { name: 'Знак разбойника', rarity: 'uncommon', chance: 0.65 }
+  },
+  reg_whisper_woods: {
+    m_wolf: { name: 'Шкура сумеречного волка', rarity: 'uncommon', chance: 0.75 },
+    m_goblin: { name: 'Тотем лесного гоблина', rarity: 'uncommon', chance: 0.7 },
+    m_bandit: { name: 'Пряжка лесного налётчика', rarity: 'uncommon', chance: 0.7 },
+    m_spider: { name: 'Лесная паутина', rarity: 'uncommon', chance: 0.7 }
+  },
+  reg_forgotten_crypt: {
+    m_bandit: { name: 'Ключ расхитителя гробниц', rarity: 'uncommon', chance: 0.7 },
+    m_spider: { name: 'Склепный хитин', rarity: 'uncommon', chance: 0.75 },
+    m_stone_golem: { name: 'Сердцевина склепного стража', rarity: 'rare', chance: 0.7 },
+    m_queen_bat: { name: 'Перепонка ночной королевы', rarity: 'rare', chance: 0.75 }
+  },
+  reg_forest: {
+    m_spider: { name: 'Нить древнего паука', rarity: 'uncommon', chance: 0.8 },
+    m_stone_golem: { name: 'Обломок лесного голема', rarity: 'rare', chance: 0.8 },
+    m_spider_queen: { name: 'Хитин лесной матки', rarity: 'rare', chance: 0.8 }
+  },
+  reg_swamp: {
+    m_spider: { name: 'Болотная ядовитая железа', rarity: 'rare', chance: 0.8 },
+    m_stone_golem: { name: 'Топкая сердцевина', rarity: 'rare', chance: 0.8 },
+    m_spider_queen: { name: 'Хитин болотной матки', rarity: 'rare', chance: 0.8 }
+  },
+  reg_desert: {
+    m_stone_golem: { name: 'Песчаное ядро голема', rarity: 'rare', chance: 0.8 },
+    m_death_knight_boss: { name: 'Печать пустынного рыцаря', rarity: 'epic', chance: 0.85 }
+  },
+  reg_cursed: {
+    m_death_knight_boss: { name: 'Осколок проклятой брони', rarity: 'epic', chance: 0.85 },
+    m_demon_lord: { name: 'Проклятая кровь демона', rarity: 'epic', chance: 0.85 }
+  },
+  reg_rift: {
+    m_demon_lord: { name: 'Пепельное сердце демона', rarity: 'epic', chance: 0.9 },
+    m_dragon_boss: { name: 'Чешуя дракона разлома', rarity: 'ancient', chance: 0.9 }
+  },
+  reg_dragon: {
+    m_demon_lord: { name: 'Сердце драконьего стража', rarity: 'ancient', chance: 0.9 },
+    m_dragon_boss: { name: 'Первородная чешуя Аэтельгора', rarity: 'ancient', chance: 0.9 }
+  }
+};
+
+export const REGION_CRAFT_TIERS = [
+  { regionId: 'reg_plains', level: 1, miningLevel: 1, ore: 'Уголь', catalyst: 'Кварц', weaponMaterial: 'Волчья шкура', armorMaterial: 'Гоблинский механизм', weaponName: 'Клинок равнинного охотника', armorName: 'Доспех пастбищного дозорного', rarity: 'common' },
+  { regionId: 'reg_whisper_woods', level: 5, miningLevel: 1, ore: 'Медная руда', catalyst: 'Медный кристалл', weaponMaterial: 'Шкура сумеречного волка', armorMaterial: 'Тотем лесного гоблина', weaponName: 'Клинок сумеречного леса', armorName: 'Доспех лесного следопыта', rarity: 'uncommon' },
+  { regionId: 'reg_forgotten_crypt', level: 8, miningLevel: 5, ore: 'Железная руда', catalyst: 'Магнетит', weaponMaterial: 'Склепный хитин', armorMaterial: 'Сердцевина склепного стража', weaponName: 'Клинок забытого склепа', armorName: 'Доспех склепного стража', rarity: 'uncommon' },
+  { regionId: 'reg_forest', level: 12, miningLevel: 15, ore: 'Серебряная руда', catalyst: 'Осколок лунного камня', weaponMaterial: 'Нить древнего паука', armorMaterial: 'Обломок лесного голема', weaponName: 'Клинок древнего леса', armorName: 'Доспех лесного голема', rarity: 'rare' },
+  { regionId: 'reg_swamp', level: 25, miningLevel: 25, ore: 'Золотая руда', catalyst: 'Янтарный кристалл', weaponMaterial: 'Болотная ядовитая железа', armorMaterial: 'Топкая сердцевина', weaponName: 'Клинок гиблых болот', armorName: 'Доспех болотного стража', rarity: 'rare' },
+  { regionId: 'reg_desert', level: 40, miningLevel: 40, ore: 'Мифриловая руда', catalyst: 'Арканная пыль', weaponMaterial: 'Песчаное ядро голема', armorMaterial: 'Печать пустынного рыцаря', weaponName: 'Клинок пылающей пустыни', armorName: 'Доспех песчаного рыцаря', rarity: 'epic' },
+  { regionId: 'reg_cursed', level: 55, miningLevel: 60, ore: 'Адамантит', catalyst: 'Осколок титана', weaponMaterial: 'Проклятая кровь демона', armorMaterial: 'Осколок проклятой брони', weaponName: 'Клинок проклятых земель', armorName: 'Доспех проклятого рыцаря', rarity: 'epic' },
+  { regionId: 'reg_rift', level: 75, miningLevel: 72, ore: 'Кровавый обсидиан', catalyst: 'Демонический уголь', weaponMaterial: 'Пепельное сердце демона', armorMaterial: 'Чешуя дракона разлома', weaponName: 'Клинок демонического разлома', armorName: 'Доспех разлома', rarity: 'mythic' },
+  { regionId: 'reg_dragon', level: 90, miningLevel: 85, ore: 'Драконит', catalyst: 'Драконья искра', weaponMaterial: 'Сердце драконьего стража', armorMaterial: 'Первородная чешуя Аэтельгора', weaponName: 'Клинок Аэтельгора', armorName: 'Доспех драконьего пика', rarity: 'ancient' },
+  { regionId: 'reg_dragon', level: 100, miningLevel: 95, ore: 'Эфириум', catalyst: 'Звёздное ядро', weaponMaterial: 'Первородная чешуя Аэтельгора', armorMaterial: 'Сердце драконьего стража', weaponName: 'Эфирный клинок Прадракона', armorName: 'Эфирный доспех Прадракона', rarity: 'divine' }
+] as const;
+
+export const getCraftTierForLevel = (level: number) =>
+  [...REGION_CRAFT_TIERS].reverse().find(tier => level >= tier.level) || REGION_CRAFT_TIERS[0];
+
+export const getUpgradeRequirements = (item: GameItem, upgradeLevel: number) => {
+  const tier = getCraftTierForLevel(item.level);
+  return {
+    ore: tier.ore,
+    oreCount: 3 + Math.floor(upgradeLevel / 4),
+    trophy: item.type === 'armor' || item.type === 'offhand' || item.type === 'helmet'
+      ? tier.armorMaterial : tier.weaponMaterial,
+    trophyCount: 1 + Math.floor(upgradeLevel / 8),
+    catalyst: upgradeLevel >= 5 ? tier.catalyst : null,
+    catalystCount: upgradeLevel >= 5 ? 1 + Math.floor(upgradeLevel / 10) : 0,
+    regionId: tier.regionId
+  };
+};
+
+const REGIONAL_CRAFT_RECIPES: BasicCraftRecipe[] = REGION_CRAFT_TIERS.flatMap((tier): BasicCraftRecipe[] => {
+  const region = REGIONS.find(entry => entry.id === tier.regionId)!;
+  const common = {
+    levelReq: tier.level,
+    miningLevelReq: tier.miningLevel,
+    regionId: tier.regionId,
+    description: `Трофеи из «${region.name}» и ресурсы шахты.`,
+  };
+  return [
+    {
+      ...common,
+      id: `regional_${tier.level}_weapon`,
+      name: tier.weaponName,
+      icon: '⚔️',
+      ingredients: [
+        { name: tier.weaponMaterial, count: 3 },
+        { name: tier.armorMaterial, count: 2 },
+        { name: tier.ore, count: 5 },
+        { name: tier.catalyst, count: 1 }
+      ],
+      result: { name: tier.weaponName, type: 'weapon', rarity: tier.rarity, icon: '⚔️', level: tier.level,
+        stats: { attack: 12 + tier.level * 3, critChance: 2 + Math.floor(tier.level / 20) }, sellPrice: 40 + tier.level * 20, count: 1 }
+    },
+    {
+      ...common,
+      id: `regional_${tier.level}_armor`,
+      name: tier.armorName,
+      icon: '🛡️',
+      ingredients: [
+        { name: tier.armorMaterial, count: 3 },
+        { name: tier.weaponMaterial, count: 2 },
+        { name: tier.ore, count: 6 },
+        { name: tier.catalyst, count: 1 }
+      ],
+      result: { name: tier.armorName, type: 'armor', rarity: tier.rarity, icon: '🛡️', level: tier.level,
+        stats: { defense: 6 + tier.level * 2, magicDefense: 4 + tier.level, maxHp: 25 + tier.level * 9 }, sellPrice: 45 + tier.level * 22, count: 1 }
+    },
+    {
+      ...common,
+      id: `regional_${tier.level}_helmet`,
+      name: tier.armorName.replace('Доспех', 'Шлем'),
+      icon: '🪖',
+      ingredients: [
+        { name: tier.armorMaterial, count: 2 },
+        { name: tier.weaponMaterial, count: 2 },
+        { name: tier.ore, count: 4 },
+        { name: tier.catalyst, count: 1 }
+      ],
+      result: { name: tier.armorName.replace('Доспех', 'Шлем'), type: 'helmet', rarity: tier.rarity, icon: '🪖', level: tier.level,
+        stats: { defense: 3 + tier.level, magicDefense: 3 + tier.level, maxHp: 12 + tier.level * 4 }, sellPrice: 30 + tier.level * 14, count: 1 }
+    },
+    {
+      ...common,
+      id: `regional_${tier.level}_boots`,
+      name: tier.armorName.replace('Доспех', 'Сапоги'),
+      icon: '👢',
+      ingredients: [
+        { name: tier.weaponMaterial, count: 2 },
+        { name: tier.armorMaterial, count: 2 },
+        { name: tier.ore, count: 4 },
+        { name: tier.catalyst, count: 1 }
+      ],
+      result: { name: tier.armorName.replace('Доспех', 'Сапоги'), type: 'boots', rarity: tier.rarity, icon: '👢', level: tier.level,
+        stats: { defense: 2 + tier.level, magicDefense: 2 + Math.floor(tier.level / 2), speed: 2 + Math.floor(tier.level / 15) }, sellPrice: 30 + tier.level * 14, count: 1 }
+    }
+  ];
+});
+
 // Shared monster templates adapt to the region where they are encountered.
 export const getRegionMonster = (monster: Monster, region: RegionDefinition, minimumLevel = region.minLevel): Monster => {
   const level = Math.max(monster.level, minimumLevel);
@@ -1133,7 +1280,19 @@ export const getRegionMonster = (monster: Monster, region: RegionDefinition, min
     defense: scale(monster.defense),
     magicDefense: scale(monster.magicDefense),
     expReward: scale(monster.expReward),
-    goldReward: scale(monster.goldReward)
+    goldReward: scale(monster.goldReward),
+    drops: [
+      ...monster.drops.filter(drop => (drop.type !== 'material' && drop.type !== 'ore') || monster.regionId === region.id)
+        .filter(drop => drop.itemName !== REGIONAL_TROPHIES[region.id]?.[monster.id]?.name),
+      ...(REGIONAL_TROPHIES[region.id]?.[monster.id] ? [{
+        itemName: REGIONAL_TROPHIES[region.id][monster.id].name,
+        type: 'material' as const,
+        rarity: REGIONAL_TROPHIES[region.id][monster.id].rarity,
+        chance: REGIONAL_TROPHIES[region.id][monster.id].chance,
+        minQty: 1,
+        maxQty: 2
+      }] : [])
+    ]
   };
 };
 
@@ -1259,7 +1418,7 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     name: 'Перчатки следопыта',
     description: 'Простая экипировка из волчьих шкур.',
     icon: '🧤',
-    ingredients: [{ name: 'Волчья шкура', count: 4 }],
+    ingredients: [{ name: 'Волчья шкура', count: 4 }, { name: 'Уголь', count: 2 }],
     result: {
       name: 'Перчатки следопыта',
       type: 'gloves',
@@ -1275,7 +1434,7 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     name: 'Сапоги охотника',
     description: 'Базовые сапоги из обработанной волчьей шкуры.',
     icon: '👢',
-    ingredients: [{ name: 'Волчья шкура', count: 5 }],
+    ingredients: [{ name: 'Волчья шкура', count: 5 }, { name: 'Уголь', count: 2 }],
     result: {
       name: 'Сапоги охотника',
       type: 'boots',
@@ -1293,7 +1452,8 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     icon: '🥈',
     ingredients: [{ name: 'Медная монета гоблинов', count: 5 }],
     silverReward: 30
-  }
+  },
+  ...REGIONAL_CRAFT_RECIPES
 ];
 
 export const INITIAL_QUESTS: Quest[] = [
