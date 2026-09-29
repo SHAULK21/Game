@@ -21,6 +21,28 @@ if (isProduction && !process.env.TELEGRAM_BOT_TOKEN) {
   throw new Error('TELEGRAM_BOT_TOKEN is required in production.');
 }
 
+const PREMIUM_PRICE_STARS = 150;
+const PREMIUM_PERIOD_SECONDS = 30 * 24 * 60 * 60;
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || '';
+const publicBaseUrl = (process.env.PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+const telegramWebhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET || (
+  telegramBotToken
+    ? crypto.createHash('sha256').update('aethelgard:' + telegramBotToken).digest('hex').slice(0, 48)
+    : ''
+);
+
+const telegramBotApi = async <T = unknown>(method: string, payload: Record<string, unknown>): Promise<T> => {
+  if (!telegramBotToken) throw new Error('TELEGRAM_BOT_TOKEN is not configured.');
+  const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json() as { ok: boolean; result?: T; description?: string };
+  if (!data.ok) throw new Error(data.description || `Telegram Bot API error: ${method}`);
+  return data.result as T;
+};
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
@@ -409,6 +431,122 @@ app.post('/api/market/:listingId/buy', auth, async (req, res) => {
   } finally { client.release(); }
 });
 
+app.get('/api/premium/status', auth, async (req, res) => {
+  const result = await pool.query(
+    `SELECT premium_until, premium_charge_id
+     FROM players
+     WHERE telegram_id = $1`,
+    [req.authUser!.id]
+  );
+  const premiumUntil = result.rows[0]?.premium_until ? new Date(result.rows[0].premium_until) : null;
+  res.json({
+    active: Boolean(premiumUntil && premiumUntil.getTime() > Date.now()),
+    premiumUntil: premiumUntil?.toISOString() || null,
+    priceStars: PREMIUM_PRICE_STARS,
+    periodDays: 30
+  });
+});
+
+app.post('/api/premium/invoice', auth, async (req, res) => {
+  const status = await pool.query(
+    'SELECT premium_until FROM players WHERE telegram_id = $1',
+    [req.authUser!.id]
+  );
+  const currentUntil = status.rows[0]?.premium_until ? new Date(status.rows[0].premium_until) : null;
+  if (currentUntil && currentUntil.getTime() > Date.now()) {
+    return res.json({ alreadyActive: true, premiumUntil: currentUntil.toISOString() });
+  }
+
+  const payload = `aethelgard_premium:${req.authUser!.id}`;
+  const invoiceLink = await telegramBotApi<string>('createInvoiceLink', {
+    title: 'Aethelgard Premium',
+    description: 'Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.',
+    payload,
+    provider_token: '',
+    currency: 'XTR',
+    prices: [{ label: 'Aethelgard Premium · 30 дней', amount: PREMIUM_PRICE_STARS }],
+    subscription_period: PREMIUM_PERIOD_SECONDS
+  });
+
+  res.json({
+    invoiceLink,
+    priceStars: PREMIUM_PRICE_STARS,
+    periodDays: 30
+  });
+});
+
+app.post('/api/telegram/webhook', async (req, res) => {
+  const receivedSecret = String(req.headers['x-telegram-bot-api-secret-token'] || '');
+  if (!telegramWebhookSecret || receivedSecret !== telegramWebhookSecret) {
+    return res.status(403).json({ error: 'Invalid Telegram webhook secret.' });
+  }
+
+  const update = req.body || {};
+
+  if (update.pre_checkout_query) {
+    const query = update.pre_checkout_query;
+    const valid =
+      query.currency === 'XTR' &&
+      Number(query.total_amount) === PREMIUM_PRICE_STARS &&
+      String(query.invoice_payload || '').startsWith('aethelgard_premium:');
+
+    await telegramBotApi('answerPreCheckoutQuery', {
+      pre_checkout_query_id: query.id,
+      ok: valid,
+      ...(valid ? {} : { error_message: 'Некорректная Premium-подписка.' })
+    });
+
+    return res.json({ ok: true });
+  }
+
+  const message = update.message || update.edited_message;
+  const payment = message?.successful_payment;
+  if (payment) {
+    const payload = String(payment.invoice_payload || '');
+    const match = payload.match(/^aethelgard_premium:(\d+)$/);
+    const telegramId = Number(message?.from?.id || 0);
+
+    if (
+      match &&
+      telegramId &&
+      Number(match[1]) === telegramId &&
+      payment.currency === 'XTR' &&
+      Number(payment.total_amount) === PREMIUM_PRICE_STARS
+    ) {
+      const expiresAtSeconds = Number(payment.subscription_expiration_date || 0);
+      const expiresAt = expiresAtSeconds > 0
+        ? new Date(expiresAtSeconds * 1000)
+        : new Date(Date.now() + PREMIUM_PERIOD_SECONDS * 1000);
+
+      await pool.query(
+        `UPDATE players
+         SET premium_until = $1,
+             premium_charge_id = $2,
+             updated_at = NOW()
+         WHERE telegram_id = $3`,
+        [expiresAt.toISOString(), String(payment.telegram_payment_charge_id || ''), telegramId]
+      );
+
+      await pool.query(
+        `INSERT INTO premium_payments
+          (telegram_id, telegram_payment_charge_id, amount_stars, subscription_expiration_date, is_recurring, is_first_recurring)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (telegram_payment_charge_id) DO NOTHING`,
+        [
+          telegramId,
+          String(payment.telegram_payment_charge_id || ''),
+          Number(payment.total_amount),
+          expiresAt.toISOString(),
+          Boolean(payment.is_recurring),
+          Boolean(payment.is_first_recurring)
+        ]
+      );
+    }
+  }
+
+  res.json({ ok: true });
+});
+
 app.use(express.static(path.resolve(__dirname, '../dist'), {
   maxAge: isProduction ? '1d' : 0,
   index: 'index.html',
@@ -430,6 +568,21 @@ app.get('*', async (_req, res) => {
 const bootstrap = async () => {
   const schema = await fs.readFile(path.resolve(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
+
+  if (telegramBotToken && publicBaseUrl && telegramWebhookSecret) {
+    try {
+      await telegramBotApi('setWebhook', {
+        url: publicBaseUrl + '/api/telegram/webhook',
+        secret_token: telegramWebhookSecret,
+        allowed_updates: ['message', 'pre_checkout_query'],
+        drop_pending_updates: false
+      });
+      console.log('Telegram payment webhook configured.');
+    } catch (error) {
+      console.error('Failed to configure Telegram payment webhook:', error);
+    }
+  }
+
   app.listen(port, () => console.log(`Aethelgard server listening on :${port}`));
 };
 
