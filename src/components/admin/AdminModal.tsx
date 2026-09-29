@@ -102,7 +102,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
             <button
               onClick={() => {
-                adminAddCrystals(500);
+                adminAddSilver(500);
                 showNotice('+500 Серебра добавлено!');
               }}
               className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-300 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
