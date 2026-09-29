@@ -65,6 +65,7 @@ export const CombatScreen: React.FC = () => {
   } = useGame();
 
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isPotionsOpen, setIsPotionsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedMonsterId, setSelectedMonsterId] = useState<string>('m_wolf');
   const [energyError, setEnergyError] = useState<string | null>(null);
@@ -96,9 +97,8 @@ export const CombatScreen: React.FC = () => {
   const combatEnergyCost = 2;
   const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
 
-  // Quick potion count
-  const potionItem = player.inventory.find(i => i.type === 'potion');
-  const potionCount = potionItem ? (potionItem.stackCount || 1) : 0;
+  const combatPotions = player.inventory.filter(i => i.type === 'potion');
+  const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
   const handleStartBattle = (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
@@ -150,7 +150,7 @@ export const CombatScreen: React.FC = () => {
           <div className="text-[10px] text-slate-400">30 дней · Telegram Stars</div>
         </div>
         <button
-          disabled={premiumBusy || !preparedPremiumInvoice}
+          disabled={premiumBusy}
           onClick={async () => {
             setPremiumBusy(true);
             setPremiumFeedback(null);
@@ -161,7 +161,7 @@ export const CombatScreen: React.FC = () => {
           }}
           className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95"
         >
-          {premiumBusy ? 'Открываю оплату…' : !preparedPremiumInvoice ? 'Подготавливаю оплату…' : 'Купить Premium · 150 ⭐'}
+          {premiumBusy ? 'Открываю оплату…' : 'Купить Premium · 150 ⭐'}
         </button>
         {premiumFeedback && <div className="mt-2 text-center text-[11px] text-slate-300">{premiumFeedback}</div>}
       </div>
@@ -823,7 +823,7 @@ export const CombatScreen: React.FC = () => {
 
               {/* Skills Drawer */}
               <button
-                onClick={() => setIsSkillsOpen(prev => !prev)}
+                onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
                 className="py-3 px-2 rounded-xl bg-gradient-to-b from-indigo-700 to-indigo-800 hover:from-indigo-600 hover:to-indigo-700 text-white font-cinzel font-bold text-xs shadow-md shadow-indigo-950 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-indigo-400/40"
               >
@@ -846,7 +846,7 @@ export const CombatScreen: React.FC = () => {
             <div className="grid grid-cols-3 gap-2">
               {/* Potion */}
               <button
-                onClick={() => performPlayerAction('potion')}
+                onClick={() => setIsPotionsOpen(prev => !prev)}
                 disabled={turnPhase !== 'player' || potionCount <= 0}
                 className={`py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
                   potionCount > 0
@@ -882,6 +882,46 @@ export const CombatScreen: React.FC = () => {
                 <span>Скрыться</span>
               </button>
             </div>
+
+            {isPotionsOpen && (
+              <div className="bg-slate-900/95 border border-emerald-500/40 rounded-xl p-3 space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs text-emerald-300 font-cinzel font-bold border-b border-slate-800 pb-1">
+                  <span>Выберите зелье</span>
+                  <button onClick={() => setIsPotionsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {combatPotions.map(potion => {
+                    const stats = potion.stats || {};
+                    const effects = [
+                      stats.heal ? `+${stats.heal} HP` : '',
+                      stats.manaRestore ? `+${stats.manaRestore} MP` : '',
+                      stats.attackPercent ? `+${stats.attackPercent}% атаки` : '',
+                      stats.defensePercent ? `+${stats.defensePercent}% защиты` : '',
+                      stats.healFull ? 'Полное HP' : '',
+                      stats.invulnerable ? 'Неуязвимость' : ''
+                    ].filter(Boolean).join(' · ');
+                    return (
+                      <button
+                        key={potion.id}
+                        disabled={turnPhase !== 'player'}
+                        onClick={() => {
+                          performPlayerAction('potion', potion.id);
+                          setIsPotionsOpen(false);
+                        }}
+                        className="p-2 rounded-lg border border-emerald-900/60 bg-slate-950 hover:border-emerald-400 flex items-center gap-2 text-left active:scale-[0.99]"
+                      >
+                        <ItemArtwork item={potion} size={38} />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-slate-100 break-words">{potion.name}</div>
+                          <div className="text-[10px] text-emerald-300">{effects || potion.description}</div>
+                        </div>
+                        <span className="text-xs font-mono text-slate-300">×{potion.stackCount || 1}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Skills Drawer */}
             {isSkillsOpen && (
