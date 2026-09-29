@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ALCHEMY_RECIPES } from '../../data/gameData';
-import { FlaskConical, Sparkles, Check, Flame } from 'lucide-react';
+import { FlaskConical, BatteryCharging } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 
@@ -21,7 +21,7 @@ export const AlchemyScreen: React.FC = () => {
       setCraftFeedback(
         success
           ? 'Зелье успешно сварено и добавлено в вашу сумку!'
-          : 'Не удалось сварить: проверьте уровень алхимии, ингредиенты и место в сумке.'
+          : 'Не удалось сварить: проверьте энергию алхимии, уровень, ингредиенты и место в сумке.'
       );
       setCraftingRecipeId(null);
     }, 600);
@@ -47,9 +47,13 @@ export const AlchemyScreen: React.FC = () => {
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] font-mono text-slate-400 block">Зелий сварено:</span>
-            <span className="text-xs font-mono text-emerald-300 font-bold">
-              {player.statsSummary.potionsCrafted} шт.
+            <span className="text-[10px] font-mono text-slate-400 block">Энергия алхимии</span>
+            <span className="text-xs font-mono text-purple-300 font-bold flex items-center justify-end gap-1">
+              <BatteryCharging className="w-3.5 h-3.5" />
+              {player.alchemyEnergy}/{player.maxAlchemyEnergy}
+            </span>
+            <span className="text-[9px] font-mono text-slate-500 block mt-0.5">
+              +1 каждые 20 сек.
             </span>
           </div>
         </div>
@@ -70,6 +74,8 @@ export const AlchemyScreen: React.FC = () => {
         <div className="space-y-2">
           {ALCHEMY_RECIPES.map(rec => {
             const isCrafting = craftingRecipeId === rec.id;
+            const energyCost = Math.max(4, Math.min(20, 4 + Math.floor(rec.levelReq / 5)));
+            const hasEnergy = player.alchemyEnergy >= energyCost;
             return (
               <div
                 key={rec.id}
@@ -92,11 +98,11 @@ export const AlchemyScreen: React.FC = () => {
 
                   <button
                     onClick={() => handleCraft(rec.id)}
-                    disabled={isCrafting || player.alchemyLevel < rec.levelReq}
+                    disabled={isCrafting || player.alchemyLevel < rec.levelReq || !hasEnergy}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
-                    <span>{isCrafting ? 'Варка...' : 'Сварить'}</span>
+                    <span>{isCrafting ? 'Варка...' : `Сварить · ${energyCost} ⚗`}</span>
                   </button>
                 </div>
 
@@ -104,6 +110,7 @@ export const AlchemyScreen: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
                   <span className="text-slate-500">Ингредиенты:</span>
                   <span className="text-purple-300">Ур. {rec.levelReq}</span>
+                  <span className={hasEnergy ? 'text-emerald-300' : 'text-rose-300'}>⚗ {energyCost} энергии</span>
                   {rec.ingredients.map((ing, idx) => (
                     <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
                       {ing.name} x{ing.count}
