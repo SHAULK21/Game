@@ -161,53 +161,24 @@ const getMonsterPlannedSkill = (monster: Monster): MonsterSkill | null => {
   )[0] || null;
 };
 
-const scaleMonsterForCombat = (monster: Monster, player: PlayerCharacter, stats: CombatStats): Monster => {
-  const baseLevel = Math.max(1, monster.level);
-  const targetLevel = Math.min(120, Math.max(baseLevel, player.level + (monster.isBoss ? 0 : Math.min(2, Math.floor(Math.max(0, player.level - baseLevel) / 10)))));
-  const levelFactor = Math.min(3.2, Math.pow(targetLevel / baseLevel, 1.08));
-  const basePower = monster.attack + monster.magicAttack * 0.75 + monster.defense * 0.65 + monster.hp / 14;
-  const playerPower = stats.attack + stats.magicAttack * 0.75 + stats.defense * 0.65 + stats.maxHp / 14;
-  const gearFactor = Math.min(2.5, Math.max(1, Math.pow(playerPower / Math.max(1, basePower), 0.58)));
-  const roleFactor = monster.isBoss ? 1.3 : monster.isElite ? 1.15 : 0.95;
-  const scale = Math.min(4.5, Math.max(1, levelFactor * gearFactor * roleFactor));
-  const isBoss = Boolean(monster.isBoss);
-  const hpFloor = stats.maxHp * (isBoss ? 2.0 : 0.72);
-  const attackFloor = stats.attack * (isBoss ? 0.92 : 0.62);
-  const magicAttackFloor = stats.magicAttack * (isBoss ? 0.9 : 0.58);
-  const defenseFloor = stats.defense * (isBoss ? 0.86 : 0.56);
-  const magicDefenseFloor = stats.magicDefense * (isBoss ? 0.84 : 0.54);
+const prepareMonsterForCombat = (monster: Monster): Monster => ({
+  ...monster,
+  hp: monster.maxHp,
+  mp: monster.maxMp,
+  skills: getMonsterCombatSkills(monster)
+});
 
-  return {
-    ...monster,
-    skills: getMonsterCombatSkills(monster),
-    level: targetLevel,
-    hp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
-    maxHp: Math.max(1, Math.round(Math.max(monster.maxHp * scale, hpFloor))),
-    mp: Math.max(0, Math.round(monster.maxMp * Math.max(1, Math.min(3.5, scale)))),
-    maxMp: Math.max(0, Math.round(monster.maxMp * Math.max(1, Math.min(3.5, scale)))),
-    attack: Math.max(1, Math.round(Math.max(monster.attack * scale, attackFloor))),
-    magicAttack: Math.max(0, Math.round(Math.max(monster.magicAttack * scale, magicAttackFloor))),
-    defense: Math.max(0, Math.round(Math.max(monster.defense * scale, defenseFloor))),
-    magicDefense: Math.max(0, Math.round(Math.max(monster.magicDefense * scale, magicDefenseFloor))),
-    speed: Math.max(1, Math.round(monster.speed * Math.min(2.4, Math.max(1, scale * 0.9)))),
-    critChance: Math.min(55, Math.round(monster.critChance + (targetLevel - baseLevel) * 0.45 + (isBoss ? 5 : 1))),
-    evasion: Math.min(45, Math.round(monster.evasion + (targetLevel - baseLevel) * 0.25)),
-    expReward: Math.max(monster.expReward, Math.round(monster.expReward * Math.min(4, Math.pow(scale, 0.82)))),
-    goldReward: Math.max(1, Math.round(monster.goldReward * Math.min(2.25, Math.pow(scale, 0.42))))
-  };
-};
-
-const buildCombatChain = (firstMonster: Monster, player: PlayerCharacter, stats: CombatStats, regionId: string) => {
+const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stats: CombatStats, regionId: string) => {
   const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
   const normalPool = region.monsters
     .map(id => MONSTERS[id])
     .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite);
   const pool = normalPool.length > 0 ? normalPool : [firstMonster];
   const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * 6);
-  const chain: Monster[] = [scaleMonsterForCombat(firstMonster, player, stats)];
+  const chain: Monster[] = [prepareMonsterForCombat(firstMonster)];
   for (let i = 1; i < count; i += 1) {
     const candidate = pool[Math.floor(Math.random() * pool.length)] || firstMonster;
-    chain.push(scaleMonsterForCombat(candidate, player, stats));
+    chain.push(prepareMonsterForCombat(candidate));
   }
   return chain;
 };
@@ -539,7 +510,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const preparePremiumInvoice = useCallback(async (): Promise<string | null> => {
     if (premium.active) return null;
-    if (premium.invoiceLink) return premium.invoiceLink;
     try {
       const invoice = await apiRequest<{ invoiceLink?: string; alreadyActive?: boolean; premiumUntil?: string }>('/api/premium/invoice', {
         method: 'POST',
@@ -550,12 +520,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
       const link = invoice.invoiceLink || null;
-      if (link) setPremium(prev => ({ ...prev, invoiceLink: link }));
+      setPremium(prev => ({ ...prev, invoiceLink: link }));
       return link;
-    } catch {
-      return null;
+    } catch (error) {
+      console.error('Premium invoice preparation failed:', error);
+      setPremium(prev => ({ ...prev, invoiceLink: null }));
+      throw error;
     }
-  }, [premium.active, premium.invoiceLink, refreshPremiumStatus]);
+  }, [premium.active, refreshPremiumStatus]);
 
   const purchasePremium = useCallback(async (preparedInvoiceLink?: string | null): Promise<{ success: boolean; message: string }> => {
     try {
@@ -568,8 +540,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const tg = getTelegramWebApp();
       if (!tg?.openInvoice) {
-        // Fallback for clients where the WebApp invoice bridge is unavailable.
-        window.location.href = invoiceLink;
+        if (tg?.openTelegramLink) {
+          tg.openTelegramLink(invoiceLink);
+        } else {
+          window.location.assign(invoiceLink);
+        }
         return { success: true, message: 'Открываю оплату Telegram Stars…' };
       }
 
@@ -1419,7 +1394,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const activeModId = player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = options?.energyCost ?? ENERGY_COSTS.combat;
-    if (player?.miningExpedition) {
+    if (player?.miningExpedition && !premium.active) {
       sound.playUpgradeFail();
       triggerHaptic('error');
       return false;
@@ -1891,7 +1866,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (actionType === 'potion') {
-      const pot = player.inventory.find(i => i.type === 'potion');
+      const pot = skillId
+        ? player.inventory.find(i => i.type === 'potion' && i.id === skillId)
+        : player.inventory.find(i => i.type === 'potion');
       if (!pot) {
         newLogs.push({ id: 'no_pot_' + Date.now(), turn: currentTurn, text: '❌ У вас нет зелий в инвентаре!', type: 'system' });
         setBattleLog(prev => [...prev, ...newLogs]);
@@ -2474,6 +2451,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const startMiningExpedition = useCallback((hours: 1 | 3 | 7): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
+    if (premium.active) return { success: false, message: 'Premium добывает ресурсы офлайн автоматически — запускать экспедицию не нужно.' };
     if (player.miningExpedition) return { success: false, message: 'Шахтёрская экспедиция уже идёт.' };
 
     const now = Date.now();
@@ -2491,7 +2469,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     triggerHaptic('medium');
     sound.playMining();
     return { success: true, message: `Экспедиция на ${hours} ч. началась.` };
-  }, [player]);
+  }, [player, premium.active]);
 
   const leaveMiningExpedition = useCallback((): { success: boolean; message: string } => {
     if (!player?.miningExpedition) return { success: false, message: 'Персонаж сейчас не в шахте.' };
@@ -2598,8 +2576,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Mining
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
     if (!player) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
-    if (!premium.active) return { success: false, yieldCount: 0, isCrit: false, oreName: 'ручная добыча доступна только Premium' };
-    if (player.miningExpedition) return { success: false, yieldCount: 0, isCrit: false, oreName: 'экспедиция уже идёт' };
 
     const node = MINING_NODES.find(n => n.id === nodeId);
     if (!node) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
@@ -2703,7 +2679,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (gemFound) sound.playUpgradeSuccess();
 
     return result;
-  }, [player, premium.active, achievements]);
+  }, [player, achievements]);
 
   const craftBasicItem = useCallback((recipeId: string): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
