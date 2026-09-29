@@ -647,6 +647,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Claimed achievements grant the permanent bonuses described in the UI.
+    const claimedAchievementIds = new Set(achievements.filter(a => a.claimed).map(a => a.id));
+    if (claimedAchievementIds.has('ach_1')) attack *= 1.02;
+    if (claimedAchievementIds.has('ach_2')) expBonus += 5;
+    if (claimedAchievementIds.has('ach_3')) dropBonus += 5;
+
     // Apply Active Pet
     if (player.activePet && player.activePet.stats) {
       if (player.activePet.stats.attack) attack += player.activePet.stats.attack;
@@ -683,7 +689,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expBonus: Math.round(expBonus),
       resistances
     };
-  }, [player]);
+  }, [player, achievements]);
 
   // Character Creation
   const createCharacter = useCallback((name: string, classId: CharacterClassId) => {
@@ -1016,13 +1022,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
     const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
+    const protectionCost = useProtection ? Math.max(250, Math.round(costSilver * 1.5)) : 0;
     const oreReq = getUpgradeOreRequirement(currentLevel);
     const oreHave = player.inventory.reduce((sum, invItem) => sum + (invItem.name === oreReq.name ? (invItem.stackCount || 1) : 0), 0);
     if (player.gold < costGold) {
       return { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
     }
-    if (player.silver < costSilver) {
-      return { success: false, message: `Недостаточно серебра (нужно ${costSilver} 🥈)!` };
+    if (player.silver < costSilver + protectionCost) {
+      return { success: false, message: `Недостаточно серебра (нужно ${costSilver + protectionCost} 🥈${useProtection ? ' с защитой' : ''})!` };
     }
     if (oreHave < oreReq.count) {
       return { success: false, message: `Нужна руда: ${oreReq.name} ×${oreReq.count} ${oreReq.icon}. Есть: ${oreHave}.` };
@@ -1042,6 +1049,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     else if (currentLevel >= 15 && currentLevel < 20) successRate = 0.14;
     else if (currentLevel >= 20) successRate = 0.07;
 
+    if (achievements.some(a => a.id === 'ach_5' && a.claimed)) successRate = Math.min(0.98, successRate + 0.03);
     const isSuccess = Math.random() <= successRate;
     const newLevel = isSuccess || useProtection ? currentLevel + (isSuccess ? 1 : 0) : Math.max(0, currentLevel - 1);
 
@@ -1065,7 +1073,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...prev,
         energy: Math.max(0, prev.energy - ENERGY_COSTS.upgrade),
         gold: prev.gold - costGold,
-        silver: prev.silver - costSilver,
+        silver: prev.silver - costSilver - protectionCost,
         equipped: Object.fromEntries(
           Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
         ) as Partial<Record<ItemType, GameItem>>,
@@ -1083,7 +1091,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSuccess) {
       sound.playUpgradeSuccess();
       triggerHaptic('success');
-      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙 и ${costSilver} 🥈.` };
+      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙 и ${costSilver + protectionCost} 🥈${useProtection ? ' (с защитой)' : ''}.` };
     }
 
     sound.playUpgradeFail();
@@ -2194,7 +2202,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
     }
 
-    const isCrit = Math.random() < Math.min(0.65, 0.25 + player.attributes.luck * 0.003);
+    const miningAchievementBonus = achievements.some(a => a.id === 'ach_4' && a.claimed) ? 0.10 : 0;
+    const isCrit = Math.random() < Math.min(0.75, 0.25 + player.attributes.luck * 0.003 + miningAchievementBonus);
     const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
     const yieldCount = isCrit ? Math.max(baseYield + 1, Math.ceil(baseYield * 1.5)) : baseYield;
 
@@ -2421,8 +2430,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayer(p => {
         if (!p) return p;
         const xpResult = addExperience(p, q.rewardExp);
+        let rewardInventory = [...xpResult.player.inventory];
+        (q.rewardItems || []).forEach((name, index) => {
+          const reward: GameItem = {
+            id: `quest_reward_${q.id}_${Date.now()}_${index}`,
+            templateId: `quest_${q.id}_${index}`,
+            name,
+            type: name.toLowerCase().includes('зелье') ? 'potion' : 'material',
+            rarity: q.category === 'boss' ? 'rare' : 'uncommon',
+            level: Math.max(1, xpResult.player.level),
+            upgradeLevel: 0,
+            icon: name.toLowerCase().includes('зелье') ? '🧪' : '📦',
+            description: `Награда за задание «${q.title}».`,
+            stats: name.toLowerCase().includes('зелье') ? { heal: 150 } : {},
+            sellPrice: Math.max(15, q.rewardGold / 10),
+            disassembleYield: { silver: Math.max(5, Math.round(q.rewardGold / 25)) },
+            stackCount: 1
+          };
+          rewardInventory = addOrStackInventoryItem(rewardInventory, reward, xpResult.player.maxInventorySlots).inventory;
+        });
         return {
           ...xpResult.player,
+          inventory: rewardInventory,
           gold: xpResult.player.gold + q.rewardGold,
           silver: xpResult.player.silver + (q.rewardSilver || 0),
         };
