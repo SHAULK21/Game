@@ -284,6 +284,21 @@ export interface DungeonRun {
   completed: boolean;
 }
 
+export interface MiningExpeditionReward {
+  name: string;
+  icon: string;
+  type: 'ore' | 'material';
+  rarity: ItemRarity;
+  count: number;
+}
+
+export interface MiningExpedition {
+  durationHours: 1 | 3 | 7;
+  startedAt: number;
+  endsAt: number;
+  rewards: MiningExpeditionReward[];
+}
+
 export interface MiningNode {
   id: string;
   name: string;
@@ -472,6 +487,7 @@ export interface PlayerCharacter {
   miningExp: number;
   alchemyLevel: number;
   alchemyExp: number;
+  miningExpedition?: MiningExpedition;
 
   arenaRating: number;
   arenaTickets: number;
