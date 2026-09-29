@@ -51,7 +51,6 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
       case 'weapon':
         return <><path {...common} d="m5 19 9.5-9.5"/><path {...common} d="m13 6 5 5"/><path {...common} d="m16 3 5 5-3 3-5-5z"/><path {...common} d="m4 20 3 1-1-3z"/></>;
       case 'offhand':
-      case 'shield':
         return <><path {...common} d="M14 3 21 6v5c0 5-3.1 8.4-7 10-3.9-1.6-7-5-7-10V6z"/><path {...common} d="m10 13 2 2 4-4"/></>;
       case 'helmet':
         return <><path {...common} d="M6 15v-3a8 8 0 0 1 16 0v3"/><path {...common} d="M5 15h18v4H5z"/><path {...common} d="M14 4v7"/></>;
