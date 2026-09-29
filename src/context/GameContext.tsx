@@ -1841,7 +1841,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isCombatEnded,
     player,
     turnPhase,
-    battleLog.length,
+    combatRound,
     playerEffects,
     monsterEffects,
     combatPlayerHp,
@@ -1886,6 +1886,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveMonster(prev => prev ? { ...prev, hp: workingHp, skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
         setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
         setBattleLog(prev => [...prev, ...newLogs]);
+        setCombatRound(prev => prev + 1);
         setTurnPhase('player');
         return;
       }
@@ -1940,7 +1941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...newLogs]);
     }, 650);
     return () => clearTimeout(timer);
-  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, battleLog.length, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp]);
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp]);
 
   // Delayed monster skill execution. The warning above is intentionally visible first.
   useEffect(() => {
@@ -1980,7 +1981,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
           setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended'); setMonsterIntent(null);
         } else {
-          setTurnPhase('player'); setMonsterIntent(null);
+          setCombatRound(prev => prev + 1);
+          setTurnPhase('player');
+          setMonsterIntent(null);
         }
         return nextHp;
       });
@@ -1989,7 +1992,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...logs]);
     }, 700);
     return () => clearTimeout(timer);
-  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, battleLog.length, playerEffects, combatStats, combatPlayerHp]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
