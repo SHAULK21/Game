@@ -1211,9 +1211,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_plains',
     targetRegionName: 'Зеленые равнины',
     rewardGold: 250,
-    rewardSilver: 100,
-    rewardShards: 5,
-    rewardCrystals: 10,
+    rewardSilver: 550,
     rewardExp: 150,
     rewardItems: ['Острый клык', 'Малое зелье исцеления']
   },
@@ -1231,9 +1229,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_plains',
     targetRegionName: 'Зеленые равнины',
     rewardGold: 350,
-    rewardSilver: 150,
-    rewardShards: 8,
-    rewardCrystals: 15,
+    rewardSilver: 830,
     rewardExp: 220,
     rewardItems: ['Ржавый кинжал']
   },
@@ -1251,9 +1247,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_plains',
     targetRegionName: 'Зеленые равнины',
     rewardGold: 450,
-    rewardSilver: 180,
-    rewardShards: 10,
-    rewardCrystals: 15,
+    rewardSilver: 880,
     rewardExp: 300
   },
   {
@@ -1270,9 +1264,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_forest',
     targetRegionName: 'Зачарованный темный лес',
     rewardGold: 600,
-    rewardSilver: 250,
-    rewardShards: 15,
-    rewardCrystals: 20,
+    rewardSilver: 1200,
     rewardExp: 500,
     rewardItems: ['Ядовитая железа']
   },
@@ -1290,9 +1282,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_plains',
     targetRegionName: 'Зеленые равнины',
     rewardGold: 1200,
-    rewardSilver: 500,
-    rewardShards: 25,
-    rewardCrystals: 35,
+    rewardSilver: 2150,
     rewardExp: 1000,
     rewardItems: ['Крылья Королевы Мышей']
   },
@@ -1310,9 +1300,7 @@ export const INITIAL_QUESTS: Quest[] = [
     targetRegionId: 'reg_cursed',
     targetRegionName: 'Проклятые земли',
     rewardGold: 2500,
-    rewardSilver: 1000,
-    rewardShards: 50,
-    rewardCrystals: 75,
+    rewardSilver: 4500,
     rewardExp: 3500,
     rewardItems: ['Меч Ледяной Скорби']
   },
@@ -1326,9 +1314,7 @@ export const INITIAL_QUESTS: Quest[] = [
     completed: false,
     claimed: false,
     rewardGold: 400,
-    rewardSilver: 200,
-    rewardShards: 12,
-    rewardCrystals: 15,
+    rewardSilver: 920,
     rewardExp: 250
   },
   {
@@ -1341,9 +1327,7 @@ export const INITIAL_QUESTS: Quest[] = [
     completed: false,
     claimed: false,
     rewardGold: 600,
-    rewardSilver: 300,
-    rewardShards: 20,
-    rewardCrystals: 25,
+    rewardSilver: 1500,
     rewardExp: 450
   }
 ];
@@ -1360,7 +1344,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     claimed: false,
     permanentBonusDesc: '+2% к физ. урону навсегда',
     rewardGold: 200,
-    rewardCrystals: 10
+    rewardSilver: 400
   },
   {
     id: 'ach_2',
@@ -1373,7 +1357,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     claimed: false,
     permanentBonusDesc: '+5% к опыту навсегда',
     rewardGold: 1000,
-    rewardCrystals: 25
+    rewardSilver: 1000
   },
   {
     id: 'ach_3',
@@ -1386,7 +1370,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     claimed: false,
     permanentBonusDesc: '+5% к выпадению редких предметов',
     rewardGold: 2500,
-    rewardCrystals: 50
+    rewardSilver: 2000
   },
   {
     id: 'ach_4',
@@ -1399,7 +1383,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     claimed: false,
     permanentBonusDesc: '+10% к шансу критической добычи',
     rewardGold: 1500,
-    rewardCrystals: 30
+    rewardSilver: 1200
   },
   {
     id: 'ach_5',
@@ -1412,7 +1396,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
     claimed: false,
     permanentBonusDesc: '+3% к шансу успешной заточки',
     rewardGold: 5000,
-    rewardCrystals: 100
+    rewardSilver: 4000
   }
 ];
 
@@ -1595,7 +1579,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 14,
       stats: { attack: 14, strength: 3 },
       sellPrice: 20,
-      disassembleYield: { ore: 2, shards: 1 }
+      disassembleYield: { ore: 2, silver: 1 }
     },
     {
       id: 'item_start_w2',
@@ -1625,7 +1609,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseDefense: 15,
       stats: { defense: 15, maxHp: 30 },
       sellPrice: 40,
-      disassembleYield: { ore: 4, shards: 2 }
+      disassembleYield: { ore: 4, silver: 2 }
     }
   ],
   berserker: [
@@ -1642,7 +1626,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 22,
       stats: { attack: 22, critDamage: 10 },
       sellPrice: 35,
-      disassembleYield: { ore: 4, shards: 1 }
+      disassembleYield: { ore: 4, silver: 1 }
     }
   ],
   knight: [
@@ -1675,7 +1659,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 16,
       stats: { attack: 16, critChance: 6, speed: 4 },
       sellPrice: 35,
-      disassembleYield: { ore: 2, shards: 2 }
+      disassembleYield: { ore: 2, silver: 2 }
     }
   ],
   assassin: [
@@ -1691,7 +1675,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 18,
       stats: { attack: 18, critChance: 8 },
       sellPrice: 40,
-      disassembleYield: { ore: 2, shards: 2 }
+      disassembleYield: { ore: 2, silver: 2 }
     }
   ],
   archer: [
@@ -1724,7 +1708,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 8,
       stats: { magicAttack: 22, intelligence: 4, maxMp: 25 },
       sellPrice: 40,
-      disassembleYield: { shards: 4 }
+      disassembleYield: { silver: 4 }
     },
     {
       id: 'item_start_m2',
@@ -1738,7 +1722,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseDefense: 6,
       stats: { magicDefense: 15, mpRegen: 2 },
       sellPrice: 30,
-      disassembleYield: { shards: 2 }
+      disassembleYield: { silver: 2 }
     }
   ],
   necromancer: [
@@ -1754,7 +1738,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 10,
       stats: { magicAttack: 20, vampirism: 4 },
       sellPrice: 40,
-      disassembleYield: { shards: 3 }
+      disassembleYield: { silver: 3 }
     }
   ],
   paladin: [
@@ -1770,7 +1754,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 16,
       stats: { attack: 16, magicAttack: 10, defense: 6 },
       sellPrice: 40,
-      disassembleYield: { ore: 3, shards: 2 }
+      disassembleYield: { ore: 3, silver: 2 }
     }
   ],
   druid: [
@@ -1786,7 +1770,7 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
       baseAttack: 12,
       stats: { attack: 12, magicAttack: 16, hpRegen: 3 },
       sellPrice: 35,
-      disassembleYield: { shards: 3 }
+      disassembleYield: { silver: 3 }
     }
   ]
 };
