@@ -119,6 +119,15 @@ const ItemTypeIcon: React.FC<{ type: ItemType; className?: string }> = ({ type, 
   <RpgIcon kind={type} size={22} className={className} />
 );
 
+const getDisassemblePreview = (item: GameItem) => {
+  const parts: string[] = [];
+  const ore = item.disassembleYield?.ore || 0;
+  const silver = item.disassembleYield?.silver || 0;
+  if (ore > 0) parts.push(`Железная руда ×${ore}`);
+  if (silver > 0) parts.push(`серебро ×${silver}`);
+  return parts.length ? parts.join(' + ') : 'без ресурсов';
+};
+
 const getResourceUse = (item: GameItem) => {
   if (item.type === 'ore') return 'Кузница · заточка экипировки';
   if (item.name === 'Сырой самоцвет') return 'Огранка · переработка в серебро';
@@ -607,7 +616,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <Sparkles className="w-4 h-4 text-cyan-400" />
-                  {currentSelected.name === 'Сырой самоцвет' ? 'Огранить → серебро' : 'Разобрать'}
+                  {currentSelected.name === 'Сырой самоцвет'
+                    ? `Огранить → ${getDisassemblePreview(currentSelected)}`
+                    : `Разобрать → ${getDisassemblePreview(currentSelected)}`}
                 </button>
               )}
 
