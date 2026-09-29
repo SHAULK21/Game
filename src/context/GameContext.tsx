@@ -1446,7 +1446,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sound.playClick();
     triggerHaptic('medium');
     return true;
-  }, [player, combatStats.maxHp, combatStats, isInCombat, isCombatEnded]);
+  }, [player, premium.active, combatStats.maxHp, combatStats, isInCombat, isCombatEnded]);
 
   const startNextCombatBattle = useCallback((): boolean => {
     if (!player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
