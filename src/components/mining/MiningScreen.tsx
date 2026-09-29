@@ -13,15 +13,15 @@ const EXPEDITIONS = [
 const NODE_MATERIALS: Record<string, string[]> = {
   ore_coal: ['Каменная пыль', 'Кварц'],
   ore_copper: ['Кварц', 'Медный кристалл'],
-  ore_iron: ['Соляной кристалл', 'Магнетит'],
-  ore_silver: ['Осколок лунного камня', 'Лунная пыльца'],
-  ore_gold: ['Янтарный кристалл', 'Сырой самоцвет'],
-  ore_cobalt: ['Синяя кристаллическая пыль', 'Рунический осколок'],
-  ore_mithril: ['Арканная пыль', 'Магическая эссенция'],
-  ore_adamantite: ['Руническое ядро', 'Осколок титана'],
-  ore_blood_obsidian: ['Демонический уголь', 'Кровавый кристалл'],
-  ore_draconite: ['Осколок драконьей чешуи', 'Драконья искра'],
-  ore_aetherium: ['Эфирная пыль', 'Звёздное ядро']
+  ore_iron: ['Соляной кристалл', 'Магнетит', 'Железный пирит'],
+  ore_silver: ['Осколок лунного камня', 'Лунная пыльца', 'Серебряная нить'],
+  ore_gold: ['Янтарный кристалл', 'Сырой самоцвет', 'Золотая слюда'],
+  ore_cobalt: ['Синяя кристаллическая пыль', 'Рунический осколок', 'Кобальтовая призма'],
+  ore_mithril: ['Арканная пыль', 'Магическая эссенция', 'Мифриловый шёлк'],
+  ore_adamantite: ['Руническое ядро', 'Осколок титана', 'Адамантовый зубец'],
+  ore_blood_obsidian: ['Демонический уголь', 'Кровавый кристалл', 'Пепел Бездны'],
+  ore_draconite: ['Осколок драконьей чешуи', 'Драконья искра', 'Сердце драконида'],
+  ore_aetherium: ['Эфирная пыль', 'Звёздное ядро', 'Небесная слеза', 'Осколок вечности']
 };
 
 const formatRemaining = (ms: number) => {
@@ -57,7 +57,7 @@ export const MiningScreen: React.FC = () => {
   const expedition = player.miningExpedition;
   const expeditionReady = Boolean(expedition && now >= expedition.endsAt);
   const remainingMs = expedition ? Math.max(0, expedition.endsAt - now) : 0;
-  const unlockedNodes = MINING_NODES.filter(node => player.miningLevel >= node.levelReq);
+  const visibleNodes = MINING_NODES;
   const nextNode = MINING_NODES.find(node => node.levelReq > player.miningLevel);
   const previousLevelExp = Math.max(0, (player.miningLevel - 1) * 175);
   const nextLevelExp = Math.max(175, player.miningLevel * 175);
@@ -132,17 +132,21 @@ export const MiningScreen: React.FC = () => {
           <div className="text-[10px] text-slate-500">Доступна всем игрокам. Кроме руды можно найти дополнительные материалы.</div>
         </div>
 
-        {unlockedNodes.map(node => {
+        {visibleNodes.map(node => {
           const mining = isMining && activeMiningNodeId === node.id;
+          const locked = player.miningLevel < node.levelReq;
           return (
-            <div key={node.id} className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d]">
+            <div key={node.id} className={`p-3 rounded-xl border ${locked ? 'border-slate-800/70 bg-slate-950/50 opacity-70' : 'border-slate-800 bg-[#0a0f1d]'}`}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="p-2 bg-slate-900 rounded-lg border border-slate-800">
                     <RpgIcon kind="ore" size={28} className="text-amber-300" />
                   </span>
                   <div className="min-w-0">
-                    <div className="font-cinzel text-xs font-bold text-slate-100">{node.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-cinzel text-xs font-bold text-slate-100">{node.name}</div>
+                      {locked && <span className="text-[8px] rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 font-bold text-rose-300">🔒 {node.levelReq} ур.</span>}
+                    </div>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5">
                       {node.oreYield} ×{node.baseYieldMin}-{node.baseYieldMax} · ⛏ {node.staminaCost}
                     </div>
@@ -150,10 +154,10 @@ export const MiningScreen: React.FC = () => {
                 </div>
                 <button
                   onClick={() => handleMine(node.id)}
-                  disabled={isMining || player.stamina < node.staminaCost}
+                  disabled={locked || isMining || player.stamina < node.staminaCost}
                   className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 text-slate-950 font-bold text-xs active:scale-95"
                 >
-                  {mining ? 'Добыча…' : 'Добывать'}
+                  {locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : 'Добывать'}
                 </button>
               </div>
 
