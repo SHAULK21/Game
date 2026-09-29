@@ -631,7 +631,7 @@ export const REGIONS: RegionDefinition[] = [
     id: 'reg_whisper_woods',
     name: 'Шепчущий лес: Земли Волков',
     levelRange: 'Ур. 5 - 12',
-    minLevel: 4,
+    minLevel: 5,
     description: 'Лесная чаща у подножия гор. Здесь обитают стаи свирепых волков и гоблины-шаманы.',
     icon: '🐺',
     bgGradient: 'from-blue-950/40 via-slate-950 to-slate-950',
@@ -645,7 +645,7 @@ export const REGIONS: RegionDefinition[] = [
     id: 'reg_forgotten_crypt',
     name: 'Забытый склеп Скелетов',
     levelRange: 'Ур. 8 - 18',
-    minLevel: 7,
+    minLevel: 8,
     description: 'Древние катакомбы под равнинами. Гробницы полны нежити и ценных реликвий былых эпох.',
     icon: '⚰️',
     bgGradient: 'from-indigo-950/40 via-slate-950 to-slate-950',
@@ -659,7 +659,7 @@ export const REGIONS: RegionDefinition[] = [
     id: 'reg_forest',
     name: 'Тёмный лес (Логово пауков)',
     levelRange: 'Ур. 12 - 25',
-    minLevel: 10,
+    minLevel: 12,
     description: 'Вековые кроны не пропускают солнце. Здесь бродят гигантские тарантулы, каменные големы и темные духи.',
     icon: '🌲',
     bgGradient: 'from-teal-950/40 via-slate-950 to-slate-950',
@@ -1115,6 +1115,26 @@ export const MONSTERS: Record<string, Monster> = {
       { itemName: 'Магическая эссенция', type: 'material', rarity: 'epic', chance: 0.75, minQty: 2, maxQty: 5 },
     ]
   }
+};
+
+// Shared monster templates adapt to the region where they are encountered.
+export const getRegionMonster = (monster: Monster, region: RegionDefinition, minimumLevel = region.minLevel): Monster => {
+  const level = Math.max(monster.level, minimumLevel);
+  const factor = level / Math.max(1, monster.level);
+  const scale = (value: number, multiplier = factor) => Math.round(value * multiplier);
+  return {
+    ...monster,
+    regionId: region.id,
+    level,
+    hp: scale(monster.maxHp, Math.pow(factor, 1.25)),
+    maxHp: scale(monster.maxHp, Math.pow(factor, 1.25)),
+    attack: scale(monster.attack),
+    magicAttack: scale(monster.magicAttack),
+    defense: scale(monster.defense),
+    magicDefense: scale(monster.magicDefense),
+    expReward: scale(monster.expReward),
+    goldReward: scale(monster.goldReward)
+  };
 };
 
 export const MINING_NODES: MiningNode[] = [

@@ -25,6 +25,7 @@ import {
   REGIONS, 
   CAVES, 
   MONSTERS, 
+  getRegionMonster,
   STARTER_ITEMS, 
   INITIAL_QUESTS, 
   INITIAL_ACHIEVEMENTS, 
@@ -193,7 +194,8 @@ const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stat
   const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
   const normalPool = region.monsters
     .map(id => MONSTERS[id])
-    .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite);
+    .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite)
+    .map(m => getRegionMonster(m, region));
   const pool = normalPool.length > 0 ? normalPool : [firstMonster];
   const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * 6);
   const chain: Monster[] = [prepareMonsterForCombat(firstMonster)];
@@ -874,6 +876,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             parsed.player.lastArenaTicketRefresh = arenaDay;
           }
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
+          const savedRegion = REGIONS.find(region => region.id === parsed.player.currentRegionId);
+          if (!savedRegion || parsed.player.level < savedRegion.minLevel) {
+            parsed.player.currentRegionId = REGIONS[0].id;
+            parsed.player.activeRegionModId = REGIONS[0].defaultModId;
+          }
           // Migrate old saves to the current steep XP curve.
           parsed.player.nextExp = getNextExperience(parsed.player.level);
           parsed.player = addExperience(parsed.player, 0).player;
@@ -1763,8 +1770,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const startTravel = useCallback((targetRegionId: string, modId?: string) => {
     const targetReg = REGIONS.find(r => r.id === targetRegionId);
     if (!targetReg) return { success: false, message: 'Локация не найдена' };
+    if (!player || player.level < targetReg.minLevel) {
+      return { success: false, message: `Для перехода нужен ${targetReg.minLevel}-й уровень.` };
+    }
+    if (travelState.isTraveling) return { success: false, message: 'Путешествие уже идёт.' };
 
-    const selectedModId = modId || targetReg.defaultModId || 'mod_standard';
+    const selectedModId = modId && targetReg.availableMods.includes(modId) ? modId : targetReg.defaultModId;
     const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = activeMod.energyCost;
 
@@ -1818,7 +1829,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
             const monsterId = targetReg.monsters[Math.floor(Math.random() * targetReg.monsters.length)];
-            const baseMob = MONSTERS[monsterId] || MONSTERS['m_wolf'];
+            const baseMob = getRegionMonster(MONSTERS[monsterId] || MONSTERS['m_wolf'], targetReg);
 
             setPlayer(prev => prev ? {
               ...prev,
@@ -1834,7 +1845,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               attack: Math.round(baseMob.attack * (activeMod.damageMultiplier || 1.0)),
               expReward: Math.round(baseMob.expReward * (activeMod.expMultiplier || 1.0) * 1.5),
               goldReward: Math.round(baseMob.goldReward * (activeMod.goldMultiplier || 1.0) * 1.5)
-            }, { energyCost: 0 });
+            }, { chain: false, energyCost: 0 });
           }, 1400);
         } else {
           sound.playVictory();
@@ -1858,7 +1869,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 650);
 
     return { success: true, message: 'Путешествие началось!' };
-  }, [player, startBattleWithMonster]);
+  }, [player, travelState.isTraveling, startBattleWithMonster]);
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
@@ -2673,7 +2684,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Exploration & Regions
   const setCurrentRegion = useCallback((regionId: string) => {
-    setPlayer(prev => prev ? { ...prev, currentRegionId: regionId } : prev);
+    const region = REGIONS.find(r => r.id === regionId);
+    if (!region) return;
+    setPlayer(prev => prev && prev.level >= region.minLevel ? { ...prev, currentRegionId: regionId } : prev);
     sound.playClick();
   }, []);
 
@@ -2682,6 +2695,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return; }
     const cave = CAVES[caveId];
     if (!cave) return;
+    const caveRegion = REGIONS.find(region => region.id === player.currentRegionId) || REGIONS[0];
+    if (player.level < cave.minLevel || !caveRegion.caves.includes(caveId)) { triggerHaptic('error'); return; }
     sound.playClick();
     triggerHaptic('medium');
 
@@ -2689,7 +2704,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     for (let i = 1; i <= cave.roomsCount; i++) {
       if (i === cave.roomsCount) {
         // Boss Room
-        const bossMonster = MONSTERS[cave.bossMonsterId] || MONSTERS['m_queen_bat'];
+        const bossMonster = getRegionMonster(MONSTERS[cave.bossMonsterId] || MONSTERS['m_queen_bat'], caveRegion, Math.max(cave.minLevel, caveRegion.minLevel));
         rooms.push({
           id: `room_${caveId}_${i}`,
           roomNumber: i,
@@ -2703,8 +2718,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const roomTypeRand = Math.random();
         if (roomTypeRand < 0.5) {
           // Combat
-          const mList = Object.values(MONSTERS).filter(m => !m.isBoss);
-          const chosenMonster = mList[Math.floor(Math.random() * mList.length)];
+          const mList = caveRegion.monsters.map(id => MONSTERS[id]).filter((m): m is Monster => Boolean(m) && m.id !== cave.bossMonsterId);
+          const encounters = mList.length ? mList : Object.values(MONSTERS).filter(m => !m.isBoss);
+          const chosenMonster = getRegionMonster(encounters[Math.floor(Math.random() * encounters.length)], caveRegion, Math.max(cave.minLevel, caveRegion.minLevel));
           rooms.push({
             id: `room_${caveId}_${i}`,
             roomNumber: i,
