@@ -15,7 +15,6 @@ import {
   Activity
 } from 'lucide-react';
 import { sound } from '../../utils/audio';
-import { getTelegramUser } from '../../utils/telegram';
 import { apiRequest } from '../../utils/api';
 
 interface AdminModalProps {
@@ -38,9 +37,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const [broadcastText, setBroadcastText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [serverStats, setServerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 });
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
-  const isAdmin = Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
+  useEffect(() => {
+    if (!isOpen) return;
+    apiRequest<{ isAdmin: boolean }>('/api/admin/status')
+      .then(result => setIsAdmin(Boolean(result?.isAdmin)))
+      .catch(() => setIsAdmin(false));
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !isAdmin) return;
