@@ -263,7 +263,6 @@ export const MiningScreen: React.FC = () => {
           })}
         </div>
       </div>
-      </div>
     </div>
   );
 };
