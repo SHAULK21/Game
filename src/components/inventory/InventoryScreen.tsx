@@ -145,6 +145,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     unequipItem,
     sellItem,
     disassembleItem,
+    toggleItemLock,
     expandInventory,
     craftBasicItem
   } = useGame();
@@ -490,6 +491,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   <div className="text-[10px] text-slate-400 mt-0.5">
                     {TYPE_LABELS[currentSelected.type]} · Ур. {currentSelected.level} · {RARITY_COLORS[currentSelected.rarity].label}
                   </div>
+                  {(currentSelected.armorClass || currentSelected.weaponClass) && <div className="text-[10px] text-cyan-300 mt-0.5">
+                    {({heavy:'Тяжёлая броня',medium:'Средняя броня',light:'Лёгкая броня',twoHanded:'Двуручное оружие',dagger:'Кинжал',staff:'Посох',shield:'Щит',bow:'Лук'} as Record<string,string>)[currentSelected.armorClass || currentSelected.weaponClass || '']}
+                  </div>}
                 </div>
               </div>
               <button onClick={() => setSelectedItem(null)} className="p-1 text-slate-500 hover:text-white">
@@ -564,6 +568,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             )}
 
             <div className="grid grid-cols-2 gap-2 mt-3">
+              <button
+                onClick={() => toggleItemLock(currentSelected.id)}
+                className="py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-amber-200 text-xs font-bold"
+              >
+                {currentSelected.isLocked ? '🔓 Отпереть' : '🔒 Запереть'}
+              </button>
               {currentSelected.isEquipped ? (
                 <button
                   onClick={() => {
@@ -607,7 +617,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </button>
               )}
 
-              {((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.silver)) && (
+              {!currentSelected.isLocked && ((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.silver)) && (
                 <button
                   onClick={() => {
                     disassembleItem(currentSelected);
@@ -622,7 +632,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </button>
               )}
 
-              {!currentSelected.isEquipped && (
+              {!currentSelected.isEquipped && !currentSelected.isLocked && (
                 <button
                   onClick={() => {
                     sellItem(currentSelected);

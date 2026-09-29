@@ -88,6 +88,23 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
     }
   }
 
+  const armorClass: GameItem['armorClass'] | undefined = ['armor', 'helmet', 'pants', 'gloves', 'boots'].includes(drop.type)
+    ? /лат|шлем|страж|титан|кольчуг|панцир/i.test(drop.itemName) ? 'heavy'
+      : /кож|охот|следопыт|тени|капюшон|развед/i.test(drop.itemName) ? 'light' : 'medium'
+    : undefined;
+  const weaponClass: GameItem['weaponClass'] | undefined = drop.type === 'offhand' ? 'shield' : drop.type === 'weapon'
+    ? /посох|жезл|рунич/i.test(drop.itemName) ? 'staff'
+      : /кинжал|клинок|сабля/i.test(drop.itemName) ? 'dagger'
+      : /лук|арбалет/i.test(drop.itemName) ? 'bow' : 'twoHanded'
+    : undefined;
+  if (armorClass === 'heavy') { stats.maxHp = (stats.maxHp || 0) + Math.round(monsterLevel * 3 * mult); stats.defense = (stats.defense || 0) + Math.round(monsterLevel * mult); }
+  if (armorClass === 'medium') { stats.accuracy = (stats.accuracy || 0) + Math.max(2, Math.round(mult * 2)); stats.critChance = (stats.critChance || 0) + 2; }
+  if (armorClass === 'light') { stats.evasion = (stats.evasion || 0) + 3; stats.vampirism = (stats.vampirism || 0) + 1; }
+  if (weaponClass === 'twoHanded') stats.armorPenetration = (stats.armorPenetration || 0) + Math.round(3 * mult);
+  if (weaponClass === 'dagger') stats.critChance = (stats.critChance || 0) + 3;
+  if (weaponClass === 'bow') { stats.accuracy = (stats.accuracy || 0) + 4; stats.armorPenetration = (stats.armorPenetration || 0) + 2; }
+  if (weaponClass === 'staff') { stats.magicAttack = (stats.magicAttack || 0) + Math.round(monsterLevel * 2 * mult); stats.maxMp = (stats.maxMp || 0) + Math.round(monsterLevel * 3); }
+
   const salvageSilver = Math.max(3, Math.round((10 + monsterLevel * 4) * mult * (isEquipmentDrop(drop) ? 0.8 : 0.45)));
 
   return {
@@ -98,6 +115,8 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
     rarity: drop.rarity,
     level: monsterLevel,
     upgradeLevel: 0,
+    armorClass,
+    weaponClass,
     icon,
     image:
       ['legendary', 'mythic', 'ancient', 'divine'].includes(drop.rarity)
@@ -144,7 +163,7 @@ const pickBestFallback = (drops: MonsterDrop[], exclude = new Set<string>()) => 
 };
 
 const PROCEDURAL_NAMES: Partial<Record<ItemType, string[]>> = {
-  weapon: ['Клинок охотника', 'Сабля странника', 'Боевой топор', 'Костяной меч', 'Рунический жезл', 'Молот рассвета', 'Коса пепла', 'Копьё грозы', 'Ледяной фальшион', 'Клинок Бездны'],
+  weapon: ['Клинок охотника', 'Сабля странника', 'Боевой топор', 'Костяной меч', 'Рунический жезл', 'Молот рассвета', 'Коса пепла', 'Копьё грозы', 'Ледяной фальшион', 'Клинок Бездны', 'Кинжал сумерек', 'Длинный лук', 'Посох грозы'],
   offhand: ['Щит дозорного', 'Рунический фокус', 'Баклер наёмника', 'Тотем камня', 'Сфера маны', 'Щит драконьей кости'],
   helmet: ['Капюшон следопыта', 'Шлем стража', 'Маска охотника', 'Корона пепла', 'Личина бездны', 'Шлем небесного кузнеца'],
   armor: ['Кожаный панцирь', 'Кольчуга странника', 'Роба заклинателя', 'Латы буревестника', 'Мантия звёзд', 'Панцирь драконида'],

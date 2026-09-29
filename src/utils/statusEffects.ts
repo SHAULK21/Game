@@ -64,8 +64,9 @@ export function tickStatusEffects(effects: StatusEffect[]): StatusTickResult {
   for (const effect of effects) {
     if (effect.type === 'poison' || effect.type === 'bleed' || effect.type === 'burn') {
       const type: DamageType = effect.type === 'poison' ? 'poison' : effect.type === 'burn' ? 'fire' : 'physical';
-      damageByType[type] = (damageByType[type] || 0) + Math.max(0, effect.value);
-      damage += Math.max(0, effect.value);
+      const amount = Math.max(0, effect.value) * (effect.type === 'poison' ? Math.min(5, effect.stacks || 1) : 1);
+      damageByType[type] = (damageByType[type] || 0) + amount;
+      damage += amount;
     }
   }
 
@@ -92,7 +93,8 @@ export function applyStatusEffect(effects: StatusEffect[], next: StatusEffect): 
           ...effect,
           name: next.name || effect.name,
           duration: Math.max(effect.duration, next.duration),
-          value: Math.max(effect.value, next.value)
+          value: Math.max(effect.value, next.value),
+          stacks: next.type === 'poison' ? Math.min(5, (effect.stacks || 1) + (next.stacks || 1)) : effect.stacks
         }
       : effect
   );
