@@ -1321,12 +1321,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       !dungeonRoom?.resolved &&
       activeDungeonRun!.currentRoomIndex === activeDungeonRun!.totalRooms - 1;
 
-    const lootResult = generateCombatLoot({
-      monster,
-      rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
-      goldMult: (activeMod.goldMultiplier || 1) * 0.55 * (1 + combatStats.goldBonus / 100),
-      silverMult: (activeMod.silverMultiplier || 1) * 0.65 * (1 + combatStats.goldBonus / 100)
-    });
+    let lootResult: { items: GameItem[]; gold: number; silver: number; shards: number };
+    try {
+      lootResult = generateCombatLoot({
+        monster,
+        rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
+        goldMult: (activeMod.goldMultiplier || 1) * 0.55 * (1 + combatStats.goldBonus / 100),
+        silverMult: (activeMod.silverMultiplier || 1) * 0.65 * (1 + combatStats.goldBonus / 100)
+      });
+    } catch (error) {
+      console.error('Combat loot generation failed:', error);
+      lootResult = { items: [], gold: 0, silver: 0, shards: 0 };
+    }
     const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
@@ -1786,6 +1792,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (nextMonsterHp <= 0) {
+      // Resolve the death state before rewards so a loot/error path can never leave
+      // the opponent visually stuck at 1 HP.
+      setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
+      setIsCombatEnded(true);
+      setCombatOutcome('victory');
+      setTurnPhase('ended');
       completeCombatVictory(activeMonster, currentTurn, newLogs);
       return;
     }
