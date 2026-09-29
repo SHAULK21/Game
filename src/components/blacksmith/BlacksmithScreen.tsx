@@ -4,6 +4,7 @@ import { GameItem } from '../../types/game';
 import { RARITY_COLORS } from '../../data/gameData';
 import { Hammer, Sparkles, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { RpgIcon, getRpgIconKind } from '../ui/RpgIcon';
 
 export const BlacksmithScreen: React.FC = () => {
   const { player, upgradeItem, disassembleItem } = useGame();
@@ -107,7 +108,7 @@ export const BlacksmithScreen: React.FC = () => {
                     : `${rarityStyle.border} ${rarityStyle.bg} opacity-75 hover:opacity-100`
                 }`}
               >
-                <span className="text-2xl mb-1">{item.icon}</span>
+                <RpgIcon kind={getRpgIconKind(item)} size={28} className={RARITY_COLORS[item.rarity].text} />
                 <span className="text-[10px] font-medium text-slate-200 truncate w-full text-center">
                   {item.name}
                 </span>
@@ -126,9 +127,7 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Item details */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-3">
-              <span className="text-3xl p-2 rounded-xl bg-slate-900 border border-slate-800">
-                {currentItem.icon}
-              </span>
+              <span className="p-2 rounded-xl bg-slate-900 border border-slate-800"><RpgIcon kind={getRpgIconKind(currentItem)} size={34} className={RARITY_COLORS[currentItem.rarity].text} /></span>
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-cinzel text-sm font-bold text-slate-100">
