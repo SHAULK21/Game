@@ -401,6 +401,11 @@ const addMiningRewardsToInventory = (
   return { inventory: next, added: true };
 };
 
+const isCurrentUserAdmin = () => {
+  const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
+  return Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
+};
+
 const SAVE_KEY = 'aethelgard_save_v1_data';
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
@@ -2986,16 +2991,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ADMIN COMMANDS
   const adminAddGold = useCallback((amt: number) => {
+    if (!isCurrentUserAdmin()) return;
     setPlayer(p => p ? { ...p, gold: p.gold + amt } : p);
     sound.playVictory();
   }, []);
 
   const adminAddSilver = useCallback((amt: number) => {
+    if (!isCurrentUserAdmin()) return;
     setPlayer(p => p ? { ...p, silver: p.silver + amt } : p);
     sound.playVictory();
   }, []);
 
   const adminLevelUp = useCallback(() => {
+    if (!isCurrentUserAdmin()) return;
     setPlayer(p => {
       if (!p) return p;
       return addExperience(p, p.nextExp).player;
@@ -3004,6 +3012,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const adminSpawnLegendaryItem = useCallback(() => {
+    if (!isCurrentUserAdmin()) return;
     setPlayer(p => {
       if (!p) return p;
       const relic: GameItem = {
@@ -3036,6 +3045,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const adminHealAll = useCallback(() => {
+    if (!isCurrentUserAdmin()) return;
     sound.playPotion();
     triggerHaptic('success');
   }, []);
