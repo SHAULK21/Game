@@ -40,9 +40,9 @@ export const LeaderboardScreen: React.FC = () => {
       <div className="space-y-2">
         {merged.slice(0, 50).map((row, i) => {
           const isMe = me && String(row.telegram_id) === String(me.telegram_id);
-          return <div key={String(row.telegram_id)} className={\`rounded-xl border p-3 flex items-center gap-3 \${isMe ? 'border-cyan-400/50 bg-cyan-950/20' : 'border-slate-800 bg-[#0a0f1d]'}\`}>
+          return <div key={String(row.telegram_id)} className={`rounded-xl border p-3 flex items-center gap-3 ${isMe ? 'border-cyan-400/50 bg-cyan-950/20' : 'border-slate-800 bg-[#0a0f1d]'}`}>
             <div className="w-8 text-center font-bold text-slate-500">{i + 1}</div>
-            <Trophy className={\`w-5 h-5 \${i === 0 ? 'text-yellow-300' : 'text-slate-600'}\`} />
+            <Trophy className={`w-5 h-5 ${i === 0 ? 'text-yellow-300' : 'text-slate-600'}`} />
             <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.display_name}</div><div className="text-[9px] text-slate-500">Уровень {row.level} · Арена {row.arena_rating}</div></div>
             {isMe && <span className="text-[9px] text-cyan-300 font-bold">ВЫ</span>}
           </div>;
