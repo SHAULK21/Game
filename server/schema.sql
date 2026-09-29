@@ -1,5 +1,83 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS players (
+  telegram_id BIGINT PRIMARY KEY,
+  username TEXT,
+  display_name TEXT NOT NULL DEFAULT 'Игрок',
+  level INTEGER NOT NULL DEFAULT 1,
+  arena_rating INTEGER NOT NULL DEFAULT 1000,
+  clan_id UUID,
+  premium_until TIMESTAMPTZ,
+  premium_charge_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS clans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tag VARCHAR(6) NOT NULL UNIQUE,
+  name VARCHAR(32) NOT NULL,
+  description VARCHAR(280) NOT NULL DEFAULT '',
+  owner_telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  level INTEGER NOT NULL DEFAULT 1,
+  xp INTEGER NOT NULL DEFAULT 0,
+  max_members INTEGER NOT NULL DEFAULT 30,
+  raid_hp INTEGER NOT NULL DEFAULT 10000,
+  raid_max_hp INTEGER NOT NULL DEFAULT 10000,
+  raid_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '7 days',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE players ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT 'Игрок';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS arena_rating INTEGER NOT NULL DEFAULT 1000;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS clan_id UUID;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_until TIMESTAMPTZ;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_charge_id TEXT;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE players ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS xp INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS max_members INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS raid_hp INTEGER NOT NULL DEFAULT 10000;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS raid_max_hp INTEGER NOT NULL DEFAULT 10000;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS raid_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '7 days';
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'players_clan_id_fkey'
+  ) THEN
+    ALTER TABLE players
+      ADD CONSTRAINT players_clan_id_fkey
+      FOREIGN KEY (clan_id) REFERENCES clans(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_clans_name_lower ON clans (LOWER(name));
 
+CREATE TABLE IF NOT EXISTS clan_members (
+  clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  role VARCHAR(16) NOT NULL DEFAULT 'member' CHECK (role IN ('owner','officer','member')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (clan_id, telegram_id)
+);
+CREATE INDEX IF NOT EXISTS idx_clan_members_user ON clan_members(telegram_id);
+
+CREATE TABLE IF NOT EXISTS clan_chat_messages (
+  id BIGSERIAL PRIMARY KEY,
+  clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  text VARCHAR(500) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_clan_chat_created ON clan_chat_messages(clan_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS global_chat_messages (
   id BIGSERIAL PRIMARY KEY,
@@ -21,16 +99,6 @@ CREATE TABLE IF NOT EXISTS market_listings (
 );
 CREATE INDEX IF NOT EXISTS idx_market_active ON market_listings(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_telegram_id, status);
-
-
--- Leaderboard profile fields; additive migration for existing databases.
-ALTER TABLE players ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE players ADD COLUMN IF NOT EXISTS arena_rating INTEGER NOT NULL DEFAULT 1000;
-
-
--- Telegram Stars Premium subscription.
-ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_until TIMESTAMPTZ;
-ALTER TABLE players ADD COLUMN IF NOT EXISTS premium_charge_id TEXT;
 
 CREATE TABLE IF NOT EXISTS premium_payments (
   id BIGSERIAL PRIMARY KEY,
