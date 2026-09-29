@@ -234,6 +234,20 @@ app.post('/api/profile/sync', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/community/stats', auth, async (_req, res) => {
+  const result = await pool.query(
+    `SELECT
+       COUNT(*)::int AS total_players,
+       COUNT(*) FILTER (WHERE updated_at >= NOW() - INTERVAL '5 minutes')::int AS online_players
+     FROM players`
+  );
+  res.json({
+    totalPlayers: Number(result.rows[0]?.total_players || 0),
+    onlinePlayers: Number(result.rows[0]?.online_players || 0),
+    onlineWindowMinutes: 5
+  });
+});
+
 app.get('/api/leaderboard', auth, async (_req, res) => {
   const result = await pool.query(
     `SELECT telegram_id, display_name, username, level, arena_rating
