@@ -1106,9 +1106,12 @@ export const MINING_NODES: MiningNode[] = [
   { id: 'ore_iron', name: 'Железная жила', levelReq: 5, oreYield: 'Железная руда', staminaCost: 5, icon: '⚪', color: '#94a3b8', baseYieldMin: 2, baseYieldMax: 5, gemChance: 0.12 },
   { id: 'ore_silver', name: 'Серебряная жила', levelReq: 15, oreYield: 'Серебряная руда', staminaCost: 7, icon: '✨', color: '#cbd5e1', baseYieldMin: 1, baseYieldMax: 3, gemChance: 0.18 },
   { id: 'ore_gold', name: 'Золотая жила', levelReq: 25, oreYield: 'Золотая руда', staminaCost: 8, icon: '🪙', color: '#eab308', baseYieldMin: 1, baseYieldMax: 3, gemChance: 0.25 },
+  { id: 'ore_cobalt', name: 'Кобальтовая жила', levelReq: 35, oreYield: 'Кобальтовая руда', staminaCost: 9, icon: '🔷', color: '#2563eb', baseYieldMin: 1, baseYieldMax: 3, gemChance: 0.28 },
   { id: 'ore_mithril', name: 'Мифриловая жила', levelReq: 40, oreYield: 'Мифриловая руда', staminaCost: 10, icon: '💎', color: '#38bdf8', baseYieldMin: 1, baseYieldMax: 2, gemChance: 0.35 },
   { id: 'ore_adamantite', name: 'Адамантитовая жила', levelReq: 60, oreYield: 'Адамантит', staminaCost: 14, icon: '🟣', color: '#a855f7', baseYieldMin: 1, baseYieldMax: 2, gemChance: 0.45 },
-  { id: 'ore_draconite', name: 'Драконитовая жила', levelReq: 85, oreYield: 'Драконит', staminaCost: 20, icon: '🔥', color: '#f43f5e', baseYieldMin: 1, baseYieldMax: 2, gemChance: 0.6 }
+  { id: 'ore_blood_obsidian', name: 'Жила кровавого обсидиана', levelReq: 72, oreYield: 'Кровавый обсидиан', staminaCost: 16, icon: '🩸', color: '#991b1b', baseYieldMin: 1, baseYieldMax: 2, gemChance: 0.48 },
+  { id: 'ore_draconite', name: 'Драконитовая жила', levelReq: 85, oreYield: 'Драконит', staminaCost: 20, icon: '🔥', color: '#f43f5e', baseYieldMin: 1, baseYieldMax: 2, gemChance: 0.60 },
+  { id: 'ore_aetherium', name: 'Эфириумная жила', levelReq: 95, oreYield: 'Эфириум', staminaCost: 24, icon: '🌌', color: '#7c3aed', baseYieldMin: 1, baseYieldMax: 1, gemChance: 0.72 }
 ];
 
 export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
@@ -1493,6 +1496,28 @@ export const PETS_LIST: Pet[] = [
     stats: { mpRegen: 5, hpRegen: 5 },
     activeSkillName: 'Свет исцеления',
     activeSkillDesc: 'Периодически восстанавливает 50 HP.'
+  },
+  {
+    id: 'pet_golem',
+    name: 'Адамантитовый големчик',
+    level: 1,
+    rarity: 'epic',
+    icon: '🗿',
+    passiveBonus: '+35 защиты и +180 HP',
+    stats: { defense: 35, maxHp: 180 },
+    activeSkillName: 'Каменный заслон',
+    activeSkillDesc: 'В начале боя укрепляет хозяина.'
+  },
+  {
+    id: 'pet_voidling',
+    name: 'Эфирный пустотник',
+    level: 1,
+    rarity: 'mythic',
+    icon: '🌌',
+    passiveBonus: '+40 магической атаки и +7% крита',
+    stats: { magicAttack: 40, critChance: 7 },
+    activeSkillName: 'Разрыв эфира',
+    activeSkillDesc: 'Ослабляет сопротивление врага магии.'
   }
 ];
 
