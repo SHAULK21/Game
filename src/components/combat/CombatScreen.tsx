@@ -102,7 +102,7 @@ export const CombatScreen: React.FC = () => {
 
   const handleStartBattle = (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
-    if (player.miningExpedition) {
+    if (player.miningExpedition && !premium.active) {
       setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
       return;
     }
@@ -210,7 +210,7 @@ export const CombatScreen: React.FC = () => {
             </div>
           </div>
 
-          {player.miningExpedition && (
+          {player.miningExpedition && !premium.active && (
             <div className="mt-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40">
               <div className="text-xs font-bold text-amber-200">⛏ Персонаж сейчас в шахте</div>
               <div className="text-[10px] text-slate-400 mt-1">Пока идёт экспедиция, вступать в бой нельзя.</div>
