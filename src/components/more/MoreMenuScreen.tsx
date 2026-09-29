@@ -134,7 +134,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                   <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
                     <span>Награда:</span>
                     <span className="text-amber-300 font-bold">+{q.rewardGold} 🪙</span>
-                    <span className="text-cyan-300 font-bold">+{q.rewardCrystals} 💎</span>
+                    <span className="text-slate-300 font-bold">+{q.rewardSilver || 0} 🥈</span>
                     <span className="text-indigo-300 font-bold">+{q.rewardExp} EXP</span>
                   </div>
                 </div>
