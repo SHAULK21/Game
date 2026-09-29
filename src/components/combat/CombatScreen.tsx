@@ -48,6 +48,7 @@ export const CombatScreen: React.FC = () => {
     autoBattle,
     combatStats,
     combatChain,
+    premium,
     startBattleWithMonster,
     startNextCombatBattle,
     performPlayerAction,
@@ -552,6 +553,7 @@ export const CombatScreen: React.FC = () => {
           {/* Auto-Battle Toggle */}
           <button
             onClick={toggleAutoBattle}
+            title={premium.active ? 'Автобой' : 'Доступно с Aethelgard Premium'}
             className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
               autoBattle.enabled
                 ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/50 animate-pulse'
@@ -559,7 +561,7 @@ export const CombatScreen: React.FC = () => {
             }`}
           >
             {autoBattle.enabled ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ'}</span>
+            <span>{premium.active ? (autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ') : 'Автобой · PREMIUM'}</span>
           </button>
         </div>
 
