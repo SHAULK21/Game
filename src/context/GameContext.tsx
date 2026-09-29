@@ -1318,7 +1318,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
     // Every completed combat has a small consumable roll: 0–3 potions.
-    const potionCount = Math.floor(Math.random() * 4);
+    const potionCount = Math.floor(Math.random() * 2);
     const potionPool: GameItem[] = [
       { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
       { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
