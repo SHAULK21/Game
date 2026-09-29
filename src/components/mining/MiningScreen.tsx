@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
 import { Pickaxe, Sparkles, Zap, Flame, CheckCircle2 } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { RpgIcon } from '../ui/RpgIcon';
 
 export const MiningScreen: React.FC = () => {
   const { player, mineNode } = useGame();
@@ -103,9 +104,7 @@ export const MiningScreen: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                    {node.icon}
-                  </span>
+                  <span className="p-2 bg-slate-900 rounded-lg border border-slate-800"><RpgIcon kind="ore" size={28} className="text-amber-300" /></span>
                   <div>
                     <span className="font-cinzel text-xs font-bold text-slate-100">
                       {node.name}
