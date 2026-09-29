@@ -312,7 +312,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
             {!premium.active && (
               <button
-                disabled={premiumBusy || premium.loading}
+                disabled={premiumBusy || premium.loading || !preparedPremiumInvoice}
                 onClick={async () => {
                   setPremiumBusy(true);
                   setPremiumFeedback(null);
@@ -322,7 +322,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                 }}
                 className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95 transition-all"
               >
-                {premiumBusy ? 'Открываю оплату…' : 'Подключить Premium · 150 ⭐'}
+                {premiumBusy ? 'Открываю оплату…' : !preparedPremiumInvoice ? 'Подготавливаю оплату…' : 'Подключить Premium · 150 ⭐'}
               </button>
             )}
 
