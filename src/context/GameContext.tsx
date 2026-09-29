@@ -111,7 +111,7 @@ interface GameContextType {
 
   // Admin
   adminAddGold: (amt: number) => void;
-  adminAddCrystals: (amt: number) => void;
+  adminAddSilver: (amt: number) => void;
   adminLevelUp: () => void;
   adminSpawnLegendaryItem: () => void;
   adminHealAll: () => void;
@@ -139,6 +139,14 @@ const getMonsterCombatSkills = (monster: Monster): MonsterSkill[] => {
     common[0] = { id: monster.id + '_ultimate', name: 'Королевский натиск', icon: '👑', manaCost: 35, cooldown: 4, damageMultiplier: 1.85, damageType: monster.damageType || 'physical', effect: 'stun', effectChance: 0.25, effectDuration: 1, effectPower: 0, description: 'Особый приём босса с шансом оглушения.' };
   }
   return common;
+};
+
+const getMonsterPlannedSkill = (monster: Monster): MonsterSkill | null => {
+  const readySkills = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
+  if (!readySkills.length) return null;
+  return [...readySkills].sort((a, b) =>
+    (b.damageMultiplier + (b.effect ? 0.2 : 0)) - (a.damageMultiplier + (a.effect ? 0.2 : 0))
+  )[0] || null;
 };
 
 const scaleMonsterForCombat = (monster: Monster, player: PlayerCharacter, stats: CombatStats): Monster => {
@@ -282,7 +290,7 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
 };
 
 const SAVE_KEY = 'aethelgard_save_v1_data';
-const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, mining: 8, alchemy: 5, upgrade: 4, inventory: 2, quest: 2 };
+const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, mining: 8, alchemy: 5, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
@@ -368,8 +376,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const buyBasicConsumable = useCallback((templateId: string, priceGold: number) => {
     if (!player || player.gold < priceGold) return false;
     const catalog: Record<string, GameItem> = {
-      pot_hp_small: { id: 'shop_hp', templateId: 'pot_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
-      pot_mp_small: { id: 'shop_mp', templateId: 'pot_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
+      pot_hp_small: { id: 'shop_hp', templateId: 'pot_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
+      pot_mp_small: { id: 'shop_mp', templateId: 'pot_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
     };
     const item = catalog[templateId]; if (!item) return false;
     const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
@@ -440,13 +448,40 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
 
-          // Ensure currency and energy defaults
-          parsed.player.silver = parsed.player.silver ?? 150;
-          parsed.player.shards = parsed.player.shards ?? 15;
+          // Migrate old saves to the two-currency economy.
+          const legacyShards = Number(parsed.player.shards || 0);
+          const legacyCrystals = Number(parsed.player.crystals || 0);
+          parsed.player.silver = Number(parsed.player.silver || 0) + legacyShards * 10 + legacyCrystals * 40;
+          delete parsed.player.shards;
+          delete parsed.player.crystals;
+          delete parsed.player.arcaneEnergy;
+
+          const migrateSalvage = (item: any) => {
+            if (!item) return item;
+            const salvage = item.disassembleYield || {};
+            const oldShards = Number(salvage.shards || 0);
+            const oldCrystals = Number(salvage.crystals || 0);
+            if (oldShards || oldCrystals) {
+              item.disassembleYield = {
+                ...salvage,
+                silver: Number(salvage.silver || 0) + oldShards * 10 + oldCrystals * 40
+              };
+            }
+            delete item.disassembleYield?.shards;
+            delete item.disassembleYield?.crystals;
+            return item;
+          };
+          parsed.player.inventory = (parsed.player.inventory || []).map(migrateSalvage);
+          Object.keys(parsed.player.equipped || {}).forEach(key => {
+            parsed.player.equipped[key] = migrateSalvage(parsed.player.equipped[key]);
+          });
+
+          parsed.player.silver = parsed.player.silver ?? 80;
           parsed.player.energy = parsed.player.energy ?? 60;
           parsed.player.maxEnergy = parsed.player.maxEnergy ?? 60;
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
+          parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           // Migrate old saves to the current steep XP curve.
           parsed.player.nextExp = getNextExperience(parsed.player.level);
@@ -726,7 +761,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: 'Восстанавливает 120 HP в бою.',
       stats: { heal: 120 },
       sellPrice: 10,
-      disassembleYield: { shards: 1 },
+      disassembleYield: { silver: 4 },
       stackCount: 5
     });
 
@@ -742,14 +777,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       talentPoints: 1,
       gold: 120,
       silver: 80,
-      shards: 5,
-      crystals: 8,
       energy: 60,
       maxEnergy: 60,
       lastEnergyRegenTimestamp: Date.now(),
+      lastMeditationTimestamp: 0,
       stamina: 100,
       maxStamina: 100,
-      arcaneEnergy: 50,
       attributes: { ...classDef.baseAttributes },
       equipped,
       inventory,
@@ -923,27 +956,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         inventory = addOrStackInventoryItem(inventory, material, prev.maxInventorySlots).inventory;
       };
 
-      const shards = item.disassembleYield?.shards || 0;
+      const salvageSilver = item.disassembleYield?.silver || 0;
       const ore = item.disassembleYield?.ore || 0;
-      const crystals = item.disassembleYield?.crystals || 0;
-
-      if (shards > 0) {
-        add({
-          id: 'mat_shard_' + Date.now(),
-          templateId: 'magic_shard',
-          name: 'Магический осколок',
-          type: 'material',
-          rarity: 'rare',
-          level: 1,
-          upgradeLevel: 0,
-          icon: '💠',
-          description: 'Используется для кузнечного дела и алхимии.',
-          stats: {},
-          sellPrice: 15,
-          disassembleYield: {},
-          stackCount: shards
-        });
-      }
 
       if (ore > 0) {
         add({
@@ -963,25 +977,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      if (crystals > 0) {
-        add({
-          id: 'mat_crystal_' + Date.now(),
-          templateId: 'arcane_crystal',
-          name: 'Кристалл',
-          type: 'material',
-          rarity: 'epic',
-          level: 1,
-          upgradeLevel: 0,
-          icon: '💎',
-          description: 'Редкий материал для высокоуровневого ремесла.',
-          stats: {},
-          sellPrice: 50,
-          disassembleYield: {},
-          stackCount: crystals
-        });
-      }
-
-      return { ...prev, inventory, energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory) };
+      return {
+        ...prev,
+        inventory,
+        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory),
+        silver: prev.silver + salvageSilver
+      };
     });
   }, []);
 
@@ -1014,14 +1015,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
-    const costShards = Math.max(2, Math.ceil(2 + currentLevel * 0.55));
+    const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
     const oreReq = getUpgradeOreRequirement(currentLevel);
     const oreHave = player.inventory.reduce((sum, invItem) => sum + (invItem.name === oreReq.name ? (invItem.stackCount || 1) : 0), 0);
     if (player.gold < costGold) {
       return { success: false, message: `Недостаточно золота (нужно ${costGold} 🪙)!` };
     }
-    if (player.shards < costShards) {
-      return { success: false, message: `Недостаточно осколков (нужно ${costShards} 💠)!` };
+    if (player.silver < costSilver) {
+      return { success: false, message: `Недостаточно серебра (нужно ${costSilver} 🥈)!` };
     }
     if (oreHave < oreReq.count) {
       return { success: false, message: `Нужна руда: ${oreReq.name} ×${oreReq.count} ${oreReq.icon}. Есть: ${oreHave}.` };
@@ -1064,7 +1065,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...prev,
         energy: Math.max(0, prev.energy - ENERGY_COSTS.upgrade),
         gold: prev.gold - costGold,
-        shards: prev.shards - costShards,
+        silver: prev.silver - costSilver,
         equipped: Object.fromEntries(
           Object.entries(prev.equipped).map(([k, v]) => [k, v ? updateItem(v) : v])
         ) as Partial<Record<ItemType, GameItem>>,
@@ -1082,7 +1083,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSuccess) {
       sound.playUpgradeSuccess();
       triggerHaptic('success');
-      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙, ${costShards} 💠.` };
+      return { success: true, message: `Успех! ${item.name} заточен до +${currentLevel + 1}. Потрачено: ${oreReq.name} ×${oreReq.count}, ${costGold} 🪙 и ${costSilver} 🥈.` };
     }
 
     sound.playUpgradeFail();
@@ -1102,14 +1103,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const meditateOrRefillEnergy = useCallback((mode: 'meditate' | 'silver' | 'potion') => {
+    const now = Date.now();
     setPlayer(prev => {
       if (!prev) return prev;
       if (mode === 'meditate') {
+        const cooldownMs = 60_000;
+        const lastMeditation = prev.lastMeditationTimestamp || 0;
+        if (now - lastMeditation < cooldownMs || prev.energy >= prev.maxEnergy) {
+          triggerHaptic('error');
+          return prev;
+        }
         sound.playEnergyRefill();
         triggerHaptic('medium');
         return {
           ...prev,
-          energy: Math.min(prev.maxEnergy, prev.energy + 10)
+          energy: Math.min(prev.maxEnergy, prev.energy + 10),
+          lastMeditationTimestamp: now
         };
       } else if (mode === 'silver') {
         if (prev.silver < 100) {
@@ -1134,7 +1143,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean }): boolean => {
     const activeModId = player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
-    const energyCost = activeMod.energyCost || 5;
+    const energyCost = ENERGY_COSTS.combat;
     const useChain = options?.chain !== false;
 
     if (player && player.energy < energyCost) {
@@ -1311,8 +1320,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Every completed combat has a small consumable roll: 0–3 potions.
     const potionCount = Math.floor(Math.random() * 4);
     const potionPool: GameItem[] = [
-      { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { shards: 1 }, stackCount: 1 },
-      { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { shards: 1 }, stackCount: 1 }
+      { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
+      { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
     ];
     const dungeonRoom = activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex];
     const completesDungeon =
@@ -1331,7 +1340,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error) {
       console.error('Combat loot generation failed:', error);
-      lootResult = { items: [], gold: 0, silver: 0, shards: 0 };
+      lootResult = { items: [], gold: 0, silver: 0 };
     }
     const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     if (potionCount > 0) {
@@ -1352,7 +1361,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logs.push({
       id: 'reward_' + Date.now(),
       turn: currentTurn,
-      text: `💰 Награды: +${lootResult.gold} 🪙, +${lootResult.silver} 🥈, +${lootResult.shards} 💠, +${expReward} EXP.`,
+      text: `💰 Награды: +${lootResult.gold} 🪙 и +${lootResult.silver} 🥈, +${expReward} EXP.`,
       type: 'system'
     });
 
@@ -1395,7 +1404,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...xpResult.player,
         gold: xpResult.player.gold + lootResult.gold,
         silver: xpResult.player.silver + lootResult.silver,
-        shards: xpResult.player.shards + lootResult.shards,
         inventory,
         statsSummary: {
           ...xpResult.player.statsSummary,
@@ -2226,7 +2234,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Самоцвет, найденный в руде.',
         stats: {},
         sellPrice: 35 + node.levelReq,
-        disassembleYield: { crystals: 1 },
+        disassembleYield: { silver: 80 },
         stackCount: 1 + Math.floor(Math.random() * 2)
       };
       const gemAdded = addOrStackInventoryItem(inventory, gemItem, player.maxInventorySlots);
@@ -2329,7 +2337,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: recipe.description,
       stats: resultStats,
       sellPrice: Math.max(10, recipe.levelReq * 4),
-      disassembleYield: { shards: Math.max(1, Math.floor(recipe.levelReq / 5)) },
+      disassembleYield: { silver: Math.max(4, Math.floor(recipe.levelReq * 3)) },
       stackCount: recipe.resultCount
     };
 
@@ -2418,8 +2426,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...xpResult.player,
           gold: xpResult.player.gold + q.rewardGold,
           silver: xpResult.player.silver + (q.rewardSilver || 0),
-          shards: xpResult.player.shards + (q.rewardShards || 0),
-          crystals: xpResult.player.crystals + q.rewardCrystals
         };
       });
       return { ...q, claimed: true };
@@ -2434,7 +2440,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayer(p => p ? {
         ...p,
         gold: p.gold + a.rewardGold,
-        crystals: p.crystals + a.rewardCrystals
+        silver: p.silver + (a.rewardSilver || 0)
       } : p);
       return { ...a, claimed: true };
     }));
@@ -2465,8 +2471,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sound.playVictory();
   }, []);
 
-  const adminAddCrystals = useCallback((amt: number) => {
-    setPlayer(p => p ? { ...p, crystals: p.crystals + amt } : p);
+  const adminAddSilver = useCallback((amt: number) => {
+    setPlayer(p => p ? { ...p, silver: p.silver + amt } : p);
     sound.playVictory();
   }, []);
 
@@ -2500,7 +2506,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           speed: 15
         },
         sellPrice: 15000,
-        disassembleYield: { crystals: 50, shards: 20 }
+        disassembleYield: { silver: 200, ore: 25 }
       };
       sound.playVictory();
       return {
@@ -2574,7 +2580,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sendChatMessage,
       dismissOfflineReport,
       adminAddGold,
-      adminAddCrystals,
+      adminAddSilver,
       adminLevelUp,
       adminSpawnLegendaryItem,
       adminHealAll
