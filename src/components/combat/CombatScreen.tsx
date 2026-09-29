@@ -22,6 +22,7 @@ import {
 import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS } from '../../data/gameData';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
+import { ItemArtwork } from '../ui/ItemArtwork';
 
 export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
   const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
@@ -747,7 +748,7 @@ export const CombatScreen: React.FC = () => {
                   <div className="mt-2 grid grid-cols-2 gap-1.5">
                     {lastCombatReward.items.map((item, index) => (
                       <div key={item.id + index} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/60 p-2 flex items-center gap-2">
-                        <span className="text-xl shrink-0">{item.icon || '📦'}</span>
+                        <ItemArtwork item={item} size={32} />
                         <div className="min-w-0">
                           <div className="text-[10px] text-slate-100 leading-tight break-words">{item.name}</div>
                           <div className="text-[9px] text-slate-500">×{item.stackCount || 1} · {item.rarity}</div>
