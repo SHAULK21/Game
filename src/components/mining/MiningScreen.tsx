@@ -129,7 +129,7 @@ export const MiningScreen: React.FC = () => {
           <Clock3 className="w-4 h-4 text-cyan-300" />
           <div>
             <div className="text-xs font-bold text-cyan-200">Шахтёрская экспедиция</div>
-            <div className="text-[10px] text-slate-500">Во время экспедиции ручная добыча недоступна. Если уйти раньше, сохранится часть уже добытых ресурсов.</div>
+            <div className="text-[10px] text-slate-500">Экспедиция отвечает только за офлайн-добычу. Ручная добыча остаётся доступной. Если уйти раньше, сохранится часть уже добытых ресурсов.</div>
           </div>
         </div>
 
