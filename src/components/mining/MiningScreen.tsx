@@ -148,13 +148,19 @@ export const MiningScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap gap-1">
-              {(expedition.rewards || []).map(reward => (
-                <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
-                  {reward.icon} {reward.name} ×{reward.count}
-                </span>
-              ))}
-            </div>
+            {expeditionReady ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(expedition.rewards || []).map(reward => (
+                  <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
+                    {reward.icon} {reward.name} ×{reward.count}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2 text-[10px] text-slate-500">
+                Состав добычи будет известен после возвращения экспедиции.
+              </div>
+            )}
 
             {expeditionReady && (
               <button
