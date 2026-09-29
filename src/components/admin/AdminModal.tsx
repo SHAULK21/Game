@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
   ShieldAlert, 
@@ -10,10 +10,13 @@ import {
   UserCheck, 
   Megaphone,
   X,
-  Check
+  Check,
+  Users,
+  Activity
 } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { getTelegramUser } from '../../utils/telegram';
+import { apiRequest } from '../../utils/api';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -34,9 +37,32 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
   const [broadcastText, setBroadcastText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [serverStats, setServerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 });
 
   const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
   const isAdmin = Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
+
+  useEffect(() => {
+    if (!isOpen || !isAdmin) return;
+    let alive = true;
+    const loadServerStats = async () => {
+      try {
+        const stats = await apiRequest<{ totalPlayers: number; onlinePlayers: number }>('/api/community/stats');
+        if (alive) setServerStats({
+          totalPlayers: Number(stats?.totalPlayers || 0),
+          onlinePlayers: Number(stats?.onlinePlayers || 0)
+        });
+      } catch {
+        // Admin tools remain available even if server statistics are temporarily unavailable.
+      }
+    };
+    loadServerStats();
+    const timer = window.setInterval(loadServerStats, 15000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [isOpen, isAdmin]);
 
   if (!isOpen || !player || !isAdmin) return null;
 
@@ -85,6 +111,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             {feedback}
           </div>
         )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-indigo-300">
+              <Users className="w-3.5 h-3.5" /> Всего игроков
+            </div>
+            <div className="mt-1 text-xl font-mono font-bold text-slate-100">{serverStats.totalPlayers}</div>
+          </div>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-300">
+              <Activity className="w-3.5 h-3.5" /> Сейчас онлайн
+            </div>
+            <div className="mt-1 text-xl font-mono font-bold text-emerald-200">{serverStats.onlinePlayers}</div>
+          </div>
+        </div>
 
         {/* Quick Resource Cheats */}
         <div className="space-y-1.5">
