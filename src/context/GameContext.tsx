@@ -1408,7 +1408,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (isInCombat && !isCombatEnded) return false;
 
-    const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId) : [scaleMonsterForCombat(monster, player!, combatStats)];
+    const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId) : [prepareMonsterForCombat(monster)];
 
     setPlayer(prev => prev ? {
       ...prev,
