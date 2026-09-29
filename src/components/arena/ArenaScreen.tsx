@@ -1,17 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ARENA_BOTS } from '../../data/gameData';
-import { Trophy, Swords, Shield, Zap, Flame, Crown } from 'lucide-react';
-import { sound } from '../../utils/audio';
+import { Trophy, Swords, Crown } from 'lucide-react';
 
 interface ArenaScreenProps {
   onEnterCombatTab?: () => void;
 }
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) => {
-  const { player, challengeArena } = useGame();
+  const { player, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
+  const [fightError, setFightError] = useState<string | null>(null);
 
   if (!player) return null;
+
+  const handleChallenge = (opponent: (typeof ARENA_BOTS)[number]) => {
+    setFightError(null);
+    if (isInCombat && !isCombatEnded) {
+      onEnterCombatTab?.();
+      return;
+    }
+    if (activeDungeonRun) {
+      setFightError('Завершите текущий поход в подземелье перед боем на Арене.');
+      return;
+    }
+    if (player.miningExpedition && !premium.active) {
+      setFightError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
+      return;
+    }
+    if (player.arenaTickets <= 0) {
+      setFightError('Билеты закончились. Они восстановятся завтра в 00:00 UTC.');
+      return;
+    }
+    if (challengeArena(opponent)) onEnterCombatTab?.();
+    else setFightError('Не удалось начать бой. Попробуйте ещё раз.');
+  };
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
@@ -35,6 +57,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
             <span className="text-xs font-mono font-bold text-yellow-300">
               🎟️ {player.arenaTickets} / 5
             </span>
+            <span className="text-[10px] text-slate-400 block">Восстановление: 00:00 UTC</span>
           </div>
         </div>
 
@@ -61,6 +84,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
       {/* Opponents Selection */}
       <div className="space-y-2.5">
+        {fightError && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-xs text-amber-200">{fightError}</p>}
         <div className="flex items-center justify-between px-1">
           <span className="font-cinzel text-xs font-bold text-slate-300 uppercase tracking-wider">
             Доступные соперники
@@ -102,11 +126,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 </div>
 
                 <button
-                  onClick={() => {
-                    const started = challengeArena(opp);
-                    if (started && onEnterCombatTab) onEnterCombatTab();
-                  }}
-                  disabled={player.arenaTickets <= 0}
+                  onClick={() => handleChallenge(opp)}
                   className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-yellow-950 active:scale-95 transition-all flex items-center gap-1.5"
                 >
                   <Swords className="w-3.5 h-3.5" />
