@@ -449,7 +449,8 @@ app.get('/api/chat/global', auth, async (_req, res) => {
   try {
     await ensureGlobalChatSchema();
     const result = await pool.query(
-      `SELECT m.id, m.text, m.created_at, p.display_name, p.username
+      `SELECT m.id, m.text, m.created_at, p.display_name, p.username,
+              (p.premium_until IS NOT NULL AND p.premium_until > NOW()) AS is_premium
        FROM global_chat_messages m
        JOIN players p ON p.telegram_id = m.telegram_id
        ORDER BY m.created_at DESC
@@ -474,11 +475,16 @@ app.post('/api/chat/global', auth, async (req, res) => {
        RETURNING id, text, created_at`,
       [req.authUser!.id, text]
     );
+    const premiumResult = await pool.query(
+      'SELECT (premium_until IS NOT NULL AND premium_until > NOW()) AS is_premium FROM players WHERE telegram_id = $1',
+      [req.authUser!.id]
+    );
     res.status(201).json({
       message: {
         ...result.rows[0],
         display_name: req.authUser!.displayName,
-        username: req.authUser!.username
+        username: req.authUser!.username,
+        is_premium: Boolean(premiumResult.rows[0]?.is_premium)
       }
     });
   } catch (error) {
