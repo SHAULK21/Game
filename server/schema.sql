@@ -145,6 +145,10 @@ CREATE TABLE IF NOT EXISTS market_listings (
 CREATE INDEX IF NOT EXISTS idx_market_active ON market_listings(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_telegram_id, status);
 
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS sale_tax_gold INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS seller_net_gold INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS premium_payments (
   id BIGSERIAL PRIMARY KEY,
   telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,

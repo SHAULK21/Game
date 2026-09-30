@@ -120,6 +120,7 @@ interface GameContextType {
   leaveMiningExpedition: () => { success: boolean; message: string };
   craftAlchemy: (recipeId: string) => boolean;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
+  refreshMarketIncome: () => Promise<void>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
   craftBasicItem: (recipeId: string) => { success: boolean; message: string };
@@ -747,6 +748,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
   }, [player]);
 
+  const refreshMarketIncome = useCallback(async () => {
+    if (!player) return;
+    const userId = player.userId;
+    const income = await apiRequest<{ totalGold: number }>('/api/market/income');
+    setPlayer(prev => {
+      if (!prev || prev.userId !== userId) return prev;
+      const received = prev.marketIncomeReceived || 0;
+      const delta = Math.max(0, income.totalGold - received);
+      if (!delta) return prev;
+      return { ...prev, gold: prev.gold + delta, marketIncomeReceived: income.totalGold };
+    });
+  }, [player?.userId]);
+
   const buyMarketListing = useCallback(async (listingId: string, expectedPriceGold?: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
     if (expectedPriceGold !== undefined && player.gold < expectedPriceGold) return { success: false, message: 'Недостаточно золота.' };
@@ -756,7 +770,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
       const raw = result.item;
       const item: GameItem = {
-        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
+        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: getLeveledEquipmentName(String(raw.name || 'Предмет'), raw.type || 'material', Number(raw.level || 1)),
         type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
         upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
         armorClass: raw.armorClass, weaponClass: raw.weaponClass,
@@ -955,6 +969,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeDungeonRun
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
+    localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
   }, [player, quests, achievements, chatMessages, activeDungeonRun]);
 
   // Online count simulation
@@ -1205,6 +1220,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newPlayer: PlayerCharacter = {
       id: 'char_' + Date.now(),
       userId: String(getTelegramUser().id),
+      marketIncomeReceived: Number(localStorage.getItem('aethelgard_market_income_' + getTelegramUser().id) || 0),
       name: name.trim() || 'Теневой Воин',
       classId,
       level: 1,
@@ -3535,6 +3551,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       leaveMiningExpedition,
       craftAlchemy,
       listMarketItem,
+      refreshMarketIncome,
       buyMarketListing,
       buyBasicConsumable,
       craftBasicItem,
