@@ -9,7 +9,7 @@ type GlobalMessage = {
   text: string;
   created_at: string;
   display_name: string;
-  username?: string;
+  telegram_id?: number | string;
   is_premium?: boolean;
 };
 
@@ -21,8 +21,8 @@ const normalizeMessages = (value: unknown): GlobalMessage[] => {
       id: item.id ?? `fallback_${index}`,
       text: String(item.text ?? ''),
       created_at: String(item.created_at ?? new Date().toISOString()),
-      display_name: String(item.display_name ?? item.username ?? 'Игрок'),
-      username: item.username ? String(item.username) : undefined,
+      display_name: String(item.display_name || 'Игрок'),
+      telegram_id: item.telegram_id,
       is_premium: Boolean(item.is_premium)
     }))
     .filter(item => item.text.length > 0);
@@ -91,6 +91,10 @@ export const ChatScreen: React.FC = () => {
 
     setSending(true);
     try {
+      if (player) await apiRequest('/api/profile/sync', {
+        method: 'POST',
+        body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
+      });
       const response = await apiRequest<{ message?: unknown }>('/api/chat/global', {
         method: 'POST',
         body: JSON.stringify({ text })
@@ -108,7 +112,6 @@ export const ChatScreen: React.FC = () => {
     }
   };
 
-  const playerName = player?.name || '';
   const renderedMessages = useMemo(() => messages.slice(-80), [messages]);
 
   if (!player) return null;
@@ -148,7 +151,7 @@ export const ChatScreen: React.FC = () => {
 
       <div className="flex-1 min-h-[240px] overflow-y-auto space-y-2 pr-1">
         {renderedMessages.map(message => {
-          const me = message.display_name === playerName;
+          const me = message.telegram_id != null && String(message.telegram_id) === String(player.userId);
           const date = new Date(message.created_at);
           const time = Number.isNaN(date.getTime())
             ? ''
