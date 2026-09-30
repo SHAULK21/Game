@@ -506,6 +506,7 @@ export interface PlayerCharacter {
   equipped: Partial<Record<ItemType, GameItem>>;
   inventory: GameItem[];
   maxInventorySlots: number;
+  marketIncomeReceived?: number;
 
   talents: Talent[];
   skills: Skill[];
