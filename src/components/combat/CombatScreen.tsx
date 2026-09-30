@@ -19,7 +19,8 @@ import {
   Crown,
   X
 } from 'lucide-react';
-import { MONSTERS, REGIONS, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
+import { MONSTERS, REGIONS, CAVES, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
+import { BattleBackdrop, getBattleScene } from './BattleBackdrop';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
@@ -452,20 +453,22 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
   const hasMonImg = isMonsterImg(activeMonster.avatar);
   const playerClass = CLASSES[player.classId] || CLASSES['warrior'];
   const playerHeroImg = playerClass?.image || ASSETS.heroHunter;
+  const battleDungeon = activeMonster.regionId !== 'arena' && activeDungeonRun ? CAVES[activeDungeonRun.dungeonId] : undefined;
+  const battleRegion = REGIONS.find(region => region.id === activeMonster.regionId) || currentRegion;
+  const battleLocationName = activeMonster.regionId === 'arena' ? 'Колизей Чемпионов' : battleDungeon?.name || battleRegion.name;
+  const battleScene = getBattleScene(activeMonster.regionId, currentRegion.id, battleDungeon?.id);
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
       {premiumModal}
       {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
       <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] shadow-2xl h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
-        {/* Atmospheric Background with gradient lighting */}
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-950/35 via-[#070c18] to-red-950/40 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-transparent to-transparent pointer-events-none" />
+        <BattleBackdrop scene={battleScene} dungeonId={battleDungeon?.id} />
 
         {/* Top combat status bar inside the 1/3 showcase */}
         <div className="relative z-10 flex items-center justify-between text-[11px] font-mono border-b border-slate-800/80 pb-1.5">
           <div className="flex items-center gap-1.5 text-cyan-300">
-            <span className="font-bold truncate max-w-[120px]">{currentRegion.name}</span>
+            <span className="font-bold truncate max-w-[120px]" title={battleLocationName}>{battleLocationName}</span>
             <span className="text-slate-600">·</span>
             <span className="text-amber-300 text-[10px]">[{activeMod.name}]</span>
           </div>
