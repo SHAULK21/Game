@@ -740,6 +740,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             {combatOutcome === 'victory' && lastCombatReward && (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
                 <div className="text-[11px] font-bold text-emerald-300 mb-2">Получено за бой</div>
+                {Boolean(lastCombatReward.arenaRatingGain) && <div className="mb-2 text-xs font-bold text-yellow-300">🏅 Рейтинг арены: +{lastCombatReward.arenaRatingGain} PTS</div>}
                 <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
                   <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
                     <div className="text-amber-300 font-bold">+{lastCombatReward.gold}</div>
