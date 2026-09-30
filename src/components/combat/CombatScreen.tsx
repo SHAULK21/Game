@@ -24,6 +24,7 @@ import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { skillTier } from '../../data/classEvolution';
+import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 
 export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
   const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
@@ -248,7 +249,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                   onClick={() => meditateOrRefillEnergy('silver')}
                   className="px-2.5 py-1 bg-amber-950 border border-amber-500 rounded text-amber-200 text-[10px] font-bold"
                 >
-                  🧪 Восстановление (+30 ⚡ / 100 🥈)
+                  🧪 Эликсир (+30 ⚡ / {getEnergyElixirPrice(premium.active)} 🥈){premium.active ? ' · −50% Premium' : ''}
                 </button>
               </div>
             </div>
