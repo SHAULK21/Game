@@ -72,6 +72,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
               <div className="text-[11px] font-mono text-slate-400">
                 Рейтинг: <span className="text-cyan-300 font-bold">{player.arenaRating}</span> PTS
               </div>
+              <div className="text-[10px] text-emerald-400">Победа: +25 PTS</div>
             </div>
           </div>
 
