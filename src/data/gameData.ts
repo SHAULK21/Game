@@ -1514,7 +1514,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   }
 ];
 
-export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
+const RAW_BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
   {
     id: 'basic_boar_ration',
     name: 'Сытный паёк из вепря',
@@ -1583,6 +1583,23 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     }));
   })
 ];
+
+// Store canonical names and levels in the recipes themselves, so every
+// consumer sees the same item that crafting will create. Starter equipment
+// belongs to the first region instead of appearing in every endgame list.
+export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = RAW_BASIC_CRAFT_RECIPES.map(recipe => {
+  if (!recipe.result || !EQUIPMENT_BASE_NAMES[recipe.result.type]) return recipe;
+  const level = recipe.result.level ?? recipe.levelReq ?? 1;
+  const name = getLeveledEquipmentName(recipe.result.name, recipe.result.type, level, recipe.result.targetClass);
+  return {
+    ...recipe,
+    name,
+    regionId: recipe.regionId || 'reg_plains',
+    levelReq: recipe.levelReq ?? level,
+    miningLevelReq: recipe.miningLevelReq ?? 1,
+    result: { ...recipe.result, name, level }
+  };
+});
 
 export const INITIAL_QUESTS: Quest[] = [
   {
