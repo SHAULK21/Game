@@ -9,6 +9,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { calculateMarketSale } from '../src/utils/marketEconomy';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -742,6 +743,14 @@ app.post('/api/market/list', auth, async (req, res) => {
   res.status(201).json({ listing: { ...result.rows[0], display_name: req.authUser!.displayName } });
 });
 
+app.get('/api/market/income', auth, async (req, res) => {
+  const result = await pool.query(
+    `SELECT COALESCE(SUM(seller_net_gold), 0) AS total_gold FROM market_listings
+     WHERE seller_telegram_id = $1 AND status = 'sold'`, [req.authUser!.id]
+  );
+  res.json({ totalGold: Number(result.rows[0].total_gold) });
+});
+
 app.post('/api/market/:listingId/buy', auth, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -749,9 +758,17 @@ app.post('/api/market/:listingId/buy', auth, async (req, res) => {
     const listing = await client.query(`SELECT * FROM market_listings WHERE id = $1 AND status = 'active' AND expires_at > NOW() FOR UPDATE`, [req.params.listingId]);
     if (!listing.rows[0]) throw new Error('Лот уже продан или снят.');
     if (Number(listing.rows[0].seller_telegram_id) === req.authUser!.id) throw new Error('Нельзя купить собственный лот.');
-    await client.query(`UPDATE market_listings SET status = 'sold' WHERE id = $1`, [req.params.listingId]);
+    const sellerStatus = await client.query(
+      `SELECT (premium_until IS NOT NULL AND premium_until > NOW()) AS is_premium
+       FROM players WHERE telegram_id = $1`, [listing.rows[0].seller_telegram_id]
+    );
+    const sale = calculateMarketSale(Number(listing.rows[0].price_gold), Boolean(sellerStatus.rows[0]?.is_premium));
+    await client.query(
+      `UPDATE market_listings SET status = 'sold', sale_tax_gold = $2, seller_net_gold = $3, sold_at = NOW() WHERE id = $1`,
+      [req.params.listingId, sale.taxGold, sale.sellerGold]
+    );
     await client.query('COMMIT');
-    res.json({ ok: true, item: listing.rows[0].item_json, quantity: listing.rows[0].quantity, priceGold: listing.rows[0].price_gold, seller: listing.rows[0].seller_telegram_id });
+    res.json({ ok: true, item: listing.rows[0].item_json, quantity: listing.rows[0].quantity, priceGold: listing.rows[0].price_gold, seller: listing.rows[0].seller_telegram_id, ...sale });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(400).json({ error: error instanceof Error ? error.message : 'Покупка не удалась.' });
