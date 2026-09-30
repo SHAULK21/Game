@@ -311,7 +311,8 @@ app.get('/api/clan/me', auth, async (req, res) => {
     [clan.id]
   );
   const messages = await pool.query(
-    `SELECT m.id, m.text, m.created_at, p.display_name, p.username
+    `SELECT m.id, m.text, m.created_at,
+            COALESCE(NULLIF(BTRIM(p.character_name), ''), 'Игрок') AS display_name
      FROM clan_chat_messages m JOIN players p ON p.telegram_id = m.telegram_id
      WHERE m.clan_id = $1 ORDER BY m.created_at DESC LIMIT 50`,
     [clan.id]
@@ -656,14 +657,19 @@ app.post('/api/clan/chat', auth, requireClan, async (req, res) => {
      RETURNING id, text, created_at`,
     [res.locals.clan.id, req.authUser!.id, text]
   );
-  res.status(201).json({ message: { ...result.rows[0], display_name: req.authUser!.displayName } });
+  const profile = await pool.query(
+    "SELECT COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS display_name FROM players WHERE telegram_id = $1",
+    [req.authUser!.id]
+  );
+  res.status(201).json({ message: { ...result.rows[0], display_name: profile.rows[0]?.display_name || 'Игрок' } });
 });
 
 app.get('/api/chat/global', auth, async (_req, res) => {
   try {
     await ensureGlobalChatSchema();
     const result = await pool.query(
-      `SELECT m.id, m.text, m.created_at, p.display_name, p.username,
+      `SELECT m.id, m.telegram_id, m.text, m.created_at,
+              COALESCE(NULLIF(BTRIM(p.character_name), ''), 'Игрок') AS display_name,
               (p.premium_until IS NOT NULL AND p.premium_until > NOW()) AS is_premium
        FROM global_chat_messages m
        JOIN players p ON p.telegram_id = m.telegram_id
@@ -690,14 +696,14 @@ app.post('/api/chat/global', auth, async (req, res) => {
       [req.authUser!.id, text]
     );
     const premiumResult = await pool.query(
-      'SELECT (premium_until IS NOT NULL AND premium_until > NOW()) AS is_premium FROM players WHERE telegram_id = $1',
+      "SELECT COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS display_name, (premium_until IS NOT NULL AND premium_until > NOW()) AS is_premium FROM players WHERE telegram_id = $1",
       [req.authUser!.id]
     );
     res.status(201).json({
       message: {
         ...result.rows[0],
-        display_name: req.authUser!.displayName,
-        username: req.authUser!.username,
+        telegram_id: req.authUser!.id,
+        display_name: premiumResult.rows[0]?.display_name || 'Игрок',
         is_premium: Boolean(premiumResult.rows[0]?.is_premium)
       }
     });
