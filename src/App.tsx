@@ -23,7 +23,7 @@ import { AdminModal } from './components/admin/AdminModal';
 import { initTelegramApp } from './utils/telegram';
 
 const MainGameContent: React.FC = () => {
-  const { player, quests } = useGame();
+  const { player, quests, isInCombat, isCombatEnded } = useGame();
   const [currentTab, setCurrentTab] = useState<TabId>('hunter');
   const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -31,6 +31,13 @@ const MainGameContent: React.FC = () => {
   useEffect(() => {
     initTelegramApp();
   }, []);
+
+  useEffect(() => {
+    if (isInCombat && !isCombatEnded) {
+      setIsCharacterSheetOpen(false);
+      setCurrentTab('hunter');
+    }
+  }, [isInCombat, isCombatEnded]);
 
   if (!player) {
     return <CharacterCreationModal />;
@@ -49,7 +56,7 @@ const MainGameContent: React.FC = () => {
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
         ) : (
           <>
-            {currentTab === 'hunter' && <CombatScreen />}
+            {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} />}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
