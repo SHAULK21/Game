@@ -103,6 +103,7 @@ export interface GameItem {
   isLocked?: boolean;
   armorClass?: 'heavy' | 'medium' | 'light';
   weaponClass?: 'twoHanded' | 'dagger' | 'staff' | 'shield' | 'bow';
+  targetClass?: CharacterClassId;
   boundToClan?: string;
   serverOwned?: boolean;
 }
@@ -346,6 +347,7 @@ export interface BasicCraftRecipe {
   regionId?: string;
   ingredients: { name: string; count: number }[];
   result?: {
+    targetClass?: CharacterClassId;
     name: string;
     type: ItemType;
     rarity: ItemRarity;
