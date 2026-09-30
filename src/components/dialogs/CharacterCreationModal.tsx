@@ -28,21 +28,17 @@ export const CharacterCreationModal: React.FC = () => {
       <div className="w-full max-w-md space-y-4 my-auto">
         {/* Logo / Header */}
         <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono">
-            <span>✨</span>
-            <span>Telegram Web App RPG</span>
-          </div>
 
-          <h1 className="font-cinzel text-2xl font-black tracking-wider text-slate-100 uppercase">
+          <h1 className="text-2xl font-semibold tracking-wide text-slate-100">
             AETHELGARD
           </h1>
           <p className="text-xs text-slate-400">
-            Мрачные хроники темного фэнтези. Выберите класс и создайте легенду.
+            Выберите класс и имя персонажа.
           </p>
         </div>
 
         {/* Hero Visual Card */}
-        <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent shadow-xl">
+        <div className="relative rounded-2xl overflow-hidden border border-slate-700 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent">
           <img
             src={activeClassDef?.image || ASSETS.heroHunter}
             alt={activeClassDef?.name || 'Hero'}
@@ -68,7 +64,7 @@ export const CharacterCreationModal: React.FC = () => {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Введите имя героя..."
-            className="w-full bg-[#0b101c] border border-cyan-500/30 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-cinzel font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+            className="w-full bg-[#0b101c] border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-cinzel font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
           />
         </div>
 
@@ -90,7 +86,7 @@ export const CharacterCreationModal: React.FC = () => {
                   }}
                   className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                     isSelected
-                      ? 'border-cyan-400 bg-cyan-950/60 shadow-md shadow-cyan-950 text-cyan-200'
+                      ? 'border-[#9d8459] bg-[#302c24] text-[#d5ba89]'
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
                   }`}
                 >
@@ -113,7 +109,7 @@ export const CharacterCreationModal: React.FC = () => {
                 <span>{activeClassDef.icon}</span>
                 <span>{activeClassDef.name} ({activeClassDef.role})</span>
               </span>
-              <span className="text-cyan-400 font-mono text-[11px]">
+              <span className="text-[#d5ba89] font-mono text-[11px]">
                 {activeClassDef.startingSkills.length} стартовых навыка
               </span>
             </div>
@@ -121,7 +117,7 @@ export const CharacterCreationModal: React.FC = () => {
             <p className="text-[11px] text-slate-300 leading-relaxed">
               {activeClassDef.description}
             </p>
-            <div className="rounded-lg border border-cyan-500/30 p-2 text-[10px] text-cyan-200">
+            <div className="rounded-lg border border-slate-700 p-2 text-[10px] text-cyan-200">
               Основное оружие: {CLASS_EQUIPMENT[selectedClass].weapon}. Нагрудник: {CLASS_EQUIPMENT[selectedClass].armor}.
               <ClassGearBonus item={{ name: CLASS_EQUIPMENT[selectedClass].weapon, type: 'weapon', targetClass: selectedClass, level: 1 }} characterClass={selectedClass} />
               <ClassGearBonus item={{ name: CLASS_EQUIPMENT[selectedClass].armor, type: 'armor', targetClass: selectedClass, level: 1 }} characterClass={selectedClass} />
@@ -143,7 +139,7 @@ export const CharacterCreationModal: React.FC = () => {
         <button
           onClick={handleStart}
           disabled={!name.trim()}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white font-cinzel font-bold text-sm shadow-xl shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
+          className="ui-primary w-full py-3.5 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
         >
           <Swords className="w-4 h-4" />
           <span>Начать путешествие</span>

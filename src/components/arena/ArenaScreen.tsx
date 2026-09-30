@@ -38,11 +38,11 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-b from-[#181408] via-[#0f1118] to-[#07090e] p-4 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-xl bg-yellow-950/60 border border-yellow-400/40 text-yellow-300">
-              <Trophy className="w-6 h-6 animate-pulse" />
+              <Trophy className="w-6 h-6" />
             </div>
             <div>
               <div className="text-[10px] font-mono text-yellow-400 uppercase">Рейтинговый сезон I</div>
@@ -70,7 +70,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 Лига: <span className="text-yellow-400">{player.arenaLeague}</span>
               </div>
               <div className="text-[11px] font-mono text-slate-400">
-                Рейтинг: <span className="text-cyan-300 font-bold">{player.arenaRating}</span> PTS
+                Рейтинг: <span className="text-[#d5ba89] font-bold">{player.arenaRating}</span> PTS
               </div>
               <div className="text-[10px] text-emerald-400">Победа: +25 PTS · Поражение: −15 PTS</div>
             </div>
@@ -102,12 +102,12 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 key={opp.id}
                 className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all flex items-center justify-between"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 min-w-0">
                   <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
                     {opp.avatar}
                   </span>
-                  <div>
-                    <div className="flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-cinzel text-xs font-bold text-slate-100">
                         {opp.name}
                       </span>
@@ -116,7 +116,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                       </span>
                     </div>
 
-                    <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-0.5">
+                    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1 mt-0.5">
                       <span>Ур. {opp.level}</span>
                       <span>·</span>
                       <span>Мощь: <span className="text-amber-300 font-bold">{opp.powerRating}</span></span>
@@ -128,7 +128,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
                 <button
                   onClick={() => handleChallenge(opp)}
-                  className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-yellow-950 active:scale-95 transition-all flex items-center gap-1.5"
+                  className="ui-primary shrink-0 ml-2 min-h-11 px-3 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs active:scale-95 transition-all flex items-center gap-1.5"
                 >
                   <Swords className="w-3.5 h-3.5" />
                   <span>В бой</span>

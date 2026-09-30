@@ -67,10 +67,10 @@ export const BlacksmithScreen: React.FC = () => {
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Header */}
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-[#17100b] to-[#0a0d16] p-4 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-400">
-            <Hammer className="w-6 h-6 animate-pulse" />
+            <Hammer className="w-6 h-6" />
           </div>
           <div>
             <h2 className="font-cinzel text-lg font-bold text-slate-100">
@@ -104,7 +104,7 @@ export const BlacksmithScreen: React.FC = () => {
                 }}
                 className={`shrink-0 p-2.5 rounded-xl border flex flex-col items-center justify-center w-24 cursor-pointer transition-all ${
                   isSelected
-                    ? 'border-amber-400 bg-amber-950/40 shadow-md shadow-amber-950'
+                    ? 'border-amber-400 bg-amber-950/40 shadow-md '
                     : `${rarityStyle.border} ${rarityStyle.bg} opacity-75 hover:opacity-100`
                 }`}
               >
@@ -123,7 +123,7 @@ export const BlacksmithScreen: React.FC = () => {
 
       {/* Main Upgrade Anvil Display */}
       {currentItem ? (
-        <div className="rounded-2xl border border-slate-800 bg-[#0a0f1d] p-4 space-y-4 shadow-xl">
+        <div className="rounded-2xl border border-slate-800 bg-[#0a0f1d] p-4 space-y-4">
           {/* Item details */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-3">
@@ -154,7 +154,7 @@ export const BlacksmithScreen: React.FC = () => {
           {/* Stats Preview Before -> After */}
           <ClassGearBonus item={currentItem} characterClass={player.classId} />
           <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-900 space-y-2">
-            <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">
+            <div className="text-[10px] font-mono text-[#d5ba89] uppercase tracking-wider">
               Прирост характеристик (+12% за уровень):
             </div>
             {currentItem.baseAttack && (
@@ -243,7 +243,7 @@ export const BlacksmithScreen: React.FC = () => {
                 className="rounded text-amber-500 focus:ring-0"
               />
               <span className="flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                <Shield className="w-3.5 h-3.5 text-[#d5ba89]" />
                 <span>Защита от понижения уровня (+{protectionCost || Math.max(250, Math.round(costSilver * 1.5))} 🥈)</span>
               </span>
             </label>
@@ -266,10 +266,10 @@ export const BlacksmithScreen: React.FC = () => {
           {currentItem.serverOwned ? <div className="w-full py-3 rounded-xl border border-slate-700 text-center text-slate-400 text-xs">Для заточки серверной вещи нужна серверная кузница и учёт руды.</div> : currentLevel >= 25 ? <div className="w-full py-3 rounded-xl border border-emerald-500/40 text-center text-emerald-300 text-sm font-bold">✅ Заточено до предела +25</div> : <button
             onClick={handleUpgrade}
             disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || !ingredientsReady}
-            className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 ${
+            className={`w-full py-3 rounded-xl font-cinzel font-bold text-sm flex items-center justify-center gap-2  transition-all active:scale-98 ${
               (player.gold < costGold || player.silver < costSilver + protectionCost || !ingredientsReady)
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                : 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-slate-950 hover:brightness-110 shadow-amber-500/25 border border-amber-400'
+                : 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-slate-950 hover:brightness-110  border border-amber-400'
             }`}
           >
             <Hammer className={`w-4 h-4 ${isUpgrading ? 'animate-spin' : ''}`} />

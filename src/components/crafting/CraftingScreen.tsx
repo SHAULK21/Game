@@ -43,14 +43,17 @@ export const CraftingScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-[#17100b] to-[#0a0d16] p-4">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-2 text-amber-300">
           <Hammer className="w-6 h-6" />
-          <h2 className="font-cinzel text-lg font-bold">Мастерская снаряжения</h2>
+          <h2 className="text-xl font-semibold">Крафт снаряжения</h2>
         </div>
         <p className="mt-2 text-xs text-slate-300">Рецепты постоянны для всех игроков. Трофеи добываются в соседних по уровню локациях; шахтные материалы могут быть из разных жил.</p>
-        <p className="mt-2 text-[10px] text-cyan-300">Качество созданного снаряжения: {qualityOdds}</p>
-        <p className="mt-2 text-[10px] text-amber-300">Уровень снаряжения случаен внутри ступени, все уровни равновероятны. Готовая заточка: +1 — 2%, +2 — 1,5%, +3 — 0,9%, +4 — 0,45%, +5 — 0,15%. Без заточки — 95%.</p>
+        <details className="mt-3 text-xs text-slate-300">
+          <summary className="cursor-pointer py-2 text-[#d5ba89]">Шансы качества и заточки</summary>
+          <p className="mt-2">Качество созданного снаряжения: {qualityOdds}</p>
+          <p className="mt-2">Уровень снаряжения случаен внутри ступени, все уровни равновероятны. Готовая заточка: +1 — 2%, +2 — 1,5%, +3 — 0,9%, +4 — 0,45%, +5 — 0,15%. Без заточки — 95%.</p>
+        </details>
       </div>
 
       <label className="block text-xs text-slate-300">
@@ -90,14 +93,14 @@ export const CraftingScreen: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-100">{recipe.name}</div>
                   {recipe.result && <ClassGearBonus item={{ ...recipe.result, level: recipe.result.level || 1 }} characterClass={player.classId} />}
-                  <p className="mt-0.5 text-[10px] text-slate-400">{recipe.description}</p>
-                  {recipe.regionId && <p className="mt-1 text-[10px] text-cyan-300">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
-                  {isEquipment && <p className="mt-1 text-[10px] text-cyan-300">Уровень вещи: {range.min}–{range.max} · Возможна заточка +1–+5</p>}
+                  <p className="mt-0.5 text-[11px] text-slate-400">{recipe.description}</p>
+                  {recipe.regionId && <p className="mt-1 text-[11px] text-[#d5ba89]">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
+                  {isEquipment && <p className="mt-1 text-[11px] text-[#d5ba89]">Уровень вещи: {range.min}–{range.max} · Возможна заточка +1–+5</p>}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {requirements.map(ingredient => (
-                      <span key={ingredient.name} className={`rounded border px-1.5 py-1 text-[9px] ${ingredient.have >= ingredient.count ? 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300' : 'border-rose-500/30 bg-rose-950/20 text-rose-300'}`}>
+                      <span key={ingredient.name} className={`rounded border px-1.5 py-1 text-[11px] ${ingredient.have >= ingredient.count ? 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300' : 'border-rose-500/30 bg-rose-950/20 text-rose-300'}`}>
                         {ingredient.name} {ingredient.have}/{ingredient.count}
-                        <span className="block text-[8px] text-slate-400">{ingredientSource(ingredient.name)}</span>
+                        <span className="block text-[11px] text-slate-400">{ingredientSource(ingredient.name)}</span>
                       </span>
                     ))}
                   </div>
@@ -105,7 +108,7 @@ export const CraftingScreen: React.FC = () => {
                 <button
                   onClick={() => setFeedback(craftBasicItem(recipe.id).message)}
                   disabled={!canCraft}
-                  className="shrink-0 rounded-lg bg-amber-600 px-2.5 py-2 text-[10px] font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-35"
+                  className="ui-primary shrink-0 rounded-lg px-2.5 py-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   Создать
                 </button>

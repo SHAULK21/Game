@@ -146,13 +146,13 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                       ) : (
                         <button
                           onClick={() => claimQuestReward(q.id)}
-                          className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs active:scale-95 transition-all shadow-md shadow-amber-950 animate-bounce"
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs active:scale-95 transition-all shadow-md"
                         >
                           Забрать
                         </button>
                       )
                     ) : (
-                      <span className="text-[10px] font-mono text-cyan-400">
+                      <span className="text-[10px] font-mono text-[#d5ba89]">
                         {q.currentCount}/{q.targetCount}
                       </span>
                     )}
@@ -229,7 +229,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {/* STATS SECTION */}
       {activeSection === 'stats' && (
         <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-4 space-y-3">
-          <span className="font-cinzel text-xs font-bold text-cyan-300 uppercase tracking-wider block border-b border-slate-800 pb-2">
+          <span className="font-cinzel text-xs font-bold text-[#d5ba89] uppercase tracking-wider block border-b border-slate-800 pb-2">
             Статистика учетной записи:
           </span>
 
@@ -248,7 +248,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
             </div>
             <div className="flex justify-between py-1 border-b border-slate-900">
               <span className="text-slate-400">Добыто руды в шахтах:</span>
-              <span className="text-cyan-400 font-bold">{player.statsSummary.oresMined}</span>
+              <span className="text-[#d5ba89] font-bold">{player.statsSummary.oresMined}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-900">
               <span className="text-slate-400">Сварено зелий:</span>
@@ -275,7 +275,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
       {activeSection === 'premium' && (
         <div className="space-y-3">
-          <div className="rounded-2xl border border-yellow-500/40 bg-gradient-to-b from-yellow-950/35 to-[#0a0f1d] p-4 shadow-xl">
+          <div className="ui-panel rounded-2xl border p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                   setPremiumFeedback(result.message);
                   setPremiumBusy(false);
                 }}
-                className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95 transition-all"
+                className="ui-primary mt-4 w-full py-3 rounded-xl disabled:opacity-50 font-cinzel font-bold text-sm active:scale-95 transition-all"
               >
                 {premiumBusy ? 'Открываю оплату…' : 'Подключить Premium · 150 ⭐'}
               </button>

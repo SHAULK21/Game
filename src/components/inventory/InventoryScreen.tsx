@@ -267,7 +267,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-[#0b101d] to-[#07090e] p-3.5 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-3.5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="font-cinzel text-sm font-bold text-cyan-300">Снаряжение</div>
@@ -301,7 +301,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           </div>
 
           <div className="relative flex flex-col items-center">
-            <div className="w-[88px] h-[150px] rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950 shadow-lg shadow-cyan-950/50">
+            <div className="w-[88px] h-[150px] rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950">
               <img src={(player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter} alt={player.name} className="w-full h-full object-cover opacity-80" />
             </div>
             <div className="absolute bottom-1 px-2 py-1 rounded bg-black/75 border border-cyan-500/30 text-[9px] font-bold text-cyan-200">
@@ -436,7 +436,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           onClick={() => setSelectedItem(null)}
         >
           <div
-            className={`w-full max-w-lg rounded-2xl border p-3.5 bg-[#080c15] shadow-2xl ${RARITY_COLORS[currentSelected.rarity].border}`}
+            className={`w-full max-w-lg rounded-2xl border p-3.5 bg-[#080c15]  ${RARITY_COLORS[currentSelected.rarity].border}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2">

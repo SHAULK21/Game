@@ -29,8 +29,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-[#090d16]/95 backdrop-blur-md border-b border-cyan-500/20 px-3 py-2 shadow-lg shadow-black/40">
-        <div className="flex flex-col gap-1.5 max-w-lg mx-auto">
+      <header className="game-header sticky top-0 z-30 px-3 py-3">
+        <div className="flex flex-col gap-2 max-w-md mx-auto">
           {/* Main Top Row */}
           <div className="flex items-center justify-between gap-2">
             {/* Left: Avatar & Player Summary */}
@@ -42,36 +42,37 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
                 <img
                   src={heroImage}
                   alt={player.name}
-                  className="w-10 h-10 rounded-lg object-cover border border-cyan-400/50 shadow-md shadow-cyan-500/20"
+                  className="w-10 h-10 rounded-lg object-cover border border-slate-600"
                   referrerPolicy="no-referrer"
                 />
-                <span className="absolute -bottom-1 -right-1 bg-cyan-950 border border-cyan-400 text-cyan-200 text-[10px] font-mono font-bold px-1 rounded-sm leading-tight">
+                <span className="absolute -bottom-1 -right-1 bg-[#302c24] border border-[#9d8459] text-[#d5ba89] text-[10px] font-mono font-bold px-1 rounded-sm leading-tight">
                   {player.level}
                 </span>
               </div>
 
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-cinzel text-xs font-bold text-slate-100 truncate max-w-[120px]">
+                  <span className="text-sm font-semibold text-slate-100 truncate max-w-[120px]">
                     {premium.active && <span className="text-amber-300" title="Premium">👑 </span>}
                     {player.name}
                   </span>
                   {player.statPoints > 0 && (
-                    <span className="flex items-center justify-center w-4 h-4 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full animate-bounce">
+                    <span className="flex items-center justify-center w-4 h-4 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full">
                       +
                     </span>
                   )}
                 </div>
 
+                <span className="text-[11px] text-slate-400">{CLASSES[player.classId].name} · Ур. {player.level}</span>
                 {/* EXP Bar */}
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
                     <div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-300"
+                      className="h-full bg-[#bca16d] transition-all duration-300"
                       style={{ width: `${expPct}%` }}
                     />
                   </div>
-                  <span className="text-[9px] font-mono text-cyan-300">
+                  <span className="text-[9px] font-mono text-[#d5ba89]">
                     {expPct}%
                   </span>
                 </div>
@@ -83,10 +84,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               {/* Energy pill */}
               <button
                 onClick={() => setShowEnergyModal(true)}
-                className="flex items-center gap-1 px-2 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/40 rounded text-amber-300 active:scale-95 transition-transform"
+                className="flex items-center gap-1 min-h-11 px-2 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/40 rounded text-amber-300 active:scale-95 transition-transform"
                 title="Энергия для боя и переходов"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                 <span className="text-xs font-mono font-bold">
                   {player.energy ?? 100}/{player.maxEnergy ?? 100}
                 </span>
@@ -97,9 +98,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               <button
                 onClick={handleToggleSound}
                 aria-label="Переключить звук"
-                className="w-8 h-8 rounded bg-slate-900/80 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-cyan-400 active:scale-90 transition-transform"
+                className="w-11 h-11 rounded-lg flex items-center justify-center text-slate-300 hover:bg-white/5 active:scale-95 transition-transform"
               >
-                {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+                {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-[#d5ba89]" />}
               </button>
 
             </div>
@@ -119,9 +120,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               <span className="font-bold">{player.silver ?? 150}</span>
             </div>
 
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-cyan-500/20 text-cyan-300">
-              <span className="text-[10px] font-bold">ЭНЕРГИЯ</span>
-            </div>
           </div>
         </div>
       </header>
@@ -129,7 +127,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
       {/* Energy Modal */}
       {showEnergyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0e1422] border border-amber-500/40 rounded-xl p-5 max-w-sm w-full shadow-2xl relative">
+          <div className="bg-[#0e1422] border border-amber-500/40 rounded-xl p-5 max-w-sm w-full relative">
             <button
               onClick={() => setShowEnergyModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
@@ -138,7 +136,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
             </button>
 
             <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-bounce" />
+              <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />
               <h3 className="font-cinzel text-lg font-bold text-amber-300">Энергия странника</h3>
             </div>
 

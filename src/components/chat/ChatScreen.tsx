@@ -118,7 +118,7 @@ export const ChatScreen: React.FC = () => {
 
   return (
     <div className="p-3 max-w-lg mx-auto pb-24 min-h-[calc(100dvh-120px)] flex flex-col gap-3">
-      <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-b from-[#111025] to-[#080a12] p-4">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="text-[10px] text-purple-300 font-mono uppercase tracking-widest">Социальный центр</div>
         <div className="flex items-center justify-between mt-1">
           <h2 className="font-cinzel text-lg font-bold">Общий чат</h2>
@@ -159,10 +159,10 @@ export const ChatScreen: React.FC = () => {
           return (
             <div
               key={String(message.id)}
-              className={`p-2.5 rounded-xl border ${me ? 'ml-5 bg-cyan-950/30 border-cyan-500/30' : 'bg-[#0a0f1d] border-slate-800'}`}
+              className={`p-2.5 rounded-xl border ${me ? 'ml-5 bg-cyan-950/30 border-slate-700' : 'bg-[#0a0f1d] border-slate-800'}`}
             >
               <div className="flex justify-between gap-2">
-                <span className={`text-[10px] font-bold ${me ? 'text-cyan-300' : 'text-slate-200'}`}>
+                <span className={`text-[10px] font-bold ${me ? 'text-[#d5ba89]' : 'text-slate-200'}`}>
                   {message.is_premium && <span className="mr-1 text-amber-300" title="Premium">👑</span>}
                   {message.display_name}
                 </span>

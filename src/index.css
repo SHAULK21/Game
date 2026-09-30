@@ -1,72 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
 @layer base {
-  :root {
-    --font-cinzel: 'Cinzel', serif;
-    --font-sans: 'Plus Jakarta Sans', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-  }
-
-  body {
-    font-family: var(--font-sans);
-    background-color: #07090e;
-    color: #e2e8f0;
-  }
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: var(--font-sans); background: #101215; color: #e5e4e0; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  button, input, textarea { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid #c3a775; outline-offset: 3px; }
 }
-
-.font-cinzel {
-  font-family: 'Cinzel', serif;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* Neon glow & fantasy borders */
-.neon-border-cyan {
-  border: 1px solid rgba(6, 182, 212, 0.4);
-  box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.25), inset 0 0 10px -3px rgba(6, 182, 212, 0.15);
-}
-
-.neon-border-purple {
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  box-shadow: 0 0 15px -3px rgba(168, 85, 247, 0.25), inset 0 0 10px -3px rgba(168, 85, 247, 0.15);
-}
-
-.neon-border-amber {
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.25), inset 0 0 10px -3px rgba(245, 158, 11, 0.15);
-}
-
-.neon-border-rose {
-  border: 1px solid rgba(244, 63, 94, 0.4);
-  box-shadow: 0 0 15px -3px rgba(244, 63, 94, 0.25), inset 0 0 10px -3px rgba(244, 63, 94, 0.15);
-}
-
-/* Glass panels */
-.glass-panel {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(10, 15, 29, 0.85) 100%);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Custom scrollbar for mobile game feel */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(10, 15, 29, 0.5);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.3);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.6);
-}
-
-/* Shake animation for hits */
+.font-cinzel { font-family: var(--font-sans); letter-spacing: normal; }
+.font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.game-shell { background: #101215; }
+.game-header, .game-nav { background: #15181c; border-color: #30343a; }
+.game-header { border-bottom: 1px solid #30343a; }
+.game-nav { border-top: 1px solid #30343a; }
+.game-drawer { background: #191d22; border: 1px solid #363b42; max-height: 85dvh; overflow-y: auto; }
+.game-section { background: #22272d; color: #c4c7cc; border: 1px solid #353b43; }
+.game-section:hover { background: #2b3037; }
+.game-section.is-active { color: #d5ba89; border-color: #9d8459; background: #302c24; }
+.game-nav-item { color: #a3a8b0; border-top: 2px solid transparent; transition: color 150ms, background 150ms; }
+.game-nav-item:hover { color: #e5e4e0; background: #20242a; }
+.game-nav-item.is-active { color: #d5ba89; border-top-color: #c3a775; background: #232321; }
+.nav-dot { width: 6px; height: 6px; background: #d5ba89; border-radius: 50%; }
+.nav-count { background: #c3a775; color: #17191c; border-radius: 5px; padding: 1px 4px; font-size: 10px; font-weight: 600; }
+.ui-panel, .glass-panel { background: #191e25; border: 1px solid #343b45; }
+.ui-primary { background: #c3a775; color: #18191c; border: 1px solid #cfb989; }
+.ui-primary:hover:not(:disabled) { background: #d4bb8e; }
+.ui-primary:disabled { background: #393a38; color: #94958f; border-color: #484a46; }
+.neon-border-cyan, .neon-border-purple, .neon-border-amber, .neon-border-rose { border: 1px solid #414853; }
+/* Reserve color for gameplay states and rarity, rather than ornamental glow. */
+.game-shell main h1, .game-shell main h2 { color: #ece7dc; font-weight: 650; }
+.game-shell main h2 { letter-spacing: normal; }
+.game-shell main p { line-height: 1.55; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #15181c; }
+::-webkit-scrollbar-thumb { background: #515760; border-radius: 8px; }
 @keyframes screen-shake {
   0%, 100% { transform: translate(0, 0); }
   20% { transform: translate(-3px, 2px); }
@@ -74,29 +46,10 @@
   60% { transform: translate(-2px, -2px); }
   80% { transform: translate(2px, 1px); }
 }
-
-.animate-hit-shake {
-  animation: screen-shake 0.25s ease-in-out;
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s infinite ease-in-out;
-}
-/* Telegram safe-area helpers */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.pt-safe {
-  padding-top: env(safe-area-inset-top);
-}
-.min-h-screen {
-  min-height: 100dvh;
-}
-button, input, textarea {
-  -webkit-tap-highlight-color: transparent;
+.animate-hit-shake { animation: screen-shake 0.25s ease-in-out; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.min-h-screen { min-height: 100dvh; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

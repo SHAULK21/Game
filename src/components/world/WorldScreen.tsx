@@ -64,20 +64,20 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   if (travelState.isTraveling) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-        <div className={`max-w-sm w-full rounded-2xl p-6 border text-center shadow-2xl transition-all ${
+        <div className={`max-w-sm w-full rounded-2xl p-6 border text-center  transition-all ${
           travelState.isAmbush 
-            ? 'bg-rose-950/80 border-rose-500 shadow-rose-950 animate-pulse' 
-            : 'bg-[#0b101c] border-cyan-500/40 shadow-cyan-950'
+            ? 'bg-rose-950/80 border-rose-500'
+            : 'bg-[#0b101c] border-cyan-500/40 '
         }`}>
           {/* Animated Journey Icon */}
           <div className="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
             {travelState.isAmbush ? (
-              <div className="p-4 rounded-full bg-rose-900/60 border border-rose-500 animate-bounce">
+              <div className="p-4 rounded-full bg-rose-900/60 border border-rose-500">
                 <AlertTriangle className="w-10 h-10 text-rose-300" />
               </div>
             ) : (
               <div className="p-4 rounded-full bg-cyan-950/60 border border-cyan-400">
-                <Footprints className="w-10 h-10 text-cyan-300 animate-pulse" />
+                <Footprints className="w-10 h-10 text-[#d5ba89]" />
               </div>
             )}
           </div>
@@ -104,7 +104,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
             <span>Прогресс перехода</span>
-            <span className="text-cyan-300 font-bold">{travelState.progress}%</span>
+            <span className="text-[#d5ba89] font-bold">{travelState.progress}%</span>
           </div>
         </div>
       </div>
@@ -118,11 +118,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
     return (
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-        <div className="flex items-center justify-between bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3">
+        <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700 rounded-xl p-3">
           <div>
-            <div className="text-[10px] font-mono text-cyan-400 uppercase">Подземелье</div>
+            <div className="text-[10px] font-mono text-[#d5ba89] uppercase">Подземелье</div>
             <h2 className="font-cinzel text-sm font-bold text-slate-100">{activeDungeonRun.dungeonName}</h2>
-            <div className="text-[10px] text-cyan-300">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
+            <div className="text-[10px] text-[#d5ba89]">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
           </div>
           <button
             onClick={() => { if (window.confirm('Покинуть подземелье? Прогресс этого захода будет потерян.')) exitDungeon(); }}
@@ -133,7 +133,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         </div>
 
         {activeDungeonRun.lastEvent && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-200">{activeDungeonRun.lastEvent}</p>}
-        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-cyan-500/30 p-3 text-xs text-cyan-200">✨ {activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}. Действует только в этом походе.</p>}
+        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-slate-700 p-3 text-xs text-cyan-200">✨ {activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}. Действует только в этом походе.</p>}
 
         {/* Room Stepper */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -145,7 +145,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 key={r.id}
                 className={`flex-1 min-w-[28px] h-2 rounded-full transition-all ${
                   isCurrent
-                    ? 'bg-cyan-400 shadow-sm shadow-cyan-400'
+                    ? 'bg-cyan-400 shadow-sm '
                     : isDone
                     ? 'bg-emerald-500'
                     : 'bg-slate-800'
@@ -157,8 +157,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
         {/* Active Room Card */}
         {isCompleted ? (
-          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-950/30 via-[#0a0f1d] to-[#07090e] p-6 text-center space-y-4 shadow-2xl">
-            <Crown className="w-12 h-12 text-amber-400 mx-auto animate-bounce" />
+          <div className="ui-panel rounded-2xl border p-6 text-center space-y-4">
+            <Crown className="w-12 h-12 text-amber-400 mx-auto" />
             <h3 className="font-cinzel text-lg font-bold text-slate-100">
               Подземелье успешно зачищено!
             </h3>
@@ -172,13 +172,13 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             </div>}
             <button
               onClick={exitDungeon}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-cinzel font-bold text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all"
+              className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all"
             >
               Вернуться в город
             </button>
           </div>
         ) : (
-          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0a0f1d] shadow-xl">
+          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0a0f1d]">
             <div className="relative h-40 w-full overflow-hidden">
               <img
                 src={ASSETS.dungeonCave}
@@ -187,7 +187,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent" />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-cyan-300 text-[10px] font-mono">
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-[#d5ba89] text-[10px] font-mono">
                 Комната {activeDungeonRun.currentRoomIndex + 1} из {activeDungeonRun.totalRooms}
               </div>
             </div>
@@ -213,7 +213,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                       proceedDungeonRoom('fight');
                       if (onEnterCombatTab) onEnterCombatTab();
                     }}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-cinzel font-bold text-xs shadow-md shadow-red-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Skull className="w-4 h-4" />
                     <span>Сразиться с врагом</span>
@@ -221,7 +221,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 ) : currentRoom.type === 'treasure' ? (
                   <button
                     onClick={() => proceedDungeonRoom('open')}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-amber-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Key className="w-4 h-4" />
                     <span>Открыть сундук · 25% пустой</span>
@@ -229,7 +229,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 ) : (
                   <button
                     onClick={() => proceedDungeonRoom('pray')}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>Получить благословение · шанс 70%</span>
@@ -247,10 +247,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-[#0c1322] to-[#07090e] p-4 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-cyan-300">
-            <Compass className="w-6 h-6 animate-spin-slow" />
+          <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-[#d5ba89]">
+            <Compass className="w-6 h-6" />
           </div>
           <div>
             <h2 className="font-cinzel text-lg font-bold text-slate-100">
@@ -272,7 +272,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       </div>
 
       {/* Selected Region & Mode Control Card */}
-      <div className="rounded-2xl border border-indigo-500/30 bg-[#090d18] p-4 shadow-xl space-y-3">
+      <div className="rounded-2xl border border-indigo-500/30 bg-[#090d18] p-4 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800">
@@ -298,7 +298,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
         {/* Region Mode / Modifier Selector */}
         <div className="pt-2 border-t border-slate-800/80">
-          <div className="flex items-center justify-between text-xs font-mono text-cyan-400 mb-2">
+          <div className="flex items-center justify-between text-xs font-mono text-[#d5ba89] mb-2">
             <span>Режим охоты (Моды локации):</span>
             <span className="text-[10px] text-amber-300">Расход: {activeMod.energyCost} ⚡</span>
           </div>
@@ -319,7 +319,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   }}
                   className={`p-2 rounded-xl border text-left transition-all ${
                     isSelected 
-                      ? 'border-cyan-400 bg-cyan-950/60 shadow-sm shadow-cyan-400/20' 
+                      ? 'border-[#9d8459] bg-[#302c24]'
                       : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
                   }`}
                 >
@@ -351,7 +351,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               onClick={() => {
                 if (onEnterCombatTab) onEnterCombatTab();
               }}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-cinzel font-bold text-xs shadow-md shadow-emerald-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="ui-primary w-full py-2.5 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <span>⚔️ Перейти к охоте на монстров</span>
             </button>
@@ -360,7 +360,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               <button
                 onClick={() => handleStartTravel(inspectingRegion.id)}
                 disabled={player.level < inspectingRegion.minLevel}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 disabled:opacity-50 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="ui-primary w-full py-2.5 rounded-xl disabled:opacity-50 font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <Footprints className="w-4 h-4" />
                 <span>Отправиться в путь (3 сек, {activeMod.energyCost} ⚡)</span>
@@ -375,7 +375,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
       {/* Regions List with Starter Locations Badge */}
       <div className="space-y-2">
-        <div className="text-xs font-mono text-cyan-400 uppercase tracking-wider px-1">
+        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">
           Доступные локации и провинции:
         </div>
 
@@ -397,7 +397,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 }}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   isInspecting
-                    ? 'border-cyan-400 bg-cyan-950/40 shadow-md shadow-cyan-950'
+                    ? 'border-cyan-400 bg-cyan-950/40 shadow-md '
                     : isLocked
                     ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
                     : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
@@ -436,7 +436,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                         Треб. ур. {reg.minLevel}
                       </span>
                     ) : (
-                      <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-cyan-400' : 'text-slate-500'}`} />
+                      <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
                     )}
                   </div>
                 </div>
@@ -470,7 +470,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 }}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-purple-400 bg-purple-950/40 shadow-md shadow-purple-950'
+                    ? 'border-purple-400 bg-purple-950/40 shadow-md '
                     : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
                 }`}
               >

@@ -16,9 +16,9 @@ export const OfflineReportModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/40 bg-[#0a0f1d] p-5 shadow-2xl space-y-4 text-center animate-in zoom-in-95 duration-200">
-        <div className="w-12 h-12 rounded-full bg-yellow-950/80 border border-yellow-400 text-yellow-300 flex items-center justify-center mx-auto shadow-lg shadow-yellow-950">
-          <Moon className="w-6 h-6 animate-pulse" />
+      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/40 bg-[#0a0f1d] p-5 space-y-4 text-center animate-in zoom-in-95 duration-200">
+        <div className="w-12 h-12 rounded-full bg-yellow-950/80 border border-yellow-400 text-yellow-300 flex items-center justify-center mx-auto">
+          <Moon className="w-6 h-6" />
         </div>
 
         <div className="space-y-1">
@@ -68,7 +68,7 @@ export const OfflineReportModal: React.FC = () => {
             sound.playVictory();
             dismissOfflineReport();
           }}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-500 text-slate-950 font-cinzel font-bold text-xs shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
         >
           <Check className="w-4 h-4" />
           <span>Понятно</span>
