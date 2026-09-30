@@ -4,6 +4,7 @@ import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
+import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 
 interface TopHeaderProps {
   onOpenCharacterSheet: () => void;
@@ -20,6 +21,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   };
 
   if (!player) return null;
+  const elixirPrice = getEnergyElixirPrice(premium.active);
 
   const expPct = Math.min(100, Math.round((player.exp / player.nextExp) * 100));
   const heroImage = (player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter;
@@ -167,7 +169,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               >
                 <div className="flex items-center gap-2">
                   <span>🧘</span>
-                  <span>Быстрая медитация</span>
+                  <span>Медитация · бесплатно</span>
                 </div>
                 <span className="text-amber-300 font-mono">+10 ⚡ · 1 раз / 30 мин</span>
               </button>
@@ -177,14 +179,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
                   meditateOrRefillEnergy('silver');
                   setShowEnergyModal(false);
                 }}
-                disabled={(player.silver ?? 0) < 100}
+                disabled={premium.loading || (player.silver ?? 0) < elixirPrice || player.energy >= player.maxEnergy}
                 className="w-full py-2 px-3 rounded-lg bg-amber-950/70 hover:bg-amber-900 disabled:opacity-50 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <span>🧪</span>
                   <span>Купить Эликсир Бодрости</span>
                 </div>
-                <span className="text-slate-200 font-mono">+30 ⚡ (100 🥈)</span>
+                <span className="text-slate-200 font-mono">+30 ⚡ ({elixirPrice} 🥈){premium.active ? ' · −50% Premium' : ''}</span>
               </button>
             </div>
           </div>
