@@ -46,6 +46,7 @@ import {
 import { sound } from '../utils/audio';
 import { getTelegramUser, getTelegramWebApp, triggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
+import { getEnergyElixirPrice, getDungeonCompletionReward, rollDungeonChest, rollDungeonBlessing } from '../utils/dungeonRewards';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
 import { apiRequest } from '../utils/api';
@@ -1085,6 +1086,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (player.activePet.stats.mpRegen) mpRegen += player.activePet.stats.mpRegen;
     }
 
+    if (activeDungeonRun?.temporaryBlessing && activeDungeonRun.temporaryBlessing.remainingBattles > 0) {
+      attack *= 1.1;
+      magicAttack *= 1.1;
+      defense *= 1.1;
+      magicDefense *= 1.1;
+    }
+
     return {
       hp: maxHp,
       maxHp: Math.round(maxHp),
@@ -1112,7 +1120,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expBonus: Math.round(expBonus),
       resistances
     };
-  }, [player, achievements]);
+  }, [player, achievements, activeDungeonRun?.temporaryBlessing]);
 
   // Character Creation
   const createCharacter = useCallback((name: string, classId: CharacterClassId) => {
@@ -1670,7 +1678,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastMeditationTimestamp: now
         };
       } else if (mode === 'silver') {
-        if (prev.silver < 100) {
+        const price = getEnergyElixirPrice(premium.active);
+        if (prev.silver < price || prev.energy >= prev.maxEnergy) {
           triggerHaptic('error');
           sound.playUpgradeFail();
           return prev;
@@ -1680,13 +1689,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         triggerHaptic('success');
         return {
           ...prev,
-          silver: prev.silver - 100,
+          silver: prev.silver - price,
           energy: Math.min(prev.maxEnergy, prev.energy + 30)
         };
       }
       return prev;
     });
-  }, []);
+  }, [premium.active]);
 
   // START BATTLE with Energy Check
   const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean; energyCost?: number }): boolean => {
@@ -1913,7 +1922,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Combat loot generation failed:', error);
       lootResult = { items: [], gold: 0, silver: 0 };
     }
-    const expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
+    let expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
     }
@@ -1940,6 +1949,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).items.slice(0, Math.max(1, Math.ceil((combatChain?.total || 1) / 3)));
       itemsToAward = [...pendingChainItems, ...itemsToAward, ...completionBonus];
       setPendingChainItems([]);
+    }
+
+    const completionReward = completesDungeon && activeDungeonRun
+      ? getDungeonCompletionReward(CAVES[activeDungeonRun.dungeonId]?.minLevel || 1, activeDungeonRun.difficulty)
+      : undefined;
+    if (completionReward) {
+      lootResult = { ...lootResult, gold: lootResult.gold + completionReward.gold, silver: lootResult.silver + completionReward.silver };
+      expReward += completionReward.exp;
     }
 
     setLastCombatReward({
@@ -2096,6 +2113,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           rooms,
           currentRoomIndex: isLast ? index : index + 1,
           completed: isLast,
+          completionReward: isLast ? completionReward : prevRun.completionReward,
+          temporaryBlessing: prevRun.temporaryBlessing && prevRun.temporaryBlessing.remainingBattles > 1
+            ? { ...prevRun.temporaryBlessing, remainingBattles: prevRun.temporaryBlessing.remainingBattles - 1 }
+            : null,
           kills: (prevRun.kills || 0) + 1,
           savedHp: Math.min(combatStats.maxHp, combatPlayerHp + (player?.classId === 'necromancer' || player?.classId === 'paladin' && (prevRun.kills || 0) % 3 === 2 ? Math.round(combatStats.maxHp * 0.08) : 0)),
           savedMp: Math.min(combatStats.maxMp, combatPlayerMp + (player?.classId === 'mage' ? Math.round(combatStats.maxMp * 0.1) : 0))
@@ -2804,17 +2825,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (currentRoom.type === 'treasure') {
-      const foundGold = 100 + Math.floor(Math.random() * 250);
-      setPlayer(prev => prev ? { ...prev, gold: prev.gold + foundGold } : prev);
+      const reward = rollDungeonChest(CAVES[activeDungeonRun.dungeonId]?.minLevel || 1);
+      setPlayer(prev => prev ? { ...prev, gold: prev.gold + reward.gold, silver: prev.silver + reward.silver } : prev);
+      setActiveDungeonRun(run => run ? { ...run, lastEvent: reward.gold
+        ? `🎁 Сундук открыт: +${reward.gold} золота, +${reward.silver} серебра. Награда зачислена.`
+        : '📦 Сундук оказался пустым.' } : run);
       sound.playUpgradeSuccess();
       triggerHaptic('success');
     } else if (currentRoom.type === 'shrine') {
-      sound.playPotion();
+      const blessing = rollDungeonBlessing();
+      if (blessing) sound.playPotion();
       triggerHaptic('medium');
-      setCombatPlayerHp(combatStats.maxHp);
-      setCombatPlayerMp(combatStats.maxMp);
-      setActiveDungeonRun(run => run ? { ...run, savedHp: combatStats.maxHp, savedMp: combatStats.maxMp, blessings: [...(run.blessings || []), 'Благословение святилища'] } : run);
-      setPlayer(prev => prev ? { ...prev, energy: Math.min(prev.maxEnergy, prev.energy + 10) } : prev);
+      setActiveDungeonRun(run => run ? { ...run,
+        temporaryBlessing: blessing || run.temporaryBlessing,
+        lastEvent: blessing ? '✨ Благословение хранителя: +10% физической и магической атаки и защиты до следующих 3 побед в этом походе. Повторное благословение обновляет срок.' : '🕯️ Алтарь не ответил. Новое благословение не получено.'
+      } : run);
     } else if (currentRoom.type === 'trap') {
       const trapDamage = Math.max(10, Math.round(combatStats.maxHp * 0.08));
       setCombatPlayerHp(prev => Math.max(1, prev - trapDamage));
