@@ -5,6 +5,8 @@ import { CLASSES, ASSETS } from '../../data/gameData';
 import { getTelegramUser } from '../../utils/telegram';
 import { Swords, Sparkles, Shield, Zap, Skull, Check } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { CLASS_EQUIPMENT } from '../../utils/classEquipment';
+import { ClassGearBonus } from '../ui/ClassGearBonus';
 
 export const CharacterCreationModal: React.FC = () => {
   const { createCharacter } = useGame();
@@ -119,6 +121,12 @@ export const CharacterCreationModal: React.FC = () => {
             <p className="text-[11px] text-slate-300 leading-relaxed">
               {activeClassDef.description}
             </p>
+            <div className="rounded-lg border border-cyan-500/30 p-2 text-[10px] text-cyan-200">
+              Основное оружие: {CLASS_EQUIPMENT[selectedClass].weapon}. Нагрудник: {CLASS_EQUIPMENT[selectedClass].armor}.
+              <ClassGearBonus item={{ name: CLASS_EQUIPMENT[selectedClass].weapon, type: 'weapon', targetClass: selectedClass, level: 1 }} characterClass={selectedClass} />
+              <ClassGearBonus item={{ name: CLASS_EQUIPMENT[selectedClass].armor, type: 'armor', targetClass: selectedClass, level: 1 }} characterClass={selectedClass} />
+              <p className="mt-1 text-slate-400">Можно носить оружие и нагрудники любого класса по уровню. Дополнительный бонус работает только у целевого класса.</p>
+            </div>
             <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-2.5 py-2"><div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">Пассив: {activeClassDef.passive.name}</div><div className="text-[10px] text-amber-100/80 mt-0.5">{activeClassDef.passive.description}</div></div>
 
             {/* Base Attributes preview */}
