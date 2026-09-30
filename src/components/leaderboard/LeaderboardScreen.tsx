@@ -3,7 +3,7 @@ import { Crown, Trophy, RefreshCw } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { apiRequest } from '../../utils/api';
 
-type Row = { telegram_id: number; display_name: string; username?: string | null; level: number; arena_rating: number };
+type Row = { telegram_id: number; character_name?: string; level: number; arena_rating: number };
 
 export const LeaderboardScreen: React.FC = () => {
   const { player } = useGame();
@@ -13,6 +13,10 @@ export const LeaderboardScreen: React.FC = () => {
   const load = async () => {
     setError('');
     try {
+      if (player) await apiRequest('/api/profile/sync', {
+        method: 'POST',
+        body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
+      });
       const r = await apiRequest<{ players: Row[] }>('/api/leaderboard');
       setRows(r.players || []);
     } catch (e) {
@@ -22,8 +26,8 @@ export const LeaderboardScreen: React.FC = () => {
 
   useEffect(() => { load(); }, []);
 
-  const me = player ? { telegram_id: Number(player.userId), display_name: player.name, level: player.level, arena_rating: player.arenaRating } : null;
-  const merged = [...rows];
+  const me = player ? { telegram_id: Number(player.userId), character_name: player.name, level: player.level, arena_rating: player.arenaRating } : null;
+  const merged = rows.map(row => me && String(row.telegram_id) === String(me.telegram_id) ? me : row);
   if (me && !merged.some(r => String(r.telegram_id) === String(me.telegram_id))) merged.push(me);
   merged.sort((a,b) => b.level - a.level || b.arena_rating - a.arena_rating);
 
@@ -43,7 +47,7 @@ export const LeaderboardScreen: React.FC = () => {
           return <div key={String(row.telegram_id)} className={`rounded-xl border p-3 flex items-center gap-3 ${isMe ? 'border-cyan-400/50 bg-cyan-950/20' : 'border-slate-800 bg-[#0a0f1d]'}`}>
             <div className="w-8 text-center font-bold text-slate-500">{i + 1}</div>
             <Trophy className={`w-5 h-5 ${i === 0 ? 'text-yellow-300' : 'text-slate-600'}`} />
-            <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.display_name}</div><div className="text-[9px] text-slate-500">Уровень {row.level} · Арена {row.arena_rating}</div></div>
+            <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.character_name || 'Игрок'}</div><div className="text-[9px] text-slate-500">Уровень {row.level} · Арена {row.arena_rating}</div></div>
             {isMe && <span className="text-[9px] text-cyan-300 font-bold">ВЫ</span>}
           </div>;
         })}
