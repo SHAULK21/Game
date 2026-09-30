@@ -48,7 +48,7 @@ export const PetsScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-b from-[#071918] to-[#0a0f1d] p-4">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-teal-950/70 border border-teal-500/30 flex items-center justify-center">
             <Dog className="w-7 h-7 text-teal-300" />

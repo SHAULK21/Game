@@ -130,7 +130,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
 
   const premiumModal = premiumPromptOpen ? (
     <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/50 bg-[#0a0f1d] p-5 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/50 bg-[#0a0f1d] p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-yellow-950/60 border border-yellow-500/40">
@@ -165,7 +165,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             setPremiumBusy(false);
             if (result.success) setTimeout(() => setPremiumPromptOpen(false), 900);
           }}
-          className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 disabled:opacity-50 text-slate-950 font-cinzel font-bold text-sm active:scale-95"
+          className="ui-primary mt-4 w-full py-3 rounded-xl disabled:opacity-50 font-cinzel font-bold text-sm active:scale-95"
         >
           {premiumBusy ? 'Открываю оплату…' : 'Купить Premium · 150 ⭐'}
         </button>
@@ -182,13 +182,13 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
         {premiumModal}
         {/* Banner */}
-        <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 p-4 bg-gradient-to-b from-[#0c1322] to-[#07090e] shadow-lg shadow-cyan-950/30">
+        <div className="ui-panel relative rounded-2xl overflow-hidden border p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono tracking-wider text-cyan-400 uppercase">
+            <span className="text-xs text-slate-400">
               Охотничьи угодья
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-400/40 text-cyan-300 font-mono">
+              <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                 {currentRegion.levelRange}
               </span>
               <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${activeMod.badgeColor}`}>
@@ -198,7 +198,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
           </div>
 
           <h2 className="font-cinzel text-xl font-bold text-slate-100 flex items-center gap-2">
-            <span>{currentRegion.icon}</span>
             <span>{currentRegion.name}</span>
           </h2>
           <p className="text-xs text-slate-300 mt-1 leading-relaxed">
@@ -206,13 +205,13 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
           </p>
 
           {/* Energy notice */}
-          <div className="mt-3 flex items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+          <div className="mt-3 flex flex-wrap gap-2 items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
             <div className="flex items-center gap-1.5 text-amber-300 font-mono">
               <Zap className="w-4 h-4 fill-amber-400" />
-              <span>Стоимость серии: <strong className="text-amber-200">{combatEnergyCost} ⚡</strong></span>
+              <span>Серия: <strong className="text-amber-200">{combatEnergyCost} ⚡</strong></span>
             </div>
             <div className="text-slate-400 font-mono text-[11px]">
-              Ваша энергия: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
+              Запас: <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
             </div>
           </div>
 
@@ -261,10 +260,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               onClick={() => {
                 if (selectedMonster) handleStartBattle(selectedMonster);
               }}
-              className="flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm bg-gradient-to-r from-cyan-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="ui-primary flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Swords className="w-4 h-4" />
-              <span>Начать охоту · 2–7 врагов ({combatEnergyCost} ⚡)</span>
+              <span>Начать охоту · {combatEnergyCost} ⚡</span>
             </button>
 
             <button
@@ -289,7 +288,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
 
         {/* Auto Battle Configuration Dialog */}
         {isSettingsOpen && (
-          <div className="bg-slate-900/95 border border-purple-500/40 rounded-xl p-3.5 space-y-3 shadow-xl">
+          <div className="bg-slate-900/95 border border-purple-500/40 rounded-xl p-3.5 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-cinzel text-xs font-bold text-purple-300">
                 Настройки Авто-Боя
@@ -331,11 +330,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
         )}
 
         {/* Combat Stats Overview Card (Showcase Influence of Attributes) */}
-        <div className="p-3 rounded-xl bg-[#090e1a] border border-cyan-500/20 space-y-2 shadow-md">
-          <div className="flex items-center justify-between text-xs font-mono text-cyan-300 border-b border-slate-800 pb-1">
-            <span>Боевые параметры охотника</span>
-            <span className="text-[10px] text-slate-400">Влияние на исход боя</span>
-          </div>
+        <details className="ui-panel p-3 rounded-xl space-y-2">
+          <summary className="cursor-pointer py-1 text-sm text-slate-300">Боевые параметры</summary>
 
           <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
             <div className="p-1.5 rounded bg-slate-900/60 border border-slate-800">
@@ -363,7 +359,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               <span className="text-emerald-400 font-bold">+{combatStats.hpRegen} HP/ход</span>
             </div>
           </div>
-        </div>
+        </details>
 
         {/* Monster Selector */}
         <div>
@@ -371,8 +367,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             <h3 className="font-cinzel text-xs font-bold text-slate-300 uppercase tracking-wider">
               Обитатели локации
             </h3>
-            <span className="text-[11px] text-amber-300 font-mono">
-              Серия: 2–7 врагов · 1 энергия
+            <span className="text-[11px] text-slate-400">
+              Серия: 2–7 врагов
             </span>
           </div>
 
@@ -387,16 +383,16 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                   onClick={() => setSelectedMonsterId(mon.id)}
                   className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     isSelected
-                      ? 'bg-cyan-950/40 border-cyan-400 shadow-md shadow-cyan-950/50'
+                      ? 'bg-[#252620] border-[#9d8459]'
                       : 'bg-[#0a0f1a] border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {hasImg ? (
                       <img
                         src={mon.avatar}
                         alt={mon.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-slate-700 shadow-sm"
+                        className="w-12 h-12 shrink-0 rounded-lg object-cover border border-slate-700"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
@@ -404,7 +400,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                         {mon.avatar}
                       </span>
                     )}
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-cinzel text-xs font-bold text-slate-100">
                           {mon.name}
@@ -415,14 +411,14 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-3 mt-0.5">
+                      <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5 mt-0.5">
                         <span>Ур. {mon.level}</span>
                         <span>·</span>
                         <span>HP: {mon.maxHp}</span>
                         <span>·</span>
                         <span>Атака: {mon.attack}</span>
                       </div>
-                      <div className="text-[9px] text-amber-300 mt-1">
+                      <div className="text-[11px] text-slate-400 mt-1">
                         Трофеи: {mon.drops.filter(drop => drop.type === 'material').map(drop => drop.itemName).join(', ') || 'нет'}
                       </div>
                     </div>
@@ -433,7 +429,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                       e.stopPropagation();
                       handleStartBattle(mon);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600/80 hover:bg-cyan-500 text-white active:scale-95 transition-transform"
+                    className="ui-primary shrink-0 ml-2 px-3 py-3 rounded-lg text-xs font-semibold active:scale-95 transition-transform"
                   >
                     Атаковать
                   </button>
@@ -462,7 +458,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
       {premiumModal}
       {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
-      <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] shadow-2xl h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
+      <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
         <BattleBackdrop scene={battleScene} dungeonId={battleDungeon?.id} />
 
         {/* Top combat status bar inside the 1/3 showcase */}
@@ -477,9 +473,9 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             <span className="text-slate-400 text-[10px]">Раунд {combatRound}</span>
             <div className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border transition-all ${
               turnPhase === 'player'
-                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-sm shadow-cyan-500/30 animate-pulse'
+                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-sm  '
                 : turnPhase === 'monster'
-                ? 'bg-red-950/90 border-red-500/80 text-red-300 shadow-sm shadow-red-500/30 animate-pulse'
+                ? 'bg-red-950/90 border-red-500/80 text-red-300 shadow-sm  '
                 : 'bg-slate-800 border-slate-700 text-slate-300'
             }`}>
               {turnPhase === 'player' && <span>⚔️ ВАШ ХОД</span>}
@@ -494,11 +490,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
           {/* Left: Hero Card (2 cols) */}
           <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${
             turnPhase === 'player'
-              ? 'ring-2 ring-cyan-400/80 bg-cyan-950/40 shadow-lg shadow-cyan-950/60 scale-[1.02]'
+              ? 'ring-1 ring-[#c3a775] bg-slate-950/55'
               : 'opacity-80 bg-slate-900/40'
           }`}>
             {/* Hero Image */}
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md shadow-cyan-950 bg-slate-950">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md bg-slate-950">
               <img
                 src={playerHeroImg}
                 alt={player.name}
@@ -509,7 +505,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                 {playerClass.name}
               </span>
               {turnPhase === 'player' && (
-                <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm animate-ping" />
+                <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm" />
               )}
             </div>
 
@@ -554,11 +550,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
 
           {/* Center: Clash VS Badge (1 col) */}
           <div className="col-span-1 flex flex-col items-center justify-center">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-cinzel font-bold text-xs shadow-lg transition-all ${
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-cinzel font-bold text-xs  transition-all ${
               turnPhase === 'player'
-                ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-2 border-cyan-300 scale-110 shadow-cyan-500/50'
+                ? 'bg-[#302c24] text-[#d5ba89] border border-[#9d8459]'
                 : turnPhase === 'monster'
-                ? 'bg-gradient-to-br from-red-600 to-rose-700 text-white border-2 border-red-300 scale-110 shadow-red-500/50'
+                ? 'bg-[#352329] text-rose-200 border border-rose-400/50'
                 : 'bg-slate-800 text-slate-300 border border-slate-600'
             }`}>
               VS
@@ -576,11 +572,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
           {/* Right: Monster Card (2 cols) */}
           <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${
             turnPhase === 'monster'
-              ? 'ring-2 ring-red-500/80 bg-red-950/40 shadow-lg shadow-red-950/60 scale-[1.02]'
+              ? 'ring-2 ring-red-500/80 bg-red-950/40   scale-[1.02]'
               : 'opacity-80 bg-slate-900/40'
           }`}>
             {/* Monster Image */}
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md shadow-red-950 flex items-center justify-center bg-red-950/40">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md flex items-center justify-center bg-red-950/40">
               {hasMonImg ? (
                 <img
                   src={activeMonster.avatar}
@@ -600,7 +596,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                 {activeMonster.name}
               </span>
               {turnPhase === 'monster' && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-400 shadow-sm animate-ping" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-400 shadow-sm" />
               )}
             </div>
 
@@ -644,21 +640,21 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
         {/* Turn Status Alert Banner with Auto-Battle Toggle */}
         <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono transition-all ${
           turnPhase === 'player'
-            ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-200 shadow-md shadow-cyan-950/40'
+            ? 'bg-[#252620] border-[#9d8459] text-[#d5ba89]'
             : turnPhase === 'monster'
-            ? 'bg-red-950/60 border-red-500/60 text-red-200 shadow-md shadow-red-950/40 animate-pulse'
+            ? 'bg-red-950/60 border-red-500/60 text-red-200 shadow-md  '
             : 'bg-slate-900 border-slate-800 text-slate-300'
         }`}>
           <div className="flex items-center gap-2">
             {turnPhase === 'player' ? (
               <>
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                <span className="font-cinzel font-bold text-cyan-300">ВАШ ХОД</span>
+                <span className="w-2 h-2 rounded-full bg-[#c3a775]" />
+                <span className="font-semibold">Ваш ход</span>
                 <span className="text-[11px] text-slate-300 hidden sm:inline">— Выберите действие</span>
               </>
             ) : turnPhase === 'monster' ? (
               <>
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
                 <span className="font-cinzel font-bold text-red-300">ХОД ПРОТИВНИКА</span>
                 <span className="text-[11px] text-slate-300 hidden sm:inline">— {activeMonster.name} атакует...</span>
               </>
@@ -673,7 +669,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             title={premium.active ? 'Автобой' : 'Доступно с Aethelgard Premium'}
             className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
               autoBattle.enabled
-                ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/50 animate-pulse'
+                ? 'bg-amber-500 text-slate-950 shadow-sm  '
                 : 'bg-slate-800 text-slate-300 hover:text-white'
             }`}
           >
@@ -705,7 +701,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
         )}
 
         {monsterIntent && turnPhase === 'monster' && (
-          <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 shadow-lg shadow-amber-950/30 animate-pulse">
+          <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3">
             <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
               <span className="text-lg">{monsterIntent.icon}</span>
               <span>⚠️ {activeMonster.name} сейчас применит «{monsterIntent.name}»</span>
@@ -728,11 +724,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
 
         {/* COMBAT ACTIONS OR COMBAT RESULT */}
         {isCombatEnded ? (
-          <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl text-center space-y-3 shadow-xl">
+          <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl text-center space-y-3">
             <div className="font-cinzel text-lg font-bold text-slate-100 flex items-center justify-center gap-2">
               {combatOutcome === 'victory' && (
                 <>
-                  <Gift className="w-5 h-5 text-amber-400 animate-bounce" />
+                  <Gift className="w-5 h-5 text-amber-400" />
                   <span>{combatChain && combatChain.remaining > 0 ? 'ВРАГ ПОВЕРЖЕН — СЕРИЯ ПРОДОЛЖАЕТСЯ' : 'ПОБЕДА! СЕРИЯ ЗАВЕРШЕНА'}</span>
                 </>
               )}
@@ -838,7 +834,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               <button
                 onClick={() => performPlayerAction('attack')}
                 disabled={turnPhase !== 'player'}
-                className="py-3 px-2 rounded-xl bg-gradient-to-b from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-cyan-400/40"
+                className="ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-cyan-400/40"
               >
                 <Swords className="w-4 h-4 text-cyan-200" />
                 <span>Атака</span>
@@ -848,7 +844,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               <button
                 onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
-                className="py-3 px-2 rounded-xl bg-gradient-to-b from-indigo-700 to-indigo-800 hover:from-indigo-600 hover:to-indigo-700 text-white font-cinzel font-bold text-xs shadow-md shadow-indigo-950 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-indigo-400/40"
+                className="ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-indigo-400/40"
               >
                 <Zap className="w-4 h-4 text-indigo-200" />
                 <span>Навыки</span>

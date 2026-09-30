@@ -54,12 +54,12 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
       </div>
 
       {/* Class Overview Card */}
-      <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-[#0b1220] to-[#07090e] p-3.5 shadow-xl flex items-center gap-3.5">
+      <div className="ui-panel rounded-2xl border p-3.5 flex items-center gap-3.5">
         <div className="relative shrink-0">
           <img
             src={classDef?.image || ASSETS.heroHunter}
             alt="Hero Avatar"
-            className="w-16 h-16 rounded-xl object-cover border-2 border-cyan-400/50 shadow-md shadow-cyan-950"
+            className="w-16 h-16 rounded-xl object-cover border-2 border-cyan-400/50 shadow-md"
             referrerPolicy="no-referrer"
           />
           <span className="absolute -bottom-1 -right-1 bg-cyan-950 border border-cyan-400 text-cyan-200 text-[10px] font-mono font-bold px-1 rounded">

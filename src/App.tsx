@@ -46,7 +46,7 @@ const MainGameContent: React.FC = () => {
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div className="min-h-screen pt-safe bg-[#07090e] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
       {/* Top Header */}
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 

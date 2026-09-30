@@ -90,7 +90,7 @@ export const MiningScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-[#18110b] to-[#0a0f1d] p-4 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-400/40 text-amber-400">
@@ -189,7 +189,7 @@ export const MiningScreen: React.FC = () => {
       {/* Offline expedition second */}
       <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0f1d] p-3">
         <div className="flex items-center gap-2 mb-3">
-          <Clock3 className="w-4 h-4 text-cyan-300" />
+          <Clock3 className="w-4 h-4 text-[#d5ba89]" />
           <div>
             <div className="text-xs font-bold text-cyan-200">Офлайн-экспедиция</div>
             <div className="text-[10px] text-slate-500">
@@ -201,7 +201,7 @@ export const MiningScreen: React.FC = () => {
         </div>
 
         {expedition ? (
-          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-cyan-500/30 bg-cyan-950/10'}`}>
+          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-700 bg-cyan-950/10'}`}>
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="text-xs font-bold text-slate-100">Экспедиция на {expedition.durationHours} ч.</div>
@@ -209,7 +209,7 @@ export const MiningScreen: React.FC = () => {
                   Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.
                 </div>
               </div>
-              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-cyan-300'}`}>
+              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-[#d5ba89]'}`}>
                 {expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs)}
               </div>
             </div>
@@ -262,7 +262,7 @@ export const MiningScreen: React.FC = () => {
                     <div className="text-xs font-bold text-slate-100">{option.title}</div>
                     <div className="text-[10px] text-slate-500">{option.description}</div>
                   </div>
-                  <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold">
+                  <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] font-mono text-xs font-bold">
                     {option.hours} ч.
                   </span>
                 </div>

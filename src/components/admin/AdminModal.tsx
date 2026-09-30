@@ -96,7 +96,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-purple-500/50 bg-[#0c0d1c] p-4 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md rounded-2xl border border-purple-500/50 bg-[#0c0d1c] p-4 space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-500/30 pb-2.5">
           <div className="flex items-center gap-2 text-purple-300">
@@ -154,7 +154,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                 adminAddSilver(500);
                 showNotice('+500 Серебра добавлено!');
               }}
-              className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-300 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+              className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-[#d5ba89] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Gem className="w-4 h-4" />
               <span>+500 🥈 Серебра</span>
@@ -176,7 +176,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                 adminSpawnLegendaryItem();
                 showNotice('Древний артефакт "Крушитель Богов" добавлен в инвентарь!');
               }}
-              className="p-2.5 rounded-xl bg-purple-950 border border-purple-400/60 text-purple-200 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-purple-950"
+              className="p-2.5 rounded-xl bg-purple-950 border border-purple-400/60 text-purple-200 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md"
             >
               <Sparkles className="w-4 h-4" />
               <span>Древний меч (+10)</span>

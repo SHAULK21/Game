@@ -33,7 +33,7 @@ export const LeaderboardScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-b from-[#1b1607] to-[#0a0f1d] p-4">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-3">
           <Crown className="w-8 h-8 text-yellow-300" />
           <div><div className="text-[10px] uppercase tracking-widest text-yellow-400 font-mono">Аэтельгард</div><h2 className="font-cinzel text-lg font-bold">Рейтинг игроков</h2></div>
@@ -48,7 +48,7 @@ export const LeaderboardScreen: React.FC = () => {
             <div className="w-8 text-center font-bold text-slate-500">{i + 1}</div>
             <Trophy className={`w-5 h-5 ${i === 0 ? 'text-yellow-300' : 'text-slate-600'}`} />
             <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.character_name || 'Игрок'}</div><div className="text-[9px] text-slate-500">Уровень {row.level} · Арена {row.arena_rating}</div></div>
-            {isMe && <span className="text-[9px] text-cyan-300 font-bold">ВЫ</span>}
+            {isMe && <span className="text-[9px] text-[#d5ba89] font-bold">ВЫ</span>}
           </div>;
         })}
         {!merged.length && !error && <div className="text-center text-xs text-slate-600 p-8">Пока нет игроков в рейтинге.</div>}

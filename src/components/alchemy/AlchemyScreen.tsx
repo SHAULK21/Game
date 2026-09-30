@@ -30,11 +30,11 @@ export const AlchemyScreen: React.FC = () => {
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Header */}
-      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#091811] to-[#0a0f1d] p-4 shadow-xl">
+      <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-400/40 text-emerald-400">
-              <FlaskConical className="w-6 h-6 animate-pulse" />
+              <FlaskConical className="w-6 h-6" />
             </div>
             <div>
               <h2 className="font-cinzel text-base font-bold text-slate-100">
