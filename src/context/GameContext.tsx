@@ -1785,6 +1785,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: `Для перехода нужен ${targetReg.minLevel}-й уровень.` };
     }
     if (travelState.isTraveling) return { success: false, message: 'Путешествие уже идёт.' };
+    if (isInCombat && !isCombatEnded) return { success: false, message: 'Сначала завершите текущий бой.' };
+    if (activeDungeonRun) return { success: false, message: 'Сначала завершите поход в подземелье.' };
+    if (player.miningExpedition && !premium.active) return { success: false, message: 'Сначала уйдите с шахтёрской экспедиции.' };
 
     const selectedModId = modId && targetReg.availableMods.includes(modId) ? modId : targetReg.defaultModId;
     const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
@@ -1880,7 +1883,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 650);
 
     return { success: true, message: 'Путешествие началось!' };
-  }, [player, travelState.isTraveling, startBattleWithMonster]);
+  }, [player, travelState.isTraveling, startBattleWithMonster, isInCombat, isCombatEnded, activeDungeonRun, premium.active]);
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
@@ -2704,10 +2707,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Procedural Dungeons
   const enterDungeon = useCallback((caveId: string, difficulty: DungeonRun['difficulty'] = 'normal') => {
     if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return; }
+    if (activeDungeonRun || travelState.isTraveling || isInCombat && !isCombatEnded || player.miningExpedition && !premium.active) { triggerHaptic('error'); return; }
     const cave = CAVES[caveId];
     if (!cave) return;
-    const caveRegion = REGIONS.find(region => region.id === player.currentRegionId) || REGIONS[0];
-    if (player.level < cave.minLevel || !caveRegion.caves.includes(caveId)) { triggerHaptic('error'); return; }
+    const caveRegion = REGIONS.find(region => region.id === cave.regionId) || REGIONS[0];
     sound.playClick();
     triggerHaptic('medium');
 
@@ -2777,10 +2780,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setActiveDungeonRun(run);
     setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.dungeon) } : prev);
-  }, [player]);
+  }, [player, activeDungeonRun, travelState.isTraveling, isInCombat, isCombatEnded, premium.active]);
 
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {
     if (!activeDungeonRun) return;
+    if (activeDungeonRun.completed || isInCombat && !isCombatEnded) return;
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
     if (!currentRoom || currentRoom.resolved) return;
 
@@ -2834,12 +2838,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completed: isLast
       };
     });
-  }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp]);
+  }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp, isInCombat, isCombatEnded]);
 
   const exitDungeon = useCallback(() => {
+    exitCombat();
     setActiveDungeonRun(null);
     sound.playClick();
-  }, []);
+  }, [exitCombat]);
 
   const startMiningExpedition = useCallback((hours: 1 | 3 | 7): { success: boolean; message: string } => {
     if (!player) return { success: false, message: 'Персонаж не найден.' };
