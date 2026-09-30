@@ -33,7 +33,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     enterDungeon,
     proceedDungeonRoom,
     exitDungeon,
-    setActiveRegionMod
+    setActiveRegionMod,
+    isInCombat,
+    isCombatEnded,
+    premium
   } = useGame();
 
   const [selectedCaveId, setSelectedCaveId] = useState<string>('cave_bat');
@@ -449,8 +452,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         <div className="space-y-2">
           {Object.values(CAVES).map(cave => {
             const isSelected = selectedCaveId === cave.id;
-            const isAvailableHere = currentRegion.caves.includes(cave.id);
-            const canEnter = isAvailableHere && player.level >= cave.minLevel;
+            const canEnter = player.energy >= 15 && !(isInCombat && !isCombatEnded) && !(player.miningExpedition && !premium.active);
             return (
               <div
                 key={cave.id}
@@ -474,7 +476,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                         {cave.name}
                       </span>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        {cave.roomsCount} комнат · Мин. ур. {cave.minLevel}{!isAvailableHere ? ' · Другая локация' : ''}
+                        {cave.roomsCount} комнат · Рекомендуемый ур. {cave.minLevel} · Вход 15 ⚡
                       </div>
                     </div>
                   </div>
@@ -493,6 +495,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               </div>
             );
           })}
+          <p className="text-[10px] text-slate-400">Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.</p>
         </div>
       </div>
     </div>
