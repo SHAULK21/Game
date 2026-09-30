@@ -132,6 +132,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           </button>
         </div>
 
+        {activeDungeonRun.lastEvent && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-200">{activeDungeonRun.lastEvent}</p>}
+        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-cyan-500/30 p-3 text-xs text-cyan-200">✨ {activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}. Действует только в этом походе.</p>}
+
         {/* Room Stepper */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {activeDungeonRun.rooms.map((r, idx) => {
@@ -162,6 +165,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <p className="text-xs text-slate-300">
               Все комнаты пройдены, а босс повержен.
             </p>
+            {activeDungeonRun.completionReward && <div className="rounded-xl border border-amber-500/30 bg-black/30 p-3 text-xs text-amber-200 space-y-1">
+              <div className="font-bold">Награда за прохождение зачислена</div>
+              <div>+{activeDungeonRun.completionReward.gold} золота · +{activeDungeonRun.completionReward.silver} серебра · +{activeDungeonRun.completionReward.exp} опыта</div>
+              <div className="text-[10px] text-slate-400">Дополнительно к добыче с босса. Повторное открытие итогов не выдаёт награду повторно.</div>
+            </div>}
             <button
               onClick={exitDungeon}
               className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-cinzel font-bold text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all"
@@ -216,7 +224,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-cinzel font-bold text-xs shadow-md shadow-amber-950 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Key className="w-4 h-4" />
-                    <span>Открыть древний сундук</span>
+                    <span>Открыть сундук · 25% пустой</span>
                   </button>
                 ) : (
                   <button
@@ -224,7 +232,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-cinzel font-bold text-xs shadow-md shadow-cyan-950 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Получить благословение</span>
+                    <span>Получить благословение · шанс 70%</span>
                   </button>
                 )}
               </div>

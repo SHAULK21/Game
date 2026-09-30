@@ -303,6 +303,9 @@ export interface DungeonRun {
   savedHp?: number;
   savedMp?: number;
   blessings?: string[];
+  temporaryBlessing?: { name: string; remainingBattles: number } | null;
+  completionReward?: { gold: number; silver: number; exp: number };
+  lastEvent?: string;
 }
 
 export interface MiningExpeditionReward {
