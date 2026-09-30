@@ -13,7 +13,8 @@ import {
   FlaskConical,
   Pickaxe,
   Gem,
-  Swords
+  Swords,
+  Crown
 } from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
@@ -147,13 +148,30 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     sellItem,
     disassembleItem,
     toggleItemLock,
-    expandInventory
+    expandInventory,
+    premium,
+    purchasePremium
   } = useGame();
 
   const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
   const [tab, setTab] = useState<InventoryTab>('equipment');
+  const [premiumBusy, setPremiumBusy] = useState(false);
+  const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
 
   if (!player) return null;
+
+  const handleInventoryExpansion = async () => {
+    if (premium.active) {
+      expandInventory();
+      return;
+    }
+
+    setPremiumBusy(true);
+    setPremiumFeedback(null);
+    const result = await purchasePremium();
+    setPremiumFeedback(result.message);
+    setPremiumBusy(false);
+  };
 
   const currentSelected = selectedItem
     ? player.inventory.find(i => i.id === selectedItem.id) || Object.values(player.equipped).find(i => i?.id === selectedItem.id) || selectedItem
@@ -326,13 +344,25 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           </span>
         </div>
         <button
-          onClick={expandInventory}
-          className="text-[10px] px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 flex items-center gap-1 active:scale-95"
+          onClick={handleInventoryExpansion}
+          disabled={premium.loading || premiumBusy}
+          title={premium.active ? 'Расширить инвентарь за золото' : 'Подключить Premium и расширить инвентарь'}
+          className="text-[10px] px-2 py-1.5 rounded-lg border border-amber-700/60 bg-amber-950/30 text-amber-200 flex items-center gap-1 active:scale-95 disabled:opacity-60 disabled:cursor-wait"
         >
-          <Plus className="w-3.5 h-3.5 text-cyan-400" />
-          +5 слотов
+          <Crown className="w-3.5 h-3.5 text-amber-300" />
+          {premiumBusy ? 'Открываю…' : '+5 слотов · Только Premium'}
         </button>
       </div>
+      {premiumFeedback && (
+        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[10px] leading-4 text-amber-200/80">
+          {premiumFeedback}
+        </div>
+      )}
+      {!premium.active && !premium.loading && (
+        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[10px] leading-4 text-amber-200/80">
+          👑 Расширение сумки доступно только с активным Premium. Базовые {player.maxInventorySlots} слотов остаются доступны всегда.
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-1.5">
         {([
