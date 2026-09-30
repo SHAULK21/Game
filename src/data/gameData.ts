@@ -1,6 +1,7 @@
 import { 
   CharacterClassId, 
-  ItemRarity, 
+  ItemRarity,
+  ItemType,
   Monster, 
   MiningNode, 
   AlchemyRecipe,
@@ -1247,6 +1248,35 @@ export const rollCraftRarity = (roll = Math.random()) => {
 
 export const getCraftTierForLevel = (level: number) =>
   [...REGION_CRAFT_TIERS].reverse().find(tier => level >= tier.level) || REGION_CRAFT_TIERS[0];
+
+export const getEquipmentLevelRange = (level: number) => {
+  const tier = getCraftTierForLevel(level);
+  const next = REGION_CRAFT_TIERS.find(entry => entry.level > tier.level);
+  return { min: tier.level, max: next ? next.level - 1 : 120 };
+};
+
+const EQUIPMENT_TIER_NAMES: Record<number, string> = {
+  1: 'Равнин', 5: 'Сумеречного леса', 8: 'Забытого склепа',
+  12: 'Древнего леса', 25: 'Гиблых болот', 40: 'Пылающей пустыни',
+  55: 'Проклятых земель', 75: 'Демонического разлома',
+  90: 'Драконьего пика', 100: 'Эфира Прадракона'
+};
+
+export const getLeveledEquipmentName = (name: string, type: ItemType, level: number) => {
+  if (!['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(type)) return name;
+  const base = name.replace(/ · [^·]+$/, '');
+  return `${base} · ${EQUIPMENT_TIER_NAMES[getCraftTierForLevel(level).level]}`;
+};
+
+// 5% total chance: +1 2%, +2 1.5%, +3 0.9%, +4 0.45%, +5 0.15%.
+export const rollCraftUpgrade = (roll = Math.random()) => {
+  if (roll < 0.0015) return 5;
+  if (roll < 0.006) return 4;
+  if (roll < 0.015) return 3;
+  if (roll < 0.03) return 2;
+  if (roll < 0.05) return 1;
+  return 0;
+};
 
 export const getUpgradeRequirements = (item: GameItem, upgradeLevel: number) => {
   const tier = getCraftTierForLevel(item.level);
