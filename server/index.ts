@@ -10,6 +10,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { calculateMarketSale } from '../src/utils/marketEconomy';
+import { CLASS_EQUIPMENT } from '../src/utils/classEquipment';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -733,6 +734,7 @@ app.post('/api/market/list', auth, async (req, res) => {
     upgradeLevel: Number(item.upgradeLevel || 0), icon: String(item.icon || '📦'), stats: item.stats || {},
     armorClass: ['heavy', 'medium', 'light'].includes(item.armorClass) ? item.armorClass : undefined,
     weaponClass: ['twoHanded', 'dagger', 'staff', 'shield', 'bow'].includes(item.weaponClass) ? item.weaponClass : undefined,
+    targetClass: Object.hasOwn(CLASS_EQUIPMENT, String(item.targetClass)) ? item.targetClass : undefined,
     description: String(item.description || '').slice(0, 300), sellPrice: Number(item.sellPrice || 0)
   };
   const result = await pool.query(
