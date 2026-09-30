@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import {
   BASIC_CRAFT_RECIPES, CRAFT_RARITY_CHANCES, MINE_CATALYST_BY_ORE,
-  MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS
+  MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,
+  getEquipmentLevelRange, getLeveledEquipmentName
 } from '../../data/gameData';
 import { Hammer } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export const CraftingScreen: React.FC = () => {
         </div>
         <p className="mt-2 text-xs text-slate-300">Рецепты постоянны для всех игроков. Трофеи добываются в соседних по уровню локациях; шахтные материалы могут быть из разных жил.</p>
         <p className="mt-2 text-[10px] text-cyan-300">Качество созданного снаряжения: {qualityOdds}</p>
+        <p className="mt-2 text-[10px] text-amber-300">Уровень снаряжения случаен внутри ступени, все уровни равновероятны. Готовая заточка: +1 — 2%, +2 — 1,5%, +3 — 0,9%, +4 — 0,45%, +5 — 0,15%. Без заточки — 95%.</p>
       </div>
 
       <label className="block text-xs text-slate-300">
@@ -61,6 +63,8 @@ export const CraftingScreen: React.FC = () => {
 
       <div className="space-y-2">
         {recipes.map(recipe => {
+          const isEquipment = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type);
+          const range = getEquipmentLevelRange(recipe.result?.level || 1);
           const unlocked = player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
           const requirements = recipe.ingredients.map(ingredient => ({
             ...ingredient,
@@ -73,9 +77,10 @@ export const CraftingScreen: React.FC = () => {
               <div className="flex items-start gap-2">
                 <span className="text-2xl shrink-0">{recipe.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-100">{recipe.name}</div>
+                  <div className="text-xs font-bold text-slate-100">{recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, recipe.result.level || 1) : recipe.name}</div>
                   <p className="mt-0.5 text-[10px] text-slate-400">{recipe.description}</p>
-                  {recipe.regionId && <p className="mt-1 text-[10px] text-cyan-300">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур. · Уровень вещи: {recipe.result?.level}</p>}
+                  {recipe.regionId && <p className="mt-1 text-[10px] text-cyan-300">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
+                  {isEquipment && <p className="mt-1 text-[10px] text-cyan-300">Уровень вещи: {range.min}–{range.max} · Возможна заточка +1–+5</p>}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {requirements.map(ingredient => (
                       <span key={ingredient.name} className={`rounded border px-1.5 py-1 text-[9px] ${ingredient.have >= ingredient.count ? 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300' : 'border-rose-500/30 bg-rose-950/20 text-rose-300'}`}>

@@ -28,6 +28,9 @@ import {
   getRegionMonster,
   getUpgradeRequirements,
   rollCraftRarity,
+  rollCraftUpgrade,
+  getEquipmentLevelRange,
+  getLeveledEquipmentName,
   RARITY_COLORS,
   STARTER_ITEMS, 
   INITIAL_QUESTS, 
@@ -846,6 +849,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const migrateSalvage = (item: any) => {
             if (!item) return item;
+            if (!item.serverOwned) item.name = getLeveledEquipmentName(item.name, item.type, item.level || 1);
             const salvage = item.disassembleYield || {};
             const oldShards = Number(salvage.shards || 0);
             const oldCrystals = Number(salvage.crystals || 0);
@@ -1120,11 +1124,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Equip primary weapon and armor, put others in bag
     starterGear.forEach((item, index) => {
       if (index === 0 && (item.type === 'weapon')) {
-        equipped[item.type] = { ...item, isEquipped: true };
+        equipped[item.type] = { ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: true };
       } else if (index === 1 && item.type === 'armor') {
-        equipped[item.type] = { ...item, isEquipped: true };
+        equipped[item.type] = { ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: true };
       } else {
-        inventory.push({ ...item, isEquipped: false });
+        inventory.push({ ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: false });
       }
     });
 
@@ -1351,6 +1355,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
     const canonical = response.items.map(row => ({
       ...row.item_json, id: row.id, stackCount: row.quantity, isLocked: row.locked,
+      name: getLeveledEquipmentName(row.item_json.name, row.item_json.type, row.item_json.level),
       boundToClan: row.bound_clan_id || undefined, serverOwned: true,
       isEquipped: Boolean(row.equipped_slot), slot: row.equipped_slot
     }));
@@ -1529,6 +1534,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const expandInventory = useCallback(() => {
     setPlayer(prev => {
       if (!prev) return prev;
+      // Inventory expansion is a Premium-only benefit. Keep the check in the
+      // game context as the source of truth so it cannot be bypassed by a UI
+      // click or another caller.
       if (!premium.active) {
         triggerHaptic('error');
         return prev;
@@ -3109,20 +3117,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let inventory = consumeIngredients(player.inventory, ingredients);
     const quality = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type)
       ? rollCraftRarity() : null;
+    const baseLevel = recipe.result?.level || Math.max(1, Math.min(10, player.level));
+    const range = getEquipmentLevelRange(baseLevel);
+    const outputLevel = quality ? range.min + Math.floor(Math.random() * (range.max - range.min + 1)) : baseLevel;
+    const outputUpgrade = quality ? rollCraftUpgrade() : 0;
+    const outputName = recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, outputLevel) : recipe.name;
+    const levelMultiplier = quality ? (10 + outputLevel) / (10 + baseLevel) : 1;
 
     if (recipe.result) {
       const output: GameItem = {
         id: 'basic_craft_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         templateId: recipe.id,
-        name: recipe.result.name,
+        name: outputName,
         type: recipe.result.type,
         rarity: quality?.rarity || recipe.result.rarity,
-        level: recipe.result.level || Math.max(1, Math.min(10, player.level)),
-        upgradeLevel: 0,
+        level: outputLevel,
+        upgradeLevel: outputUpgrade,
         icon: recipe.result.icon,
         description: quality ? `${recipe.description} Качество: ${RARITY_COLORS[quality.rarity].label}.` : recipe.description,
         stats: Object.fromEntries(Object.entries(recipe.result.stats).map(([stat, value]) => [
-          stat, quality && !['speed', 'critChance', 'evasion'].includes(stat) ? Math.round(value * quality.multiplier) : value
+          stat, quality && !['speed', 'critChance', 'evasion'].includes(stat) ? Math.round(value * quality.multiplier * levelMultiplier) : value
         ])),
         sellPrice: Math.round(recipe.result.sellPrice * (quality?.multiplier || 1)),
         disassembleYield: { silver: Math.max(4, Math.round(recipe.result.sellPrice * (quality?.multiplier || 1) * 0.35)) },
@@ -3145,7 +3159,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       success: true,
       message: recipe.silverReward
         ? `Переработано: +${recipe.silverReward} серебра.`
-        : `Создано: ${recipe.result?.name || recipe.name}${quality ? ` (${RARITY_COLORS[quality.rarity].label})` : ''}.`
+        : `Создано: ${outputName}${quality ? ` (${RARITY_COLORS[quality.rarity].label}, ур. ${outputLevel}${outputUpgrade ? `, +${outputUpgrade}` : ''})` : ''}.`
     };
   }, [player]);
 
