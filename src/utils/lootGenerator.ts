@@ -1,5 +1,5 @@
 import { GameItem, ItemRarity, ItemType, Monster, MonsterDrop } from '../types/game';
-import { ASSETS } from '../data/gameData';
+import { ASSETS, getLeveledEquipmentName } from '../data/gameData';
 
 interface GenerateLootOptions {
   monster: Monster;
@@ -110,7 +110,7 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
   return {
     id: idBase,
     templateId: drop.templateId || `drop_${slugify(drop.itemName)}`,
-    name: drop.itemName,
+    name: getLeveledEquipmentName(drop.itemName, drop.type, monsterLevel),
     type: drop.type,
     rarity: drop.rarity,
     level: monsterLevel,
