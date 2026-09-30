@@ -15,6 +15,7 @@ import {
   GameItem,
   RegionModifier
 } from '../types/game';
+import { createTalentTree } from './talents';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../utils/classEquipment';
 
 // Generated assets
@@ -122,12 +123,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         inflicts: { type: 'bleed', chance: 0.8, duration: 3, power: 35 }
       }
     ],
-    talents: [
-      { id: 'w_t1', name: 'Крепкая стать', description: '+8 к живучести за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '💪', effect: { stat: 'vitality', valuePerRank: 8 } },
-      { id: 'w_t2', name: 'Мастер брони', description: '+10% к физической защите', tier: 1, maxRank: 5, currentRank: 0, icon: '🛡️', effect: { stat: 'defense', valuePerRank: 10, isPercent: true } },
-      { id: 'w_t3', name: 'Тяжелый размах', description: '+12% к урону критов', tier: 2, maxRank: 5, currentRank: 0, icon: '🪓', effect: { stat: 'critDamage', valuePerRank: 12, isPercent: true } },
-      { id: 'w_t4', name: 'Жажда крови', description: '+3% вампиризма за ранг', tier: 2, maxRank: 5, currentRank: 0, icon: '🩸', effect: { stat: 'vampirism', valuePerRank: 3, isPercent: true } },
-    ]
+    talents: createTalentTree('warrior')
   },
   berserker: {
     id: 'berserker',
@@ -182,11 +178,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '☠️'
       }
     ],
-    talents: [
-      { id: 'b_t1', name: 'Сила титана', description: '+7 к силе за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '⚡', effect: { stat: 'strength', valuePerRank: 7 } },
-      { id: 'b_t2', name: 'Смертоносность', description: '+4% к шансу крита', tier: 1, maxRank: 5, currentRank: 0, icon: '🎯', effect: { stat: 'critChance', valuePerRank: 4, isPercent: true } },
-      { id: 'b_t3', name: 'Кровожадность', description: '+4% вампиризма за ранг', tier: 2, maxRank: 5, currentRank: 0, icon: '🩸', effect: { stat: 'vampirism', valuePerRank: 4, isPercent: true } },
-    ]
+    talents: createTalentTree('berserker')
   },
   knight: {
     id: 'knight',
@@ -226,9 +218,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         inflicts: { type: 'shield', chance: 1.0, duration: 4, power: 120 }
       }
     ],
-    talents: [
-      { id: 'k_t1', name: 'Стальная воля', description: '+10 к живучести', tier: 1, maxRank: 5, currentRank: 0, icon: '🛡️', effect: { stat: 'vitality', valuePerRank: 10 } }
-    ]
+    talents: createTalentTree('knight')
   },
   rogue: {
     id: 'rogue',
@@ -282,11 +272,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '🌪️'
       }
     ],
-    talents: [
-      { id: 'r_t1', name: 'Глаз хищника', description: '+4% к шансу крита за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '🎯', effect: { stat: 'critChance', valuePerRank: 4, isPercent: true } },
-      { id: 'r_t2', name: 'Ловкие пальцы', description: '+6 к ловкости за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '🧤', effect: { stat: 'agility', valuePerRank: 6 } },
-      { id: 'r_t3', name: 'Убийственный фатал', description: '+20% к критическому урону', tier: 2, maxRank: 5, currentRank: 0, icon: '⚡', effect: { stat: 'critDamage', valuePerRank: 20, isPercent: true } },
-    ]
+    talents: createTalentTree('rogue')
   },
   assassin: {
     id: 'assassin',
@@ -312,9 +298,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '🗡️'
       }
     ],
-    talents: [
-      { id: 'a_t1', name: 'Смертельный выпад', description: '+15% к крит. урону', tier: 1, maxRank: 5, currentRank: 0, icon: '🎯', effect: { stat: 'critDamage', valuePerRank: 15, isPercent: true } }
-    ]
+    talents: createTalentTree('assassin')
   },
   archer: {
     id: 'archer',
@@ -340,9 +324,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '🎯'
       }
     ],
-    talents: [
-      { id: 'arc_t1', name: 'Орлиный взор', description: '+5 к точности и +3% крита', tier: 1, maxRank: 5, currentRank: 0, icon: '🦅', effect: { stat: 'critChance', valuePerRank: 3, isPercent: true } }
-    ]
+    talents: createTalentTree('archer')
   },
   mage: {
     id: 'mage',
@@ -397,11 +379,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '☄️'
       }
     ],
-    talents: [
-      { id: 'm_t1', name: 'Тайное знание', description: '+8 к интеллекту за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '📖', effect: { stat: 'intelligence', valuePerRank: 8 } },
-      { id: 'm_t2', name: 'Источник маны', description: '+15 к макс. запасу маны и +2 реген', tier: 1, maxRank: 5, currentRank: 0, icon: '💧', effect: { stat: 'mpRegen', valuePerRank: 2 } },
-      { id: 'm_t3', name: 'Стихийный резонанс', description: '+12% к магическому урону', tier: 2, maxRank: 5, currentRank: 0, icon: '⚡', effect: { stat: 'magicAttack', valuePerRank: 12, isPercent: true } },
-    ]
+    talents: createTalentTree('mage')
   },
   necromancer: {
     id: 'necromancer',
@@ -428,9 +406,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '🩸'
       }
     ],
-    talents: [
-      { id: 'n_t1', name: 'Владыка праха', description: '+4% вампиризма за ранг', tier: 1, maxRank: 5, currentRank: 0, icon: '💀', effect: { stat: 'vampirism', valuePerRank: 4, isPercent: true } }
-    ]
+    talents: createTalentTree('necromancer')
   },
   paladin: {
     id: 'paladin',
@@ -470,9 +446,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         icon: '💖'
       }
     ],
-    talents: [
-      { id: 'p_t1', name: 'Благословение', description: '+5 к силе и +5 к духу', tier: 1, maxRank: 5, currentRank: 0, icon: '🙏', effect: { stat: 'spirit', valuePerRank: 5 } }
-    ]
+    talents: createTalentTree('paladin')
   },
   druid: {
     id: 'druid',
@@ -499,9 +473,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
         inflicts: { type: 'poison', chance: 0.7, duration: 3, power: 22 }
       }
     ],
-    talents: [
-      { id: 'd_t1', name: 'Единство с лесом', description: '+4 к регенерации HP', tier: 1, maxRank: 5, currentRank: 0, icon: '🌱', effect: { stat: 'hpRegen', valuePerRank: 4 } }
-    ]
+    talents: createTalentTree('druid')
   }
 };
 

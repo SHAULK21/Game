@@ -1,3 +1,4 @@
+import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   PlayerCharacter, 
@@ -86,6 +87,7 @@ interface GameContextType {
   resetCharacter: () => void;
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
+  resetTalentTree: () => void;
   equipItem: (item: GameItem) => void;
   unequipItem: (type: ItemType) => void;
   sellItem: (item: GameItem) => void;
@@ -535,6 +537,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
   const arenaDefeatHandled = useRef(false);
+  const talentFollowup = useRef(0);
   useEffect(() => {
     if (!isCombatEnded || combatOutcome !== 'defeat') {
       arenaDefeatHandled.current = false;
@@ -932,6 +935,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.nextExp = getNextExperience(parsed.player.level);
           parsed.player = addExperience(parsed.player, 0).player;
 
+          parsed.player = migrateTalents(parsed.player);
           setPlayer(CLASSES[parsed.player.classId as CharacterClassId]
             ? reconcileSkills(parsed.player, CLASSES[parsed.player.classId as CharacterClassId].startingSkills)
             : parsed.player);
@@ -1096,23 +1100,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     });
 
-    // Apply Talents
-    player.talents.forEach(talent => {
-      if (talent.currentRank > 0 && talent.effect) {
-        const val = talent.effect.valuePerRank * talent.currentRank;
-        if (talent.effect.stat === 'vitality') maxHp += val * 14;
-        else if (talent.effect.stat === 'strength') attack += val * 2.2;
-        else if (talent.effect.stat === 'agility') speed += val;
-        else if (talent.effect.stat === 'intelligence') magicAttack += val * 2.5;
-        else if (talent.effect.stat === 'critChance') critChance += val;
-        else if (talent.effect.stat === 'critDamage') critDamage += val;
-        else if (talent.effect.stat === 'vampirism') vampirism += val;
-        else if (talent.effect.stat === 'hpRegen') hpRegen += val;
-        else if (talent.effect.stat === 'mpRegen') mpRegen += val;
-        else if (talent.effect.stat === 'defense') defense = Math.round(defense * (1 + val / 100));
-        else if (talent.effect.stat === 'magicAttack') magicAttack = Math.round(magicAttack * (1 + val / 100));
-      }
-    });
+    // Talent bonuses are independent of manually allocated attributes.
+    const talents = talentBonuses(player.talents);
+    maxHp += (talents.maxHp || 0) + (talents.vitality || 0) * 14;
+    maxMp += (talents.maxMp || 0) + (talents.intelligence || 0) * 10 + (talents.spirit || 0) * 6;
+    attack += (talents.strength || 0) * 2.2 + Math.floor((talents.agility || 0) * 0.8);
+    defense += (talents.vitality || 0) * 1.5 + Math.floor((talents.strength || 0) * 0.5);
+    magicAttack += (talents.intelligence || 0) * 2.5 + Math.floor((talents.spirit || 0) * 0.8);
+    speed += (talents.agility || 0) * 1.2;
+    accuracy += (talents.agility || 0) * 0.8;
+    evasion += (talents.agility || 0) * 0.5;
+    critChance += (talents.agility || 0) * 0.4;
+    accuracy += talents.accuracy || 0;
+    critChance += talents.critChance || 0;
+    critDamage += talents.critDamage || 0;
+    evasion += talents.evasion || 0;
+    armorPen += talents.armorPenetration || 0;
+    vampirism += talents.vampirism || 0;
+    hpRegen += talents.hpRegen || 0;
+    mpRegen += (talents.mpRegen || 0) + (talents.spirit || 0) * 0.5;
+    magicDefense += (talents.spirit || 0) * 1.8 + Math.floor((talents.intelligence || 0) * 0.6);
+    maxHp *= 1 + (talents.hpPercent || 0) / 100;
+    maxMp *= 1 + (talents.manaPercent || 0) / 100;
+    attack *= 1 + (talents.damagePercent || 0) / 100;
+    magicAttack *= (1 + (talents.damagePercent || 0) / 100) * (1 + (talents.magicAttack || 0) / 100);
+    defense *= (1 + (talents.defensePercent || 0) / 100) * (1 + (talents.defense || 0) / 100);
+    magicDefense *= 1 + (talents.defensePercent || 0) / 100;
 
     // Claimed achievements grant the permanent bonuses described in the UI.
     const claimedAchievementIds = new Set(achievements.filter(a => a.claimed).map(a => a.id));
@@ -1281,7 +1294,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       equipped,
       inventory,
       maxInventorySlots: 40,
-      talents: classDef.talents.map(t => ({ ...t })),
+      talents: createTalentTree(classId),
       skills: classDef.startingSkills.map(s => ({ ...s })),
       activePet: PETS_LIST[0],
       craftedPetIds: ['pet_wolf'],
@@ -1398,23 +1411,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const unlockTalent = useCallback((talentId: string) => {
-    setPlayer(prev => {
-      if (!prev || prev.talentPoints <= 0) return prev;
-      const updatedTalents = prev.talents.map(t => {
-        if (t.id === talentId && t.currentRank < t.maxRank) {
-          sound.playUpgradeSuccess();
-          triggerHaptic('medium');
-          return { ...t, currentRank: t.currentRank + 1 };
-        }
-        return t;
-      });
-      return {
-        ...prev,
-        talentPoints: prev.talentPoints - 1,
-        talents: updatedTalents
-      };
-    });
-  }, []);
+    if (isInCombat && !isCombatEnded) return;
+    setPlayer(prev => prev ? learnTalent(prev, talentId) : prev);
+  }, [isInCombat, isCombatEnded]);
+
+  const resetTalentTree = useCallback(() => {
+    if (isInCombat && !isCombatEnded) return;
+    setPlayer(prev => prev ? resetTalents(prev) : prev);
+  }, [isInCombat, isCombatEnded]);
 
   const refreshServerInventory = useCallback(async () => {
     const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
@@ -1784,9 +1788,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCombatChain(useChain && player ? { total: chain.length, defeated: 0, queue: chain.slice(1) } : null);
     setActiveMonster({ ...chain[0], hp: chain[0].maxHp });
     const dungeonFight = !useChain && !!activeDungeonRun && energyCost === 0;
-    setCombatPlayerHp(dungeonFight ? Math.max(1, activeDungeonRun.savedHp ?? combatStats.maxHp) : combatStats.maxHp);
-    setCombatPlayerMp(dungeonFight ? Math.max(0, activeDungeonRun.savedMp ?? combatStats.maxMp) : combatStats.maxMp);
-    setLastCast(null);
+    setCombatPlayerHp(dungeonFight ? Math.min(combatStats.maxHp, Math.max(1, activeDungeonRun.savedHp ?? combatStats.maxHp)) : combatStats.maxHp);
+    setCombatPlayerMp(dungeonFight ? Math.min(combatStats.maxMp, Math.max(0, activeDungeonRun.savedMp ?? combatStats.maxMp)) : combatStats.maxMp);
     setWarriorMomentum(0);
     setRogueFocus(false);
     setTurnPhase('player');
@@ -1797,6 +1800,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayerEffects([]);
     setMonsterEffects([]);
     setCombatRound(1);
+    talentFollowup.current = 0;
     setLastCast(null);
     setLastCombatReward(null);
     setPendingChainItems([]);
@@ -1828,6 +1832,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMonsterEffects([]);
     setCombatRound(1);
     setLastCombatReward(null);
+    setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev));
     setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + Math.floor(combatStats.maxMp * 0.05)));
     setIsCombatEnded(false);
     setCombatOutcome(null);
@@ -1953,6 +1958,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
+    const killRecovery = talentBonuses(player?.talents || []).killRecovery || 0;
+    const recoveredHp = Math.min(combatStats.maxHp, combatPlayerHp + Math.round(combatStats.maxHp * killRecovery / 100));
+    const recoveredMp = Math.min(combatStats.maxMp, combatPlayerMp + Math.round(combatStats.maxMp * killRecovery / 100));
+    if (killRecovery) {
+      setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(combatStats.maxHp * killRecovery / 100)));
+      setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * killRecovery / 100)));
+    }
     const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
     // Every completed combat has a small consumable roll: 0–3 potions.
@@ -2182,8 +2194,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? { ...prevRun.temporaryBlessing, remainingBattles: prevRun.temporaryBlessing.remainingBattles - 1 }
             : null,
           kills: (prevRun.kills || 0) + 1,
-          savedHp: Math.min(combatStats.maxHp, combatPlayerHp + (player?.classId === 'necromancer' || player?.classId === 'paladin' && (prevRun.kills || 0) % 3 === 2 ? Math.round(combatStats.maxHp * 0.08) : 0)),
-          savedMp: Math.min(combatStats.maxMp, combatPlayerMp + (player?.classId === 'mage' ? Math.round(combatStats.maxMp * 0.1) : 0))
+          savedHp: Math.min(combatStats.maxHp, recoveredHp + (player?.classId === 'necromancer' || player?.classId === 'paladin' && (prevRun.kills || 0) % 3 === 2 ? Math.round(combatStats.maxHp * 0.08) : 0)),
+          savedMp: Math.min(combatStats.maxMp, recoveredMp + (player?.classId === 'mage' ? Math.round(combatStats.maxMp * 0.1) : 0))
         };
       });
     }
@@ -2209,8 +2221,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
 
     const currentTurn = combatRound;
+    const talents = talentBonuses(player.talents);
     const newLogs: BattleLogEntry[] = [];
     const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+
+    if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
+
+    // Invalid skill requests never consume a turn, heal or tick effects.
+    if (actionType === 'skill') {
+      const requested = player.skills.find(skill => skill.id === skillId);
+      if (!requested || player.level < requested.levelReq || requested.currentCooldown > 0 ||
+          combatPlayerMp < talentManaCost(requested.manaCost, player.talents)) return;
+    }
 
     // Process player-owned periodic effects at the start of the player's turn.
     const playerTick = tickStatusEffects(playerEffects);
@@ -2269,6 +2291,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    if (combatPlayerHp > 0) {
+      setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + combatStats.hpRegen + Math.round(combatStats.maxHp * (talents.turnHeal || 0) / 100)));
+      setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + combatStats.mpRegen));
+    }
     const playerMods = getStatusModifiers(playerEffects);
     const monsterMods = getStatusModifiers(monsterEffects);
     let nextMonsterHp = activeMonster.hp;
@@ -2295,9 +2321,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'shield',
         name: 'Глухая оборона',
         duration: 1,
-        value: Math.round(combatStats.defense * 1.5)
+        value: Math.round(combatStats.defense * 1.5 * (1 + (talents.shieldPower || 0) / 100))
       }));
       setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + 25));
+      if (talents.defendHeal) setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(combatStats.maxHp * talents.defendHeal / 100)));
       newLogs.push({
         id: 'def_' + Date.now(),
         turn: currentTurn,
@@ -2395,20 +2422,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBattleLog(prev => [...prev, ...newLogs]);
         return;
       }
-      if (combatPlayerMp < skillUsed.manaCost) {
+      const manaCost = talentManaCost(skillUsed.manaCost, player.talents);
+      if (combatPlayerMp < manaCost) {
         newLogs.push({ id: 'no_mp_' + Date.now(), turn: currentTurn, text: `❌ Недостаточно маны для ${skillUsed.name} (${skillUsed.manaCost} MP)!`, type: 'system' });
         setBattleLog(prev => [...prev, ...newLogs]);
         return;
       }
 
-      setCombatPlayerMp(prev => Math.max(0, prev - skillUsed!.manaCost));
+      setCombatPlayerMp(prev => Math.max(0, prev - manaCost));
+      if (talents.skillManaReturn) setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * talents.skillManaReturn / 100)));
+      if (talents.skillHeal) setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(combatStats.maxHp * talents.skillHeal / 100 * (1 + (talents.healPower || 0) / 100))));
+      if (talents.skillBarrier) setPlayerEffects(effects => applyStatusEffect(effects, { type: 'shield', name: 'Живой бастион', duration: 2, value: Math.round(combatStats.maxHp * talents.skillBarrier / 100 * (1 + (talents.shieldPower || 0) / 100)) }));
       setPlayer(prev => prev ? {
         ...prev,
         skills: prev.skills.map(s => s.id === skillUsed!.id ? { ...s, currentCooldown: skillUsed!.cooldown } : s)
       } : prev);
 
       const tier = skillTier(player);
-      multiplier = skillUsed.damageMultiplier * [1, 1.12, 1.25, 1.4][tier - 1];
+      multiplier = skillUsed.damageMultiplier * [1, 1.12, 1.25, 1.4][tier - 1] * (1 + (talents.skillDamage || 0) / 100);
+      if (talents.alternatingDamage && lastCast && lastCast.id !== skillUsed.id && currentTurn - lastCast.turn <= 3) multiplier *= 1 + talents.alternatingDamage / 100;
       if (skillUsed.comboFrom && lastCast?.id === skillUsed.comboFrom && currentTurn - lastCast.turn <= 3) {
         multiplier *= skillUsed.comboMultiplier || 1.25;
         newLogs.push({ id: 'combo_' + Date.now(), turn: currentTurn, text: `🔗 Связка ${skillUsed.name}: усиленный удар!`, type: 'skill' });
@@ -2436,14 +2468,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const effect = {
           type: skillUsed!.inflicts!.type,
           name: skillUsed!.name,
-          duration: skillUsed!.inflicts!.duration,
-          value: skillUsed!.inflicts!.power
+          duration: skillUsed!.inflicts!.duration + (talents.buffDuration || 0),
+          value: Math.round(skillUsed!.inflicts!.power * (skillUsed!.inflicts!.type === 'shield' ? 1 + (talents.shieldPower || 0) / 100 : 1))
         };
         setPlayerEffects(prev => applyStatusEffect(prev, effect));
         newLogs.push({
           id: 'effect_' + Date.now(),
           turn: currentTurn,
-          text: `✨ ${activeMonster.name} получает статус [${skillUsed.inflicts.type}]!`,
+          text: `✨ Вы получаете статус [${skillUsed.inflicts.type}]!`,
           type: 'status'
         });
       }
@@ -2455,7 +2487,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Shield, stealth and healing skills consume a turn without a phantom zero-damage hit.
     if (skillUsed && skillUsed.damageMultiplier === 0) {
-      const healAmount = skillUsed.healMultiplier ? Math.max(1, Math.round(100 * skillUsed.healMultiplier)) : 0;
+      const healAmount = skillUsed.healMultiplier ? Math.max(1, Math.round(100 * skillUsed.healMultiplier * (1 + (talents.healPower || 0) / 100))) : 0;
       if (healAmount) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmount));
       newLogs.push({
         id: 'skill_heal_' + Date.now(),
@@ -2468,9 +2500,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    if (talentFollowup.current) {
+      multiplier *= 1 + talentFollowup.current / 100;
+      newLogs.push({ id: 'talent_followup_' + Date.now(), turn: currentTurn, text: `✨ Сочетание талантов: +${talentFollowup.current}% урона.`, type: 'skill' });
+      talentFollowup.current = 0;
+    }
+    if (talents.offensiveStance && combatPlayerHp / combatStats.maxHp > 0.7) multiplier *= 1 + talents.offensiveStance / 100;
+    if (talents.defensiveStance) multiplier *= 0.9;
+    if (activeMonster.hp / activeMonster.maxHp < 0.3) multiplier *= 1 + (talents.executeDamage || 0) / 100;
+    if (monsterEffects.some(e => ['poison', 'bleed', 'burn', 'vulnerability'].includes(e.type))) multiplier *= 1 + (talents.afflictedDamage || 0) / 100;
+    if (talents.berserkDamage && combatPlayerHp / combatStats.maxHp < 0.4) multiplier *= 1 + talents.berserkDamage / 100;
+    if (talents.momentumDamage) multiplier *= 1 + warriorMomentum * talents.momentumDamage / 400;
+    if (talents.stealthDamage && stealthStrike) multiplier *= 1 + talents.stealthDamage / 100;
+    if (talents.shieldedDamage && playerEffects.some(e => e.type === 'shield')) multiplier *= 1 + talents.shieldedDamage / 100;
+    if (talents.focusDamage && rogueFocus) multiplier *= 1 + talents.focusDamage / 100;
+
     // Every strike resolves independently. A multi-hit can crit, miss, drain and kill on any hit.
     const attackPower = getDamagePower(damageType, combatStats);
-    const strikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && skillTier(player) >= 4 ? 1 : 0));
+    const baseStrikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && skillTier(player) >= 4 ? 1 : 0));
+    const strikes = baseStrikes + (skillUsed && talents.extraStrike ? 1 : 0);
+    let trapApplied = false;
     for (let strike = 0; strike < strikes && nextMonsterHp > 0; strike++) {
       const hitChance = Math.min(98, Math.max(30, combatStats.accuracy - activeMonster.evasion + 85));
       const alwaysHit = Boolean(skillUsed?.guaranteedHit || stealthStrike);
@@ -2484,16 +2533,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       let finalDmg = calculateTypedDamage({
         power: attackPower * playerMods.attackMultiplier,
-        multiplier: multiplier / strikes,
+        multiplier: multiplier / baseStrikes * (strike >= baseStrikes ? talents.extraStrike / 100 : 1),
         damageType,
         targetDefense: activeMonster.defense,
         targetMagicDefense: activeMonster.magicDefense,
-        armorPenetration: combatStats.armorPenetration + (skillUsed && skillTier(player) >= 3 ? 20 : 0),
+        armorPenetration: combatStats.armorPenetration + (skillUsed ? talents.skillPenetration || 0 : 0) + (skillUsed && skillTier(player) >= 3 ? 20 : 0),
         targetResistances: activeMonster.resistances,
         extraDamageMultiplier: monsterMods.damageTakenMultiplier
       });
       const isCrit = stealthStrike || Math.random() * 100 < combatStats.critChance;
       if (isCrit) finalDmg = Math.round(finalDmg * combatStats.critDamage / 100);
+      if (isCrit && talents.critMana) setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * talents.critMana / 100)));
+      if (isCrit && talents.critFollowup) talentFollowup.current = Math.max(talentFollowup.current, talents.critFollowup);
       if (isCrit && player.classId === 'rogue') setRogueFocus(true);
       if (skillUsed?.instantExecutePve && activeDungeonRun?.rooms[activeDungeonRun.currentRoomIndex]?.monster?.id === activeMonster.id && !activeMonster.isBoss &&
           nextMonsterHp / activeMonster.maxHp <= (skillUsed.executeThreshold || 0)) {
@@ -2505,16 +2556,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalDmg = Math.min(finalDmg, nextMonsterHp);
       if (skillUsed?.armorBreak && strike === 0) setMonsterEffects(prev => applyStatusEffect(prev, { type: 'vulnerability', name: 'Разлом брони', duration: 3, value: skillUsed!.armorBreak! }));
       if (skillUsed?.inflicts && !['shield', 'fortify', 'fury', 'haste', 'invulnerable'].includes(skillUsed.inflicts.type)
-          && Math.random() < Math.min(1, skillUsed.inflicts.chance + (skillTier(player) >= 2 ? 0.08 : 0))) {
+          && Math.random() < Math.min(1, skillUsed.inflicts.chance + (talents.effectChance || 0) / 100 + (skillTier(player) >= 2 ? 0.08 : 0))) {
         setMonsterEffects(prev => applyStatusEffect(prev, {
           type: skillUsed!.inflicts!.type, name: skillUsed!.name,
-          duration: skillUsed!.inflicts!.duration, value: skillUsed!.inflicts!.power
+          duration: skillUsed!.inflicts!.duration + (talents.effectDuration || 0), value: Math.round(skillUsed!.inflicts!.power * (['poison', 'bleed', 'burn'].includes(skillUsed!.inflicts!.type) ? 1 + (talents.dotPower || 0) / 100 : skillUsed!.inflicts!.type === 'vulnerability' ? 1 + (talents.vulnerabilityPower || 0) / 100 : 1))
         }));
         newLogs.push({id:`effect_${Date.now()}_${strike}`,turn:currentTurn,text:`✨ ${activeMonster.name}: ${skillUsed.inflicts.type}.`,type:'status'});
       }
+      if (skillUsed && talents.classDot && !trapApplied) {
+        trapApplied = true;
+        setMonsterEffects(effects => applyStatusEffect(effects, { type: classTalentStatus(player.classId) || 'poison', name: 'Смертельная западня', duration: 2 + (talents.trapPower ? 1 : 0), value: Math.max(1, Math.round(attackPower * 0.08 * (1 + (talents.dotPower || 0) / 100) * (1 + (talents.trapPower || 0) / 100))) }));
+      }
+      if (skillUsed && talents.skillLeech && finalDmg > 0) setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(finalDmg * talents.skillLeech / 100 * (1 + (talents.healPower || 0) / 100))));
       newLogs.push({id:`dmg_${Date.now()}_${strike}`,turn:currentTurn,text:`${isCrit ? '💥' : '⚔️'} [${skillName}] удар ${strike + 1}/${strikes}: ${finalDmg} ${damageType.toUpperCase()} урона.`,type:isCrit?'crit':'player-attack'});
       if (skillUsed?.healMultiplier && finalDmg > 0) {
-        const heal = Math.max(1, Math.round(finalDmg * skillUsed.healMultiplier));
+        const heal = Math.max(1, Math.round(finalDmg * skillUsed.healMultiplier * (1 + (talents.healPower || 0) / 100)));
         setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
       }
       if (combatStats.vampirism > 0 && finalDmg > 0) {
@@ -2616,7 +2672,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mitigation = defense / (defense + (monsterDamageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(monsterDamageType, combatStats.resistances);
       let monsterFinalDmg = Math.max(0, Math.round(monsterPower * (activeMod.damageMultiplier || 1) * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      const talents = talentBonuses(player.talents);
       const hpPct = combatPlayerHp / Math.max(1, combatStats.maxHp);
+      monsterFinalDmg = Math.round(monsterFinalDmg * incomingTalentMultiplier(talents, hpPct));
       if (player.classId === 'warrior') monsterFinalDmg = Math.round(monsterFinalDmg * 0.90);
       if (player.classId === 'druid' && hpPct < 0.45) monsterFinalDmg = Math.round(monsterFinalDmg * 0.85);
       let blockedByShield = 0;
@@ -2626,6 +2684,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         blockedByShield = Math.min(shield, monsterFinalDmg);
         monsterFinalDmg -= blockedByShield;
         setPlayerEffects(prevEffects => prevEffects.map((effect, index) => index === shieldIndex ? { ...effect, value: effect.value - blockedByShield } : effect).filter(effect => effect.type !== 'shield' || effect.value > 0));
+      }
+      if (blockedByShield > 0) {
+        if (talents.blockMana) setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * talents.blockMana / 100)));
+        talentFollowup.current = Math.max(talentFollowup.current, talents.blockFollowup || 0);
       }
       if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
@@ -2668,7 +2730,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mitigation = defense / (defense + (skill.damageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(skill.damageType, combatStats.resistances);
       let damage = Math.max(0, Math.round(power * skill.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      const talents = talentBonuses(player.talents);
       const hpPct = combatPlayerHp / Math.max(1, combatStats.maxHp);
+      damage = Math.round(damage * incomingTalentMultiplier(talents, hpPct));
       if (player.classId === 'warrior') damage = Math.round(damage * 0.90);
       if (player.classId === 'druid' && hpPct < 0.45) damage = Math.round(damage * 0.85);
       const logs: BattleLogEntry[] = [{ id: 'monster_cast_' + Date.now(), turn: currentTurn, text: `🔥 ${activeMonster.name} применяет ${skill.icon} «${skill.name}»!`, type: 'skill' }];
@@ -2677,6 +2741,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!playerMods.invulnerable && shieldIndex >= 0) {
         blocked = Math.min(playerEffects[shieldIndex].value, damage); damage -= blocked;
         setPlayerEffects(prev => prev.map((e,i)=>i===shieldIndex?{...e,value:e.value-blocked}:e).filter(e=>e.type!=='shield'||e.value>0));
+      }
+      if (blocked > 0) {
+        if (talents.blockMana) setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * talents.blockMana / 100)));
+        talentFollowup.current = Math.max(talentFollowup.current, talents.blockFollowup || 0);
       }
       if (player.classId === 'warrior' && damage > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       if (skill.effect && Math.random() < (skill.effectChance ?? 1)) {
@@ -2732,7 +2800,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         performPlayerAction('potion');
       } else if (autoBattle.useSkills && player.skills.length > 0) {
         const affordableSkill = player.skills.find(s =>
-          s.manaCost <= combatPlayerMp &&
+          talentManaCost(s.manaCost, player.talents) <= combatPlayerMp &&
           player.level >= s.levelReq &&
           (s.currentCooldown || 0) <= 0
         );
@@ -3573,6 +3641,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetCharacter,
       allocateAttribute,
       unlockTalent,
+      resetTalentTree,
       equipItem,
       unequipItem,
       sellItem,

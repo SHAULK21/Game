@@ -1,3 +1,4 @@
+import { talentManaCost } from '../../data/talents';
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
@@ -938,7 +939,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
 
                 <div className="grid grid-cols-1 gap-1.5">
                   {player.skills.map(skill => {
-                    const hasMp = combatPlayerMp >= skill.manaCost;
+                    const manaCost = talentManaCost(skill.manaCost, player.talents);
+                    const hasMp = combatPlayerMp >= manaCost;
                     const levelLocked = player.level < skill.levelReq;
                     const onCooldown = (skill.currentCooldown || 0) > 0;
                     const canUse = hasMp && !levelLocked && !onCooldown;
@@ -974,7 +976,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                         </div>
                         <div className="text-right shrink-0">
                           <span className={`text-[10px] font-mono block ${hasMp ? 'text-indigo-300' : 'text-rose-400'}`}>
-                            {skill.manaCost} MP
+                            {manaCost} MP
                           </span>
                           <span className="text-[10px] font-mono text-slate-400">{skill.damageMultiplier * 100}% урона</span>
                         </div>

@@ -194,6 +194,12 @@ export interface Skill {
 }
 
 export interface Talent {
+  branch?: 'damage' | 'survival' | 'class' | 'mastery' | 'legacy';
+  branchName?: string;
+  levelReq?: number;
+  branchPointsReq?: number;
+  pointCost?: number;
+  effects?: Array<{ stat: string; valuePerRank: number; isPercent?: boolean }>;
   id: string;
   name: string;
   description: string;

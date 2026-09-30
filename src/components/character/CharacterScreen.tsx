@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Dog
 } from 'lucide-react';
+import { TalentTree } from './TalentTree';
 import { sound } from '../../utils/audio';
 
 interface CharacterScreenProps {
@@ -262,51 +263,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
       )}
 
       {/* TALENTS TAB */}
-      {activeTab === 'talents' && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs font-mono text-purple-300 px-1">
-            <span>Очки талантов: {player.talentPoints}</span>
-            <span>Классовое древо: {classDef.name}</span>
-          </div>
-
-          <div className="space-y-2">
-            {player.talents.map(talent => (
-              <div
-                key={talent.id}
-                className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                    {talent.icon}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-cinzel text-xs font-bold text-slate-100">
-                        {talent.name}
-                      </span>
-                      <span className="text-[10px] font-mono text-purple-400 px-1 rounded bg-purple-950 border border-purple-800">
-                        {talent.currentRank}/{talent.maxRank}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {talent.description}
-                    </p>
-                  </div>
-                </div>
-
-                {player.talentPoints > 0 && talent.currentRank < talent.maxRank && (
-                  <button
-                    onClick={() => unlockTalent(talent.id)}
-                    className="p-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs active:scale-90 transition-transform shadow-sm"
-                  >
-                    + Изучить
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {activeTab === 'talents' && <TalentTree />}
 
       {/* PET TAB */}
       {activeTab === 'pet' && (
