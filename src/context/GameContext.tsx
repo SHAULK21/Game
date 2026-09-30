@@ -974,9 +974,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player) return;
     apiRequest('/api/profile/sync', {
       method: 'POST',
-      body: JSON.stringify({ level: player.level, arenaRating: player.arenaRating })
+      body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
     }).catch(() => undefined);
-  }, [player?.id, player?.level, player?.arenaRating]);
+  }, [player?.id, player?.name, player?.level, player?.arenaRating]);
 
   // Periodic Save
   useEffect(() => {
