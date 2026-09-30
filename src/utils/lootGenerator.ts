@@ -1,5 +1,6 @@
 import { GameItem, ItemRarity, ItemType, Monster, MonsterDrop } from '../types/game';
 import { ASSETS, getLeveledEquipmentName } from '../data/gameData';
+import { applyClassGear, rollClassGear } from './classEquipment';
 
 interface GenerateLootOptions {
   monster: Monster;
@@ -107,7 +108,7 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
 
   const salvageSilver = Math.max(3, Math.round((10 + monsterLevel * 4) * mult * (isEquipmentDrop(drop) ? 0.8 : 0.45)));
 
-  return {
+  const item: GameItem = {
     id: idBase,
     templateId: drop.templateId || `drop_${slugify(drop.itemName)}`,
     name: getLeveledEquipmentName(drop.itemName, drop.type, monsterLevel),
@@ -140,6 +141,8 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
     },
     stackCount: Math.max(1, qty)
   };
+  const result = applyClassGear(item, drop.type === 'weapon' || drop.type === 'armor' ? rollClassGear() : undefined);
+  return { ...result, name: getLeveledEquipmentName(result.name, result.type, monsterLevel, result.targetClass) };
 }
 
 const rarityMultiplierForRoll = (drop: MonsterDrop, rareDropMult: number) => {

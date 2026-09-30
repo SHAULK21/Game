@@ -6,6 +6,9 @@ import {
   getEquipmentLevelRange, getLeveledEquipmentName
 } from '../../data/gameData';
 import { Hammer } from 'lucide-react';
+import { ClassGearBonus } from '../ui/ClassGearBonus';
+import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../../utils/classEquipment';
+import type { CharacterClassId } from '../../types/game';
 
 const trophySources = Object.entries(REGIONAL_TROPHIES).flatMap(([regionId, mobs]) =>
   Object.entries(mobs).map(([mobId, drop]) => ({ regionId, mobId, name: drop.name }))
@@ -30,11 +33,13 @@ export const CraftingScreen: React.FC = () => {
   const { player, craftBasicItem } = useGame();
   const [regionId, setRegionId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [classFilter, setClassFilter] = useState<CharacterClassId | 'all'>('all');
 
   if (!player) return null;
 
   const selectedRegionId = regionId || player.currentRegionId;
-  const recipes = BASIC_CRAFT_RECIPES.filter(recipe => !recipe.regionId || recipe.regionId === selectedRegionId);
+  const recipes = BASIC_CRAFT_RECIPES.filter(recipe => (!recipe.regionId || recipe.regionId === selectedRegionId)
+    && (classFilter === 'all' || !recipe.result?.targetClass || recipe.result.targetClass === classFilter));
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
@@ -60,6 +65,12 @@ export const CraftingScreen: React.FC = () => {
       </label>
 
       {feedback && <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-2 text-xs text-amber-200">{feedback}</div>}
+      <label className="block text-xs text-slate-300">Целевой класс бонуса
+        <select value={classFilter} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
+          <option value="all">Все классы — любые вещи можно носить по уровню</option>
+          {CLASS_GEAR_IDS.map(id => <option key={id} value={id}>{CLASS_EQUIPMENT[id].label}</option>)}
+        </select>
+      </label>
 
       <div className="space-y-2">
         {recipes.map(recipe => {
@@ -77,7 +88,8 @@ export const CraftingScreen: React.FC = () => {
               <div className="flex items-start gap-2">
                 <span className="text-2xl shrink-0">{recipe.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-100">{recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, recipe.result.level || 1) : recipe.name}</div>
+                  <div className="text-xs font-bold text-slate-100">{recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, recipe.result.level || 1, recipe.result.targetClass) : recipe.name}</div>
+                  {recipe.result && <ClassGearBonus item={{ ...recipe.result, level: recipe.result.level || 1 }} characterClass={player.classId} />}
                   <p className="mt-0.5 text-[10px] text-slate-400">{recipe.description}</p>
                   {recipe.regionId && <p className="mt-1 text-[10px] text-cyan-300">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
                   {isEquipment && <p className="mt-1 text-[10px] text-cyan-300">Уровень вещи: {range.min}–{range.max} · Возможна заточка +1–+5</p>}

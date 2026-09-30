@@ -5,6 +5,7 @@ import { RARITY_COLORS, getUpgradeRequirements, REGIONS } from '../../data/gameD
 import { Hammer, Sparkles, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { ItemArtwork } from '../ui/ItemArtwork';
+import { ClassGearBonus } from '../ui/ClassGearBonus';
 
 export const BlacksmithScreen: React.FC = () => {
   const { player, upgradeItem, disassembleItem } = useGame();
@@ -151,6 +152,7 @@ export const BlacksmithScreen: React.FC = () => {
           </div>
 
           {/* Stats Preview Before -> After */}
+          <ClassGearBonus item={currentItem} characterClass={player.classId} />
           <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-900 space-y-2">
             <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">
               Прирост характеристик (+12% за уровень):
@@ -181,6 +183,12 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Атака:</span>
                 <span className="text-slate-200">{Math.round(currentItem.stats.attack * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.attack * (1 + (currentLevel + 1) * 0.12))}</span></span>
+              </div>
+            )}
+            {currentItem.stats.magicAttack && (
+              <div className="flex justify-between text-xs font-mono">
+                <span className="text-slate-400">Магическая атака:</span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.magicAttack * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.magicAttack * (1 + (currentLevel + 1) * 0.12))}</span></span>
               </div>
             )}
             {!currentItem.baseDefense && currentItem.stats.defense && (
