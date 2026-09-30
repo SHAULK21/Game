@@ -3,7 +3,7 @@ import { useGame } from '../../context/GameContext';
 import {
   BASIC_CRAFT_RECIPES, CRAFT_RARITY_CHANCES, MINE_CATALYST_BY_ORE,
   MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,
-  getEquipmentLevelRange, getLeveledEquipmentName
+  getEquipmentLevelRange
 } from '../../data/gameData';
 import { Hammer } from 'lucide-react';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
@@ -88,7 +88,7 @@ export const CraftingScreen: React.FC = () => {
               <div className="flex items-start gap-2">
                 <span className="text-2xl shrink-0">{recipe.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-100">{recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, recipe.result.level || 1, recipe.result.targetClass) : recipe.name}</div>
+                  <div className="text-xs font-bold text-slate-100">{recipe.name}</div>
                   {recipe.result && <ClassGearBonus item={{ ...recipe.result, level: recipe.result.level || 1 }} characterClass={player.classId} />}
                   <p className="mt-0.5 text-[10px] text-slate-400">{recipe.description}</p>
                   {recipe.regionId && <p className="mt-1 text-[10px] text-cyan-300">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
