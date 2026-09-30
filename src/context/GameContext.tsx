@@ -928,7 +928,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           if (parsed.achievements) setAchievements(parsed.achievements);
           if (parsed.chatMessages) setChatMessages(parsed.chatMessages);
-          if (parsed.activeDungeonRun && !parsed.activeDungeonRun.completed) setActiveDungeonRun(parsed.activeDungeonRun);
+          if (parsed.activeDungeonRun && !parsed.activeDungeonRun.completed) {
+            const run: DungeonRun = parsed.activeDungeonRun;
+            const cave = CAVES[run.dungeonId];
+            const region = REGIONS.find(r => r.id === cave?.regionId);
+            if (cave && region) {
+              setActiveDungeonRun({
+                ...run,
+                rooms: run.rooms.map(room => room.monster && !room.resolved ? {
+                  ...room,
+                  monster: getRegionMonster(MONSTERS[room.monster.id] || room.monster, region, cave.minLevel)
+                } : room)
+              });
+            }
+          }
           return;
         }
       } catch (err) {

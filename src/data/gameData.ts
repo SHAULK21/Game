@@ -1380,7 +1380,9 @@ const REGIONAL_CRAFT_RECIPES: BasicCraftRecipe[] = REGION_CRAFT_TIERS.flatMap((t
 
 // Shared monster templates adapt to the region where they are encountered.
 export const getRegionMonster = (monster: Monster, region: RegionDefinition, minimumLevel = region.minLevel): Monster => {
-  const level = Math.max(monster.level, minimumLevel);
+  const range = region.levelRange.match(/\d+/g)?.map(Number);
+  const maxLevel = Math.max(region.minLevel, range?.[1] ?? region.minLevel);
+  const level = Math.min(maxLevel, Math.max(region.minLevel, monster.level, minimumLevel));
   const factor = level / Math.max(1, monster.level);
   const scale = (value: number, multiplier = factor) => Math.round(value * multiplier);
   return {
@@ -1389,6 +1391,8 @@ export const getRegionMonster = (monster: Monster, region: RegionDefinition, min
     level,
     hp: scale(monster.maxHp, Math.pow(factor, 1.25)),
     maxHp: scale(monster.maxHp, Math.pow(factor, 1.25)),
+    mp: scale(monster.maxMp),
+    maxMp: scale(monster.maxMp),
     attack: scale(monster.attack),
     magicAttack: scale(monster.magicAttack),
     defense: scale(monster.defense),
