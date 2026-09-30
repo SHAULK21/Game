@@ -59,7 +59,7 @@ interface GameContextType {
   combatChain: { total: number; defeated: number; remaining: number } | null;
   battleLog: BattleLogEntry[];
   combatRound: number;
-  lastCombatReward: { gold: number; silver: number; exp: number; items: GameItem[] } | null;
+  lastCombatReward: { gold: number; silver: number; exp: number; items: GameItem[]; arenaRatingGain?: number } | null;
   isInCombat: boolean;
   isCombatEnded: boolean;
   combatOutcome: 'victory' | 'defeat' | 'flee' | null;
@@ -529,7 +529,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [combatRound, setCombatRound] = useState<number>(1);
-  const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[] } | null>(null);
+  const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[]; arenaRatingGain?: number } | null>(null);
   const [pendingChainItems, setPendingChainItems] = useState<GameItem[]>([]);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
@@ -1937,6 +1937,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
+    const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
     // Every completed combat has a small consumable roll: 0–3 potions.
     const potionCount = Math.floor(Math.random() * 2);
@@ -2001,6 +2002,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setLastCombatReward({
+      arenaRatingGain,
       gold: lootResult.gold,
       silver: lootResult.silver,
       exp: expReward,
@@ -2008,6 +2010,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
     const logs = [...baseLogs];
+    if (arenaRatingGain) logs.push({
+      id: 'arena_rating_' + Date.now(), turn: currentTurn,
+      text: `🏅 Рейтинг арены: +${arenaRatingGain} очков.`, type: 'system'
+    });
 
     logs.push({
       id: 'win_' + Date.now(),
@@ -2078,6 +2084,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const next = {
         ...xpResult.player,
+        arenaRating: xpResult.player.arenaRating + arenaRatingGain,
         gold: xpResult.player.gold + lootResult.gold,
         silver: xpResult.player.silver + lootResult.silver,
         inventory,

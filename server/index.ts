@@ -240,7 +240,7 @@ app.get('/api/admin/status', auth, async (req, res) => {
 
 app.post('/api/profile/sync', auth, async (req, res) => {
   const level = Math.max(1, Math.min(120, Math.floor(Number(req.body?.level || 1))));
-  const arenaRating = Math.max(0, Math.min(10000, Math.floor(Number(req.body?.arenaRating || 1000))));
+  const arenaRating = Math.max(0, Math.min(2147483647, Math.floor(Number(req.body?.arenaRating ?? 1000))));
   const characterName = typeof req.body?.characterName === 'string' ? req.body.characterName.trim() || null : null;
   await pool.query(
     'UPDATE players SET level = $1, arena_rating = $2, character_name = COALESCE($3, character_name), updated_at = NOW() WHERE telegram_id = $4',
