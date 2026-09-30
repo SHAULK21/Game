@@ -15,6 +15,7 @@ import {
   GameItem,
   RegionModifier
 } from '../types/game';
+import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../utils/classEquipment';
 
 // Generated assets
 import heroHunterImg from '../assets/images/game_hero_hunter_1790595108742.jpg';
@@ -1271,11 +1272,14 @@ const EQUIPMENT_BASE_NAMES: Partial<Record<ItemType, string>> = {
   ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', artifact: 'Реликвия'
 };
 
-export const getLeveledEquipmentName = (name: string, type: ItemType, level: number) => {
+export const getLeveledEquipmentName = (name: string, type: ItemType, level: number, targetClass?: CharacterClassId) => {
   let base = EQUIPMENT_BASE_NAMES[type];
   if (!base) return name;
   if (type === 'weapon') {
     base = /посох|жезл/i.test(name) ? 'Посох' : /лук|арбалет/i.test(name) ? 'Лук' : /кинжал/i.test(name) ? 'Кинжал' : 'Клинок';
+  }
+  if (targetClass && (type === 'weapon' || type === 'armor')) {
+    base = type === 'weapon' ? CLASS_EQUIPMENT[targetClass].weapon : CLASS_EQUIPMENT[targetClass].armor;
   }
   const range = getEquipmentLevelRange(level);
   const index = (range.min - 1) / 4;
@@ -1563,7 +1567,17 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     ingredients: [{ name: 'Медная монета гоблинов', count: 5 }],
     silverReward: 30
   },
-  ...REGIONAL_CRAFT_RECIPES.map(recipe => ({ ...recipe, ingredients: buildFixedCraftIngredients(recipe) }))
+  ...REGIONAL_CRAFT_RECIPES.flatMap((recipe): BasicCraftRecipe[] => {
+    const fixed = { ...recipe, ingredients: buildFixedCraftIngredients(recipe) };
+    if (recipe.result?.type !== 'weapon' && recipe.result?.type !== 'armor') return [fixed];
+    const result = recipe.result;
+    return CLASS_GEAR_IDS.map(targetClass => ({
+      ...fixed,
+      id: `${recipe.id}_${targetClass}`,
+      name: getLeveledEquipmentName(result.name, result.type, result.level || 1, targetClass),
+      result: { ...result, targetClass }
+    }));
+  })
 ];
 
 export const INITIAL_QUESTS: Quest[] = [
