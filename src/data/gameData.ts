@@ -1250,22 +1250,36 @@ export const getCraftTierForLevel = (level: number) =>
   [...REGION_CRAFT_TIERS].reverse().find(tier => level >= tier.level) || REGION_CRAFT_TIERS[0];
 
 export const getEquipmentLevelRange = (level: number) => {
-  const tier = getCraftTierForLevel(level);
-  const next = REGION_CRAFT_TIERS.find(entry => entry.level > tier.level);
-  return { min: tier.level, max: next ? next.level - 1 : 120 };
+  const min = 1 + Math.floor((Math.max(1, Math.floor(level)) - 1) / 4) * 4;
+  return { min, max: min + 3 };
 };
 
-const EQUIPMENT_TIER_NAMES: Record<number, string> = {
-  1: 'Равнин', 5: 'Сумеречного леса', 8: 'Забытого склепа',
-  12: 'Древнего леса', 25: 'Гиблых болот', 40: 'Пылающей пустыни',
-  55: 'Проклятых земель', 75: 'Демонического разлома',
-  90: 'Драконьего пика', 100: 'Эфира Прадракона'
+const EQUIPMENT_TIER_NAMES = [
+  'новобранца', 'дозорного', 'следопыта', 'лесного стража', 'склепного охотника',
+  'ночного разведчика', 'болотного хранителя', 'ядовитого ловца', 'сумеречного рыцаря',
+  'песчаного странника', 'пустынного воителя', 'огненного стража', 'пепельного охотника',
+  'проклятого рыцаря', 'грозового вестника', 'ледяного хранителя', 'рунического мастера',
+  'теневого палача', 'стража разлома', 'демонического победителя', 'владыки Бездны',
+  'драконьего охотника', 'стража драконьего пика', 'наследника Аэтельгора',
+  'эфирного рыцаря', 'звёздного хранителя', 'небесного воителя', 'первозданного стража',
+  'повелителя вечности', 'Прадракона'
+];
+
+const EQUIPMENT_BASE_NAMES: Partial<Record<ItemType, string>> = {
+  weapon: 'Клинок', offhand: 'Щит', helmet: 'Шлем', armor: 'Доспех',
+  pants: 'Поножи', gloves: 'Перчатки', boots: 'Сапоги', amulet: 'Амулет',
+  ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', artifact: 'Реликвия'
 };
 
 export const getLeveledEquipmentName = (name: string, type: ItemType, level: number) => {
-  if (!['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(type)) return name;
-  const base = name.replace(/ · [^·]+$/, '');
-  return `${base} · ${EQUIPMENT_TIER_NAMES[getCraftTierForLevel(level).level]}`;
+  let base = EQUIPMENT_BASE_NAMES[type];
+  if (!base) return name;
+  if (type === 'weapon') {
+    base = /посох|жезл/i.test(name) ? 'Посох' : /лук|арбалет/i.test(name) ? 'Лук' : /кинжал/i.test(name) ? 'Кинжал' : 'Клинок';
+  }
+  const range = getEquipmentLevelRange(level);
+  const index = (range.min - 1) / 4;
+  return `${base} ${EQUIPMENT_TIER_NAMES[index] || `покорителя ступени ${index + 1}`}`;
 };
 
 // 5% total chance: +1 2%, +2 1.5%, +3 0.9%, +4 0.45%, +5 0.15%.
