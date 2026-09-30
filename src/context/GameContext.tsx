@@ -1529,6 +1529,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const expandInventory = useCallback(() => {
     setPlayer(prev => {
       if (!prev) return prev;
+      if (!premium.active) {
+        triggerHaptic('error');
+        return prev;
+      }
       const cost = prev.maxInventorySlots * 60;
       if (prev.gold < cost) {
         triggerHaptic('error');
@@ -1542,7 +1546,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxInventorySlots: prev.maxInventorySlots + 5
       };
     });
-  }, []);
+  }, [premium.active]);
 
   // Blacksmith sharpening
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
