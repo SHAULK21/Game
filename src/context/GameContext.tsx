@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   PlayerCharacter, 
   GameItem, 
@@ -534,6 +534,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
+  const arenaDefeatHandled = useRef(false);
+  useEffect(() => {
+    if (!isCombatEnded || combatOutcome !== 'defeat') {
+      arenaDefeatHandled.current = false;
+      return;
+    }
+    if (arenaDefeatHandled.current || activeMonster?.regionId !== 'arena' || !player) return;
+    arenaDefeatHandled.current = true;
+    const loss = Math.min(15, player.arenaRating);
+    setPlayer(prev => prev ? { ...prev, arenaRating: Math.max(0, prev.arenaRating - 15) } : prev);
+    setLastCombatReward({ gold: 0, silver: 0, exp: 0, items: [], arenaRatingGain: -loss });
+    setBattleLog(prev => [...prev, {
+      id: 'arena_rating_loss_' + Date.now(), turn: combatRound,
+      text: `🏅 Поражение на арене: −${loss} очков рейтинга.`, type: 'system'
+    }]);
+  }, [isCombatEnded, combatOutcome, activeMonster?.regionId, player?.arenaRating, combatRound]);
   const [combatPlayerHp, setCombatPlayerHp] = useState<number>(100);
   const [combatPlayerMp, setCombatPlayerMp] = useState<number>(50);
   const [turnPhase, setTurnPhase] = useState<'player' | 'monster' | 'ended'>('player');

@@ -737,6 +737,9 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               {combatOutcome === 'flee' && '🏃 ВЫ ВЫРВАЛИСЬ ИЗ БОЯ'}
             </div>
 
+            {combatOutcome === 'defeat' && activeMonster?.regionId === 'arena' && lastCombatReward?.arenaRatingGain !== undefined && (
+              <div className="text-xs font-bold text-rose-300">🏅 Рейтинг арены: −{Math.abs(lastCombatReward.arenaRatingGain)} PTS</div>
+            )}
             {combatOutcome === 'victory' && lastCombatReward && (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
                 <div className="text-[11px] font-bold text-emerald-300 mb-2">Получено за бой</div>
