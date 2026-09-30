@@ -47,6 +47,7 @@ import { sound } from '../utils/audio';
 import { getTelegramUser, getTelegramWebApp, triggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
 import { getEnergyElixirPrice, getDungeonCompletionReward, rollDungeonChest, rollDungeonBlessing } from '../utils/dungeonRewards';
+import { applyClassGear, getEffectiveGearStats } from '../utils/classEquipment';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
 import { apiRequest } from '../utils/api';
@@ -769,13 +770,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!player) return { success: false, message: 'Персонаж не создан.' };
       if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
       const raw = result.item;
-      const item: GameItem = {
-        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: getLeveledEquipmentName(String(raw.name || 'Предмет'), raw.type || 'material', Number(raw.level || 1)),
+      const rawMarketItem: GameItem = {
+        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
+        targetClass: raw.targetClass,
         type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
         upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
         armorClass: raw.armorClass, weaponClass: raw.weaponClass,
         stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
       };
+      const item = applyClassGear(rawMarketItem);
+      item.name = getLeveledEquipmentName(item.name, item.type, item.level, item.targetClass);
       const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
       if (!added.added) return { success: false, message: 'В инвентаре нет места.' };
       setPlayer(prev => prev ? { ...prev, gold: prev.gold - result.priceGold, inventory: added.inventory } : prev);
@@ -864,7 +868,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const migrateSalvage = (item: any) => {
             if (!item) return item;
-            if (!item.serverOwned) item.name = getLeveledEquipmentName(item.name, item.type, item.level || 1);
+            if (!item.serverOwned) {
+              item = applyClassGear(item);
+              item.name = getLeveledEquipmentName(item.name, item.type, item.level || 1, item.targetClass);
+            }
             const salvage = item.disassembleYield || {};
             const oldShards = Number(salvage.shards || 0);
             const oldCrystals = Number(salvage.crystals || 0);
@@ -1033,18 +1040,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Apply Equipped Items stats + sharpening (+1 to +25)
     Object.values(player.equipped).forEach(item => {
       if (!item) return;
-      const upMult = 1 + item.upgradeLevel * 0.12; // +12% per sharpening level
-      
-      if (item.baseAttack) attack += Math.round(item.baseAttack * upMult);
-      if (item.baseDefense) defense += Math.round(item.baseDefense * upMult);
-      if (item.baseMagicDef) magicDefense += Math.round(item.baseMagicDef * upMult);
-
-      if (item.stats) {
-        Object.entries(item.stats).forEach(([stat, val]) => {
-          if (stat === 'attack') attack += Math.round(val * upMult);
-          else if (stat === 'magicAttack') magicAttack += Math.round(val * upMult);
-          else if (stat === 'defense') defense += Math.round(val * upMult);
-          else if (stat === 'magicDefense') magicDefense += Math.round(val * upMult);
+        Object.entries(getEffectiveGearStats(item, player.classId)).forEach(([stat, val]) => {
+          if (stat === 'attack') attack += val;
+          else if (stat === 'magicAttack') magicAttack += val;
+          else if (stat === 'defense') defense += val;
+          else if (stat === 'magicDefense') magicDefense += val;
           else if (stat === 'maxHp') maxHp += val;
           else if (stat === 'maxMp') maxMp += val;
           else if (stat === 'speed') speed += val;
@@ -1065,7 +1065,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           else if (stat === 'darkResistance') resistances.dark += val;
           else if (stat === 'holyResistance') resistances.holy += val;
         });
-      }
     });
 
     // Apply Talents
@@ -1145,15 +1144,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const inventory: GameItem[] = [];
 
     // Equip primary weapon and armor, put others in bag
-    starterGear.forEach((item, index) => {
+    starterGear.forEach((starterItem, index) => {
+      const item = applyClassGear(starterItem, classId);
+      item.name = getLeveledEquipmentName(item.name, item.type, item.level, item.targetClass);
       if (index === 0 && (item.type === 'weapon')) {
-        equipped[item.type] = { ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: true };
-      } else if (index === 1 && item.type === 'armor') {
-        equipped[item.type] = { ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: true };
+        equipped[item.type] = { ...item, isEquipped: true };
+      } else if (item.type === 'armor' && !equipped.armor) {
+        equipped[item.type] = { ...item, isEquipped: true };
       } else {
-        inventory.push({ ...item, name: getLeveledEquipmentName(item.name, item.type, item.level), isEquipped: false });
+        inventory.push({ ...item, isEquipped: false });
       }
     });
+
+    if (!equipped.armor) {
+      const armor = applyClassGear({
+        id: 'starter_armor_' + Date.now(), templateId: 'starter_armor_' + classId,
+        name: 'Стартовый нагрудник', type: 'armor', rarity: 'common', level: 1,
+        upgradeLevel: 0, icon: '🥋', stats: { defense: 4, magicDefense: 3, maxHp: 12 },
+        sellPrice: 20, disassembleYield: { silver: 4 }, isEquipped: true
+      }, classId);
+      armor.name = getLeveledEquipmentName(armor.name, armor.type, armor.level, armor.targetClass);
+      equipped.armor = armor;
+    }
 
     // Starter alchemy materials for the first recipes.
     [
@@ -1379,7 +1391,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
     const canonical = response.items.map(row => ({
       ...row.item_json, id: row.id, stackCount: row.quantity, isLocked: row.locked,
-      name: getLeveledEquipmentName(row.item_json.name, row.item_json.type, row.item_json.level),
+      name: getLeveledEquipmentName(row.item_json.name, row.item_json.type, row.item_json.level, row.item_json.targetClass),
       boundToClan: row.bound_clan_id || undefined, serverOwned: true,
       isEquipped: Boolean(row.equipped_slot), slot: row.equipped_slot
     }));
@@ -3167,15 +3179,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const range = getEquipmentLevelRange(baseLevel);
     const outputLevel = quality ? range.min + Math.floor(Math.random() * (range.max - range.min + 1)) : baseLevel;
     const outputUpgrade = quality ? rollCraftUpgrade() : 0;
-    const outputName = recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, outputLevel) : recipe.name;
+    const outputName = recipe.result ? getLeveledEquipmentName(recipe.result.name, recipe.result.type, outputLevel, recipe.result.targetClass) : recipe.name;
     const levelMultiplier = quality ? (10 + outputLevel) / (10 + baseLevel) : 1;
 
     if (recipe.result) {
-      const output: GameItem = {
+      const rawOutput: GameItem = {
         id: 'basic_craft_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         templateId: recipe.id,
         name: outputName,
         type: recipe.result.type,
+        targetClass: recipe.result.targetClass,
         rarity: quality?.rarity || recipe.result.rarity,
         level: outputLevel,
         upgradeLevel: outputUpgrade,
@@ -3188,6 +3201,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         disassembleYield: { silver: Math.max(4, Math.round(recipe.result.sellPrice * (quality?.multiplier || 1) * 0.35)) },
         stackCount: recipe.result.count
       };
+      const output = applyClassGear(rawOutput);
+      output.name = getLeveledEquipmentName(output.name, output.type, output.level, output.targetClass);
       const added = addOrStackInventoryItem(inventory, output, player.maxInventorySlots);
       if (!added.added) return { success: false, message: 'Нет места для результата крафта.' };
       inventory = added.inventory;
