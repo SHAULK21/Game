@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { GameItem, ItemType } from '../../types/game';
+import { GameItem, ItemType, CharacterClassId } from '../../types/game';
 import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
 import {
   Shield,
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
+import { ClassGearBonus } from '../ui/ClassGearBonus';
+import { getEffectiveGearStats } from '../../utils/classEquipment';
 
 interface InventoryScreenProps {
   onNavigateToBlacksmith?: () => void;
@@ -82,23 +84,13 @@ const PERCENT_STATS = new Set([
   'darkResistance', 'holyResistance', 'attackPercent', 'defensePercent'
 ]);
 
-const getItemStats = (item?: GameItem | null): Record<string, number> => {
+const getItemStats = (item?: GameItem | null, characterClass?: CharacterClassId): Record<string, number> => {
   if (!item) return {};
-  const upMult = 1 + (item.upgradeLevel || 0) * 0.12;
-  const stats: Record<string, number> = {};
-  Object.entries(item.stats || {}).forEach(([key, value]) => {
-    stats[key] = ['attack', 'magicAttack', 'defense', 'magicDefense'].includes(key)
-      ? Math.round(value * upMult)
-      : value;
-  });
-  if (item.baseAttack && stats.attack === undefined) stats.attack = Math.round(item.baseAttack * upMult);
-  if (item.baseDefense && stats.defense === undefined) stats.defense = Math.round(item.baseDefense * upMult);
-  if (item.baseMagicDef && stats.magicDefense === undefined) stats.magicDefense = Math.round(item.baseMagicDef * upMult);
-  return stats;
+  return getEffectiveGearStats(item, characterClass);
 };
 
-const getItemScore = (item: GameItem): number => {
-  const stats = getItemStats(item);
+const getItemScore = (item: GameItem, characterClass?: CharacterClassId): number => {
+  const stats = getItemStats(item, characterClass);
   return Math.round(
     (stats.attack || 0) * 2 +
     (stats.magicAttack || 0) * 2 +
@@ -183,9 +175,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       .sort((a, b) => {
         const aCurrent = player.equipped[a.type]?.id === a.id ? 1 : 0;
         const bCurrent = player.equipped[b.type]?.id === b.id ? 1 : 0;
-        return bCurrent - aCurrent || getItemScore(b) - getItemScore(a);
+        return bCurrent - aCurrent || getItemScore(b, player.classId) - getItemScore(a, player.classId);
       }),
-    [player.inventory, player.equipped]
+    [player.inventory, player.equipped, player.classId]
   );
 
   const potions = useMemo(
@@ -211,12 +203,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
   const currentEquipped = selectedIsEquipment && currentSelected
     ? player.equipped[currentSelected.type]
     : undefined;
-  const selectedStats = getItemStats(currentSelected);
-  const currentStats = getItemStats(currentEquipped);
+  const selectedStats = getItemStats(currentSelected, player.classId);
+  const currentStats = getItemStats(currentEquipped, player.classId);
   const statKeys = [...new Set([...Object.keys(currentStats), ...Object.keys(selectedStats)])];
 
-  const selectedScore = currentSelected && selectedIsEquipment ? getItemScore(currentSelected) : 0;
-  const currentScore = currentEquipped ? getItemScore(currentEquipped) : 0;
+  const selectedScore = currentSelected && selectedIsEquipment ? getItemScore(currentSelected, player.classId) : 0;
+  const currentScore = currentEquipped ? getItemScore(currentEquipped, player.classId) : 0;
   const scoreDelta = selectedIsEquipment ? selectedScore - currentScore : 0;
 
   const renderItemCard = (item: GameItem) => {
@@ -248,6 +240,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           <span>Ур.{item.level}</span>
           <span className="text-amber-300 font-bold">{item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0'}</span>
         </div>
+        <ClassGearBonus item={item} characterClass={player.classId} compact />
       </button>
     );
   };
@@ -474,6 +467,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
             {selectedIsEquipment ? (
               <div className="mt-3 space-y-2">
+                <ClassGearBonus item={currentSelected} characterClass={player.classId} />
                 <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-2.5">
                   <div className="flex items-center justify-between text-[10px] font-mono mb-2">
                     <span className="text-slate-500">СРАВНЕНИЕ С ТЕКУЩИМ</span>
