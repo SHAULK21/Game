@@ -1,3 +1,4 @@
+import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
@@ -92,6 +93,7 @@ interface GameContextType {
   unequipItem: (type: ItemType) => void;
   sellItem: (item: GameItem) => void;
   disassembleItem: (item: GameItem) => void;
+  bulkDisposeItems: (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => Promise<{success: boolean; message: string}>;
   toggleItemLock: (itemId: string) => void;
   refreshServerInventory: () => Promise<void>;
   expandInventory: () => void;
@@ -538,6 +540,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
   const arenaDefeatHandled = useRef(false);
   const talentFollowup = useRef(0);
+  const bulkInventoryBusy = useRef(false);
+  const serverInventoryVersion = useRef(0);
   useEffect(() => {
     if (!isCombatEnded || combatOutcome !== 'defeat') {
       arenaDefeatHandled.current = false;
@@ -832,7 +836,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastEnergyRegenTimestamp: Date.now()
         };
       });
-    }, 120000);
+    }, 15000);
     return () => clearInterval(timer);
   }, []);
 
@@ -854,7 +858,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!prev || prev.alchemyEnergy >= prev.maxAlchemyEnergy) return prev;
         return { ...prev, alchemyEnergy: Math.min(prev.maxAlchemyEnergy, prev.alchemyEnergy + 1) };
       });
-    }, 20000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
@@ -1010,6 +1014,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
     localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
+    // Remove the retry record only after the awarded state has been persisted.
+    const pending = localStorage.getItem(pendingBulkKey(player.userId));
+    if (pending) {
+      try { if (JSON.parse(pending).operationId === player.lastBulkDisposalId) localStorage.removeItem(pendingBulkKey(player.userId)); }
+      catch { localStorage.removeItem(pendingBulkKey(player.userId)); }
+    }
   }, [player, quests, achievements, chatMessages, activeDungeonRun]);
 
   // Online count simulation
@@ -1421,7 +1431,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isInCombat, isCombatEnded]);
 
   const refreshServerInventory = useCallback(async () => {
+    if (bulkInventoryBusy.current) return;
+    const version = ++serverInventoryVersion.current;
     const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
+    if (version !== serverInventoryVersion.current) return;
     const canonical = response.items.map(row => ({
       ...row.item_json, id: row.id, stackCount: row.quantity, isLocked: row.locked,
       name: getLeveledEquipmentName(row.item_json.name, row.item_json.type, row.item_json.level, row.item_json.targetClass),
@@ -1448,8 +1461,54 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshServerInventory().catch(() => undefined);
   }, [player?.userId, refreshServerInventory]);
 
+  const bulkDisposeItems = useCallback(async (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => {
+    if (!player || bulkInventoryBusy.current) return {success:false,message:'Обработка уже выполняется.'};
+    const key = pendingBulkKey(player.userId);
+    let operation: PendingBulkDisposal | null = null;
+    try { operation = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
+    if (operation?.operationId === player.lastBulkDisposalId) { localStorage.removeItem(key); operation = null; }
+    if (!operation && (!premium.active || premium.loading)) return {success:false,message:'Нужен активный Premium.'};
+    if (!operation) {
+      const confirmed = confirmedIds ? new Set(confirmedIds) : null;
+      const items = selectBulkItems(player, filters).filter(item => !confirmed || confirmed.has(item.id));
+      if (!items.length) return {success:false,message:'Нет подходящих вещей.'};
+      operation = {operationId:crypto.randomUUID(),action,filters,localIds:items.filter(item=>!item.serverOwned).map(item=>item.id),serverIds:items.filter(item=>item.serverOwned).map(item=>item.id)};
+      if (operation.serverIds.length > 500) return {success:false,message:'За один раз можно обработать до 500 серверных вещей. Выберите более узкий фильтр.'};
+      localStorage.setItem(key,JSON.stringify(operation));
+    }
+    bulkInventoryBusy.current = true;
+    serverInventoryVersion.current += 1;
+    const pending = operation;
+    try {
+      const receipt = await apiRequest<BulkReceipt>('/api/items/bulk-dispose', {method:'POST',body:JSON.stringify({operationId:pending.operationId,action:pending.action,filters:pending.filters,itemIds:pending.serverIds})});
+      if (receipt.operationId !== pending.operationId || !Array.isArray(receipt.itemIds)) throw new Error('Некорректный ответ игрового сервера.');
+      const localIds = new Set(pending.localIds);
+      const local = bulkReward(selectBulkItems(player,pending.filters).filter(item=>!item.serverOwned&&localIds.has(item.id)),pending.action);
+      setPlayer(prev => prev && prev.userId === player.userId ? applyBulkDisposal(prev,pending,receipt) : prev);
+      triggerHaptic('success');
+      const count = local.count + receipt.count;
+      return {success:true,message:pending.action === 'sell'
+        ? `Продано вещей: ${count}. Получено золота: ${local.gold + receipt.gold}.`
+        : `Разобрано вещей: ${count}. Получено серебра: ${local.silver + receipt.silver}, железной руды: ${local.ore + receipt.ore}.`};
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось обработать вещи.';
+      // Validation failures roll back the transaction; network failures keep the same retry ID.
+      if (/HTTP (400|403|409)/.test(message)) localStorage.removeItem(key);
+      return {success:false,message:message + (localStorage.getItem(key) ? ' Повторите действие: незавершённая операция будет восстановлена без повторного начисления.' : '')};
+    } finally { bulkInventoryBusy.current = false; void refreshServerInventory().catch(() => undefined); }
+  }, [player,premium.active,premium.loading,refreshServerInventory]);
+
+  useEffect(() => {
+    if (!player) return;
+    try {
+      const pending = JSON.parse(localStorage.getItem(pendingBulkKey(player.userId)) || 'null') as PendingBulkDisposal | null;
+      if (pending && pending.operationId !== player.lastBulkDisposalId) void bulkDisposeItems(pending.filters,pending.action);
+    } catch { /* Invalid local retry data does not block loading the character. */ }
+  }, [player?.userId]);
+
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
+    if (bulkInventoryBusy.current) return;
     if (item.serverOwned) {
       if (!player || item.level > player.level) return;
       apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' })
@@ -1481,6 +1540,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, refreshServerInventory]);
 
   const unequipItem = useCallback((type: ItemType) => {
+    if (bulkInventoryBusy.current) return;
     const equippedItem = player?.equipped[type];
     if (equippedItem?.serverOwned) {
       apiRequest('/api/items/' + encodeURIComponent(equippedItem.id) + '/unequip', { method: 'POST', body: '{}' })
@@ -1511,6 +1571,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, refreshServerInventory]);
 
   const sellItem = useCallback((item: GameItem) => {
+    if (bulkInventoryBusy.current) return;
     if (item.serverOwned) {
       apiRequest<{ gold: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'sell' }) })
         .then(async result => { setPlayer(prev => prev ? { ...prev, gold: prev.gold + result.gold } : prev); await refreshServerInventory(); })
@@ -1533,6 +1594,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshServerInventory]);
 
   const disassembleItem = useCallback((item: GameItem) => {
+    if (bulkInventoryBusy.current) return;
     if (item.serverOwned) {
       apiRequest<{ silver: number; ore: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'disassemble' }) })
         .then(async result => {
@@ -1588,6 +1650,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshServerInventory]);
 
   const toggleItemLock = useCallback((itemId: string) => {
+    if (bulkInventoryBusy.current) return;
     if (player?.inventory.some(i => i.id === itemId && i.serverOwned) || Object.values(player?.equipped || {}).some(i => i?.id === itemId && i.serverOwned)) {
       apiRequest('/api/items/' + encodeURIComponent(itemId) + '/lock', { method: 'POST', body: '{}' })
         .then(() => refreshServerInventory()).catch(error => console.error('Could not lock item:', error));
@@ -3646,6 +3709,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unequipItem,
       sellItem,
       disassembleItem,
+      bulkDisposeItems,
       toggleItemLock,
       refreshServerInventory,
       expandInventory,

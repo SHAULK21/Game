@@ -163,3 +163,13 @@ CREATE TABLE IF NOT EXISTS premium_payments (
 );
 CREATE INDEX IF NOT EXISTS idx_premium_payments_user
   ON premium_payments(telegram_id, created_at DESC);
+
+-- Idempotent receipts let the client recover rewards after an interrupted bulk action.
+CREATE TABLE IF NOT EXISTS inventory_bulk_disposals (
+  id UUID PRIMARY KEY,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  request_json JSONB NOT NULL,
+  result_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_bulk_disposals_user ON inventory_bulk_disposals(telegram_id, created_at DESC);

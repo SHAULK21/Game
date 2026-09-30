@@ -501,6 +501,7 @@ export interface PlayerCharacter {
   nextExp: number;
   statPoints: number;
   talentPoints: number;
+  lastBulkDisposalId?: string;
 
   gold: number;
   silver: number;

@@ -1,3 +1,4 @@
+import { BulkInventoryActions } from './BulkInventoryActions';
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType, CharacterClassId } from '../../types/game';
@@ -356,6 +357,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           👑 Расширение сумки доступно только с активным Premium. Базовые {player.maxInventorySlots} слотов остаются доступны всегда.
         </div>
       )}
+
+      <BulkInventoryActions />
 
       <div className="grid grid-cols-3 gap-1.5">
         {([

@@ -1,3 +1,4 @@
+import { disposeBulkItems, BulkDisposalError } from './bulkDisposal';
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
@@ -519,6 +520,14 @@ app.post('/api/items/:itemId/lock', auth, async (req, res) => {
   const result = await pool.query(`UPDATE owned_items SET locked = NOT locked, updated_at = NOW() WHERE id = $1 AND owner_telegram_id = $2 RETURNING locked`, [req.params.itemId, req.authUser!.id]);
   if (!result.rows[0]) return res.status(404).json({ error: 'Предмет не найден.' });
   res.json({ locked: result.rows[0].locked });
+});
+
+app.post('/api/items/bulk-dispose', auth, async (req, res) => {
+  try { res.json(await disposeBulkItems(pool, req.authUser!.id, req.body)); }
+  catch (error) {
+    if (error instanceof BulkDisposalError) return res.status(error.status).json({error:error.message});
+    throw error;
+  }
 });
 
 app.post('/api/items/:itemId/dispose', auth, async (req, res) => {
