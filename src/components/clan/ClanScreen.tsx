@@ -37,7 +37,6 @@ type ClanMessage = {
   text: string;
   created_at: string;
   display_name: string;
-  username?: string;
 };
 
 type StoredItem = {
@@ -151,6 +150,10 @@ export const ClanScreen: React.FC = () => {
     if (!text || action) return;
     setAction(true);
     try {
+      if (player) await apiRequest('/api/profile/sync', {
+        method: 'POST',
+        body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
+      });
       const result = await apiRequest<{ message: ClanMessage }>('/api/clan/chat', {
         method: 'POST',
         body: JSON.stringify({ text })
