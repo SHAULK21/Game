@@ -33,13 +33,17 @@ export const CraftingScreen: React.FC = () => {
   const { player, craftBasicItem } = useGame();
   const [regionId, setRegionId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [classFilter, setClassFilter] = useState<CharacterClassId | 'all'>('all');
+  const [classFilter, setClassFilter] = useState<CharacterClassId | 'all' | null>(null);
+
+  const [levelFilter, setLevelFilter] = useState<'available' | 'all'>('available');
 
   if (!player) return null;
 
+  const selectedClass = classFilter ?? player.classId;
   const selectedRegionId = regionId || player.currentRegionId;
   const recipes = BASIC_CRAFT_RECIPES.filter(recipe => (!recipe.regionId || recipe.regionId === selectedRegionId)
-    && (classFilter === 'all' || !recipe.result?.targetClass || recipe.result.targetClass === classFilter));
+    && (selectedClass === 'all' || !recipe.result?.targetClass || recipe.result.targetClass === selectedClass)
+    && (levelFilter === 'all' || (recipe.levelReq || 1) <= player.level));
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
@@ -68,13 +72,21 @@ export const CraftingScreen: React.FC = () => {
       </label>
 
       {feedback && <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-2 text-xs text-amber-200">{feedback}</div>}
-      <label className="block text-xs text-slate-300">Целевой класс бонуса
-        <select value={classFilter} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
+      <label className="block text-xs text-slate-300">Класс снаряжения
+        <select value={selectedClass} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
           <option value="all">Все классы — любые вещи можно носить по уровню</option>
-          {CLASS_GEAR_IDS.map(id => <option key={id} value={id}>{CLASS_EQUIPMENT[id].label}</option>)}
+          {CLASS_GEAR_IDS.map(id => <option key={id} value={id}>{CLASS_EQUIPMENT[id].label}{id === player.classId ? ' · ваш герой' : ''}</option>)}
         </select>
       </label>
 
+      <label className="block text-xs text-slate-300">Уровень рецептов
+        <select value={levelFilter} onChange={event => setLevelFilter(event.target.value as 'available' | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
+          <option value="available">Доступные по уровню · до {player.level} ур.</option>
+          <option value="all">Все уровни · включая будущие рецепты</option>
+        </select>
+      </label>
+      <p className="text-[11px] text-slate-500">Найдено рецептов: {recipes.length}. Общие расходники и снаряжение без классового бонуса тоже показаны.</p>
+      {recipes.length === 0 && <div role="status" className="rounded-lg border border-slate-800 p-3 text-xs text-slate-400">В этой локации нет рецептов под выбранный класс и уровень. Выберите другую локацию или измените фильтры.</div>}
       <div className="space-y-2">
         {recipes.map(recipe => {
           const isEquipment = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type);
