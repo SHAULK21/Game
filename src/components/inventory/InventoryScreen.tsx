@@ -138,7 +138,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const handleInventoryExpansion = async () => {
     if (premium.active) {
-      expandInventory();
+      const result = expandInventory();
+      setPremiumFeedback(result.message);
       return;
     }
 
@@ -323,13 +324,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
         <button
           onClick={handleInventoryExpansion}
           disabled={premium.loading || premiumBusy}
-          title={premium.active ? 'Расширить инвентарь за золото' : 'Подключить Premium и расширить инвентарь'}
+          title={premium.active ? `Расширить сумку на 5 слотов за ${(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота` : 'Подключить Premium и расширить инвентарь'}
           className="text-[10px] px-2 py-1.5 rounded-lg border border-amber-700/60 bg-amber-950/30 text-amber-200 flex items-center gap-1 active:scale-95 disabled:opacity-60 disabled:cursor-wait"
         >
           <Crown className="w-3.5 h-3.5 text-amber-300" />
-          {premiumBusy ? 'Открываю…' : '+5 слотов · Только Premium'}
+          {premiumBusy ? 'Открываю…' : premium.active ? `+5 слотов · ${(player.maxInventorySlots * 60).toLocaleString('ru-RU')} 🪙` : '+5 слотов · Только Premium'}
         </button>
       </div>
+      {premium.active && <p className="-mt-1 text-[10px] text-slate-400">Расширение стоит {(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота. У вас: {player.gold.toLocaleString('ru-RU')} 🪙. Купленные слоты остаются после окончания Premium.</p>}
       {premiumFeedback && (
         <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[10px] leading-4 text-amber-200/80">
           {premiumFeedback}

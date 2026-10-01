@@ -103,7 +103,7 @@ interface GameContextType {
   bulkDisposeItems: (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => Promise<{success: boolean; message: string}>;
   toggleItemLock: (itemId: string) => void;
   refreshServerInventory: () => Promise<void>;
-  expandInventory: () => void;
+  expandInventory: () => { success: boolean; message: string };
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
   setActiveRegionMod: (modId: string) => void;
@@ -1740,29 +1740,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player]);
 
   const expandInventory = useCallback(() => {
+    if (!player) return { success: false, message: 'Персонаж не найден.' };
+    if (!premium.active) {
+      triggerHaptic('error');
+      return { success: false, message: 'Для расширения сумки нужен активный Premium.' };
+    }
+    const cost = player.maxInventorySlots * 60;
+    if (player.gold < cost) {
+      triggerHaptic('error');
+      return { success: false, message: `Недостаточно золота: нужно ${cost.toLocaleString('ru-RU')}, у вас ${player.gold.toLocaleString('ru-RU')}.` };
+    }
     setPlayer(prev => {
-      if (!prev) return prev;
-      // Inventory expansion is a Premium-only benefit. Keep the check in the
-      // game context as the source of truth so it cannot be bypassed by a UI
-      // click or another caller.
-      if (!premium.active) {
-        triggerHaptic('error');
-        return prev;
-      }
-      const cost = prev.maxInventorySlots * 60;
-      if (prev.gold < cost) {
-        triggerHaptic('error');
-        return prev;
-      }
-      sound.playUpgradeSuccess();
-      triggerHaptic('success');
-      return {
-        ...prev,
-        gold: prev.gold - cost,
-        maxInventorySlots: prev.maxInventorySlots + 5
-      };
+      if (!prev || prev.userId !== player.userId || prev.maxInventorySlots !== player.maxInventorySlots || prev.gold < cost) return prev;
+      return { ...prev, gold: prev.gold - cost, maxInventorySlots: prev.maxInventorySlots + 5 };
     });
-  }, [premium.active]);
+    sound.playUpgradeSuccess();
+    triggerHaptic('success');
+    return { success: true, message: `Сумка расширена: +5 слотов, всего ${player.maxInventorySlots + 5}. Потрачено ${cost.toLocaleString('ru-RU')} золота.` };
+  }, [player, premium.active]);
 
   // Blacksmith sharpening
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
