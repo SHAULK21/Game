@@ -38,7 +38,13 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
     await w.act(async()=>button('Изучить · 1 очк.').click());
     assert.equal(w.game.player.talentPoints,99);
     assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.talentPoints,99);
-    assert.equal(w.document.querySelectorAll('article').length,10);
+    assert.equal(w.document.querySelectorAll('article').length,2);
+    const tierSummary=[...w.document.querySelectorAll('summary')].find((s:any)=>s.textContent.startsWith('Уровни 21–40')) as any;
+    await w.act(async()=>tierSummary.click());
+    assert.equal(w.document.querySelectorAll('details[open]').length,1);
+    assert.equal(w.document.querySelectorAll('article').length,2);
+    assert.ok(w.document.querySelector('article').textContent.includes('Пробивающий удар'));
+    assert.equal(w.game.player.talentPoints,99,'opening a tier does not spend points');
     await w.act(async()=>button('Сбросить распределение').click());
     await w.act(async()=>button('Сбросить за 2000 серебра').click());
     assert.equal(w.game.player.talentPoints,100);assert.equal(w.game.player.silver,3000);

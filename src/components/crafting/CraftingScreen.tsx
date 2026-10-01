@@ -96,14 +96,19 @@ export const CraftingScreen: React.FC = () => {
                   <p className="mt-0.5 text-[11px] text-slate-400">{recipe.description}</p>
                   {recipe.regionId && <p className="mt-1 text-[11px] text-[#d5ba89]">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}
                   {isEquipment && <p className="mt-1 text-[11px] text-[#d5ba89]">Уровень вещи: {range.min}–{range.max} · Возможна заточка +1–+5</p>}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  <details className="mt-2 rounded-lg border border-slate-800 px-2">
+                    <summary className="cursor-pointer py-2 text-[11px] text-slate-300">
+                      Что нужно для крафта · {requirements.filter(ingredient => ingredient.have >= ingredient.count).length}/{requirements.length} материалов готово
+                    </summary>
+                    <div className="flex flex-wrap gap-1.5 pb-2">
                     {requirements.map(ingredient => (
                       <span key={ingredient.name} className={`rounded border px-1.5 py-1 text-[11px] ${ingredient.have >= ingredient.count ? 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300' : 'border-rose-500/30 bg-rose-950/20 text-rose-300'}`}>
                         {ingredient.name} {ingredient.have}/{ingredient.count}
                         <span className="block text-[11px] text-slate-400">{ingredientSource(ingredient.name)}</span>
                       </span>
                     ))}
-                  </div>
+                    </div>
+                  </details>
                 </div>
                 <button
                   onClick={() => setFeedback(craftBasicItem(recipe.id).message)}

@@ -8,6 +8,7 @@ const RANGES = ['1–20', '21–40', '41–60', '61–80', '81–100'];
 export function TalentTree() {
   const { player, unlockTalent, resetTalentTree, isInCombat, isCombatEnded } = useGame();
   const [branch, setBranch] = useState<'damage' | 'survival' | 'class' | 'mastery'>('damage');
+  const [expandedTier, setExpandedTier] = useState<number | null>(1);
   const [confirmReset, setConfirmReset] = useState(false);
   if (!player) return null;
   const busy = isInCombat && !isCombatEnded;
@@ -38,17 +39,27 @@ export function TalentTree() {
       {busy && <p role="status" className="text-[11px] text-amber-200">Распределение и сброс доступны после боя.</p>}
     </div>
     <div role="tablist" aria-label="Ветки талантов" className="grid grid-cols-3 gap-1">
-      {BRANCHES.map((id, index) => <button key={id} role="tab" aria-selected={branch === id} onClick={() => setBranch(id)} className={`rounded-lg border px-2 py-2 min-h-14 text-[11px] ${branch === id ? 'border-amber-700 text-amber-100 bg-amber-950/30' : 'border-slate-800 text-slate-400'}`}>
+      {BRANCHES.map((id, index) => <button key={id} role="tab" aria-selected={branch === id} onClick={() => { setBranch(id); setExpandedTier(1); }} className={`rounded-lg border px-2 py-2 min-h-14 text-[11px] ${branch === id ? 'border-amber-700 text-amber-100 bg-amber-950/30' : 'border-slate-800 text-slate-400'}`}>
         {names[index]}<span className="block mt-1 text-[10px] opacity-70">{branchSpent(player.talents, id)} / 58 очк.</span>
       </button>)}
     </div>
     <button onClick={() => setBranch('mastery')} className={`w-full rounded-lg border py-2 text-xs ${branch === 'mastery' ? 'border-amber-700 text-amber-100' : 'border-slate-800 text-slate-400'}`}>Мастерство · с 101 уровня</button>
     {branch === 'mastery' ? <><p className="text-[11px] text-slate-400">Малые прибавки с убывающей отдачей и растущей ценой. Мастерство не повышает крит или вампиризм.</p><div className="grid grid-cols-2 gap-2">{selected.map(renderTalent)}</div></> :
-      <div role="tabpanel" className="space-y-3">{RANGES.map((range, index) => <section key={range} className="relative space-y-2">
-        {index > 0 && <div aria-hidden="true" className="mx-auto h-4 w-px bg-slate-700" />}
-        <h4 className="text-[10px] uppercase tracking-wider text-slate-500">Уровни {range}</h4>
-        <div className="grid grid-cols-2 gap-2">{selected.filter(t => t.tier === index + 1).map(renderTalent)}</div>
-      </section>)}</div>}
+      <div role="tabpanel" className="space-y-2">
+        <p className="text-[11px] text-slate-500">Нажмите на диапазон уровней, чтобы раскрыть таланты.</p>
+        {RANGES.map((range, index) => {
+          const tier = index + 1;
+          const talents = selected.filter(t => t.tier === tier);
+          const points = talents.reduce((sum, talent) => sum + spentTalentPoints(talent), 0);
+          const levelReq = Math.min(...talents.map(t => t.levelReq || 1));
+          return <details key={`${branch}:${range}`} open={expandedTier === tier} className="rounded-xl border border-slate-800 bg-slate-950/30 px-3">
+            <summary onClick={event => { event.preventDefault(); setExpandedTier(expandedTier === tier ? null : tier); }} className="cursor-pointer py-3 text-xs text-slate-300">
+              Уровни {range}<span className="ml-2 text-[10px] text-slate-500">{points} очк. вложено{player.level < levelReq ? ` · с ${levelReq} ур.` : ''}</span>
+            </summary>
+            {expandedTier === tier && <div className="grid grid-cols-2 gap-2 pb-3">{talents.map(renderTalent)}</div>}
+          </details>;
+        })}
+      </div>}
     {legacy.length > 0 && <details className="rounded-xl border border-slate-800 p-3"><summary className="text-xs text-amber-200 cursor-pointer">Сохранённые таланты · {branchSpent(player.talents, 'legacy')} очк.</summary><p className="mt-2 text-[11px] text-slate-400">Старые ранги и бонусы действуют. При сбросе их очки вернутся для нового дерева.</p><div className="mt-2 space-y-2">{legacy.map(t => <div key={t.id} className="text-[11px] text-slate-300">{t.name} · {t.currentRank}/{t.maxRank}<p className="text-slate-500">{t.description}</p></div>)}</div></details>}
     <div className="rounded-xl border border-slate-800 p-3 space-y-2">
       <p className="text-[11px] text-slate-400">Сброс вернёт все {spent} вложенных очков, включая старые таланты и мастерство. Стоимость: {price} серебра. У вас: {player.silver}.</p>
