@@ -1,3 +1,6 @@
+import { STAT_LABELS } from '../../utils/statLabels';
+import { getAlchemyToolBonus } from '../../utils/alchemy';
+import { getPickaxeBonus } from '../../utils/mining';
 import { ASCENSION_FRAGMENT_DESCRIPTION } from '../../data/ascension';
 import { BulkInventoryActions } from './BulkInventoryActions';
 import React, { useMemo, useState } from 'react';
@@ -55,31 +58,7 @@ const TYPE_LABELS: Partial<Record<ItemType, string>> = {
   material: 'Материал'
 };
 
-const STAT_LABELS: Record<string, string> = {
-  attack: 'Атака',
-  magicAttack: 'Магическая атака',
-  defense: 'Защита',
-  magicDefense: 'Магическая защита',
-  maxHp: 'Макс. HP',
-  maxMp: 'Макс. MP',
-  speed: 'Скорость',
-  accuracy: 'Точность',
-  evasion: 'Уклонение',
-  critChance: 'Шанс крита',
-  critDamage: 'Сила крита',
-  vampirism: 'Вампиризм',
-  hpRegen: 'Реген. HP',
-  mpRegen: 'Реген. MP',
-  armorPenetration: 'Пробитие брони',
-  physicalResistance: 'Сопр. физике',
-  magicResistance: 'Сопр. магии',
-  fireResistance: 'Сопр. огню',
-  iceResistance: 'Сопр. льду',
-  lightningResistance: 'Сопр. молнии',
-  poisonResistance: 'Сопр. яду',
-  darkResistance: 'Сопр. тьме',
-  holyResistance: 'Сопр. свету'
-};
+
 
 const PERCENT_STATS = new Set([
   'critChance', 'critDamage', 'vampirism', 'accuracy', 'evasion',
@@ -562,11 +541,11 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     equipItem(currentSelected);
                     setSelectedItem(null);
                   }}
-                  disabled={currentSelected.level > player.level}
+                  disabled={currentSelected.level > player.level || currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) || currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel)}
                   className="py-2.5 rounded-xl bg-cyan-600 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {currentSelected.level > player.level ? `Нужен уровень ${currentSelected.level}` : 'Экипировать'}
+                  {currentSelected.level > player.level ? `Нужен уровень ${currentSelected.level}` : currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) ? 'Недостаточный уровень шахты' : currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel) ? 'Недостаточный уровень алхимии' : 'Экипировать'}
                 </button>
               ) : (
                 <button

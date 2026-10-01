@@ -53,7 +53,7 @@ Market listing responses expose the trimmed `character_name` as seller `display_
 
 ### Manual mining and pickaxes
 
-Manual ore, bonus materials and gemstones use a weighted 1–5 yield. A critical result is exactly 5; noncritical results are 1–4. For shallow resources the noncritical weights are 60/27/10/3%; deeper nodes shift toward 1. Overall critical chance is capped at 2.5%, below the probability of a four-unit yield even with the strongest tool. Luck and the mining achievement contribute small bounded bonuses.
+Manual ore uses the per-vein ranges in the table below; the vein maximum is reserved for a critical. Bonus materials use a weighted 1–5 yield and gemstones 1–3. Deeper resources favor smaller quantities. Critical chance remains capped at 2.5%; luck and the mining achievement contribute small bounded bonuses.
 
 Five pickaxes are sold in the mine, unlocked at mining levels 1/10/25/50/80 for 250/2,000/10,000/40,000/150,000 gold. Their critical bonuses are +0.15/+0.3/+0.6/+0.9/+1.2 percentage points, and mining XP bonuses are +10/+20/+35/+55/+80%. They occupy a dedicated `pickaxe` slot and have no combat stats. Bonuses apply to manual mining; expedition rewards retain their own rules. Tools can be equipped/removed in the mine or inventory; they do not replace weapons and cannot be sharpened.
 
@@ -96,3 +96,40 @@ After SSS, three weekly Echo challenges reuse the final guardian: Storm adds 30%
 ## Карточка награды серии
 
 Между противниками награды видны только в пошаговом журнале. После последней победы появляется итоговая карточка с суммой золота, серебра и опыта за все бои, а также предметами серии. Деньги и опыт по-прежнему начисляются после каждого противника; итоговая карточка не начисляет их второй раз. Кнопка продолжения называется «Следующий противник».
+
+
+## Профиль, рынок и режимы охоты
+
+Профиль героя показывает отдельную карточку с портретом, классом, уровнем, рангом вознесения, опытом и свободными очками. Шесть основных боевых показателей видны сразу; крит/пробитие, точность/темп, восстановление, бонусы наград и сопротивления собраны в раскрываемые группы. Это изменение представления: значения характеристик и формулы героя не изменены.
+
+В выборе предмета для рынка есть поиск по названию и категории: всё, экипировка, ресурсы, зелья, инструменты. Предмет нужно выбрать явно перед выставлением. Надетое, запертое и клановое не выставляется; экипировку можно снять и продать другим игрокам. В лотах доступны характеристики и уровень заточки.
+
+Режим охоты фиксируется в противнике при начале боя и применяется ко всем врагам серии, обычным атакам, особым приёмам и наградам. Множители к уже подготовленному врагу:
+
+| Режим | HP | Урон | Защита |
+| --- | --- | --- | --- |
+| Обычный поход | ×1 | ×1 | ×1 |
+| Священный Свет | ×1,15 | ×1,1 | ×1 |
+| Густой Туман | ×1,3 | ×1,5 | ×1,15 |
+| Кровавая Луна | ×1,75 | ×1,85 | ×1,2 |
+| Осквернение Бездны | ×2,4 | ×2,4 | ×1,5 |
+
+Коэффициенты наград остались прежними. Арена, вознесение и подземелья не получают множители режима открытого мира. В засаде выбранный режим передаётся явно и применяется один раз. Кнопки охоты, выбора режима в закрытой локации и экипировки профессиональных инструментов отключаются при недостаточном уровне. Заблокированные рецепты алхимии показывают требуемый уровень и не выглядят активными.
+
+## Диапазоны ручной добычи по жилам
+
+| Руда | Диапазон |
+| --- | --- |
+| Уголь | 1–7 |
+| Медная руда | 1–6 |
+| Железная руда | 1–5 |
+| Серебряная руда | 1–4 |
+| Золотая руда | 1–3 |
+| Кобальтовая руда | 1–4 |
+| Мифриловая руда | 1–3 |
+| Адамантит | 1–3 |
+| Кровавый обсидиан | 1–2 |
+| Драконит | 1–3 |
+| Эфириум | 1–2 |
+
+Максимум каждой жилы выпадает только критически. Кирки по-прежнему увеличивают вероятность крита и опыт; шанс крита ограничен 2,5%. Обычная добыча имеет веса в пользу меньшего количества. Дополнительные материалы сохраняют собственные броски; самоцветы выпадают по 1–3. Изменение относится к ручной добыче, экспедиции остаются прежними.

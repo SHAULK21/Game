@@ -244,6 +244,7 @@ export interface MonsterSkill {
 }
 
 export interface Monster {
+  huntingModeId?: string;
   id: string;
   name: string;
   regionId: string;
@@ -563,6 +564,8 @@ export interface RegionModifier {
   energyCost: number;
   ambushChance: number; // e.g. 0.15 = 15%
   damageMultiplier: number;
+  hpMultiplier?: number;
+  defenseMultiplier?: number;
   expMultiplier: number;
   goldMultiplier: number;
   silverMultiplier: number;

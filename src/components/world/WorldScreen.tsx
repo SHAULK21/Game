@@ -299,7 +299,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         {/* Region Mode / Modifier Selector */}
         <div className="pt-2 border-t border-slate-800/80">
           <div className="flex items-center justify-between text-xs font-mono text-[#d5ba89] mb-2">
-            <span>Режим охоты (Моды локации):</span>
+            <span>Режим охоты:</span>
             <span className="text-[10px] text-amber-300">Расход: {activeMod.energyCost} ⚡</span>
           </div>
 
@@ -312,12 +312,13 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               return (
                 <button
                   key={mod.id}
+                  disabled={player.level<inspectingRegion.minLevel}
                   onClick={() => {
                     setSelectedModId(mod.id);
                     if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
-                  className={`p-2 rounded-xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
                     isSelected 
                       ? 'border-[#9d8459] bg-[#302c24]'
                       : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
@@ -330,7 +331,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     </span>
                   </div>
                   <div className="text-[9px] text-slate-400 leading-tight">
-                    Засада: {Math.round(mod.ambushChance * 100)}% · Дроп: x{mod.rareDropMultiplier}
+                    HP ×{mod.hpMultiplier||1} · Урон ×{mod.damageMultiplier}<br/>Защита ×{mod.defenseMultiplier||1} · Дроп: x{mod.rareDropMultiplier}
                   </div>
                 </button>
               );

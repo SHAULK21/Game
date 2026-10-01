@@ -134,6 +134,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 </div>
 
                 <button
+                  disabled={player.arenaTickets<1}
                   onClick={() => handleChallenge(opp)}
                   className="ui-primary shrink-0 ml-2 min-h-11 px-3 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs active:scale-95 transition-all flex items-center gap-1.5"
                 >

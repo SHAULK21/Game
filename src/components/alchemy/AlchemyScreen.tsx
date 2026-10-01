@@ -126,10 +126,10 @@ export const AlchemyScreen: React.FC = () => {
                   <button
                     onClick={() => handleCraft(rec.id)}
                     disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || !hasEnergy}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
-                    <span>{isCrafting ? 'Варка...' : `Сварить · ${energyCost} ⚗`}</span>
+                    <span>{isCrafting ? 'Варка...' : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} ⚗`}</span>
                   </button>
                 </div>
 

@@ -13,16 +13,20 @@ export function makePickaxe(id:string,instanceId:string): GameItem {
  const p=PICKAXES.find(p=>p.id===id);if(!p)throw new Error('Кирка не найдена.');
  return {id:instanceId,templateId:p.id,name:p.name,type:'pickaxe',rarity:p.rarity,level:1,upgradeLevel:0,icon:'⛏️',image:pickaxeArtwork(p.color),stats:{},description:`Шахта: +${p.critBonus} п.п. к шансу крита, +${p.expBonus}% опыта горного дела.`,sellPrice:Math.floor(p.price*.15),disassembleYield:{silver:Math.floor(p.price*.1)},stackCount:1};
 }
-// All nodes can yield 1–5; four is uncommon and five is exclusively a rare critical.
-// Deeper resources skew toward one, preserving their scarcity.
+// The vein defines its range; its maximum is reserved for a rare critical.
+export const miningYieldRange = (node:{baseYieldMin:number;baseYieldMax:number}) => ({min:node.baseYieldMin,max:node.baseYieldMax});
 export function miningCritChance(level:number,pickaxe?:GameItem,luck=0,achievement=false) {
  return Math.min(.025,Math.max(.004,.008-Math.max(0,level-1)*.00003)+(getPickaxeBonus(pickaxe)?.critBonus||0)/100+Math.min(.003,Math.max(0,luck)*.00003)+(achievement ? .001 : 0));
 }
-export function rollMiningYield(level:number,critChance:number,rng= Math.random) {
- if(rng()<critChance)return {count:5,isCrit:true};
+export function rollMiningYield(level:number,critChance:number,rng=Math.random,range={min:1,max:5}) {
+ const min=Math.max(1,Math.floor(range.min)),max=Math.max(min+1,Math.floor(range.max));
+ if(rng()<critChance)return {count:max,isCrit:true};
+ const choices=max-min;
+ if(choices===1)return {count:min,isCrit:false};
  const depth=Math.min(100,Math.max(1,level))-1;
- const roll=rng()*100;
- const one=60+depth*.18,two=27-depth*.12;
- return {count:roll<one?1:roll<one+two?2:roll<97?3:4,isCrit:false};
+ const weights=choices===2?[85+depth*.05,15-depth*.05]:[60+depth*.12,28-depth*.12,...Array(choices-2).fill(12/(choices-2))];
+ let roll=rng()*100;
+ for(let i=0;i<weights.length;i++){roll-=weights[i];if(roll<0)return {count:min+i,isCrit:false};}
+ return {count:max-1,isCrit:false};
 }
 export const miningExperience = (base:number,pickaxe?:GameItem) => Math.round(base*(1+(getPickaxeBonus(pickaxe)?.expBonus||0)/100));

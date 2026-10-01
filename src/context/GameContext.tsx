@@ -1,7 +1,8 @@
+import { applyHuntingMode, combatHuntingMode } from '../utils/huntingModes';
 import { ALCHEMY_TOOLS, makeAlchemyTool, getAlchemyToolBonus, alchemyExperience, alchemyExtraYield } from '../utils/alchemy';
 import { ASCENSION_ECHOES, ascensionEcho, ascensionWeek, recordAscensionEcho, initialAscension, migrateAscension, nextAscensionStage, ascendCharacter, ascensionBoss, ascensionBossPhase, ascensionBonuses, fragmentItem, type AscensionPath } from '../data/ascension';
 import { createOperationId } from '../utils/operationId';
-import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience } from '../utils/mining';
+import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience, miningYieldRange } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
 import { refreshGameTimers, utcDay } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
@@ -110,7 +111,7 @@ interface GameContextType {
   craftPet: (petId: string) => { success: boolean; message: string };
   
   // Combat
-  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number }) => boolean;
+  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number; huntingModeId?: string }) => boolean;
   startNextCombatBattle: () => boolean;
   performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => void;
   toggleAutoBattle: () => void;
@@ -215,7 +216,7 @@ const prepareMonsterForCombat = (monster: Monster): Monster => {
   };
 };
 
-const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stats: CombatStats, regionId: string) => {
+const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stats: CombatStats, regionId: string, mode?: import('../types/game').RegionModifier) => {
   const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
   const normalPool = region.monsters
     .map(id => MONSTERS[id])
@@ -223,10 +224,10 @@ const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stat
     .map(m => getRegionMonster(m, region));
   const pool = normalPool.length > 0 ? normalPool : [firstMonster];
   const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * 6);
-  const chain: Monster[] = [prepareMonsterForCombat(firstMonster)];
+  const chain: Monster[] = [applyHuntingMode(prepareMonsterForCombat(firstMonster),mode)];
   for (let i = 1; i < count; i += 1) {
     const candidate = pool[Math.floor(Math.random() * pool.length)] || firstMonster;
-    chain.push(prepareMonsterForCombat(candidate));
+    chain.push(applyHuntingMode(prepareMonsterForCombat(candidate),mode));
   }
   return chain;
 };
@@ -1582,6 +1583,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
     if (bulkInventoryBusy.current || marketBusy.current) return;
+    if (item.type === 'pickaxe' && player && player.miningLevel < (PICKAXES.find(p=>p.id===item.templateId)?.miningLevel || 1)) { triggerHaptic('error'); return; }
     if (item.type === 'alchemyTool' && !getAlchemyToolBonus(item, player?.alchemyLevel || 1)) { triggerHaptic('error'); return; }
     if (item.serverOwned) {
       if (!player || item.level > player.level) return;
@@ -1896,8 +1898,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [premium.active]);
 
   // START BATTLE with Energy Check
-  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean; energyCost?: number }): boolean => {
-    const activeModId = player?.activeRegionModId || 'mod_standard';
+  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean; energyCost?: number; huntingModeId?: string }): boolean => {
+    const activeModId = options?.huntingModeId || player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = options?.energyCost ?? ENERGY_COSTS.combat;
     if (player?.miningExpedition && !premium.active) {
@@ -1914,7 +1916,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (isInCombat && !isCombatEnded) return false;
 
-    const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId) : [prepareMonsterForCombat(monster)];
+    const huntingRegion = REGIONS.find(region=>region.id===monster.regionId);
+    if (huntingRegion && player && player.level<huntingRegion.minLevel) return false;
+    const huntMode = !activeDungeonRun && huntingRegion ? activeMod : undefined;
+    const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId,huntMode) : [applyHuntingMode(prepareMonsterForCombat(monster),huntMode)];
 
     setPlayer(prev => prev ? {
       ...prev,
@@ -2063,12 +2068,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             startBattleWithMonster({
               ...baseMob,
               name: `[Засада!] ${baseMob.name}`,
-              hp: Math.round(baseMob.hp * (activeMod.damageMultiplier || 1.0)),
-              maxHp: Math.round(baseMob.maxHp * (activeMod.damageMultiplier || 1.0)),
-              attack: Math.round(baseMob.attack * (activeMod.damageMultiplier || 1.0)),
-              expReward: Math.round(baseMob.expReward * (activeMod.expMultiplier || 1.0) * 1.5),
-              goldReward: Math.round(baseMob.goldReward * (activeMod.goldMultiplier || 1.0) * 1.5)
-            }, { chain: false, energyCost: 0 });
+              expReward: Math.round(baseMob.expReward * 1.5),
+              goldReward: Math.round(baseMob.goldReward * 1.5)
+            }, { chain: false, energyCost: 0, huntingModeId:selectedModId });
           }, 1400);
         } else {
           sound.playVictory();
@@ -2115,7 +2117,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * killRecovery / 100)));
     }
     const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
-    const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+    const activeMod = combatHuntingMode(monster);
     // Every completed combat has a small consumable roll: 0–3 potions.
     const potionCount = Math.random() < 0.15 ? 1 : 0;
     const potionPool: GameItem[] = [
@@ -2384,7 +2386,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const talents = talentBonuses(player.talents);
     const asc=ascensionBonuses(player.ascension);
     const newLogs: BattleLogEntry[] = [];
-    const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+    const activeMod = combatHuntingMode(activeMonster);
 
     if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
 
@@ -2784,7 +2786,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const timer = setTimeout(() => {
       const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
-      const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+      const activeMod = combatHuntingMode(activeMonster);
       const monsterTick = tickStatusEffects(monsterEffects);
       setMonsterEffects(monsterTick.effects);
 
@@ -2891,13 +2893,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const timer = setTimeout(() => {
       const skill = monsterIntent;
       const currentTurn = combatRound;
-      const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
+      const activeMod = combatHuntingMode(activeMonster);
       const playerMods = getStatusModifiers(playerEffects);
       const power = (skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(ascensionBossPhase(activeMonster)-1)*.15);
       const defense = skill.damageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const mitigation = defense / (defense + (skill.damageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(skill.damageType, combatStats.resistances);
-      let damage = Math.max(0, Math.round(power * skill.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      let damage = Math.max(0, Math.round(power * skill.damageMultiplier * activeMod.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
       const talents = talentBonuses(player.talents);
       const hpPct = combatPlayerHp / Math.max(1, combatStats.maxHp);
       damage = Math.round(damage * incomingTalentMultiplier(talents, hpPct));
@@ -3335,7 +3337,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const pickaxe=player.equipped.pickaxe;
     const critChance=miningCritChance(node.levelReq,pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed));
-    const {count:yieldCount,isCrit}=rollMiningYield(node.levelReq,critChance);
+    const {count:yieldCount,isCrit}=rollMiningYield(node.levelReq,critChance,Math.random,miningYieldRange(node));
 
     let inventory = [...player.inventory];
     const oreItem: GameItem = {
@@ -3399,7 +3401,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stats: {},
         sellPrice: 35 + node.levelReq,
         disassembleYield: { silver: 80 },
-        stackCount: rollMiningYield(node.levelReq+20,critChance).count
+        stackCount: rollMiningYield(node.levelReq+20,critChance,Math.random,{min:1,max:3}).count
       };
       const gemAdded = addOrStackInventoryItem(inventory, gemItem, player.maxInventorySlots);
       if (gemAdded.added) {

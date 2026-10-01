@@ -1,4 +1,4 @@
-import {PICKAXES,getPickaxeBonus,miningCritChance} from '../../utils/mining';
+import {PICKAXES,getPickaxeBonus,miningCritChance,miningYieldRange} from '../../utils/mining';
 import {ItemArtwork} from '../ui/ItemArtwork';
 import {RARITY_COLORS} from '../../data/gameData';
 import React, { useEffect, useRef, useState } from 'react';
@@ -111,9 +111,9 @@ export const MiningScreen: React.FC = () => {
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       <div className="ui-panel rounded-2xl border p-3 space-y-2">
         <h3 className="text-sm font-bold text-amber-200">⛏️ Кирка для шахты</h3>
-        <p className="text-[10px] text-slate-400">Отдельный слот. Бонусы работают при ручной добыче. 5 единиц — редкий крит; обычная добыча — 1–4.</p>
+        <p className="text-[10px] text-slate-400">Отдельный слот. Бонусы работают при ручной добыче. Максимум жилы — редкий крит; Обычная добыча зависит от жилы.</p>
         {player.equipped.pickaxe ? <div className="flex items-center gap-2 text-xs"><ItemArtwork item={player.equipped.pickaxe} size={36}/><div className="flex-1">{player.equipped.pickaxe.name}<div className="text-[10px] text-emerald-300">+{getPickaxeBonus(player.equipped.pickaxe)?.critBonus||0} п.п. крита · +{getPickaxeBonus(player.equipped.pickaxe)?.expBonus||0}% опыта</div></div><button disabled={isMining || player.inventory.length>=player.maxInventorySlots} onClick={()=>unequipItem('pickaxe')} className="text-slate-400 disabled:opacity-40">Снять</button></div> : <p className="text-xs text-slate-500">Кирка не экипирована</p>}
-        {player.inventory.filter(i=>i.type==='pickaxe').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={30}/><span className="flex-1">{item.name}</span><button disabled={isMining} onClick={()=>equipItem(item)} className="text-cyan-300">Экипировать</button></div>)}
+        {player.inventory.filter(i=>i.type==='pickaxe').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={30}/><span className="flex-1">{item.name}</span><button disabled={isMining || player.miningLevel<(getPickaxeBonus(item)?.miningLevel||1)} onClick={()=>equipItem(item)} className="text-cyan-300">Экипировать</button></div>)}
         <details><summary className="text-xs text-amber-300 cursor-pointer">Купить кирку · 5 редкостей</summary><div className="mt-2 space-y-2">{PICKAXES.map(offer=><div key={offer.id} className="rounded-lg bg-slate-950 p-2 flex items-center gap-2"><div className="flex-1"><div className={`text-xs ${RARITY_COLORS[offer.rarity].text}`}>{offer.name} · {RARITY_COLORS[offer.rarity].label}</div><div className="text-[10px] text-slate-400">Шахта {offer.miningLevel} ур. · +{offer.critBonus} п.п. крита · +{offer.expBonus}% опыта</div></div><button disabled={isMining || player.miningLevel<offer.miningLevel || player.gold<offer.price || player.inventory.length>=player.maxInventorySlots} onClick={()=>{const result=buyPickaxe(offer.id);setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-[10px] text-amber-300 disabled:opacity-40">{player.miningLevel<offer.miningLevel ? `С ${offer.miningLevel} ур.` : `${offer.price.toLocaleString()} 🪙`}</button></div>)}</div></details>
       </div>
       <div className="ui-panel rounded-2xl border p-4">
@@ -174,7 +174,7 @@ export const MiningScreen: React.FC = () => {
                       {locked && <span className="text-[8px] rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 font-bold text-rose-300">🔒 {node.levelReq} ур.</span>}
                     </div>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      {node.oreYield} ×1–5 (5 — крит) · ⛏ {node.staminaCost} · крит {(miningCritChance(node.levelReq,player.equipped.pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed))*100).toFixed(2)}%
+                      {node.oreYield} ×{node.baseYieldMin}–{node.baseYieldMax} ({node.baseYieldMax} — крит) · ⛏ {node.staminaCost} · крит {(miningCritChance(node.levelReq,player.equipped.pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed))*100).toFixed(2)}%
                     </div>
                   </div>
                 </div>

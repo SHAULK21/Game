@@ -258,10 +258,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
           <div className="mt-4 flex gap-2">
             <button
+              disabled={!selectedMonster || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
               onClick={() => {
                 if (selectedMonster) handleStartBattle(selectedMonster);
               }}
-              className="ui-primary flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="ui-primary disabled:opacity-40 disabled:cursor-not-allowed flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Swords className="w-4 h-4" />
               <span>Начать охоту · {combatEnergyCost} ⚡</span>

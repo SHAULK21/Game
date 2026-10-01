@@ -1,3 +1,4 @@
+import { HeroStats } from './HeroStats';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CLASSES, ASSETS } from '../../data/gameData';
@@ -22,7 +23,7 @@ interface CharacterScreenProps {
 }
 
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => {
-  const { player, combatStats, allocateAttribute, unlockTalent, premium } = useGame();
+  const { player, combatStats, allocateAttribute, premium } = useGame();
   const [activeTab, setActiveTab] = useState<'stats' | 'talents' | 'pet'>('stats');
 
   if (!player) return null;
@@ -32,77 +33,14 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      {/* Top Bar with back button */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-        <div className="flex items-center gap-2">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-          )}
-          <h2 className="font-cinzel text-sm font-bold text-slate-100">
-            Профиль героя: {premium.active && <span className="text-amber-300" title="Premium">👑 </span>}{player.name}
-          </h2>
-        </div>
+      <div className="flex items-center gap-3"><button onClick={onClose} disabled={!onClose} aria-label="Закрыть профиль" className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400"><ArrowLeft className="w-4 h-4"/></button><h2 className="font-cinzel text-sm font-bold text-slate-200">Профиль героя</h2></div>
 
-        <div className="flex items-center gap-1.5 text-xs font-mono">
-          <span className="text-slate-400">Ур.</span>
-          <span className="text-cyan-400 font-bold">{player.level}</span><span className="text-amber-300 ml-2">Ранг {player.ascension?.rank || 'E'}</span>
-        </div>
-      </div>
-
-      {/* Class Overview Card */}
-      <div className="ui-panel rounded-2xl border p-3.5 flex items-center gap-3.5">
-        <div className="relative shrink-0">
-          <img
-            src={classDef?.image || ASSETS.heroHunter}
-            alt="Hero Avatar"
-            className="w-16 h-16 rounded-xl object-cover border-2 border-cyan-400/50 shadow-md"
-            referrerPolicy="no-referrer"
-          />
-          <span className="absolute -bottom-1 -right-1 bg-cyan-950 border border-cyan-400 text-cyan-200 text-[10px] font-mono font-bold px-1 rounded">
-            {classDef.icon}
-          </span>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-cinzel text-base font-bold text-slate-100">
-              {classDef.name}
-            </h3>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/40">
-              {classDef.role}
-            </span>
-          </div>
-
-          <p className="text-[11px] text-slate-400 mt-1 leading-snug line-clamp-2">
-            {classDef.description}
-          </p>
-          <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2">
-            <div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">Пассив класса · {classDef.passive.name}</div>
-            <div className="text-[10px] text-amber-100/80 mt-0.5 leading-snug">{classDef.passive.description}</div>
-          </div>
-
-          {/* EXP Bar */}
-          <div className="mt-2 space-y-0.5">
-            <div className="flex justify-between text-[10px] font-mono">
-              <span className="text-slate-400">Опыт героя</span>
-              <span className="text-cyan-300 tabular-nums">
-                {player.exp} / {player.nextExp} ({expPct}%)
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-300"
-                style={{ width: `${expPct}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="relative overflow-hidden rounded-2xl border border-cyan-800/40 bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-950 p-4 space-y-4">
+        <div className="flex items-center gap-4"><div className="relative shrink-0"><img src={classDef.image || ASSETS.heroHunter} alt={classDef.name} className="w-20 h-24 rounded-xl object-cover border border-amber-500/40 shadow-lg" referrerPolicy="no-referrer"/><span className="absolute -bottom-2 inset-x-1 rounded-lg border border-amber-700 bg-slate-950 py-1 text-center text-[10px] text-amber-200">Ранг {player.ascension?.rank || 'E'}</span></div><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-widest text-cyan-400">{classDef.role}</p><h3 className="mt-1 font-cinzel text-lg font-bold text-slate-100 break-words">{player.name}</h3><p className="text-xs text-slate-400 mt-1">{classDef.icon} {classDef.name} · Уровень {player.level}</p>{premium.active && <span className="inline-block mt-2 rounded border border-amber-600/40 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">👑 Premium</span>}</div></div>
+        <div className="pt-1 space-y-1.5"><div className="flex justify-between text-[10px] text-slate-400"><span>До уровня {player.level+1}</span><span className="font-mono text-cyan-200">{player.exp.toLocaleString()} / {player.nextExp.toLocaleString()} EXP</span></div><div role="progressbar" aria-label="Опыт героя" aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100} className="h-2 rounded-full bg-slate-950 overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-500 to-indigo-400" style={{width:`${expPct}%`}} /></div></div>
+        <div className="grid grid-cols-3 gap-2 text-center text-[10px]"><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-amber-200">{player.statPoints}</b><span className="text-slate-500">Очки атрибутов</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-purple-200">{player.talentPoints}</b><span className="text-slate-500">Очки талантов</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-emerald-200">{player.miningLevel} / {player.alchemyLevel}</b><span className="text-slate-500">Шахта / алхимия</span></div></div>
+        <details className="border-t border-slate-800 pt-2"><summary className="cursor-pointer py-1 text-xs text-amber-200">Класс и пассивка · {classDef.passive.name}</summary><p className="text-[11px] text-slate-400 mt-2">{classDef.description}</p><p className="mt-2 text-[11px] text-amber-100/80">{classDef.passive.description}</p></details>
+      </section>
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-1 text-xs">
@@ -164,9 +102,9 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
               </span>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {([
-                { key: 'strength', label: 'Сила', desc: 'Физ. атака, переносимый вес', icon: '⚔️' },
+                { key: 'strength', label: 'Сила', desc: 'Физическая атака и защита', icon: '⚔️' },
                 { key: 'agility', label: 'Ловкость', desc: 'Скорость, уклонение, крит', icon: '🏹' },
                 { key: 'intelligence', label: 'Интеллект', desc: 'Маг. атака, запас маны', icon: '🔮' },
                 { key: 'vitality', label: 'Живучесть', desc: 'Здоровье, физ. защита', icon: '🛡️' },
@@ -178,87 +116,31 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
                   key={attr.key}
                   className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-900/60 text-xs font-mono"
                 >
-                  <div className="flex items-center gap-2">
-                    <span>{attr.icon}</span>
+                  <div className="min-w-0">
+                    <span className="mr-1">{attr.icon}</span>
                     <span className="text-slate-300">{attr.label}</span>
-                    <span className="text-[10px] text-slate-500">({attr.desc})</span>
+                    <span className="block mt-1 text-[9px] text-slate-500">{attr.desc}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span className="text-slate-100 font-bold">
                       {player.attributes[attr.key as keyof CharacterAttributes]}
                     </span>
-                    {player.statPoints > 0 && (
-                      <button
+                    <button
+                        disabled={player.statPoints <= 0}
+                        aria-label={`Повысить: ${attr.label}`}
                         onClick={() => allocateAttribute(attr.key as keyof CharacterAttributes)}
-                        className="w-5 h-5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center active:scale-90 transition-transform"
+                        className="w-5 h-5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Derived Combat Stats */}
-          <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2">
-            <span className="font-cinzel text-xs font-bold text-cyan-300 uppercase tracking-wider block border-b border-slate-800 pb-1.5">
-              Боевые показатели:
-            </span>
-
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Физ. Атака:</span>
-                <span className="text-slate-100 font-bold">{combatStats.attack}</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Маг. Атака:</span>
-                <span className="text-slate-100 font-bold">{combatStats.magicAttack}</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Физ. Защита:</span>
-                <span className="text-slate-100 font-bold">{combatStats.defense}</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Маг. Защита:</span>
-                <span className="text-slate-100 font-bold">{combatStats.magicDefense}</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Шанс крита:</span>
-                <span className="text-amber-400 font-bold">{combatStats.critChance}%</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Крит. Урон:</span>
-                <span className="text-amber-400 font-bold">{combatStats.critDamage}%</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Вампиризм:</span>
-                <span className="text-rose-400 font-bold">{combatStats.vampirism}%</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Пробитие:</span>
-                <span className="text-amber-400 font-bold">{combatStats.armorPenetration} ед.</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Уклонение:</span>
-                <span className="text-indigo-400 font-bold">{Math.round(combatStats.evasion)}%</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Меткость:</span>
-                <span className="text-cyan-400 font-bold">{Math.round(combatStats.accuracy)}%</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Реген HP/MP:</span>
-                <span className="text-emerald-400 font-bold">+{combatStats.hpRegen} / +{combatStats.mpRegen}</span>
-              </div>
-              <div className="p-2 rounded bg-slate-900/60 flex justify-between">
-                <span className="text-slate-400">Скорость:</span>
-                <span className="text-cyan-400 font-bold">{combatStats.speed}</span>
-              </div>
-            </div>
-          </div>
+          <HeroStats stats={combatStats} />
         </div>
       )}
 
