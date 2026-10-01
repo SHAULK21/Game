@@ -1,3 +1,4 @@
+import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
@@ -31,11 +32,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
     adminLevelUp,
     adminSpawnLegendaryItem,
     adminHealAll,
-    resetCharacter,
-    sendChatMessage
+    resetCharacter
   } = useGame();
 
-  const [broadcastText, setBroadcastText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [serverStats, setServerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 });
   const [premiumDays,setPremiumDays] = useState(30);
@@ -76,14 +75,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const showNotice = (msg: string) => {
     setFeedback(msg);
     setTimeout(() => setFeedback(null), 2500);
-  };
-
-  const handleBroadcast = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!broadcastText.trim()) return;
-    sendChatMessage(`📢 [ОБЪЯВЛЕНИЕ АДМИНИСТРАЦИИ]: ${broadcastText.trim()}`, 'global');
-    setBroadcastText('');
-    showNotice('Объявление отправлено всем игрокам!');
   };
 
   const switchMockUser = (name: string) => {
@@ -199,28 +190,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Global Broadcast */}
-        <div className="space-y-1.5">
-          <span className="text-[11px] font-mono text-purple-400 uppercase tracking-wider block">
-            Мировое оповещение (System Broadcast):
-          </span>
-          <form onSubmit={handleBroadcast} className="flex gap-2">
-            <input
-              type="text"
-              value={broadcastText}
-              onChange={e => setBroadcastText(e.target.value)}
-              placeholder="Текст сообщения для всех игроков..."
-              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-400"
-            />
-            <button
-              type="submit"
-              className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs active:scale-95 transition-all flex items-center gap-1"
-            >
-              <Megaphone className="w-3.5 h-3.5" />
-              <span>Отправить</span>
-            </button>
-          </form>
-        </div>
+        <AdminBroadcasts />
 
         {/* Telegram Profile Switcher for Testing */}
         <div className="space-y-1.5">

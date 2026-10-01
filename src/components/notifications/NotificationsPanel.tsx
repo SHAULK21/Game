@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../../utils/api';
 import { getTelegramWebApp } from '../../utils/telegram';
-const LABELS:Record<string,string>={energy:'Энергия восстановлена',arena:'Билеты арены',mining:'Экспедиция завершена',market:'Покупка ваших вещей',clan:'События клана',pvp:'Результаты PvP',premium:'Статус Premium',referral:'Награда за друга'};
+const LABELS:Record<string,string>={energy:'Энергия восстановлена',arena:'Билеты арены',mining:'Экспедиция завершена',market:'Покупка ваших вещей',clan:'События клана',pvp:'Результаты PvP',premium:'Статус Premium',referral:'Награда за друга',announcements:'Объявления администрации'};
 type Notice={id:number;text:string;read_at:string|null;due_at:string};
 export const NotificationsPanel:React.FC=()=>{
   const [settings,setSettings]=useState<Record<string,boolean>>({});

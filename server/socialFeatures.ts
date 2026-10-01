@@ -1,3 +1,4 @@
+import {registerAdminBroadcasts} from './broadcasts';
 import type { Express, RequestHandler } from 'express';
 import type { Pool, PoolClient } from 'pg';
 import crypto from 'node:crypto';
@@ -7,7 +8,7 @@ import type { PvpStance } from '../src/utils/pvp';
 import { nextArenaReset, ENERGY_REGEN_MS } from '../src/utils/gameCadence';
 
 type TelegramApi = <T = unknown>(method: string, payload: Record<string,unknown>) => Promise<T>;
-export const NOTIFICATION_CATEGORIES = ['energy','arena','mining','market','clan','pvp','premium','referral'];
+export const NOTIFICATION_CATEGORIES = ['energy','arena','mining','market','clan','pvp','premium','referral','announcements'];
 const uuid = (value:unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export async function queueNotification(db: Pool | PoolClient, userId: number, key:string, category:string,text:string,dueAt=new Date()) {
   await db.query(`INSERT INTO game_notifications (telegram_id,event_key,category,text,due_at) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (telegram_id,event_key) DO NOTHING`,[userId,key,category,text,dueAt]);
@@ -24,6 +25,7 @@ export function startNotificationWorker(getPool:()=>Pool, telegram:TelegramApi, 
       const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
       for(const row of rows.rows) {
         if(!row.bot_started || row.notification_settings?.enabled!==true || row.notification_settings?.[row.category]===false) {
+          if(row.category==='announcements'){await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);continue;}
           await client.query("UPDATE game_notifications SET next_attempt_at=NOW()+INTERVAL '1 hour' WHERE id=$1",[row.id]);continue;
         }
         if(row.category==='premium' && String(row.event_key).startsWith('premium_expire_')) {
@@ -49,6 +51,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     const id=String(process.env.ADMIN_TELEGRAM_ID || process.env.VITE_ADMIN_TELEGRAM_ID || '').trim();
     if(!id || String(req.authUser!.id)!==id){res.status(403).json({error:'Только администратор.'});return;}next();
   };
+  registerAdminBroadcasts(app,getPool,auth,admin,async()=>{const bot=await telegram<{username:string}>('getMe',{});return bot.username;});
   app.post('/api/admin/premium/self',auth,admin,async(req,res)=>{
     const days=Number(req.body?.days ?? 30),id=req.body?.operationId;
     if(!uuid(id)||!Number.isInteger(days)||days<1||days>365)return res.status(400).json({error:'Укажите 1–365 дней и ID операции.'});

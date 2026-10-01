@@ -220,3 +220,10 @@ CREATE TABLE IF NOT EXISTS market_listing_requests (
  id UUID PRIMARY KEY, telegram_id BIGINT NOT NULL REFERENCES players(telegram_id), request_json JSONB NOT NULL,
  listing_id UUID NOT NULL REFERENCES market_listings(id), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS admin_broadcasts (
+ id UUID PRIMARY KEY, admin_id BIGINT NOT NULL REFERENCES players(telegram_id),
+ template_id TEXT NOT NULL, audience TEXT NOT NULL, text TEXT NOT NULL,
+ players_count INTEGER NOT NULL DEFAULT 0, telegram_count INTEGER NOT NULL DEFAULT 0,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

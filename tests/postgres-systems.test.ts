@@ -1,3 +1,4 @@
+import {broadcastSummary,createAdminBroadcast} from '../server/broadcasts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -69,5 +70,23 @@ test('Postgres schema, canonical market transfers, PvP, clan roles and referral 
   assert.equal((await call('POST','/api/notifications/schedule',1,{energy:40,maxEnergy:60,regenAt:Date.now()})).status,200);
   const notifications=await call('GET','/api/notifications',1);assert.equal(notifications.status,200);assert.equal(notifications.body.settings.market,false);assert.ok(notifications.body.notifications.length>0);
   assert.equal((await call('POST','/api/notifications/read',1)).status,200);
+  await query("UPDATE players SET bot_started=TRUE,notification_settings='{\"enabled\":true}'::jsonb WHERE telegram_id=1");
+  await query("UPDATE players SET bot_started=TRUE,notification_settings='{\"enabled\":true,\"announcements\":false}'::jsonb WHERE telegram_id=2");
+  await query("UPDATE players SET bot_started=FALSE,notification_settings='{\"enabled\":false}'::jsonb WHERE telegram_id=3");
+  const audience=await broadcastSummary(pool);assert.equal(audience.audiences.all.players,3);assert.equal(audience.audiences.all.telegram,1);
+  const broadcast={operationId:'00000000-0000-4000-8000-000000000040',templateId:'referral',audience:'all',details:''};
+  const announcement=await createAdminBroadcast(pool,1,broadcast,async()=>'game_bot');
+  assert.equal(announcement.players,3);assert.equal(announcement.telegram,1);
+  const notices=(await query("SELECT telegram_id,text,sent_at FROM game_notifications WHERE event_key=$1 ORDER BY telegram_id",['broadcast_'+broadcast.operationId])).rows;
+  assert.equal(notices.length,3);
+  for(const row of notices)assert.ok(row.text.endsWith('https://t.me/game_bot?start=ref_'+row.telegram_id));
+  assert.equal(notices[0].sent_at,null);assert.ok(notices[1].sent_at);assert.ok(notices[2].sent_at);
+  assert.equal((await createAdminBroadcast(pool,1,broadcast,async()=>{throw new Error('cached retry must not need Telegram');})).replayed,true);
+  assert.equal((await query("SELECT COUNT(*)::int AS count FROM game_notifications WHERE event_key=$1",['broadcast_'+broadcast.operationId])).rows[0].count,3);
+  await assert.rejects(()=>createAdminBroadcast(pool,1,{...broadcast,audience:'premium'},async()=>'game_bot'));
+  await assert.rejects(()=>createAdminBroadcast(pool,2,broadcast,async()=>'game_bot'));
+  const regular=await createAdminBroadcast(pool,1,{...broadcast,operationId:'00000000-0000-4000-8000-000000000041',templateId:'update',audience:'regular'},async()=>'game_bot');
+  assert.equal(regular.players,1);assert.equal(regular.telegram,0);
+
  }finally{await db.close();if(oldAdmin===undefined)delete process.env.ADMIN_TELEGRAM_ID;else process.env.ADMIN_TELEGRAM_ID=oldAdmin;}
 });
