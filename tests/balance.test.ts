@@ -1,3 +1,5 @@
+import { petBattleOpening } from '../src/utils/petCombat';
+import type { Monster, Pet } from '../src/types/game';
 import { combatHitChance, incomingAttackRoll } from '../src/utils/combatBonuses';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,6 +42,15 @@ test('accuracy, evasion and enemy critical chance participate in direct attack r
  assert.equal(incomingAttackRoll(100,50,0,()=>0.8).damage,0);
  assert.equal(incomingAttackRoll(100,0,75,()=>0.5).damage,150);
  assert.equal(incomingAttackRoll(100,0,0,()=>0.5).damage,100);
+});
+test('golem opening fortify protects two enemy turns after player action ticks',()=>{
+ let effects=petBattleOpening({maxHp:100} as Monster,{id:'pet_golem'} as Pet).playerEffects;
+ effects=tickStatusEffects(effects).effects;
+ assert.equal(getStatusModifiers(effects).damageTakenMultiplier,0.85);
+ effects=tickStatusEffects(effects).effects;
+ assert.equal(getStatusModifiers(effects).damageTakenMultiplier,0.85);
+ effects=tickStatusEffects(effects).effects;
+ assert.equal(getStatusModifiers(effects).damageTakenMultiplier,1);
 });
 test('temporary critical chance buffs expire without permanent crit inflation',()=>{
  const effects=[{type:'focus' as const,name:'Зелье',duration:1,value:15}];
