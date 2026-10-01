@@ -1,3 +1,4 @@
+import type {AscensionState} from '../data/ascension';
 export type ItemRarity = 
   | 'common' 
   | 'uncommon' 
@@ -503,6 +504,7 @@ export interface PlayerCharacter {
   statPoints: number;
   talentPoints: number;
   lastBulkDisposalId?: string;
+  ascension?: AscensionState;
   lastMarketListingOperation?: string;
   reservedClanCreationOperation?: string;
   lastClanCreationOperation?: string;

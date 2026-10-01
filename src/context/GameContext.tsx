@@ -1,3 +1,4 @@
+import { ASCENSION_ECHOES, ascensionEcho, ascensionWeek, recordAscensionEcho, initialAscension, migrateAscension, nextAscensionStage, ascendCharacter, ascensionBoss, ascensionBossPhase, ascensionBonuses, fragmentItem, type AscensionPath } from '../data/ascension';
 import { createOperationId } from '../utils/operationId';
 import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
@@ -140,6 +141,8 @@ interface GameContextType {
 
   // Arena & Clan
   createClan: (details: {name:string;tag:string;description:string}) => Promise<void>;
+  challengeAscension: (echoId?:string) => {success:boolean;message:string};
+  ascend: (choice?:AscensionPath) => {success:boolean;message:string};
   challengeArena: (opponent: ArenaOpponent) => boolean;
   claimQuestReward: (questId: string) => void;
   claimAchievementReward: (achievementId: string) => void;
@@ -187,6 +190,7 @@ const getMonsterPlannedSkill = (monster: Monster): MonsterSkill | null => {
 };
 
 const prepareMonsterForCombat = (monster: Monster): Monster => {
+  if(monster.regionId==='ascension') return {...monster,skills:getMonsterCombatSkills(monster)};
   const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
   const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;
   const hpMultiplier = 2.15 * levelFactor * roleFactor;
@@ -996,9 +1000,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player = addExperience(parsed.player, 0).player;
 
           parsed.player = migrateTalents(parsed.player);
-          setPlayer(CLASSES[parsed.player.classId as CharacterClassId]
+          setPlayer(migrateAscension(CLASSES[parsed.player.classId as CharacterClassId]
             ? reconcileSkills(parsed.player, CLASSES[parsed.player.classId as CharacterClassId].startingSkills)
-            : parsed.player);
+            : parsed.player));
           if (parsed.quests) {
             const savedQuestIds = new Set(parsed.quests.map((q: Quest) => q.id));
             const missingQuests = INITIAL_QUESTS.filter(q => !savedQuestIds.has(q.id));
@@ -1404,7 +1408,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeRegionModId: 'mod_standard'
     };
 
-    setPlayer(reconcileSkills(newPlayer, classDef.startingSkills));
+    setPlayer(migrateAscension(reconcileSkills(newPlayer, classDef.startingSkills)));
     sound.playLevelUp();
     triggerHaptic('success');
   }, []);
@@ -1938,7 +1942,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         id: 'start_' + Date.now(),
         turn: 1,
-        text: `⚔️ В бой вступает ${chain[0].name} (Ур. ${chain[0].level})! Серия: ${chain.length} противников. Режим: [${activeMod.name}]. Затрачено ${energyCost} ⚡.`,
+        text: `⚔️ В бой вступает ${chain[0].name} (${chain[0].regionId==='ascension' ? 'Ранг '+chain[0].id.replace('ascension_','') : 'Ур. '+chain[0].level})! Серия: ${chain.length} противников. Режим: [${activeMod.name}]. Затрачено ${energyCost} ⚡.`,
         type: 'system'
       },
       ...(chain.length > 1 ? [{
@@ -2088,6 +2092,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
+    if(monster.regionId==='ascension') {
+      const stage=nextAscensionStage(player?.ascension);
+      const echoReward=monster.id.startsWith('ascension_echo_') && player ? recordAscensionEcho(player,monster.id.replace('ascension_echo_','')).rewarded : false;
+      if(monster.id.startsWith('ascension_echo_')) setPlayer(prev=>prev?recordAscensionEcho(prev,monster.id.replace('ascension_echo_','')).player:prev);
+      if(stage && monster.id===`ascension_${stage.rank}`) {
+        setPlayer(prev=>prev ? {...prev,ascension:{...(prev.ascension||initialAscension()),trialsWon:[...new Set([...(prev.ascension?.trialsWon||[]),stage.rank])]},statsSummary:{...prev.statsSummary,battlesWon:prev.statsSummary.battlesWon+1}} : prev);
+      }
+      setLastCombatReward({gold:0,silver:echoReward?3000:0,exp:0,items:[]});
+      setBattleLog(prev=>[...prev,...baseLogs,{id:'asc_win_'+Date.now(),turn:currentTurn,text:monster.id.startsWith('ascension_echo_') ? `🏆 ${monster.name} повержен! +3000 серебра и сезонная победа. Награда доступна один раз за неделю для каждого эха.` : `🏆 ${monster.name} повержен! Испытание ${stage?.rank||''} пройдено. Вернитесь на арену и нажмите «Вознестись».`,type:'system'}]);
+      setIsCombatEnded(true);setCombatOutcome('victory');setTurnPhase('ended');return;
+    }
     const killRecovery = talentBonuses(player?.talents || []).killRecovery || 0;
     const recoveredHp = Math.min(combatStats.maxHp, combatPlayerHp + Math.round(combatStats.maxHp * killRecovery / 100));
     const recoveredMp = Math.min(combatStats.maxMp, combatPlayerMp + Math.round(combatStats.maxMp * killRecovery / 100));
@@ -2122,6 +2137,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Combat loot generation failed:', error);
       lootResult = { items: [], gold: 0, silver: 0 };
     }
+    if(monster.isBoss && monster.regionId!=='arena' && Math.random()<.4) lootResult.items.push(fragmentItem('asc_fragment_'+createOperationId()));
     let expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
@@ -2357,8 +2373,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
 
+    if(actionType==='potion' && activeMonster.id==='ascension_echo_control') {setBattleLog(prev=>[...prev,{id:'echo_potion_'+Date.now(),turn:combatRound,text:'В Эхе самообладания зелья недоступны.',type:'system'}]);return;}
     const currentTurn = combatRound;
     const talents = talentBonuses(player.talents);
+    const asc=ascensionBonuses(player.ascension);
     const newLogs: BattleLogEntry[] = [];
     const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
 
@@ -2462,6 +2480,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
       setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + 25));
       if (talents.defendHeal) setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(combatStats.maxHp * talents.defendHeal / 100)));
+      if(asc.defendHeal) setCombatPlayerHp(hp=>Math.min(combatStats.maxHp,hp+Math.round(combatStats.maxHp*asc.defendHeal/100)));
       newLogs.push({
         id: 'def_' + Date.now(),
         turn: currentTurn,
@@ -2575,7 +2594,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         skills: prev.skills.map(s => s.id === skillUsed!.id ? { ...s, currentCooldown: skillUsed!.cooldown } : s)
       } : prev);
 
-      const tier = skillTier(player);
+      const tier = skillUsed.id.startsWith('asc_') ? 1 : skillTier(player);
+      if(asc.manaReturn && manaCost>0) setCombatPlayerMp(mp=>Math.min(combatStats.maxMp,mp+Math.max(1,Math.round(manaCost*asc.manaReturn/100))));
+      if(asc.synergy && skillUsed.id.startsWith('asc_')) setCombatPlayerHp(hp=>Math.min(combatStats.maxHp,hp+Math.round(combatStats.maxHp*.02)));
       multiplier = skillUsed.damageMultiplier * [1, 1.12, 1.25, 1.4][tier - 1] * (1 + (talents.skillDamage || 0) / 100);
       if (talents.alternatingDamage && lastCast && lastCast.id !== skillUsed.id && currentTurn - lastCast.turn <= 3) multiplier *= 1 + talents.alternatingDamage / 100;
       if (skillUsed.comboFrom && lastCast?.id === skillUsed.comboFrom && currentTurn - lastCast.turn <= 3) {
@@ -2642,6 +2663,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       newLogs.push({ id: 'talent_followup_' + Date.now(), turn: currentTurn, text: `✨ Сочетание талантов: +${talentFollowup.current}% урона.`, type: 'skill' });
       talentFollowup.current = 0;
     }
+    if(asc.afflictedDamage && monsterEffects.some(e=>['poison','bleed','burn','vulnerability'].includes(e.type))) multiplier*=1+asc.afflictedDamage/100;
+    if(asc.synergy && skillUsed?.id.startsWith('asc_')) multiplier*=1.02;
     if (talents.offensiveStance && combatPlayerHp / combatStats.maxHp > 0.7) multiplier *= 1 + talents.offensiveStance / 100;
     if (talents.defensiveStance) multiplier *= 0.9;
     if (activeMonster.hp / activeMonster.maxHp < 0.3) multiplier *= 1 + (talents.executeDamage || 0) / 100;
@@ -2654,7 +2677,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Every strike resolves independently. A multi-hit can crit, miss, drain and kill on any hit.
     const attackPower = getDamagePower(damageType, combatStats);
-    const baseStrikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && skillTier(player) >= 4 ? 1 : 0));
+    const baseStrikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && !skillUsed.id.startsWith('asc_') && skillTier(player) >= 4 ? 1 : 0));
     const strikes = baseStrikes + (skillUsed && talents.extraStrike ? 1 : 0);
     let trapApplied = false;
     for (let strike = 0; strike < strikes && nextMonsterHp > 0; strike++) {
@@ -2672,9 +2695,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         power: attackPower * playerMods.attackMultiplier,
         multiplier: multiplier / baseStrikes * (strike >= baseStrikes ? talents.extraStrike / 100 : 1),
         damageType,
-        targetDefense: activeMonster.defense,
-        targetMagicDefense: activeMonster.magicDefense,
-        armorPenetration: combatStats.armorPenetration + (skillUsed ? talents.skillPenetration || 0 : 0) + (skillUsed && skillTier(player) >= 3 ? 20 : 0),
+        targetDefense: activeMonster.defense * (activeMonster.id==='ascension_C' && currentTurn%2===0 ? 1.6 : 1),
+        targetMagicDefense: activeMonster.magicDefense * (activeMonster.id==='ascension_C' && currentTurn%2===0 ? 1.6 : 1),
+        armorPenetration: combatStats.armorPenetration + (skillUsed ? talents.skillPenetration || 0 : 0) + (skillUsed && !skillUsed.id.startsWith('asc_') && skillTier(player) >= 3 ? 20 : 0),
         targetResistances: activeMonster.resistances,
         extraDamageMultiplier: monsterMods.damageTakenMultiplier
       });
@@ -2693,7 +2716,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalDmg = Math.min(finalDmg, nextMonsterHp);
       if (skillUsed?.armorBreak && strike === 0) setMonsterEffects(prev => applyStatusEffect(prev, { type: 'vulnerability', name: 'Разлом брони', duration: 3, value: skillUsed!.armorBreak! }));
       if (skillUsed?.inflicts && !['shield', 'fortify', 'fury', 'haste', 'invulnerable'].includes(skillUsed.inflicts.type)
-          && Math.random() < Math.min(1, skillUsed.inflicts.chance + (talents.effectChance || 0) / 100 + (skillTier(player) >= 2 ? 0.08 : 0))) {
+          && Math.random() < Math.min(1, skillUsed.inflicts.chance + (talents.effectChance || 0) / 100 + (!skillUsed.id.startsWith('asc_') && skillTier(player) >= 2 ? 0.08 : 0))) {
         setMonsterEffects(prev => applyStatusEffect(prev, {
           type: skillUsed!.inflicts!.type, name: skillUsed!.name,
           duration: skillUsed!.inflicts!.duration + (talents.effectDuration || 0), value: Math.round(skillUsed!.inflicts!.power * (['poison', 'bleed', 'burn'].includes(skillUsed!.inflicts!.type) ? 1 + (talents.dotPower || 0) / 100 : skillUsed!.inflicts!.type === 'vulnerability' ? 1 + (talents.vulnerabilityPower || 0) / 100 : 1))
@@ -2803,8 +2826,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const playerMods = getStatusModifiers(playerEffects);
-      const monsterDamageType = activeMonster.damageType || 'physical';
-      const monsterPower = monsterDamageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
+      const monsterDamageType = activeMonster.regionId==='ascension' && (['ascension_A','ascension_SS','ascension_SSS'].includes(activeMonster.id)||activeMonster.id.startsWith('ascension_echo_')) && currentTurn%2===0 ? 'magic' : activeMonster.damageType || 'physical';
+      const phase=ascensionBossPhase(activeMonster);
+      if(phase>(activeMonster.bossPhase||1)) {setActiveMonster(prev=>prev?{...prev,bossPhase:phase}:prev);newLogs.push({id:'asc_phase_'+Date.now(),turn:currentTurn,text:`⚠️ ${activeMonster.name}: фаза ${phase}. Его атаки усилены.`,type:'system'});}
+      const monsterPower = (monsterDamageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(phase-1)*.15);
       const defense = monsterDamageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const mitigation = defense / (defense + (monsterDamageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(monsterDamageType, combatStats.resistances);
@@ -2862,7 +2887,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentTurn = combatRound;
       const activeMod = REGION_MODIFIERS[player.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
       const playerMods = getStatusModifiers(playerEffects);
-      const power = skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack;
+      const power = (skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(ascensionBossPhase(activeMonster)-1)*.15);
       const defense = skill.damageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const mitigation = defense / (defense + (skill.damageType === 'physical' ? 80 : 90));
       const resistance = getTargetResistance(skill.damageType, combatStats.resistances);
@@ -2873,6 +2898,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (player.classId === 'warrior') damage = Math.round(damage * 0.90);
       if (player.classId === 'druid' && hpPct < 0.45) damage = Math.round(damage * 0.85);
       const logs: BattleLogEntry[] = [{ id: 'monster_cast_' + Date.now(), turn: currentTurn, text: `🔥 ${activeMonster.name} применяет ${skill.icon} «${skill.name}»!`, type: 'skill' }];
+      if(activeMonster.regionId==='ascension' && skill.id==='asc_heal') {
+        const recovery=Math.round(activeMonster.maxHp*(activeMonster.id==='ascension_echo_eternity' ? .08 : .05));
+        setActiveMonster(prev=>prev?{...prev,hp:Math.min(prev.maxHp,prev.hp+recovery)}:prev);
+        logs.push({id:'asc_heal_'+Date.now(),turn:currentTurn,text:`💚 ${activeMonster.name} восстанавливает ${recovery} HP.`,type:'heal'});
+      }
       let blocked = 0;
       const shieldIndex = playerEffects.findIndex(e => e.type === 'shield');
       if (!playerMods.invulnerable && shieldIndex >= 0) {
@@ -3581,6 +3611,30 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player]);
 
   // Arena
+  const challengeAscension = useCallback((echoId?:string) => {
+    if(!player)return {success:false,message:'Персонаж не создан.'};
+    const stage=nextAscensionStage(player.ascension);
+    const echo=echoId?ASCENSION_ECHOES.find(e=>e.id===echoId):undefined;
+    if(echoId&&(!echo||player.ascension?.rank!=='SSS'))return {success:false,message:'Эхо доступно после ранга SSS.'};
+    if(echo&&player.ascension?.echoWeek===ascensionWeek()&&player.ascension.echoWins?.includes(echo.id))return {success:false,message:'Эхо уже пройдено на этой неделе.'};
+    if(!stage&&!echo)return {success:false,message:'Ранг SSS уже достигнут.'};
+    if(stage&&player.ascension?.trialsWon.includes(stage.rank))return {success:false,message:'Испытание уже пройдено. Подготовьте материалы и вознеситесь.'};
+    if(activeDungeonRun||travelState.isTraveling||isInCombat&&!isCombatEnded)return {success:false,message:'Сначала завершите текущий бой, поход или путешествие.'};
+    if(player.arenaTickets<1)return {success:false,message:'Нужен один билет арены.'};
+    if(!startBattleWithMonster(echo?ascensionEcho(echo.id):ascensionBoss(stage!.rank),{chain:false,energyCost:0}))return {success:false,message:'Не удалось начать испытание. Проверьте активную экспедицию.'};
+    setAutoBattle(prev=>({...prev,enabled:false}));
+    setPlayer(prev=>prev?{...prev,arenaTickets:Math.max(0,prev.arenaTickets-1)}:prev);
+    return {success:true,message:echo?`${echo.name} началось.`:`Испытание ранга ${stage!.rank} началось.`};
+  },[player,activeDungeonRun,travelState.isTraveling,isInCombat,isCombatEnded,startBattleWithMonster]);
+
+  const ascend = useCallback((choice?:AscensionPath) => {
+    if(!player)return {success:false,message:'Персонаж не создан.'};
+    if(isInCombat&&!isCombatEnded||activeDungeonRun||travelState.isTraveling)return {success:false,message:'Завершите текущий бой, поход или путешествие.'};
+    const result=ascendCharacter(player,choice);
+    if(result.success)setPlayer(prev=>prev?ascendCharacter(prev,choice).player:prev);
+    return {success:result.success,message:result.message};
+  },[player,isInCombat,isCombatEnded,activeDungeonRun,travelState.isTraveling]);
+
   const challengeArena = useCallback((opponent: ArenaOpponent): boolean => {
     if (!player || player.arenaTickets <= 0 || activeDungeonRun) {
       triggerHaptic('error');
@@ -3828,6 +3882,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshPremiumStatus,
       preparePremiumInvoice,
       purchasePremium,
+      challengeAscension,
+      ascend,
       challengeArena,
       claimQuestReward,
       claimAchievementReward,

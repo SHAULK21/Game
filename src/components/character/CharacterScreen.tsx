@@ -50,7 +50,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
 
         <div className="flex items-center gap-1.5 text-xs font-mono">
           <span className="text-slate-400">Ур.</span>
-          <span className="text-cyan-400 font-bold">{player.level}</span>
+          <span className="text-cyan-400 font-bold">{player.level}</span><span className="text-amber-300 ml-2">Ранг {player.ascension?.rank || 'E'}</span>
         </div>
       </div>
 

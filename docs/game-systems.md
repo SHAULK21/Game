@@ -60,3 +60,17 @@ Five pickaxes are sold in the mine, unlocked at mining levels 1/10/25/50/80 for 
 ### Leaving a clan
 
 Every member, including the owner, can use the visible leave button. The UI requires confirmation. A departing owner transfers leadership to an officer, then quartermaster, veteran, member or recruit, using seniority as the tie breaker. If no members remain, the server requires explicit disband confirmation before deleting the clan, treasury and clan-held storage. Personal items remain personal. Clan creation gold is not refunded.
+
+### Ascension: independent character progression
+
+The default arena tab is now Ascension; training gladiators and PvP remain separate tabs. Existing characters start at E. The sequence is E → D → C → B → A → S → SS → SSS. No stage has a character-level requirement or resets character level, XP, attributes, talent points, purchased talents, equipment or existing skill coefficients. The rank is shown separately in the character profile.
+
+Each stage has a fixed rank guardian, one arena ticket per attempt, no XP/gold/rating/item payouts, and a persisted victory flag. Guardians cannot be farmed again after their trial is cleared. After victory, the player pays silver and ascension fragments and explicitly confirms Ascend. Failures or missing resources spend nothing. Fragments have a 40% chance to drop, one at a time, from ordinary world/dungeon bosses; trials and training arenas do not produce them. Fragments can be traded on the market; locked/clan/server-held resources are not consumed by the existing local-save ascension economy.
+
+Stages cost respectively 500/1,500/4,000/10,000/25,000/60,000/150,000 silver and 3/8/16/30/50/85/140 fragments. Guardians have fixed HP, power and defense in `src/data/ascension.ts`; no scaling against the player's current level is applied. Mechanics include delayed heavy attacks, alternating armor, healing that can be delayed by crowd control, alternating damage types, vulnerability and two/three-phase damage escalation. Starting a trial turns autobattle off.
+
+D chooses one of three class-named passives: +3% damage against poisoned/burning/bleeding/vulnerable targets, +2% max-HP healing when defending, or 8% of spent skill mana returned. B strengthens the primary passive by 1.5×. A chooses a different second passive. C adds one class-specific skill; S adds a second ascension skill. SS shortens the first new skill's cooldown and enables +2% damage and +2% max-HP recovery when using ascension skills with two selected passives. SSS improves only the new S skill by 15% and reduces its cooldown. New skills are unlocked by rank, not by level; existing level-based skill tiers continue to work as before.
+
+Ascension is stored in the existing local character save, as are combat and talents. This feature does not migrate those systems to an authoritative server character store or add cross-device save synchronization. Migration and level-based skill reconciliation preserve acquired ascension skills.
+
+After SSS, three weekly Echo challenges reuse the final guardian: Storm adds 30% HP and 20% power, Self-control forbids potions, and Eternity increases the guardian's healing to 8% HP. Each grants 3,000 silver and one monthly season victory on its first clear of the UTC week (Monday reset). Clearing all three grants a persistent cosmetic monthly title. Duplicate clears cannot pay twice. Neither titles nor seasonal scores add combat stats. Ascension skills/passives apply to the existing PvE engine; equalized server PvP retains its own class/stance rules.

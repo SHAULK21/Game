@@ -65,5 +65,5 @@ export function reconcileSkills(player: PlayerCharacter, starting: Skill[]): Pla
   if (hiddenSkillReady(player)) unlocked.add(hidden.id);
   if (unlocked.has(hidden.id)) available.push(hidden);
   const existing = new Map((player.skills || []).map(s => [s.id,s]));
-  return { ...player, unlockedHiddenSkills:[...unlocked], skills: available.map(s => ({...s,currentCooldown: existing.get(s.id)?.currentCooldown || 0})) };
+  return { ...player, unlockedHiddenSkills:[...unlocked], skills: [...available.map(s => ({...s,currentCooldown: existing.get(s.id)?.currentCooldown || 0})), ...(player.skills||[]).filter(s=>s.id.startsWith('asc_'))] };
 }

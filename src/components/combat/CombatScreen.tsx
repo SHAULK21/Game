@@ -604,7 +604,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             <div className="w-full mt-1.5 text-center">
               <div className="flex items-center justify-between text-[11px] font-mono leading-none">
                 <span className="font-bold text-slate-200 truncate max-w-[70px]">{activeMonster.name}</span>
-                <span className="text-red-400 font-bold text-[10px]">Ур. {activeMonster.level}</span>
+                <span className="text-red-400 font-bold text-[10px]">{activeMonster.regionId==='ascension' ? `Ранг ${activeMonster.id.replace('ascension_','')}` : `Ур. ${activeMonster.level}`}</span>
               </div>
 
               {/* Monster HP Bar */}
@@ -963,7 +963,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                             <span>{skill.icon}</span>
                             <span>{skill.name}</span>
                             {comboReady.includes(skill.id) && <span className="text-[9px] text-cyan-300">🔗 Связка</span>}
-                            <span className="text-[9px] text-cyan-300">{['I', 'II', 'III', 'IV'][skillTier(player) - 1]}</span>
+                            <span className="text-[9px] text-cyan-300">{skill.id.startsWith('asc_') ? `Ранг ${skill.id.endsWith('_C') ? 'C' : player.ascension?.rank==='SSS' ? 'SSS' : 'S'}` : ['I', 'II', 'III', 'IV'][skillTier(player) - 1]}</span>
                             {skill.isUltimate && (
                               <span className="text-[9px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">
                                 УЛЬТ

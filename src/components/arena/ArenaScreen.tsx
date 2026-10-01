@@ -1,3 +1,4 @@
+import { AscensionArena } from './AscensionArena';
 import { PvpArena } from './PvpArena';
 import { nextArenaReset } from '../../utils/gameCadence';
 import React, { useState } from 'react';
@@ -11,7 +12,7 @@ interface ArenaScreenProps {
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) => {
   const { player, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
-  const [mode,setMode] = useState<'pve'|'pvp'>('pve');
+  const [mode,setMode] = useState<'ascension'|'pve'|'pvp'>('ascension');
   const [fightError, setFightError] = useState<string | null>(null);
 
   if (!player) return null;
@@ -40,8 +41,8 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="grid grid-cols-2 gap-2">{(['pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{m==='pve'?'Арена против гладиаторов':'PvP — игроки'}</button>)}</div>
-      {mode === 'pvp' ? <PvpArena /> : <>
+      <div className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки'}</button>)}</div>
+      {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p className="text-xs text-slate-400">В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.</p>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">
