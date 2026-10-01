@@ -36,7 +36,7 @@ export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof 
   )[0] || null;
 };
 
-export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onContinueDungeon }) => {
+export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnToArena?: () => void }> = ({ onContinueDungeon, onReturnToArena }) => {
   const {
     player,
     activeMonster,
@@ -730,7 +730,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
               {combatOutcome === 'victory' && (
                 <>
                   <Gift className="w-5 h-5 text-amber-400" />
-                  <span>{combatChain && combatChain.remaining > 0 ? 'ВРАГ ПОВЕРЖЕН — СЕРИЯ ПРОДОЛЖАЕТСЯ' : 'ПОБЕДА! СЕРИЯ ЗАВЕРШЕНА'}</span>
+                  <span>{activeMonster?.regionId === 'ascension' ? 'ИСПЫТАНИЕ ПРОЙДЕНО!' : combatChain && combatChain.remaining > 0 ? 'ВРАГ ПОВЕРЖЕН — СЕРИЯ ПРОДОЛЖАЕТСЯ' : 'ПОБЕДА! СЕРИЯ ЗАВЕРШЕНА'}</span>
                 </>
               )}
               {combatOutcome === 'defeat' && '💀 ПОРАЖЕНИЕ В БОЮ'}
@@ -740,7 +740,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             {combatOutcome === 'defeat' && activeMonster?.regionId === 'arena' && lastCombatReward?.arenaRatingGain !== undefined && (
               <div className="text-xs font-bold text-rose-300">🏅 Рейтинг арены: −{Math.abs(lastCombatReward.arenaRatingGain)} PTS</div>
             )}
-            {combatOutcome === 'victory' && lastCombatReward && (
+            {combatOutcome === 'victory' && activeMonster?.regionId === 'ascension' && (
+              <p className="text-xs text-emerald-300">Победа сохранена. Вернитесь на арену, чтобы продолжить вознесение.{Boolean(lastCombatReward?.silver) && ` Получено ${lastCombatReward?.silver} серебра.`}</p>
+            )}
+            {combatOutcome === 'victory' && activeMonster?.regionId !== 'ascension' && lastCombatReward && (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
                 <div className="text-[11px] font-bold text-emerald-300 mb-2">Получено за бой</div>
                 {Boolean(lastCombatReward.arenaRatingGain) && <div className="mb-2 text-xs font-bold text-yellow-300">🏅 Рейтинг арены: +{lastCombatReward.arenaRatingGain} PTS</div>}
@@ -794,7 +797,14 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
             )}
 
             <div className="flex gap-2">
-              {activeDungeonRun ? (
+              {activeMonster?.regionId === 'ascension' ? (
+                <button
+                  onClick={() => { exitCombat(); onReturnToArena?.(); }}
+                  className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
+                >
+                  Вернуться на арену
+                </button>
+              ) : activeDungeonRun ? (
                 <button
                   onClick={onContinueDungeon}
                   className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white active:scale-95 transition-all"
@@ -819,7 +829,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void }> = ({ onC
                 </button>
               )}
 
-              {!activeDungeonRun && <button
+              {!activeDungeonRun && activeMonster?.regionId !== 'ascension' && <button
                 onClick={exitCombat}
                 className="flex-1 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-xs text-slate-200 active:scale-95 transition-all"
               >

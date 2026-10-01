@@ -56,7 +56,7 @@ const MainGameContent: React.FC = () => {
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
         ) : (
           <>
-            {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} />}
+            {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
