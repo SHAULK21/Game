@@ -1,3 +1,4 @@
+import { createOperationId } from '../../utils/operationId';
 import React,{useEffect,useState} from 'react';
 import {apiRequest} from '../../utils/api';
 import {getTelegramUser} from '../../utils/telegram';
@@ -10,7 +11,7 @@ export const AdminBroadcasts:React.FC=()=>{
  const key='aethelgard_admin_broadcast_'+getTelegramUser().id;
  const load=async()=>{try{setSummary(await apiRequest<Summary>('/api/admin/broadcasts'));}catch(e){setFeedback(String(e));}};
  useEffect(()=>{void load();try{const pending=JSON.parse(localStorage.getItem(key)||'null');if(pending)setPreview(pending);}catch{localStorage.removeItem(key);}},[key]);
- const openPreview=()=>{setFeedback('');setPreview({operationId:crypto.randomUUID(),templateId,audience,details});};
+ const openPreview=()=>{setFeedback('');setPreview({operationId:createOperationId(),templateId,audience,details});};
  const send=async()=>{
   if(!preview||busy)return;setBusy(true);setFeedback('');localStorage.setItem(key,JSON.stringify(preview));
   try{

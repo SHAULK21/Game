@@ -1,3 +1,4 @@
+import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -131,7 +132,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
           <button disabled={premiumBusy} onClick={async()=>{
             setPremiumBusy(true);
             const key='aethelgard_admin_premium_pending';
-            let operationId=localStorage.getItem(key);if(!operationId){operationId=crypto.randomUUID();localStorage.setItem(key,operationId);}
+            let operationId=localStorage.getItem(key);if(!operationId){operationId=createOperationId();localStorage.setItem(key,operationId);}
             try{await apiRequest('/api/admin/premium/self',{method:'POST',body:JSON.stringify({days:premiumDays,operationId})});localStorage.removeItem(key);await refreshPremiumStatus();showNotice('Premium начислен.');}
             catch(e){showNotice(String(e));}finally{setPremiumBusy(false);}
           }} className="ml-3 p-2 rounded bg-yellow-800 text-xs disabled:opacity-40">{premiumBusy?'Начисление…':'Выдать'}</button>

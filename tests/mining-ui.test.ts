@@ -8,6 +8,10 @@ test('real mining UI buys and equips a pickaxe, yields five only on a crit and a
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;
  w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});
+ Object.defineProperty(w.crypto,'randomUUID',{value:undefined,configurable:true});
+ w.String.prototype.replaceAll=undefined;
+ w.AudioContext=class {constructor(){throw new Error('Audio unavailable');}};
+ w.Telegram={WebApp:{initData:'desktop-test',platform:'tdesktop',initDataUnsafe:{user:{id:1,first_name:'Игрок'}},HapticFeedback:{impactOccurred:()=>{throw new Error('Haptic unavailable');},notificationOccurred:()=>{throw new Error('Haptic unavailable');}}}};
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));
@@ -26,5 +30,10 @@ test('real mining UI buys and equips a pickaxe, yields five only on a crit and a
   await w.act(async()=>w.game.unequipItem('pickaxe'));assert.equal(w.game.player.equipped.pickaxe,undefined);
   w.Math.random=()=>.99;const xp=w.game.player.miningExp;
   await w.act(async()=>{result=w.game.mineNode('ore_coal');});assert.equal(result.yieldCount,4);assert.equal(result.isCrit,false);assert.equal(w.game.player.miningExp-xp,8);
+  const button=[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent==='Добывать') as any;assert.ok(button);
+  const stamina=w.game.player.stamina;
+  await w.act(async()=>button.click());assert.equal(w.game.player.stamina,stamina-3);assert.ok(w.document.body.textContent.includes('Получено: 4'));
+  assert.equal(button.disabled,true);await w.act(async()=>await new Promise(r=>setTimeout(r,550)));assert.equal(button.disabled,false);
+  await w.act(async()=>button.click());assert.equal(w.game.player.stamina,stamina-6);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

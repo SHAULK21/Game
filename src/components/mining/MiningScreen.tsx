@@ -1,7 +1,7 @@
 import {PICKAXES,getPickaxeBonus,miningCritChance} from '../../utils/mining';
 import {ItemArtwork} from '../ui/ItemArtwork';
 import {RARITY_COLORS} from '../../data/gameData';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
 import { Clock3, Crown, PackageCheck, Pickaxe, Sparkles } from 'lucide-react';
@@ -52,6 +52,9 @@ export const MiningScreen: React.FC = () => {
   const [activeMiningNodeId, setActiveMiningNodeId] = useState<string | null>(null);
   const [miningLog, setMiningLog] = useState<string[]>([]);
   const [isMining, setIsMining] = useState(false);
+  const miningLock = useRef(false);
+  const miningTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (miningTimer.current !== null) window.clearTimeout(miningTimer.current); }, []);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -73,11 +76,13 @@ export const MiningScreen: React.FC = () => {
   const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
   const handleMine = (nodeId: string) => {
-    if (isMining) return;
+    if (miningLock.current) return;
+    miningLock.current = true;
     setIsMining(true);
     setActiveMiningNodeId(nodeId);
-
-    window.setTimeout(() => {
+    // Complete the action in the click event. Embedded desktop clients can
+    // throttle delayed callbacks; the timer only controls the visual cooldown.
+    try {
       const result = mineNode(nodeId);
       setMiningLog(prev => [
         result.success
@@ -85,9 +90,16 @@ export const MiningScreen: React.FC = () => {
           : `❌ Не удалось добыть: ${result.oreName || 'проверьте уровень, энергию шахты и место в рюкзаке'}.`,
         ...prev.slice(0, 8)
       ]);
-      setIsMining(false);
-      setActiveMiningNodeId(null);
-    }, 500);
+    } catch (error) {
+      setMiningLog(prev => [`❌ Ошибка добычи: ${error instanceof Error ? error.message : 'попробуйте снова'}.`, ...prev.slice(0, 8)]);
+    } finally {
+      miningTimer.current = window.setTimeout(() => {
+        miningLock.current = false;
+        setIsMining(false);
+        setActiveMiningNodeId(null);
+        miningTimer.current = null;
+      }, 500);
+    }
   };
 
   const handleClaim = () => {
@@ -171,7 +183,7 @@ export const MiningScreen: React.FC = () => {
                   disabled={locked || isMining || player.stamina < node.staminaCost}
                   className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 text-slate-950 font-bold text-xs active:scale-95"
                 >
-                  {locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : 'Добывать'}
+                  {locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : player.stamina < node.staminaCost ? `Нужно ${node.staminaCost} энергии` : 'Добывать'}
                 </button>
               </div>
 

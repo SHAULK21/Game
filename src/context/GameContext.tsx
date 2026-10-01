@@ -1,3 +1,4 @@
+import { createOperationId } from '../utils/operationId';
 import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
 import { refreshGameTimers, utcDay } from '../utils/gameCadence';
@@ -768,7 +769,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (premium.loading) throw new Error('Дождитесь загрузки статуса Premium.');
       const cost = clanCreationCost(premium.active);
       if (player.gold < cost) throw new Error(`Для создания клана нужно ${cost.toLocaleString()} золота.`);
-      pending = {...details,operationId:crypto.randomUUID(),gold:player.gold,expectedPriceGold:cost};
+      pending = {...details,operationId:createOperationId(),gold:player.gold,expectedPriceGold:cost};
       localStorage.setItem(key,JSON.stringify(pending));
     }
     const operation = pending;
@@ -808,7 +809,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
       if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
-      operation={operationId:crypto.randomUUID(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
+      operation={operationId:createOperationId(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;
     const pending=operation;
@@ -1538,7 +1539,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const confirmed = confirmedIds ? new Set(confirmedIds) : null;
       const items = selectBulkItems(player, filters).filter(item => !confirmed || confirmed.has(item.id));
       if (!items.length) return {success:false,message:'Нет подходящих вещей.'};
-      operation = {operationId:crypto.randomUUID(),action,filters,localIds:items.filter(item=>!item.serverOwned).map(item=>item.id),serverIds:items.filter(item=>item.serverOwned).map(item=>item.id)};
+      operation = {operationId:createOperationId(),action,filters,localIds:items.filter(item=>!item.serverOwned).map(item=>item.id),serverIds:items.filter(item=>item.serverOwned).map(item=>item.id)};
       if (operation.serverIds.length > 500) return {success:false,message:'За один раз можно обработать до 500 серверных вещей. Выберите более узкий фильтр.'};
       localStorage.setItem(key,JSON.stringify(operation));
     }
@@ -1666,7 +1667,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then(async result => {
           setPlayer(prev => {
             if (!prev) return prev;
-            const material: GameItem = { id: crypto.randomUUID(), templateId:'iron_ore', name:'Железная руда', type:'ore', rarity:'common', level:1, upgradeLevel:0, icon:'⚪', stats:{}, sellPrice:12, disassembleYield:{ore:1}, stackCount:result.ore };
+            const material: GameItem = { id: createOperationId(), templateId:'iron_ore', name:'Железная руда', type:'ore', rarity:'common', level:1, upgradeLevel:0, icon:'⚪', stats:{}, sellPrice:12, disassembleYield:{ore:1}, stackCount:result.ore };
             const inventory = result.ore > 0 ? addOrStackInventoryItem(prev.inventory, material, prev.maxInventorySlots).inventory : prev.inventory;
             return { ...prev, inventory, silver: prev.silver + result.silver };
           });
@@ -3270,7 +3271,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (player.miningLevel<offer.miningLevel) return {success:false,message:`Нужен ${offer.miningLevel} уровень горного дела.`};
     if (player.gold<offer.price) return {success:false,message:'Недостаточно золота.'};
     if (player.inventory.length>=player.maxInventorySlots) return {success:false,message:'Освободите место в рюкзаке.'};
-    const item=makePickaxe(id,crypto.randomUUID());
+    const item=makePickaxe(id,createOperationId());
     setPlayer(prev=>prev && prev.gold>=offer.price && prev.inventory.length<prev.maxInventorySlots ? {...prev,gold:prev.gold-offer.price,inventory:[...prev.inventory,item]} : prev);
     return {success:true,message:`Куплена ${offer.name}. Экипируйте её перед добычей.`};
   },[player]);

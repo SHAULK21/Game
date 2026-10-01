@@ -1,3 +1,4 @@
+import { createOperationId } from '../../utils/operationId';
 import React,{useEffect,useState} from 'react';
 import {apiRequest} from '../../utils/api';
 import {useGame} from '../../context/GameContext';
@@ -14,7 +15,7 @@ export const PvpArena:React.FC=()=>{
     const key='aethelgard_pvp_pending_'+player?.userId;
     let pending:{matchId:string;targetId:string}|null=null;
     try{pending=JSON.parse(localStorage.getItem(key)||'null');}catch{localStorage.removeItem(key);}
-    if(!pending){pending={matchId:crypto.randomUUID(),targetId:target};localStorage.setItem(key,JSON.stringify(pending));}
+    if(!pending){pending={matchId:createOperationId(),targetId:target};localStorage.setItem(key,JSON.stringify(pending));}
     try{const next=await apiRequest<Result>('/api/pvp/challenge',{method:'POST',body:JSON.stringify(pending)});setResult(next);localStorage.removeItem(key);await load();}
     catch(e){const message=String(e);setError(message);if(/HTTP 400|HTTP 403/.test(message))localStorage.removeItem(key);}
     finally{setBusy(false);}

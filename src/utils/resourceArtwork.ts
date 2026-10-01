@@ -65,7 +65,7 @@ export const getResourceArtwork = (name: string, type: 'ore' | 'material'): stri
   if (cached) return cached;
   const normalized = name.toLowerCase();
   const [light, dark] = palette(normalized);
-  const drawing = shapes[silhouette(normalized, type)].replaceAll('COLOR', light);
+  const drawing = shapes[silhouette(normalized, type)].replace(/COLOR/g, light);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 66 66"><defs><linearGradient id="body" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient><radialGradient id="halo"><stop stop-color="${dark}" stop-opacity=".5"/><stop offset="1" stop-color="${dark}" stop-opacity="0"/></radialGradient></defs><circle cx="33" cy="34" r="32" fill="url(#halo)"/><g stroke-linejoin="round" stroke-linecap="round">${drawing}</g></svg>`;
   const src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   cache.set(key, src);
