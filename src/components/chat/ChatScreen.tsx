@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { apiRequest } from '../../utils/api';
@@ -37,52 +37,41 @@ export const ChatScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [onlinePlayers, setOnlinePlayers] = useState(0);
 
-  const load = async () => {
-    setLoading(true);
+  const requestInFlight = useRef(false);
+  const mounted = useRef(false);
+  const load = useCallback(async (showLoading = false) => {
+    if (requestInFlight.current || !mounted.current) return;
+    requestInFlight.current = true;
+    if (showLoading) setLoading(true);
     try {
       const [response, stats] = await Promise.all([
         apiRequest<{ messages?: unknown }>('/api/chat/global'),
         apiRequest<{ onlinePlayers: number }>('/api/community/stats')
       ]);
+      if (!mounted.current) return;
       setMessages(normalizeMessages(response?.messages));
       setOnlinePlayers(Number(stats?.onlinePlayers || 0));
       setError('');
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Не удалось подключиться к общему чату.';
-      setError(message);
+      if (mounted.current) setError(e instanceof Error ? e.message : 'Не удалось подключиться к общему чату.');
     } finally {
-      setLoading(false);
+      requestInFlight.current = false;
+      if (mounted.current) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    const refresh = async () => {
-      if (!alive) return;
-      try {
-        const [response, stats] = await Promise.all([
-          apiRequest<{ messages?: unknown }>('/api/chat/global'),
-          apiRequest<{ onlinePlayers: number }>('/api/community/stats')
-        ]);
-        if (!alive) return;
-        setMessages(normalizeMessages(response?.messages));
-        setOnlinePlayers(Number(stats?.onlinePlayers || 0));
-        setError('');
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : 'Не удалось подключиться к общему чату.');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    };
-
+    mounted.current = true;
+    const refresh = () => { if (!document.hidden) void load(); };
     refresh();
     const timer = window.setInterval(refresh, 10000);
+    document.addEventListener('visibilitychange', refresh);
     return () => {
-      alive = false;
+      mounted.current = false;
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
     };
-  }, []);
+  }, [load]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +111,7 @@ export const ChatScreen: React.FC = () => {
         <div className="text-[10px] text-purple-300 font-mono uppercase tracking-widest">Социальный центр</div>
         <div className="flex items-center justify-between mt-1">
           <h2 className="font-cinzel text-lg font-bold">Общий чат</h2>
-          <button onClick={load} disabled={loading} className="p-2 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-50">
+          <button onClick={() => void load(true)} disabled={loading} className="p-2 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -141,7 +130,7 @@ export const ChatScreen: React.FC = () => {
             <div className="min-w-0 flex-1">
               <div className="font-bold">Не удалось подключиться к чату</div>
               <div className="mt-1 break-words">{error}</div>
-              <button onClick={load} className="mt-2 px-2.5 py-1.5 rounded-lg border border-rose-500/40 bg-rose-950/50 font-bold">
+              <button onClick={() => void load(true)} className="mt-2 px-2.5 py-1.5 rounded-lg border border-rose-500/40 bg-rose-950/50 font-bold">
                 Повторить
               </button>
             </div>

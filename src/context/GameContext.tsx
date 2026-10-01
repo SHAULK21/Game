@@ -1041,15 +1041,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ]);
   }, []);
 
-  // Keep the public leaderboard profile synchronized without sending every inventory/gold change.
-  useEffect(() => {
-    if (!player) return;
-    apiRequest('/api/profile/sync', {
-      method: 'POST',
-      body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating, classId: player.classId })
-    }).catch(() => undefined);
-  }, [player?.id, player?.name, player?.level, player?.arenaRating]);
-
   // Server schedules continue to work while the Mini App is closed.
   const energyReadyAt = player && player.energy < player.maxEnergy
     ? (player.lastEnergyRegenTimestamp || Date.now()) + (player.maxEnergy - player.energy) * 120000 : 0;
@@ -1061,13 +1052,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(timer);
   }, [player?.userId,energyReadyAt,player?.miningExpedition?.endsAt]);
 
+  // A single profile sync also orders referral checks after the level update.
+  const referralCheckedAt = useRef('');
   useEffect(() => {
     if (!player) return;
-    // Sync level before checking referral progress; reopening is also a safe retry.
+    const referralKey = `${player.userId}:${player.level}`;
     apiRequest('/api/profile/sync',{method:'POST',body:JSON.stringify({characterName:player.name,level:player.level,arenaRating:player.arenaRating,classId:player.classId})})
-      .then(() => apiRequest<{rewarded:boolean}>('/api/referrals/check',{method:'POST',body:'{}'}))
-      .then(result => { if(result.rewarded) void refreshPremiumStatus(); }).catch(() => undefined);
-  }, [player?.userId,player?.level]);
+      .then(async () => {
+        if (referralCheckedAt.current === referralKey) return;
+        const result = await apiRequest<{rewarded:boolean}>('/api/referrals/check',{method:'POST',body:'{}'});
+        referralCheckedAt.current = referralKey;
+        if (result.rewarded) void refreshPremiumStatus();
+      }).catch(() => undefined);
+  }, [player?.userId,player?.name,player?.level,player?.arenaRating,player?.classId,refreshPremiumStatus]);
 
   // Periodic Save
   useEffect(() => {
@@ -1257,7 +1254,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expBonus: Math.round(expBonus),
       resistances
     };
-  }, [player, achievements, activeDungeonRun?.temporaryBlessing]);
+  }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing]);
 
   // Character Creation
   const createCharacter = useCallback((name: string, classId: CharacterClassId) => {

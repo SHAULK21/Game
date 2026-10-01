@@ -74,3 +74,13 @@ D chooses one of three class-named passives: +3% damage against poisoned/burning
 Ascension is stored in the existing local character save, as are combat and talents. This feature does not migrate those systems to an authoritative server character store or add cross-device save synchronization. Migration and level-based skill reconciliation preserve acquired ascension skills.
 
 After SSS, three weekly Echo challenges reuse the final guardian: Storm adds 30% HP and 20% power, Self-control forbids potions, and Eternity increases the guardian's healing to 8% HP. Each grants 3,000 silver and one monthly season victory on its first clear of the UTC week (Monday reset). Clearing all three grants a persistent cosmetic monthly title. Duplicate clears cannot pay twice. Neither titles nor seasonal scores add combat stats. Ascension skills/passives apply to the existing PvE engine; equalized server PvP retains its own class/stance rules.
+
+
+## Оптимизация загрузки и обновлений
+
+- Разделы мира, арены, инвентаря, ремесла, шахты, кланов, чата, рынка, питомцев, рейтинга, меню и персонажа загружаются при первом открытии через React.lazy. Бой и создание персонажа доступны в начальной загрузке. Админка загружается только при открытии; во время загрузки раздела виден индикатор, нижняя навигация остаётся доступной.
+- Начальный JavaScript в проверенной production-сборке: примерно 536 КБ вместо 730 КБ (−27%, включая общий файл зависимостей). Это размер файлов, а не измерение FPS или времени запуска на устройстве. Суммарный код всех разделов не исчезает: дополнительные файлы скачиваются по мере использования.
+- Профиль синхронизируется одним запросом вместо двух при входе и изменении уровня. Проверка приглашённого друга выполняется после синхронизации уровня; успешная проверка повторяется при следующем уровне или повторном открытии приложения.
+- Расчёт боевых характеристик зависит от атрибутов, уровня, класса, экипировки, талантов, питомца, энергии, достижений и благословения. Изменения валюты, инвентаря, билетов и перезарядок не запускают расчёт заново.
+- Чат не запускает параллельный опрос, пока предыдущий не завершён. Автоматические запросы приостанавливаются в скрытом окне и возобновляются сразу при возвращении. Ручное обновление сохраняется.
+- Автосохранение, расчёты наград и экономика не изменены. Следующий резерв: уменьшение крупных иллюстраций и разделение общего игрового контекста по частоте обновления; это требует отдельной проверки качества изображений и всех игровых переходов.

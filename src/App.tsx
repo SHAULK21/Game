@@ -1,26 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { TopHeader } from './components/layout/TopHeader';
 import { BottomNavigation, TabId } from './components/layout/BottomNavigation';
 import { CombatScreen } from './components/combat/CombatScreen';
-import { WorldScreen } from './components/world/WorldScreen';
-import { ArenaScreen } from './components/arena/ArenaScreen';
-import { InventoryScreen } from './components/inventory/InventoryScreen';
-import { BlacksmithScreen } from './components/blacksmith/BlacksmithScreen';
-import { CraftingScreen } from './components/crafting/CraftingScreen';
-import { AlchemyScreen } from './components/alchemy/AlchemyScreen';
-import { MiningScreen } from './components/mining/MiningScreen';
-import { ClanScreen } from './components/clan/ClanScreen';
-import { ChatScreen } from './components/chat/ChatScreen';
-import { MarketScreen } from './components/market/MarketScreen';
-import { PetsScreen } from './components/pets/PetsScreen';
-import { LeaderboardScreen } from './components/leaderboard/LeaderboardScreen';
-import { MoreMenuScreen } from './components/more/MoreMenuScreen';
-import { CharacterScreen } from './components/character/CharacterScreen';
 import { CharacterCreationModal } from './components/dialogs/CharacterCreationModal';
 import { OfflineReportModal } from './components/dialogs/OfflineReportModal';
-import { AdminModal } from './components/admin/AdminModal';
 import { initTelegramApp } from './utils/telegram';
+
+const WorldScreen = lazy(() => import('./components/world/WorldScreen').then(module => ({ default: module.WorldScreen })));
+const ArenaScreen = lazy(() => import('./components/arena/ArenaScreen').then(module => ({ default: module.ArenaScreen })));
+const InventoryScreen = lazy(() => import('./components/inventory/InventoryScreen').then(module => ({ default: module.InventoryScreen })));
+const BlacksmithScreen = lazy(() => import('./components/blacksmith/BlacksmithScreen').then(module => ({ default: module.BlacksmithScreen })));
+const CraftingScreen = lazy(() => import('./components/crafting/CraftingScreen').then(module => ({ default: module.CraftingScreen })));
+const AlchemyScreen = lazy(() => import('./components/alchemy/AlchemyScreen').then(module => ({ default: module.AlchemyScreen })));
+const MiningScreen = lazy(() => import('./components/mining/MiningScreen').then(module => ({ default: module.MiningScreen })));
+const ClanScreen = lazy(() => import('./components/clan/ClanScreen').then(module => ({ default: module.ClanScreen })));
+const ChatScreen = lazy(() => import('./components/chat/ChatScreen').then(module => ({ default: module.ChatScreen })));
+const MarketScreen = lazy(() => import('./components/market/MarketScreen').then(module => ({ default: module.MarketScreen })));
+const PetsScreen = lazy(() => import('./components/pets/PetsScreen').then(module => ({ default: module.PetsScreen })));
+const LeaderboardScreen = lazy(() => import('./components/leaderboard/LeaderboardScreen').then(module => ({ default: module.LeaderboardScreen })));
+const MoreMenuScreen = lazy(() => import('./components/more/MoreMenuScreen').then(module => ({ default: module.MoreMenuScreen })));
+const CharacterScreen = lazy(() => import('./components/character/CharacterScreen').then(module => ({ default: module.CharacterScreen })));
+const AdminModal = lazy(() => import('./components/admin/AdminModal').then(module => ({ default: module.AdminModal })));
 
 const MainGameContent: React.FC = () => {
   const { player, quests, isInCombat, isCombatEnded } = useGame();
@@ -52,6 +53,7 @@ const MainGameContent: React.FC = () => {
 
       {/* Main View Area */}
       <main className="flex-1 w-full max-w-md mx-auto">
+        <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">Загрузка раздела…</div>}>
         {isCharacterSheetOpen ? (
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
         ) : (
@@ -72,6 +74,7 @@ const MainGameContent: React.FC = () => {
             {currentTab === 'more' && <MoreMenuScreen onOpenAdmin={() => setIsAdminOpen(true)} />}
           </>
         )}
+        </Suspense>
       </main>
 
       {/* Bottom Thumb Navigation Bar */}
@@ -86,7 +89,7 @@ const MainGameContent: React.FC = () => {
 
       {/* Modals */}
       <OfflineReportModal />
-      <AdminModal isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
+      {isAdminOpen && <Suspense fallback={<div role="status" className="fixed bottom-24 inset-x-0 text-center text-sm text-slate-400">Загрузка админки…</div>}><AdminModal isOpen onClose={() => setIsAdminOpen(false)} /></Suspense>}
     </div>
   );
 };
