@@ -32,11 +32,12 @@ type InventoryTab = 'equipment' | 'potions' | 'resources';
 
 const EQUIPMENT_TYPES: ItemType[] = [
   'weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves',
-  'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact', 'pickaxe'
+  'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact', 'pickaxe', 'alchemyTool'
 ];
 
 const TYPE_LABELS: Partial<Record<ItemType, string>> = {
   pickaxe: 'Кирка',
+  alchemyTool: 'Реторта',
   weapon: 'Оружие',
   offhand: 'Второе оружие',
   helmet: 'Шлем',
@@ -287,7 +288,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
         <div className="grid grid-cols-[1fr_92px_1fr] gap-2 items-center">
           <div className="space-y-2">
-            {(['helmet','weapon','gloves','pants','boots','cloak','pickaxe'] as ItemType[]).map(type => {
+            {(['helmet','weapon','gloves','pants','boots','cloak','pickaxe','alchemyTool'] as ItemType[]).map(type => {
               const item = player.equipped[type];
               return (
                 <button key={type} onClick={() => item && setSelectedItem(item)}
@@ -513,7 +514,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </div>
 
                 <p className="text-[10px] text-slate-500">
-                  {currentSelected.type === 'pickaxe' ? currentSelected.description : 'Сравнение считает базовые и дополнительные характеристики. Заточка отображается отдельно и тоже влияет на боевую силу.'}
+                  {(currentSelected.type === 'pickaxe' || currentSelected.type === 'alchemyTool') ? currentSelected.description : 'Сравнение считает базовые и дополнительные характеристики. Заточка отображается отдельно и тоже влияет на боевую силу.'}
                 </p>
               </div>
             ) : (

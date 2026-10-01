@@ -476,7 +476,7 @@ app.post('/api/items/:itemId/equip', auth, async (req, res) => {
     const row = found.rows[0];
     if (!row) throw new Error('Предмет не принадлежит персонажу.');
     const slot = String(row.item_json.type || '');
-    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact','pickaxe'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
+    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact','pickaxe','alchemyTool'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
     await client.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE owner_telegram_id = $1 AND equipped_slot = $2`, [req.authUser!.id, slot]);
     await client.query(`UPDATE owned_items SET equipped_slot = $1, updated_at = NOW() WHERE id = $2`, [slot, row.id]);
     await client.query('COMMIT');

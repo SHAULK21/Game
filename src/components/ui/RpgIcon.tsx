@@ -74,6 +74,7 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
       case 'gem':
         return <><path {...common} d="m14 2 8 7-8 13L6 9z"/><path {...common} d="m6 9 8 2 8-2M14 11v11"/></>;
       case 'potion':
+      case 'alchemyTool':
       case 'alchemy':
         return <><path {...common} d="M11 3h6M12 3v5l-5 8a4 4 0 0 0 3.4 6h7.2A4 4 0 0 0 21 16l-5-8V3"/><path {...common} d="M9 16c2 1 4-2 6 0s3 1 5 0"/></>;
       case 'pickaxe':

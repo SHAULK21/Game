@@ -23,6 +23,7 @@ export type ItemType =
   | 'cloak' 
   | 'pet'
   | 'pickaxe'
+  | 'alchemyTool'
   | 'artifact' 
   | 'potion' 
   | 'ore' 

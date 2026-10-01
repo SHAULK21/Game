@@ -18,7 +18,7 @@ export const BlacksmithScreen: React.FC = () => {
 
   // Items eligible for sharpening: equipped or inventory equipment
   const upgradeableItems: GameItem[] = [
-    ...Object.values(player.equipped).filter(i=>i && i.type !== 'pickaxe') as GameItem[],
+    ...Object.values(player.equipped).filter(i=>i && i.type !== 'pickaxe' && i.type !== 'alchemyTool') as GameItem[],
     ...player.inventory.filter(i => ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'ring', 'amulet'].includes(i.type))
   ];
 

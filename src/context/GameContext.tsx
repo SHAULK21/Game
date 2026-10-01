@@ -1,3 +1,4 @@
+import { ALCHEMY_TOOLS, makeAlchemyTool, getAlchemyToolBonus, alchemyExperience, alchemyExtraYield } from '../utils/alchemy';
 import { ASCENSION_ECHOES, ascensionEcho, ascensionWeek, recordAscensionEcho, initialAscension, migrateAscension, nextAscensionStage, ascendCharacter, ascensionBoss, ascensionBossPhase, ascensionBonuses, fragmentItem, type AscensionPath } from '../data/ascension';
 import { createOperationId } from '../utils/operationId';
 import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience } from '../utils/mining';
@@ -124,6 +125,7 @@ interface GameContextType {
   exitDungeon: () => void;
 
   // Gathering & Crafting
+  buyAlchemyTool: (id:string) => {success:boolean;message:string};
   buyPickaxe: (id:string) => {success:boolean;message:string};
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
   startMiningExpedition: (hours: 1 | 3 | 7) => { success: boolean; message: string };
@@ -544,6 +546,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [combatRound, setCombatRound] = useState<number>(1);
   const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[]; arenaRatingGain?: number } | null>(null);
+  const [pendingChainRewards, setPendingChainRewards] = useState({gold:0,silver:0,exp:0});
   const [pendingChainItems, setPendingChainItems] = useState<GameItem[]>([]);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
@@ -982,6 +985,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.maxEnergy = parsed.player.maxEnergy ?? 60;
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
+          parsed.player.alchemyLevel = parsed.player.alchemyLevel ?? 1;
+          parsed.player.alchemyExp = parsed.player.alchemyExp ?? 0;
           parsed.player.alchemyEnergy = parsed.player.alchemyEnergy ?? 100;
           parsed.player.maxAlchemyEnergy = parsed.player.maxAlchemyEnergy ?? 100;
           parsed.player.craftedPetIds = Array.isArray(parsed.player.craftedPetIds)
@@ -1577,6 +1582,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
     if (bulkInventoryBusy.current || marketBusy.current) return;
+    if (item.type === 'alchemyTool' && !getAlchemyToolBonus(item, player?.alchemyLevel || 1)) { triggerHaptic('error'); return; }
     if (item.serverOwned) {
       if (!player || item.level > player.level) return;
       apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' })
@@ -1935,6 +1941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLastCast(null);
     setLastCombatReward(null);
     setPendingChainItems([]);
+    setPendingChainRewards({gold:0,silver:0,exp:0});
     setBattleLog([
       {
         id: 'start_' + Date.now(),
@@ -2174,11 +2181,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setLastCombatReward({
       arenaRatingGain,
-      gold: lootResult.gold,
-      silver: lootResult.silver,
-      exp: expReward,
+      gold: lootResult.gold + (isChainBattle && !hasNextCombat ? pendingChainRewards.gold : 0),
+      silver: lootResult.silver + (isChainBattle && !hasNextCombat ? pendingChainRewards.silver : 0),
+      exp: expReward + (isChainBattle && !hasNextCombat ? pendingChainRewards.exp : 0),
       items: itemsToAward.map(item => ({ ...item }))
     });
+    if (isChainBattle && hasNextCombat) setPendingChainRewards(prev=>({gold:prev.gold+lootResult.gold,silver:prev.silver+lootResult.silver,exp:prev.exp+expReward}));
+    else setPendingChainRewards({gold:0,silver:0,exp:0});
     const dungeonBonusPotions = completesDungeon && Math.random() < 0.4 ? 1 : 0;
     const ticketDay = utcDay();
     const dailyBossTickets = player?.bossTicketDay === ticketDay ? (player.bossTicketsToday || 0) : 0;
@@ -2365,7 +2374,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCombatEnded(true);
     setCombatOutcome('victory');
     setTurnPhase('ended');
-  }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, combatPlayerHp, combatPlayerMp]);
+  }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, pendingChainRewards, combatPlayerHp, combatPlayerMp]);
 
   const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
     if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
@@ -3502,6 +3511,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [player]);
 
+  const buyAlchemyTool = useCallback((id:string) => {
+    const offer=ALCHEMY_TOOLS.find(t=>t.id===id);
+    if (!player || !offer) return {success:false,message:'Реторта не найдена.'};
+    if (player.alchemyLevel<offer.alchemyLevel) return {success:false,message:`Нужен ${offer.alchemyLevel} уровень алхимии.`};
+    if (player.gold<offer.price) return {success:false,message:'Недостаточно золота.'};
+    if (player.inventory.length>=player.maxInventorySlots) return {success:false,message:'Освободите место в рюкзаке.'};
+    const item=makeAlchemyTool(id,createOperationId());
+    setPlayer(prev=>prev && prev.gold>=offer.price && prev.inventory.length<prev.maxInventorySlots ? {...prev,gold:prev.gold-offer.price,inventory:[...prev.inventory,item]} : prev);
+    return {success:true,message:`Куплена ${offer.name}. Экипируйте её перед варкой.`};
+  },[player]);
+
   // Alchemy
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     if (!player) return false;
@@ -3540,7 +3560,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           remaining -= take;
           return { ...item, stackCount: stack - take };
         })
-        .filter(item => (item.stackCount || 0) > 0);
+        .filter(item => item.stackCount !== 0);
     }
 
     const resultStats: Record<string, number> =
@@ -3552,6 +3572,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recipe.id === 'alc_dragon_blood' ? { healFull: 1, invulnerable: 1 } :
       {};
 
+    const extraPotion = alchemyExtraYield(player.equipped.alchemyTool, player.alchemyLevel);
+    const outputCount = recipe.resultCount + extraPotion;
     const output: GameItem = {
       id: 'pot_crafted_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       templateId: recipe.id,
@@ -3565,7 +3587,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       stats: resultStats,
       sellPrice: Math.max(10, recipe.levelReq * 4),
       disassembleYield: { silver: Math.max(4, Math.floor(recipe.levelReq * 3)) },
-      stackCount: recipe.resultCount
+      stackCount: outputCount
     };
 
     const canStack = inventory.some(item =>
@@ -3585,7 +3607,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const professionXp = Math.max(6, 6 + Math.floor(recipe.levelReq * 0.8));
+    const professionXp = alchemyExperience(Math.max(6, 6 + Math.floor(recipe.levelReq * 0.8)), player.equipped.alchemyTool, player.alchemyLevel);
     const alchemyExp = player.alchemyExp + professionXp;
     let alchemyLevel = player.alchemyLevel;
     while (alchemyExp >= alchemyLevel * 220 && alchemyLevel < 100) alchemyLevel += 1;
@@ -3598,7 +3620,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       alchemyLevel,
       statsSummary: {
         ...prev.statsSummary,
-        potionsCrafted: prev.statsSummary.potionsCrafted + recipe.resultCount
+        potionsCrafted: prev.statsSummary.potionsCrafted + outputCount
       }
     } : prev);
 
@@ -3865,6 +3887,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       proceedDungeonRoom,
       exitDungeon,
       buyPickaxe,
+      buyAlchemyTool,
       mineNode,
       startMiningExpedition,
       claimMiningExpedition,

@@ -743,9 +743,9 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             {combatOutcome === 'victory' && activeMonster?.regionId === 'ascension' && (
               <p className="text-xs text-emerald-300">Победа сохранена. Вернитесь на арену, чтобы продолжить вознесение.{Boolean(lastCombatReward?.silver) && ` Получено ${lastCombatReward?.silver} серебра.`}</p>
             )}
-            {combatOutcome === 'victory' && activeMonster?.regionId !== 'ascension' && lastCombatReward && (
+            {combatOutcome === 'victory' && activeMonster?.regionId !== 'ascension' && (!combatChain || combatChain.remaining === 0) && lastCombatReward && (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
-                <div className="text-[11px] font-bold text-emerald-300 mb-2">Получено за бой</div>
+                <div className="text-[11px] font-bold text-emerald-300 mb-2">{combatChain ? 'Награда за серию' : 'Получено за бой'}</div>
                 {Boolean(lastCombatReward.arenaRatingGain) && <div className="mb-2 text-xs font-bold text-yellow-300">🏅 Рейтинг арены: +{lastCombatReward.arenaRatingGain} PTS</div>}
                 <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
                   <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
@@ -816,7 +816,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                   onClick={startNextCombatBattle}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
-                  Следующий противник · бесплатно
+                  Следующий противник
                 </button>
               ) : (
                 <button

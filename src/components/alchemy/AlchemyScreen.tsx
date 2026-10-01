@@ -1,30 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ALCHEMY_RECIPES } from '../../data/gameData';
 import { FlaskConical, BatteryCharging } from 'lucide-react';
-import { sound } from '../../utils/audio';
+import { ALCHEMY_TOOLS, getAlchemyToolBonus, alchemyProgress, alchemyExperience } from '../../utils/alchemy';
+import { RARITY_COLORS } from '../../data/gameData';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { RpgIcon } from '../ui/RpgIcon';
 
 export const AlchemyScreen: React.FC = () => {
-  const { player, craftAlchemy } = useGame();
+  const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
   const [craftingRecipeId, setCraftingRecipeId] = useState<string | null>(null);
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
 
+  const craftingLock = useRef(false);
+  const craftTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (craftTimer.current !== null) window.clearTimeout(craftTimer.current); }, []);
+
   if (!player) return null;
+  const progress = alchemyProgress(player.alchemyLevel, player.alchemyExp);
+  const tool = player.equipped.alchemyTool;
+  const bonus = getAlchemyToolBonus(tool, player.alchemyLevel);
+  const nextRecipe = ALCHEMY_RECIPES.filter(recipe=>recipe.levelReq>player.alchemyLevel).sort((a,b)=>a.levelReq-b.levelReq)[0];
 
   const handleCraft = (recipeId: string) => {
+    if (craftingLock.current) return;
+    craftingLock.current = true;
     setCraftingRecipeId(recipeId);
-    setCraftFeedback(null);
-
-    setTimeout(() => {
+    try {
       const success = craftAlchemy(recipeId);
-      setCraftFeedback(
-        success
-          ? 'Зелье успешно сварено и добавлено в вашу сумку!'
-          : 'Не удалось сварить: проверьте энергию алхимии, уровень, ингредиенты и место в сумке.'
-      );
-      setCraftingRecipeId(null);
-    }, 600);
+      setCraftFeedback(success
+        ? 'Зелье успешно сварено и добавлено в вашу сумку! Опыт алхимии начислен.'
+        : 'Не удалось сварить: проверьте энергию алхимии, уровень, ингредиенты и место в сумке.');
+    } catch (error) {
+      setCraftFeedback(error instanceof Error ? error.message : 'Не удалось сварить зелье.');
+    } finally {
+      craftTimer.current = window.setTimeout(() => {
+        craftingLock.current = false;
+        setCraftingRecipeId(null);
+        craftTimer.current = null;
+      }, 600);
+    }
   };
 
   return (
@@ -57,7 +72,19 @@ export const AlchemyScreen: React.FC = () => {
             </span>
           </div>
         </div>
+        <div className="mt-3 space-y-1">
+          <div className="flex justify-between text-[11px] text-slate-400"><span>{progress.maxed ? 'Максимальный уровень алхимии' : `До уровня ${player.alchemyLevel+1}`}</span><span>{progress.maxed ? `${player.alchemyExp} EXP` : `${progress.current} / ${progress.need} EXP`}</span></div>
+          <div role="progressbar" aria-label="Опыт алхимии" aria-valuenow={progress.percent} aria-valuemin={0} aria-valuemax={100} className="h-2 rounded-full bg-slate-950 overflow-hidden"><div className="h-full bg-emerald-500 transition-all" style={{width:`${progress.percent}%`}} /></div>
+          {nextRecipe && <p className="text-[10px] text-slate-500">Следующий рецепт: {nextRecipe.name} · с {nextRecipe.levelReq} ур.</p>}
+        </div>
       </div>
+
+      <section className="ui-panel rounded-xl border p-3 space-y-2">
+        <h3 className="text-xs font-bold text-emerald-200">Инструмент алхимика</h3>
+        {tool ? <div className="flex items-center gap-2"><ItemArtwork item={tool} size={40}/><div className="flex-1 text-xs"><b>{tool.name}</b><p className="text-[10px] text-slate-400">+{bonus?.expBonus || 0}% опыта · {bonus?.extraChance || 0}% шанс +1 зелья</p></div><button disabled={player.inventory.length>=player.maxInventorySlots} onClick={()=>unequipItem('alchemyTool')} className="rounded border border-slate-700 p-2 text-xs disabled:opacity-40">Снять</button></div> : <p className="text-[11px] text-slate-400">Реторта ускоряет прокачку и иногда даёт дополнительное зелье без расхода дополнительных материалов и энергии. Без инструмента варка тоже доступна.</p>}
+        {player.inventory.filter(item=>item.type==='alchemyTool').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={32}/><span className="flex-1">{item.name}</span><button disabled={!getAlchemyToolBonus(item,player.alchemyLevel)} onClick={()=>equipItem(item)} className="rounded border border-emerald-700 p-2 disabled:opacity-40">Экипировать</button></div>)}
+        <details><summary className="cursor-pointer py-2 text-xs text-emerald-300">Купить реторту · за золото</summary><div className="space-y-2">{ALCHEMY_TOOLS.map(offer=><div key={offer.id} className="rounded border border-slate-800 p-2 text-xs space-y-1"><b className={RARITY_COLORS[offer.rarity].text}>{offer.name} · {RARITY_COLORS[offer.rarity].label}</b><p className="text-[10px] text-slate-400">С {offer.alchemyLevel} ур. алхимии · +{offer.expBonus}% опыта · {offer.extraChance}% шанс +1 зелья</p><button disabled={craftingRecipeId!==null || player.alchemyLevel<offer.alchemyLevel || player.gold<offer.price} onClick={()=>setCraftFeedback(buyAlchemyTool(offer.id).message)} className="w-full rounded border border-slate-700 py-2 disabled:opacity-40">Купить · {offer.price.toLocaleString()} золота</button></div>)}</div></details>
+      </section>
 
       {craftFeedback && (
         <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs text-center font-medium">
@@ -98,7 +125,7 @@ export const AlchemyScreen: React.FC = () => {
 
                   <button
                     onClick={() => handleCraft(rec.id)}
-                    disabled={isCrafting || player.alchemyLevel < rec.levelReq || !hasEnergy}
+                    disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || !hasEnergy}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
@@ -110,6 +137,7 @@ export const AlchemyScreen: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
                   <span className="text-slate-500">Ингредиенты:</span>
                   <span className="text-purple-300">Ур. {rec.levelReq}</span>
+                  <span className="text-emerald-300">+{alchemyExperience(Math.max(6,6+Math.floor(rec.levelReq*.8)),tool,player.alchemyLevel)} EXP</span>
                   <span className={hasEnergy ? 'text-emerald-300' : 'text-rose-300'}>⚗ {energyCost} энергии</span>
                   {rec.ingredients.map((ing, idx) => (
                     <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
