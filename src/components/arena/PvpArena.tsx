@@ -5,7 +5,7 @@ import {STANCE_LABELS,PVP_CLASS_NAMES,type PvpStance} from '../../utils/pvp';
 type Result={matchId:string;winner:string;attackerName:string;defenderName:string;attackerRating:number;delta:number;log:string[]};
 type Data={profile:{enrolled:boolean;stance:PvpStance;rating:number;tickets:number;wins:number;losses:number};opponents:{telegram_id:string;name:string;rating:number;class_id:string;stance:PvpStance}[];history:{id:string;attacker:string;result:Result}[];resetAt:string;leaders:{name:string;rating:number;wins:number}[]};
 export const PvpArena:React.FC=()=>{
-  const {player,premium}=useGame();const [data,setData]=useState<Data|null>(null),[stance,setStance]=useState<PvpStance>('balanced'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[result,setResult]=useState<Result|null>(null);
+  const {player}=useGame();const [data,setData]=useState<Data|null>(null),[stance,setStance]=useState<PvpStance>('balanced'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[result,setResult]=useState<Result|null>(null);
   const load=async()=>{try{if(player)await apiRequest('/api/profile/sync',{method:'POST',body:JSON.stringify({characterName:player.name,level:player.level,classId:player.classId,arenaRating:player.arenaRating})});const next=await apiRequest<Data>('/api/pvp');setData(next);setStance(next.profile.stance);}catch(e){setError(String(e));}};
   useEffect(()=>{void load();const timer=setInterval(()=>void load(),60000);return()=>clearInterval(timer);},[]);
   const enroll=async()=>{setBusy(true);setError('');try{await apiRequest('/api/pvp/enroll',{method:'POST',body:JSON.stringify({stance,enrolled:!data?.profile.enrolled})});await load();}catch(e){setError(String(e));}finally{setBusy(false);}};
@@ -31,6 +31,5 @@ export const PvpArena:React.FC=()=>{
     {result&&<section className="rounded-xl border border-amber-500/40 p-3 text-xs space-y-2"><b>{result.winner==='draw'?'Ничья':result.winner==='attacker'?'Победа!':'Поражение'} · {result.delta>0?'+':''}{result.delta} PTS</b><p>{result.attackerName} против {result.defenderName}</p><details><summary>Ход боя</summary><div className="max-h-64 overflow-auto space-y-1">{result.log.map((line,i)=><p key={i}>{line}</p>)}</div></details></section>}
     <section className="rounded-xl border p-3 space-y-2"><h4 className="text-xs font-bold">История дуэлей</h4>{data?.history.map(h=><button key={h.id} onClick={()=>setResult(h.result)} className="block text-xs text-slate-400">{h.result.attackerName} — {h.result.defenderName} · {h.result.winner==='draw'?'ничья':h.result.winner==='attacker'?h.result.attackerName:h.result.defenderName}</button>)}</section>
     <details className="rounded-xl border p-3 text-xs"><summary>Рейтинг PvP</summary>{data?.leaders.map((l,i)=><p key={i} className="mt-2">{i+1}. {l.name} · {l.rating} PTS · {l.wins} побед</p>)}</details>
-    {premium.active&&<section className="rounded-xl border border-yellow-500/30 p-3 text-xs text-yellow-200">⭐ Призовые дуэли Premium за Telegram Stars пока недоступны: выплаты настоящих Stars ещё не подключены. Ставки и платежи за бои не принимаются.</section>}
   </div>;
 };
