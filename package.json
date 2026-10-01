@@ -12,7 +12,8 @@
     "start": "node --import tsx server/index.ts",
     "start:dev": "node --import tsx server/index.ts",
     "test": "node --import tsx --test tests/*.test.ts",
-    "balance:pvp": "node --import tsx scripts/pvp-balance.ts"
+    "balance:pvp": "node --import tsx scripts/pvp-balance.ts",
+    "balance:pve": "node --import tsx scripts/pve-balance.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

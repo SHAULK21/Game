@@ -1,3 +1,4 @@
+import { huntingModeLockReason } from '../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../utils/dungeonRewards';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -410,11 +411,12 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               const mod = REGION_MODIFIERS[mId];
               if (!mod) return null;
               const isSelected = selectedModId === mod.id;
+              const modeLock = huntingModeLockReason(player, inspectingRegion, mod.id);
 
               return (
                 <button
                   key={mod.id}
-                  disabled={player.level<inspectingRegion.minLevel}
+                  disabled={player.level<inspectingRegion.minLevel || Boolean(modeLock)}
                   onClick={() => {
                     setSelectedModId(mod.id);
                     if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
@@ -432,6 +434,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                       {mod.name}
                     </span>
                   </div>
+                  {modeLock && <p className="text-[9px] text-amber-300 mb-1">🔒 {modeLock}</p>}
                   <div className="text-[9px] text-slate-400 leading-tight">
                     HP ×{mod.hpMultiplier||1} · Урон ×{mod.damageMultiplier}<br/>Защита ×{mod.defenseMultiplier||1} · Дроп: x{mod.rareDropMultiplier}
                   </div>

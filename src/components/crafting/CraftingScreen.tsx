@@ -1,21 +1,23 @@
+import { craftStageLockReason, regionalSealName } from '../../utils/regionalProgress';
 import { smithingProgress } from '../../utils/professions';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import {
   BASIC_CRAFT_RECIPES, CRAFT_RARITY_CHANCES, MINE_CATALYST_BY_ORE,
   MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,
-  getEquipmentLevelRange
+  getEquipmentLevelRange, getRegionMonster
 } from '../../data/gameData';
 import { Hammer } from 'lucide-react';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../../utils/classEquipment';
 import type { CharacterClassId } from '../../types/game';
 
-const trophySources = Object.entries(REGIONAL_TROPHIES).flatMap(([regionId, mobs]) =>
-  Object.entries(mobs).map(([mobId, drop]) => ({ regionId, mobId, name: drop.name }))
-);
+const trophySources = REGIONS.flatMap(region => region.monsters.flatMap(mobId =>
+  getRegionMonster(MONSTERS[mobId],region).drops.filter(d => d.type === 'material').map(drop => ({regionId:region.id,mobId,name:drop.itemName}))));
 
 const ingredientSource = (name: string) => {
+  const sealRegion = REGIONS.find(r => [regionalSealName(r.id), regionalSealName(r.id,true)].includes(name));
+  if (sealRegion) return `${sealRegion.name}: ${name === regionalSealName(sealRegion.id,true) ? 'босс' : 'элита'}, гарантированно за победу`;
   const source = trophySources.find(entry => entry.name === name);
   if (source) return `${REGIONS.find(region => region.id === source.regionId)?.name}: ${MONSTERS[source.mobId]?.name}`;
   const ore = MINING_NODES.find(node => node.oreYield === name);
@@ -55,10 +57,11 @@ export const CraftingScreen: React.FC = () => {
           <h2 className="text-xl font-semibold">Крафт снаряжения</h2>
         </div>
         <p className="mt-2 text-xs text-slate-300">Рецепты постоянны для всех игроков. Трофеи добываются в соседних по уровню локациях; шахтные материалы могут быть из разных жил.</p>
+        <p className="mt-2 text-xs text-cyan-200">Базовый комплект — обычные трофеи и руда, качество не ниже необычного. Победы над элитами и боссами открывают усиленные рецепты, качество не ниже редкого.</p>
         <p className="mt-2 text-xs text-emerald-300">Кузнечное дело: ур. {mastery.level} · {mastery.xp}/{mastery.nextXp} XP. Редкое качество: +{Math.min(10, (mastery.level - 1) * 0.1).toFixed(1)} п.п. Опыт даёт создание снаряжения.</p>
         <details className="mt-3 text-xs text-slate-300">
           <summary className="cursor-pointer py-2 text-[#d5ba89]">Шансы качества и заточки</summary>
-          <p className="mt-2">Базовое качество (до бонуса мастерства): {qualityOdds}</p>
+          <p className="mt-2">Случайное качество до гарантированного минимума и бонуса мастерства: {qualityOdds}</p>
           <p className="mt-2">Уровень снаряжения случаен внутри ступени, все уровни равновероятны. Готовая заточка: +1 — 2%, +2 — 1,5%, +3 — 0,9%, +4 — 0,45%, +5 — 0,15%. Без заточки — 95%.</p>
         </details>
       </div>
@@ -94,7 +97,8 @@ export const CraftingScreen: React.FC = () => {
         {recipes.map(recipe => {
           const isEquipment = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type);
           const range = getEquipmentLevelRange(recipe.result?.level || 1);
-          const unlocked = player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
+          const stageLock = craftStageLockReason(player, recipe, REGIONS);
+          const unlocked = !stageLock && player.level >= (recipe.levelReq || 1) && player.miningLevel >= (recipe.miningLevelReq || 1);
           const requirements = recipe.ingredients.map(ingredient => ({
             ...ingredient,
             have: player.inventory.reduce((sum, item) => sum + (item.name === ingredient.name ? (item.stackCount ?? 1) : 0), 0)
@@ -106,7 +110,8 @@ export const CraftingScreen: React.FC = () => {
               <div className="flex items-start gap-2">
                 <span className="text-2xl shrink-0">{recipe.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-100">{recipe.name}</div>
+                  <div className="text-xs font-bold text-slate-100">{recipe.name}{recipe.huntStage === 'boss' ? ' · Мастерский' : recipe.huntStage === 'elite' ? ' · Усиленный' : ''}</div>
+                  {stageLock && <p className="mt-1 text-[11px] text-amber-300">🔒 {stageLock}</p>}
                   {recipe.result && <ClassGearBonus item={{ ...recipe.result, level: recipe.result.level || 1 }} characterClass={player.classId} />}
                   <p className="mt-0.5 text-[11px] text-slate-400">{recipe.description}</p>
                   {recipe.regionId && <p className="mt-1 text-[11px] text-[#d5ba89]">Персонаж: {recipe.levelReq} ур. · Шахта: {recipe.miningLevelReq} ур.</p>}

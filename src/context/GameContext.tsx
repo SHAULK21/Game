@@ -1,3 +1,6 @@
+import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
+import { playerDamagePower } from '../utils/pveBalance';
+import { huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
 import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
 import { useBalanceTelemetry } from '../hooks/useBalanceTelemetry';
@@ -172,6 +175,10 @@ interface CombatChainState {
 }
 
 const getMonsterCombatSkills = (monster: Monster): MonsterSkill[] => {
+  if (monster.id === 'm_stone_golem') return [
+    {id:'golem_guard',name:'Каменная стойка',icon:'🛡️',manaCost:0,cooldown:5,currentCooldown:0,damageMultiplier:.65,damageType:'physical',effect:'fortify',effectChance:1,effectDuration:2,effectPower:40,description:'Укрепляет броню на два хода. Сохраните сильный приём до окончания стойки.'},
+    {id:'golem_slam',name:'Размашистый удар',icon:'💥',manaCost:0,cooldown:4,currentCooldown:2,damageMultiplier:1.7,damageType:'physical',description:'После удара голем раскрывается: +35% получаемого урона на два хода.'}
+  ];
   if (monster.skills?.length) return monster.skills.map(s => ({ ...s, currentCooldown: s.currentCooldown || 0 }));
   const common: MonsterSkill[] = [
     { id: monster.id + '_heavy', name: 'Сокрушительный удар', icon: '💥', manaCost: 0, cooldown: 3, damageMultiplier: 1.45, damageType: monster.damageType || 'physical', description: 'Сильная атака с повышенным уроном.' },
@@ -189,19 +196,13 @@ const getMonsterCombatSkills = (monster: Monster): MonsterSkill[] => {
   return common;
 };
 
-const getMonsterPlannedSkill = (monster: Monster): MonsterSkill | null => {
-  const readySkills = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
-  if (!readySkills.length) return null;
-  return [...readySkills].sort((a, b) =>
-    (b.damageMultiplier + (b.effect ? 0.2 : 0)) - (a.damageMultiplier + (a.effect ? 0.2 : 0))
-  )[0] || null;
-};
+const getMonsterPlannedSkill = predictedMonsterSkill;
 
 const prepareMonsterForCombat = (monster: Monster): Monster => {
   if(monster.regionId==='ascension') return {...monster,skills:getMonsterCombatSkills(monster)};
   const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
   const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;
-  const hpMultiplier = 2.15 * levelFactor * roleFactor;
+  const hpMultiplier = 2.15 * levelFactor * roleFactor * (!monster.isBoss && !monster.isElite ? (monster.level < 5 ? 1.25 : 1.6) : 1);
   const damageMultiplier = 1.35 * Math.sqrt(levelFactor) * (monster.isBoss ? 1.12 : 1);
   const defenseMultiplier = 1.28 * Math.sqrt(levelFactor);
 
@@ -228,7 +229,7 @@ const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stat
     .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite)
     .map(m => getRegionMonster(m, region));
   const pool = normalPool.length > 0 ? normalPool : [firstMonster];
-  const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * 6);
+  const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * (_player.level < 8 ? 2 : _player.level < 25 ? 4 : 6));
   const chain: Monster[] = [applyHuntingMode(prepareMonsterForCombat(firstMonster),mode)];
   for (let i = 1; i < count; i += 1) {
     const candidate = pool[Math.floor(Math.random() * pool.length)] || firstMonster;
@@ -1009,6 +1010,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           // Migrate old saves to the current steep XP curve.
           parsed.player.nextExp = getNextExperience(parsed.player.level);
+          parsed.player = migrateRegionProgress(parsed.player, REGIONS);
           parsed.player = addExperience(parsed.player, 0).player;
 
           parsed.player = migrateTalents(parsed.player);
@@ -1033,7 +1035,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ...run,
                 rooms: run.rooms.map(room => room.monster && !room.resolved ? {
                   ...room,
-                  monster: getRegionMonster(MONSTERS[room.monster.id] || room.monster, region, cave.minLevel)
+                  monster: applyDungeonDifficulty({...getRegionMonster(MONSTERS[room.monster.id] || room.monster, region, cave.minLevel),isElite:room.type === 'elite' || room.monster.isElite},run.difficulty)
                 } : room)
               });
             }
@@ -1370,6 +1372,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       nextExp: getNextExperience(1),
       statPoints: 5,
       talentPoints: 1,
+      regionProgress: {},
       gold: 120,
       silver: 80,
       energy: 60,
@@ -1840,7 +1843,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, achievements]);
 
   const setActiveRegionMod = useCallback((modId: string) => {
-    setPlayer(prev => prev ? { ...prev, activeRegionModId: modId } : prev);
+    setPlayer(prev => {
+      const region = REGIONS.find(r => r.id === prev?.currentRegionId);
+      return prev && region && region.availableMods.includes(modId) && !huntingModeLockReason(prev, region, modId) ? {...prev, activeRegionModId:modId} : prev;
+    });
     triggerHaptic('light');
     sound.playClick();
   }, []);
@@ -1904,6 +1910,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const huntingRegion = REGIONS.find(region=>region.id===monster.regionId);
     if (huntingRegion && player && player.level<huntingRegion.minLevel) return false;
+    if (huntingRegion && player && !activeDungeonRun && (huntLockReason(player, monster, huntingRegion) || huntingModeLockReason(player, huntingRegion, activeModId))) return false;
     const huntMode = !activeDungeonRun && huntingRegion ? activeMod : undefined;
     const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId,huntMode) : [applyHuntingMode(prepareMonsterForCombat(monster),huntMode)];
 
@@ -1994,6 +2001,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const selectedModId = modId && targetReg.availableMods.includes(modId) ? modId : targetReg.defaultModId;
     const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
+    const modeLock = huntingModeLockReason(player, targetReg, selectedModId);
+    if (modeLock) return {success:false,message:modeLock};
     const energyCost = activeMod.energyCost;
 
     if (player && player.energy < energyCost) {
@@ -2045,7 +2054,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setTimeout(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
-            const monsterId = targetReg.monsters[Math.floor(Math.random() * targetReg.monsters.length)];
+            const ordinary = targetReg.monsters.filter(id => !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
+            const monsterId = ordinary[Math.floor(Math.random() * ordinary.length)];
             const baseMob = getRegionMonster(MONSTERS[monsterId] || MONSTERS['m_wolf'], targetReg);
 
             setPlayer(prev => prev ? {
@@ -2133,7 +2143,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Combat loot generation failed:', error);
       lootResult = { items: [], gold: 0, silver: 0 };
     }
-    if(monster.isBoss && monster.regionId!=='arena' && Math.random()<.4) lootResult.items.push(fragmentItem('asc_fragment_'+createOperationId()));
+    const regionalHunt = REGIONS.find(r => r.id === monster.regionId);
+    if (regionalHunt && (monster.isElite || monster.isBoss)) {
+      lootResult.items.push({id:'hunt_seal_'+createOperationId(),templateId:`seal_${monster.regionId}_${monster.isBoss?'boss':'elite'}`,name:regionalSealName(monster.regionId, Boolean(monster.isBoss)),type:'material',rarity:monster.isBoss?'rare':'uncommon',level:monster.level,upgradeLevel:0,icon:monster.isBoss?'🏆':'✦',stats:{},sellPrice:0,disassembleYield:{silver:5},stackCount:1});
+      if (monster.isBoss && player && regionProgress(player, regionalHunt).bossWins === 0) lootResult.items.push(fragmentItem('asc_first_'+createOperationId()));
+    }
+    if(monster.isBoss && monster.regionId!=='arena' && Math.random()<.4 || monster.isElite && regionalHunt && Math.random()<.25) lootResult.items.push(fragmentItem('asc_fragment_'+createOperationId()));
     let expReward = Math.round(monster.expReward * (activeMod.expMultiplier || 1) * (1 + combatStats.expBonus / 100));
     if (potionCount > 0) {
       for (let i = 0; i < potionCount; i += 1) lootResult.items.push({ ...potionPool[i % potionPool.length], id: `drop_potion_${Date.now()}_${i}`, stackCount: 1 });
@@ -2321,7 +2336,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return a;
       }));
 
-      return reconcileSkills(next, CLASSES[next.classId].startingSkills);
+      const huntingRegion = REGIONS.find(r => r.id === monster.regionId);
+      return reconcileSkills(huntingRegion ? recordRegionalVictory(next, monster, huntingRegion) : next, CLASSES[next.classId].startingSkills);
     });
 
     if (dungeonRoom?.monster?.id === monster.id && activeDungeonRun) {
@@ -2677,7 +2693,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (talents.focusDamage && rogueFocus) multiplier *= 1 + talents.focusDamage / 100;
 
     // Every strike resolves independently. A multi-hit can crit, miss, drain and kill on any hit.
-    const attackPower = getDamagePower(damageType, combatStats) * petDamageMultiplier(player.activePet?.id, damageType);
+    const attackPower = playerDamagePower(damageType, player.classId, combatStats) * petDamageMultiplier(player.activePet?.id, damageType);
     const baseStrikes = Math.max(1, (skillUsed?.hits || 1) + (skillUsed?.hits && !skillUsed.id.startsWith('asc_') && skillTier(player) >= 4 ? 1 : 0));
     const strikes = baseStrikes + (skillUsed && talents.extraStrike ? 1 : 0);
     let trapApplied = false;
@@ -2905,6 +2921,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (player.classId === 'warrior') damage = Math.round(damage * 0.90);
 
       const logs: BattleLogEntry[] = [{ id: 'monster_cast_' + Date.now(), turn: currentTurn, text: `🔥 ${activeMonster.name} применяет ${skill.icon} «${skill.name}»!`, type: 'skill' }];
+      if (skill.id === 'golem_slam') {
+        setMonsterEffects(prev => applyStatusEffect(prev, {type:'vulnerability',name:'Раскрытая сердцевина',duration:2,value:35}));
+        logs.push({id:'golem_open_'+Date.now(),turn:currentTurn,text:'💎 Голем раскрывает сердцевину: два хода уязвимости.',type:'status'});
+      }
       if(activeMonster.regionId==='ascension' && skill.id==='asc_heal') {
         const recovery=Math.round(Math.min(activeMonster.maxHp*(activeMonster.id==='ascension_echo_eternity' ? .08 : .05), activeMonster.attack * 2));
         setActiveMonster(prev=>prev?{...prev,hp:Math.min(prev.maxHp,prev.hp+recovery)}:prev);
@@ -2970,29 +2990,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player) return;
 
     const timer = setTimeout(() => {
-      const playerHpPct = (combatPlayerHp / combatStats.maxHp) * 100;
-      const potionItem = player.inventory.find(i => i.type === 'potion');
-
-      if (playerHpPct <= autoBattle.healAtHpPercent && potionItem) {
-        performPlayerAction('potion');
-      } else if (autoBattle.useSkills && player.skills.length > 0) {
-        const affordableSkill = player.skills.find(s =>
-          talentManaCost(s.manaCost, player.talents) <= combatPlayerMp &&
-          player.level >= s.levelReq &&
-          (s.currentCooldown || 0) <= 0
-        );
-        if (affordableSkill) {
-          performPlayerAction('skill', affordableSkill.id);
-        } else {
-          performPlayerAction('attack');
-        }
-      } else {
-        performPlayerAction('attack');
-      }
+      const decision = chooseAutoBattleAction({player,monster:activeMonster,stats:combatStats,hp:combatPlayerHp,mp:combatPlayerMp,
+        playerEffects,monsterEffects,settings:autoBattle,damageMultiplier:combatHuntingMode(activeMonster).damageMultiplier});
+      performPlayerAction(decision.action, decision.id);
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [autoBattle.enabled, isInCombat, isCombatEnded, activeMonster, turnPhase, player, combatPlayerHp, combatPlayerMp, combatStats.maxHp, performPlayerAction]);
+  }, [autoBattle.enabled, isInCombat, isCombatEnded, activeMonster, turnPhase, player, combatPlayerHp, combatPlayerMp, combatStats, playerEffects, monsterEffects, performPlayerAction]);
 
   const toggleAutoBattle = useCallback(() => {
     if (!premium.active) {
@@ -3062,7 +3066,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const roomTypeRand = Math.random();
         if (roomTypeRand < 0.5) {
           // Combat
-          const mList = caveRegion.monsters.map(id => MONSTERS[id]).filter((m): m is Monster => Boolean(m) && m.id !== cave.bossMonsterId);
+          const mList = caveRegion.monsters.map(id => MONSTERS[id]).filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite);
           const encounters = mList.length ? mList : Object.values(MONSTERS).filter(m => !m.isBoss);
           const chosenMonster = getRegionMonster(encounters[Math.floor(Math.random() * encounters.length)], caveRegion, Math.max(cave.minLevel, caveRegion.minLevel));
           rooms.push({
@@ -3453,6 +3457,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const recipe = BASIC_CRAFT_RECIPES.find(r => r.id === recipeId);
     if (!recipe) return { success: false, message: 'Рецепт не найден.' };
     if (player.level < (recipe.levelReq || 1)) return { success: false, message: `Нужен ${recipe.levelReq}-й уровень персонажа.` };
+    const stageLock = craftStageLockReason(player, recipe, REGIONS);
+    if (stageLock) return {success:false,message:stageLock};
     if (player.miningLevel < (recipe.miningLevelReq || 1)) return { success: false, message: `Нужен ${recipe.miningLevelReq}-й уровень шахты.` };
     const ingredients = recipe.ingredients;
 
@@ -3464,8 +3470,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let inventory = consumeIngredients(player.inventory, ingredients);
-    const quality = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type)
+    let quality = recipe.result && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(recipe.result.type)
       ? smithingQuality(player.smithingXp) : null;
+    if (quality && recipe.id.startsWith('regional_')) {
+      const floor = recipe.huntStage ? 'rare' : 'uncommon';
+      const rarities = ['common','uncommon','rare','epic','legendary'];
+      if (rarities.indexOf(quality.rarity) < rarities.indexOf(floor)) quality = smithingQuality(0, floor === 'rare' ? .8 : .6);
+    }
     const baseLevel = recipe.result?.level || Math.max(1, Math.min(10, player.level));
     const range = getEquipmentLevelRange(baseLevel);
     const outputLevel = quality ? range.min + Math.floor(Math.random() * (range.max - range.min + 1)) : baseLevel;
@@ -3532,7 +3543,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player) return false;
 
     const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
-    if (!recipe || player.alchemyLevel < recipe.levelReq) {
+    if (!recipe || player.alchemyLevel < recipe.levelReq || player.level < (recipe.heroLevelReq || 1)) {
       triggerHaptic('error');
       return false;
     }
@@ -3569,13 +3580,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const resultStats: Record<string, number> =
-      recipe.id === 'alc_hp_small' ? { heal: 120 } :
+      recipe.resultStats || (recipe.id === 'alc_hp_small' ? { heal: 120 } :
       recipe.id === 'alc_mp_small' ? { manaRestore: 80 } :
       recipe.id === 'alc_hp_great' ? { heal: 650 } :
       recipe.id === 'alc_berserk' ? { attackPercent: 25, critChance: 15, buffDuration: 5 } :
       recipe.id === 'alc_stoneskin' ? { defensePercent: 40, buffDuration: 5 } :
       recipe.id === 'alc_dragon_blood' ? { healFull: 1, invulnerable: 1 } :
-      {};
+      {});
 
     const extraPotion = alchemyExtraYield(player.equipped.alchemyTool, player.alchemyLevel);
     const outputCount = recipe.resultCount + extraPotion;

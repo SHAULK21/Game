@@ -356,6 +356,7 @@ export interface BasicCraftRecipe {
   levelReq?: number;
   miningLevelReq?: number;
   regionId?: string;
+  huntStage?: 'elite' | 'boss';
   ingredients: { name: string; count: number }[];
   result?: {
     targetClass?: CharacterClassId;
@@ -378,6 +379,9 @@ export interface AlchemyRecipe {
   name: string;
   description: string;
   levelReq: number;
+  heroLevelReq?: number;
+  regionId?: string;
+  resultStats?: Record<string, number>;
   craftTimeSeconds: number;
   icon: string;
   ingredients: {
@@ -508,6 +512,7 @@ export interface PlayerCharacter {
   talentPoints: number;
   lastBulkDisposalId?: string;
   ascension?: AscensionState;
+  regionProgress?: Record<string, { kills: number; eliteWins: number; bossWins: number }>;
   lastMarketListingOperation?: string;
   reservedClanCreationOperation?: string;
   lastClanCreationOperation?: string;

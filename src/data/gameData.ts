@@ -1,3 +1,5 @@
+import { regionalEnemyStats } from '../utils/pveBalance';
+import { regionalSealName } from '../utils/regionalProgress';
 import { 
   CharacterClassId, 
   ItemRarity,
@@ -971,7 +973,7 @@ export const MONSTERS: Record<string, Monster> = {
     critChance: 10,
     evasion: 2,
     damageType: 'physical',
-    resistances: { physical: 35, magic: 20, lightning: -10 },
+    resistances: { physical: 15, magic: 15, lightning: -10 },
     isBoss: true,
     avatar: '🗿',
     expReward: 950,
@@ -1122,6 +1124,35 @@ for (const [regionId,id,name,avatar,level,sourceId] of veteranEnemies) {
   REGIONS.find(r => r.id === regionId)!.monsters.unshift(id);
 }
 
+REGIONS[0].monsters.push('m_queen_bat');
+
+// Two ordinary targets and one elite establish the same hunt ladder in every zone.
+for (const region of REGIONS) {
+  let ordinary = region.monsters.map(id => MONSTERS[id]).filter(m => !m.isBoss && !m.isElite);
+  if (ordinary.length < 2) {
+    const id = `m_${region.id}_scout`;
+    const level = region.minLevel;
+    MONSTERS[id] = { ...MONSTERS.m_bandit, id, regionId: region.id, name: 'Региональный разведчик',
+      level, hp: 180 + level * 24, maxHp: 180 + level * 24, attack: 20 + level * 3,
+      magicAttack: 15 + level * 2.5, defense: 10 + level * 1.4, magicDefense: 10 + level,
+      isBoss: false, isElite: false, drops: [], expReward: 120 + level * 55, goldReward: 30 + level * 12 };
+    region.monsters.unshift(id);
+    ordinary = region.monsters.map(id => MONSTERS[id]).filter(m => !m.isBoss && !m.isElite);
+  }
+  const source = ordinary[0];
+  const id = `elite_${region.id}`;
+  MONSTERS[id] = { ...source, id, regionId: region.id, name: `Ветеран: ${source.name}`,
+    level: region.minLevel, isElite: true, isBoss: false, drops: [],
+    expReward: Math.round((120 + region.minLevel * 55) * 1.5), goldReward: Math.round((30 + region.minLevel * 12) * 1.6) };
+  region.monsters.push(id);
+  if (!region.monsters.some(id => MONSTERS[id].isBoss)) {
+    const bossId = `boss_${region.id}`;
+    MONSTERS[bossId] = {...MONSTERS.m_queen_bat,id:bossId,regionId:region.id,name:`Вожак: ${region.name.split(':')[0]}`,level:region.minLevel+3,drops:[],expReward:(120+region.minLevel*55)*3,goldReward:(30+region.minLevel*12)*3};
+    region.monsters.push(bossId);
+  }
+  region.defaultModId = 'mod_standard';
+}
+
 // Each material has a concrete mob and a concrete region. Reused monster templates
 // get a different trophy when encountered in a later zone.
 export const REGIONAL_TROPHIES: Record<string, Record<string, { name: string; rarity: ItemRarity; chance: number }>> = {
@@ -1185,8 +1216,8 @@ export const REGION_CRAFT_TIERS = [
   { regionId: 'reg_desert', level: 40, miningLevel: 40, ore: 'Мифриловая руда', catalyst: 'Арканная пыль', weaponMaterial: 'Песчаное ядро голема', armorMaterial: 'Печать пустынного рыцаря', weaponName: 'Клинок пылающей пустыни', armorName: 'Доспех песчаного рыцаря', rarity: 'epic' },
   { regionId: 'reg_cursed', level: 55, miningLevel: 60, ore: 'Адамантит', catalyst: 'Осколок титана', weaponMaterial: 'Проклятая кровь демона', armorMaterial: 'Осколок проклятой брони', weaponName: 'Клинок проклятых земель', armorName: 'Доспех проклятого рыцаря', rarity: 'epic' },
   { regionId: 'reg_rift', level: 75, miningLevel: 72, ore: 'Кровавый обсидиан', catalyst: 'Демонический уголь', weaponMaterial: 'Пепельное сердце демона', armorMaterial: 'Чешуя дракона разлома', weaponName: 'Клинок демонического разлома', armorName: 'Доспех разлома', rarity: 'mythic' },
-  { regionId: 'reg_dragon', level: 90, miningLevel: 85, ore: 'Драконит', catalyst: 'Драконья искра', weaponMaterial: 'Сердце драконьего стража', armorMaterial: 'Первородная чешуя Аэтельгора', weaponName: 'Клинок Аэтельгора', armorName: 'Доспех драконьего пика', rarity: 'ancient' },
-  { regionId: 'reg_dragon', level: 100, miningLevel: 95, ore: 'Эфириум', catalyst: 'Звёздное ядро', weaponMaterial: 'Первородная чешуя Аэтельгора', armorMaterial: 'Сердце драконьего стража', weaponName: 'Эфирный клинок Прадракона', armorName: 'Эфирный доспех Прадракона', rarity: 'divine' }
+  { regionId: 'reg_dragon', level: 90, miningLevel: 85, ore: 'Драконит', catalyst: 'Осколок драконьей чешуи', weaponMaterial: 'Сердце драконьего стража', armorMaterial: 'Первородная чешуя Аэтельгора', weaponName: 'Клинок Аэтельгора', armorName: 'Доспех драконьего пика', rarity: 'ancient' },
+  { regionId: 'reg_dragon', level: 100, miningLevel: 95, ore: 'Эфириум', catalyst: 'Эфирная пыль', weaponMaterial: 'Первородная чешуя Аэтельгора', armorMaterial: 'Сердце драконьего стража', weaponName: 'Эфирный клинок Прадракона', armorName: 'Эфирный доспех Прадракона', rarity: 'divine' }
 ] as const;
 
 // A catalyst is a secondary find from the same mine node as its ore.
@@ -1208,33 +1239,13 @@ export const MINE_CATALYST_BY_ORE: Record<string, string> = {
 // ingredients, and crafting never rerolls them.
 const buildFixedCraftIngredients = (recipe: BasicCraftRecipe) => {
   if (!recipe.regionId) return recipe.ingredients;
-  const index = REGION_CRAFT_TIERS.findIndex(tier => tier.regionId === recipe.regionId && tier.level === recipe.levelReq);
-  if (index < 0) return recipe.ingredients;
-  const tier = REGION_CRAFT_TIERS[index];
-  const previous = REGION_CRAFT_TIERS[Math.max(0, index - 1)];
-  let seed = 2166136261;
-  for (const char of recipe.id) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
-  const randomIndex = (size: number) => {
-    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
-    return (seed >>> 0) % size;
-  };
-
-  const local = [tier.weaponMaterial, tier.armorMaterial];
-  const firstTrophy = local[randomIndex(local.length)];
-  const nearby = [...new Set([...local, previous.weaponMaterial, previous.armorMaterial])].filter(name => name !== firstTrophy);
-  const secondTrophy = nearby[randomIndex(nearby.length)];
-  const availableNodes = MINING_NODES.filter(node => node.levelReq <= tier.miningLevel);
-  const firstOre = availableNodes[randomIndex(availableNodes.length)];
-  const otherNodes = availableNodes.filter(node => node.id !== firstOre.id);
-  const secondOre = otherNodes[randomIndex(otherNodes.length)];
-  const catalystOre = [firstOre, secondOre][randomIndex(2)].oreYield;
-
+  const tier = REGION_CRAFT_TIERS.find(t => t.regionId === recipe.regionId && t.level === recipe.levelReq);
+  if (!tier) return recipe.ingredients;
+  // The base kit never depends on a boss, previous region or rare catalyst.
   return [
-    { name: firstTrophy, count: 3 },
-    { name: secondTrophy, count: 2 },
-    { name: firstOre.oreYield, count: 3 + Math.floor(tier.level / 40) },
-    { name: secondOre.oreYield, count: 2 + Math.floor(tier.level / 50) },
-    { name: MINE_CATALYST_BY_ORE[catalystOre], count: 1 }
+    { name: tier.weaponMaterial, count: 3 },
+    { name: tier.armorMaterial, count: 2 },
+    { name: tier.ore, count: 4 + Math.floor(tier.level / 40) }
   ];
 };
 
@@ -1312,8 +1323,8 @@ export const getUpgradeRequirements = (item: GameItem, upgradeLevel: number) => 
     trophy: item.type === 'armor' || item.type === 'offhand' || item.type === 'helmet'
       ? tier.armorMaterial : tier.weaponMaterial,
     trophyCount: 1 + Math.floor(upgradeLevel / 8),
-    catalyst: upgradeLevel >= 5 ? tier.catalyst : null,
-    catalystCount: upgradeLevel >= 5 ? 1 + Math.floor(upgradeLevel / 10) : 0,
+    catalyst: upgradeLevel >= 10 ? MINE_CATALYST_BY_ORE[tier.ore] : null,
+    catalystCount: upgradeLevel >= 10 ? 1 + Math.floor(upgradeLevel / 10) : 0,
     regionId: tier.regionId
   };
 };
@@ -1386,11 +1397,24 @@ const REGIONAL_CRAFT_RECIPES: BasicCraftRecipe[] = REGION_CRAFT_TIERS.flatMap((t
   ];
 });
 
+const ADVANCED_REGIONAL_RECIPES: BasicCraftRecipe[] = REGIONAL_CRAFT_RECIPES.flatMap(recipe =>
+  (['elite', 'boss'] as const).map(huntStage => ({
+    ...recipe, id: `${recipe.id}_${huntStage}`, huntStage,
+    description: `${huntStage === 'elite' ? 'Усиленный' : 'Мастерский'} комплект региона. Качество не ниже редкого.`,
+    ingredients: [...buildFixedCraftIngredients(recipe),
+      { name: regionalSealName(recipe.regionId!, huntStage === 'boss'), count: huntStage === 'boss' ? 1 : 2 },
+      { name: MINE_CATALYST_BY_ORE[REGION_CRAFT_TIERS.find(t => t.level === recipe.levelReq)!.ore], count: 1 }],
+    result: { ...recipe.result!, rarity: 'rare' as const,
+      stats: Object.fromEntries(Object.entries(recipe.result!.stats).map(([key, value]) =>
+        [key, ['speed','critChance','evasion'].includes(key) ? value : Math.round(value * (huntStage === 'boss' ? 1.25 : 1.12))])) }
+  })));
+
 // Shared monster templates adapt to the region where they are encountered.
 export const getRegionMonster = (monster: Monster, region: RegionDefinition, minimumLevel = region.minLevel): Monster => {
   const range = region.levelRange.match(/\d+/g)?.map(Number);
   const maxLevel = Math.max(region.minLevel, range?.[1] ?? region.minLevel);
-  const level = Math.min(maxLevel, Math.max(region.minLevel, monster.level, minimumLevel));
+  const encounterLevel = monster.isBoss ? Math.min(monster.level, region.minLevel + 3) : monster.level;
+  const level = Math.min(maxLevel, Math.max(region.minLevel, encounterLevel, minimumLevel));
   const factor = level / Math.max(1, monster.level);
   const scale = (value: number, multiplier = factor) => Math.round(value * multiplier);
   return {
@@ -1407,7 +1431,14 @@ export const getRegionMonster = (monster: Monster, region: RegionDefinition, min
     magicDefense: scale(monster.magicDefense),
     expReward: scale(monster.expReward),
     goldReward: scale(monster.goldReward),
+    ...regionalEnemyStats(monster, level),
     drops: [
+      ...(!monster.isBoss && !monster.isElite ? REGION_CRAFT_TIERS.filter(t => t.regionId === region.id).flatMap(t => {
+        const ordinary = region.monsters.filter(id => !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
+        const name = monster.id === ordinary[0] ? t.weaponMaterial : monster.id === ordinary[1] ? t.armorMaterial : null;
+        return name && name !== REGIONAL_TROPHIES[region.id]?.[monster.id]?.name
+          ? [{ itemName: name, type: 'material' as const, rarity: 'uncommon' as const, chance: .65, minQty: 1, maxQty: 1 }] : [];
+      }).filter((drop, index, drops) => drops.findIndex(d => d.itemName === drop.itemName) === index) : []),
       ...monster.drops.filter(drop => (drop.type !== 'material' && drop.type !== 'ore') || monster.regionId === region.id)
         .filter(drop => drop.itemName !== REGIONAL_TROPHIES[region.id]?.[monster.id]?.name),
       ...(REGIONAL_TROPHIES[region.id]?.[monster.id] ? [{
@@ -1522,6 +1553,19 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   }
 ];
 
+for (const tier of REGION_CRAFT_TIERS.filter(t => t.level >= 5)) {
+  const levelReq = Math.max(1, Math.floor(tier.level / 4));
+  for (const kind of ['hp','mp'] as const) {
+    const amount = kind === 'hp' ? 150 + tier.level * 25 : 80 + tier.level * 10;
+    const name = `${kind === 'hp' ? 'Настой здоровья' : 'Настой маны'} · ур. ${tier.level}`;
+    ALCHEMY_RECIPES.push({ id: `alc_regional_${tier.level}_${kind}`, name, resultItem: name, resultCount: 2,
+      description: `Восстанавливает ${amount} ${kind === 'hp' ? 'HP' : 'MP'}. Материалы обычной охоты и шахты.`,
+      levelReq, heroLevelReq: tier.level, regionId: tier.regionId, craftTimeSeconds: 2,
+      icon: kind === 'hp' ? '🧪' : '💧', resultStats: kind === 'hp' ? {heal: amount} : {manaRestore: amount},
+      ingredients: [{name: kind === 'hp' ? tier.armorMaterial : tier.weaponMaterial, count: 2}, {name: tier.ore, count: 2}] });
+  }
+}
+
 const RAW_BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
   {
     id: 'basic_boar_ration',
@@ -1579,8 +1623,8 @@ const RAW_BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = [
     ingredients: [{ name: 'Медная монета гоблинов', count: 5 }],
     silverReward: 30
   },
-  ...REGIONAL_CRAFT_RECIPES.flatMap((recipe): BasicCraftRecipe[] => {
-    const fixed = { ...recipe, ingredients: buildFixedCraftIngredients(recipe) };
+  ...[...REGIONAL_CRAFT_RECIPES, ...ADVANCED_REGIONAL_RECIPES].flatMap((recipe): BasicCraftRecipe[] => {
+    const fixed = { ...recipe, ingredients: recipe.huntStage ? recipe.ingredients : buildFixedCraftIngredients(recipe) };
     if (recipe.result?.type !== 'weapon' && recipe.result?.type !== 'armor') return [fixed];
     const result = recipe.result;
     return CLASS_GEAR_IDS.map(targetClass => ({

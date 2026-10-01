@@ -1,3 +1,4 @@
+import { ASCENSION_STAGES } from '../src/data/ascension';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -21,14 +22,14 @@ test('real ascension arena preserves combat stats, records victory without XP an
   const statsReference=w.game.combatStats;const baseline=JSON.parse(JSON.stringify(w.game.combatStats));const originalLevel=w.game.player.level;const originalXp=w.game.player.exp;const originalRating=w.game.player.arenaRating;const originalGold=w.game.player.gold;const tickets=w.game.player.arenaTickets;
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text) as any;
   assert.equal(button('Вознестись до D').disabled,true);
-  await w.act(async()=>button('Вызвать хранителя D').click());assert.equal(w.game.activeMonster.regionId,'ascension');assert.equal(w.game.activeMonster.maxHp,1800);assert.equal(w.game.player.arenaTickets,tickets-1);
+  await w.act(async()=>button('Вызвать хранителя D').click());assert.equal(w.game.activeMonster.regionId,'ascension');assert.equal(w.game.activeMonster.maxHp,ASCENSION_STAGES[0].hp);assert.equal(w.game.player.arenaTickets,tickets-1);
   w.Math.random=()=>.5;await w.act(async()=>w.game.performPlayerAction('attack'));assert.equal(w.game.combatOutcome,'victory');assert.ok(w.game.player.ascension.trialsWon.includes('D'));assert.equal(w.game.player.exp,originalXp);assert.equal(w.game.player.arenaRating,originalRating);assert.equal(w.game.player.gold,originalGold);assert.equal(w.game.lastCombatReward.items.length,0);assert.equal(w.game.combatStats,statsReference,'tickets, cooldowns and victory bookkeeping do not recompute stats');
   assert.ok(button('Вернуться на арену'));assert.equal([...w.document.querySelectorAll('button')].some((b:any)=>b.textContent.includes('Новая серия')),false);
   await w.act(async()=>button('Вернуться на арену').click());assert.equal(w.game.isInCombat,false);assert.ok(w.document.body.textContent.includes('Выберите пассивку выше.'));assert.equal(button('Вознестись до D').disabled,true);
   await w.act(async()=>w.document.querySelectorAll('input[type=radio]')[1].click());assert.equal(button('Вознестись до D').disabled,false);
   await w.act(async()=>button('Вознестись до D').click());assert.ok(w.document.querySelector('[role=dialog]'));await w.act(async()=>button('Подтвердить вознесение').click());
-  assert.equal(w.game.player.ascension.rank,'D');assert.equal(w.game.player.level,originalLevel);assert.equal(w.game.player.silver,9500);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
-  await w.act(async()=>button('Вызвать хранителя C').click());assert.equal(w.game.activeMonster.maxHp,4800);await w.act(async()=>w.game.performPlayerAction('attack'));assert.ok(w.game.player.ascension.trialsWon.includes('C'));
+  assert.equal(w.game.player.ascension.rank,'D');assert.equal(w.game.player.level,originalLevel);assert.equal(w.game.player.silver,9850);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
+  await w.act(async()=>button('Вызвать хранителя C').click());assert.equal(w.game.activeMonster.maxHp,ASCENSION_STAGES[1].hp);await w.act(async()=>w.game.performPlayerAction('attack'));assert.ok(w.game.player.ascension.trialsWon.includes('C'));
   await w.act(async()=>button('Вернуться на арену').click());
   await w.act(async()=>button('Вознестись до C').click());await w.act(async()=>button('Подтвердить вознесение').click());assert.equal(w.game.player.ascension.rank,'C');assert.ok(w.game.player.skills.some((s:any)=>s.id==='asc_warrior_C'));assert.equal(w.game.player.level,originalLevel);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
   const savedSkills=w.game.player.skills.map((s:any)=>s.id);

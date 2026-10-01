@@ -22,7 +22,7 @@ test('harder dungeons increase actual enemies; each veteran region has regular t
  for(const mode of ['normal','hard','nightmare','hell'] as const){const enemy=applyDungeonDifficulty(base,mode);assert.ok(enemy.maxHp>hp && enemy.attack>attack);hp=enemy.maxHp;attack=enemy.attack;}
  assert.equal(base.maxHp,MONSTERS.m_wolf.maxHp);
  for(const region of REGIONS.filter(r=>r.minLevel>=40)){
-  const ordinary=region.monsters.map(id=>MONSTERS[id]).filter(m=>!m.isBoss);
+  const ordinary=region.monsters.map(id=>MONSTERS[id]).filter(m=>!m.isBoss&&!m.isElite);
   assert.ok(ordinary.length>=2,region.id);
   for(const monster of ordinary){assert.equal(monster.regionId,region.id);assert.ok(REGIONAL_TROPHIES[region.id][monster.id]);}
  }
@@ -76,15 +76,15 @@ test('Postgres telemetry retries preserve latest snapshots; admin access and cla
   await db.exec(schema);await db.exec(schema);
   await query("INSERT INTO players(telegram_id,display_name) VALUES(1,'A'),(2,'B')");
   const session={kind:'session',id:'00000000-0000-4000-8000-000000000012',sequence:2,level:20,durationMs:120000,netGold:-50,netSilver:10};
-  const battle={kind:'battle',id:'00000000-0000-4000-8000-000000000013',sessionId:session.id,level:20,classId:'mage',region:'reg_forest',monster:'m_spider',difficulty:'hard',outcome:'victory',rounds:4,durationMs:8000,gold:10,silver:5,exp:30};
-  assert.equal(validTelemetryEvent({...battle,durationMs:-1}),false);assert.equal(validTelemetryEvent({...session,netGold:NaN}),false);
+  const battle={kind:'battle',id:'00000000-0000-4000-8000-000000000013',sessionId:session.id,level:20,classId:'mage',region:'reg_forest',monster:'m_spider',difficulty:'hard',role:'elite',outcome:'victory',rounds:4,durationMs:8000,gold:10,silver:5,exp:30};
+  assert.equal(validTelemetryEvent({...battle,durationMs:-1}),false);assert.equal(validTelemetryEvent({...battle,role:'invented'}),false);assert.equal(validTelemetryEvent({...session,netGold:NaN}),false);
   assert.equal((await call('POST','/api/telemetry',1,{events:[session,battle]})).status,200);
   assert.equal((await call('POST','/api/telemetry',1,{events:[{...session,sequence:1,netGold:999},battle]})).status,200);
   assert.equal((await query('SELECT net_gold FROM balance_sessions')).rows[0].net_gold,-50);
   assert.equal((await query('SELECT COUNT(*)::int AS n FROM balance_battles')).rows[0].n,1);
   assert.equal((await call('GET','/api/admin/balance',2)).status,403);
   await query("INSERT INTO balance_activity(telegram_id,day) VALUES(2,(NOW() AT TIME ZONE 'UTC')::date-10),(2,(NOW() AT TIME ZONE 'UTC')::date-9),(2,(NOW() AT TIME ZONE 'UTC')::date-3)");
-  const report=await call('GET','/api/admin/balance',1);assert.equal(report.status,200);assert.equal(report.body.sessions.sessions,1);assert.equal(Number(report.body.battles[0].seconds),8);assert.equal(report.body.retention.eligible_d1,1);assert.equal(report.body.retention.returned_d1,1);assert.equal(report.body.retention.returned_d7,1);
+  const report=await call('GET','/api/admin/balance',1);assert.equal(report.status,200);assert.equal(report.body.sessions.sessions,1);assert.equal(Number(report.body.battles[0].seconds),8);assert.equal(report.body.battles[0].role,'elite');assert.equal(report.body.battles[0].class_id,'mage');assert.equal(report.body.retention.eligible_d1,1);assert.equal(report.body.retention.returned_d1,1);assert.equal(report.body.retention.returned_d7,1);
   await query("INSERT INTO clans(id,tag,name,owner_telegram_id,treasury_gold,treasury_silver,treasury_ore) VALUES($1,'TEST','Test',1,500,200,20)",[clan]);
   await query('UPDATE players SET clan_id=$1',[clan]);
   await query("INSERT INTO clan_members(clan_id,telegram_id,role) VALUES($1,1,'owner'),($1,2,'member')",[clan]);

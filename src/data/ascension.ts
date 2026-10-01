@@ -6,13 +6,13 @@ export type AscensionPath = 'precision'|'ward'|'flow';
 export interface AscensionState {rank:AscensionRank;primary?:AscensionPath;secondary?:AscensionPath;trialsWon:AscensionRank[];echoWeek?:string;echoWins?:string[];season?:string;seasonWins?:number;titles?:string[]}
 export const initialAscension = ():AscensionState => ({rank:'E',trialsWon:[]});
 export const ASCENSION_STAGES = [
- {rank:'D',name:'Страж порога',hp:1800,power:80,defense:25,silver:500,fragments:3,reward:'Выбор первой пассивки',hint:'Периодически готовит сокрушительный удар. Защищайтесь перед сильным ударом.'},
- {rank:'C',name:'Рыцарь зеркального щита',hp:4800,power:150,defense:100,silver:1500,fragments:8,reward:'Новый классовый навык',hint:'Чередует обычную и усиленную защиту. Пробитие и эффекты помогают преодолеть броню.'},
- {rank:'B',name:'Хранитель живого пламени',hp:10000,power:260,defense:130,silver:4000,fragments:16,reward:'Усиление первой пассивки',hint:'Периодически лечится. Контроль позволяет пропустить его ход лечения.'},
- {rank:'A',name:'Судья трёх стихий',hp:22000,power:420,defense:220,silver:10000,fragments:30,reward:'Выбор второй пассивки',hint:'Чередует физические и магические атаки; после потери половины HP усиливается.'},
- {rank:'S',name:'Повелитель разлома',hp:48000,power:720,defense:350,silver:25000,fragments:50,reward:'Классовый навык вознесения',hint:'Лечится и накладывает уязвимость. Сохраните контроль и защиту для опасных ходов.'},
- {rank:'SS',name:'Владыка пустоты',hp:95000,power:1100,defense:500,silver:60000,fragments:85,reward:'Сочетание пассивок и усиление нового навыка',hint:'Две фазы, укрепление и магические удары. Меняйте атаку и оборону.'},
- {rank:'SSS',name:'Первый вознесённый',hp:190000,power:1700,defense:750,silver:150000,fragments:140,reward:'Эволюция навыка вознесения',hint:'Три фазы: усиление ниже 65% и 30% HP. Чередует сокрушительный удар и лечение.'}
+ {rank:'D',name:'Страж порога',recommendedLevel:10,recommendedUpgrade:3,hp:3600,power:80,defense:20,silver:150,fragments:0,reward:'Выбор первой пассивки',hint:'Периодически готовит сокрушительный удар. Защищайтесь перед сильным ударом.'},
+ {rank:'C',name:'Рыцарь зеркального щита',recommendedLevel:25,recommendedUpgrade:5,hp:8000,power:160,defense:55,silver:600,fragments:4,reward:'Новый классовый навык',hint:'Чередует обычную и усиленную защиту. Пробитие и эффекты помогают преодолеть броню.'},
+ {rank:'B',name:'Хранитель живого пламени',recommendedLevel:40,recommendedUpgrade:5,hp:13750,power:350,defense:80,silver:1500,fragments:8,reward:'Усиление первой пассивки',hint:'Периодически лечится. Контроль позволяет пропустить его ход лечения.'},
+ {rank:'A',name:'Судья трёх стихий',recommendedLevel:55,recommendedUpgrade:7,hp:21250,power:600,defense:100,silver:3000,fragments:15,reward:'Выбор второй пассивки',hint:'Чередует физические и магические атаки; после потери половины HP усиливается.'},
+ {rank:'S',name:'Повелитель разлома',recommendedLevel:75,recommendedUpgrade:8,hp:30000,power:1000,defense:140,silver:8000,fragments:25,reward:'Классовый навык вознесения',hint:'Лечится и накладывает уязвимость. Сохраните контроль и защиту для опасных ходов.'},
+ {rank:'SS',name:'Владыка пустоты',recommendedLevel:90,recommendedUpgrade:10,hp:42500,power:1300,defense:170,silver:16000,fragments:40,reward:'Сочетание пассивок и усиление нового навыка',hint:'Две фазы, укрепление и магические удары. Меняйте атаку и оборону.'},
+ {rank:'SSS',name:'Первый вознесённый',recommendedLevel:100,recommendedUpgrade:10,hp:57500,power:1700,defense:200,silver:35000,fragments:60,reward:'Эволюция навыка вознесения',hint:'Три фазы: усиление ниже 65% и 30% HP. Чередует сокрушительный удар и лечение.'}
 ] as const;
 export const nextAscensionStage=(state?:AscensionState)=>ASCENSION_STAGES.find(s=>ASCENSION_RANKS.indexOf(s.rank)===ASCENSION_RANKS.indexOf(state?.rank||'E')+1);
 
@@ -113,7 +113,7 @@ export function ascensionBossPhase(monster:Monster):number {
  if(monster.id==='ascension_SSS'||monster.id.startsWith('ascension_echo_'))return ratio<=.3?3:ratio<=.65?2:1;
  return ['ascension_A','ascension_S','ascension_SS'].includes(monster.id)&&ratio<=.5?2:1;
 }
-export const ASCENSION_FRAGMENT_DESCRIPTION = 'Для вознесения на арене. Где взять: победите босса мира или подземелья — шанс выпадения 40%, по 1 осколку за победу. Также можно купить у других игроков на рынке. Хранители арены осколки не дают.';
+export const ASCENSION_FRAGMENT_DESCRIPTION = 'Первое вознесение D не требует осколков. Для следующих рангов: первый босс каждой зоны даёт 1 гарантированный осколок; далее боссы — шанс 40%, элиты — 25%, по 1 осколку. Также можно купить у других игроков на рынке. Хранители арены осколки не дают.';
 export const fragmentItem=(id:string)=>({id,templateId:'ascension_fragment',name:'Осколок вознесения',type:'material' as const,rarity:'rare' as const,level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:1,description:ASCENSION_FRAGMENT_DESCRIPTION});
 
 export const ASCENSION_ECHOES = [
