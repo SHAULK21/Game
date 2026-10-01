@@ -1,3 +1,4 @@
+import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../utils/sharpening';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem } from '../../types/game';
@@ -8,7 +9,7 @@ import { ItemArtwork } from '../ui/ItemArtwork';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
 
 export const BlacksmithScreen: React.FC = () => {
-  const { player, upgradeItem, disassembleItem } = useGame();
+  const { player, achievements, upgradeItem, disassembleItem } = useGame();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [useProtection, setUseProtection] = useState<boolean>(false);
   const [upgradeResultMsg, setUpgradeResultMsg] = useState<{ text: string; success: boolean } | null>(null);
@@ -19,15 +20,14 @@ export const BlacksmithScreen: React.FC = () => {
   // Items eligible for sharpening: equipped or inventory equipment
   const upgradeableItems: GameItem[] = [
     ...Object.values(player.equipped).filter(i=>i && i.type !== 'pickaxe' && i.type !== 'alchemyTool') as GameItem[],
-    ...player.inventory.filter(i => ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'ring', 'amulet'].includes(i.type))
+    ...player.inventory.filter(i => SHARPENABLE_TYPES.includes(i.type))
   ];
 
   const currentItem = upgradeableItems.find(i => i.id === selectedItemId) || upgradeableItems[0] || null;
 
   const currentLevel = currentItem ? (currentItem.upgradeLevel || 0) : 0;
-  const costGold = Math.round(120 * Math.pow(1.48, currentLevel));
-  const costSilver = Math.round(80 * Math.pow(1.42, currentLevel));
-  const protectionCost = useProtection ? Math.max(250, Math.round(costSilver * 1.5)) : 0;
+  const quote = sharpeningQuote(currentLevel, useProtection, achievements.some(a => a.id === 'ach_5' && a.claimed));
+  const costGold = quote.gold, costSilver = quote.silver, protectionCost = quote.protection;
   const requirements = currentItem ? getUpgradeRequirements(currentItem, currentLevel) : null;
   const ingredientRows = requirements ? [
     { name: requirements.ore, count: requirements.oreCount },
@@ -36,20 +36,7 @@ export const BlacksmithScreen: React.FC = () => {
   ] : [];
   const ingredientsReady = ingredientRows.every(req => player.inventory.reduce((sum, item) => sum + (item.name === req.name ? (item.stackCount ?? 1) : 0), 0) >= req.count);
 
-  // Success rate formula
-  let successRatePct = 100;
-  if (currentLevel === 1) successRatePct = 90;
-  else if (currentLevel === 2) successRatePct = 82;
-  else if (currentLevel === 3) successRatePct = 74;
-  else if (currentLevel === 4) successRatePct = 66;
-  else if (currentLevel === 5) successRatePct = 58;
-  else if (currentLevel === 6) successRatePct = 50;
-  else if (currentLevel === 7) successRatePct = 43;
-  else if (currentLevel === 8) successRatePct = 36;
-  else if (currentLevel === 9) successRatePct = 30;
-  else if (currentLevel >= 10 && currentLevel < 15) successRatePct = 22;
-  else if (currentLevel >= 15 && currentLevel < 20) successRatePct = 14;
-  else if (currentLevel >= 20) successRatePct = 7;
+  const successRatePct = Math.round(quote.chance * 100);
 
   const handleUpgrade = () => {
     if (!currentItem || isUpgrading) return;
@@ -77,7 +64,7 @@ export const BlacksmithScreen: React.FC = () => {
               Королевская Кузница
             </h2>
             <p className="text-xs text-slate-300">
-              Заточка снаряжения от +0 до +25. Руда + золото + серебро; провал может снизить уровень.
+              Заточка снаряжения от +0 до +25. До +5 — гарантированно. Пороги +5/+10/+15/+20 сохраняются при провале. Усиление: +6% за ступень.
             </p>
           </div>
         </div>
@@ -155,15 +142,15 @@ export const BlacksmithScreen: React.FC = () => {
           <ClassGearBonus item={currentItem} characterClass={player.classId} />
           <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-900 space-y-2">
             <div className="text-[10px] font-mono text-[#d5ba89] uppercase tracking-wider">
-              Прирост характеристик (+12% за уровень):
+              Прирост характеристик (+6% за уровень):
             </div>
             {currentItem.baseAttack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Физическая атака:</span>
                 <span className="text-slate-200 font-bold">
-                  {Math.round(currentItem.baseAttack * (1 + currentLevel * 0.12))} →{' '}
+                  {Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel))} →{' '}
                   <span className="text-emerald-400">
-                    {Math.round(currentItem.baseAttack * (1 + (currentLevel + 1) * 0.12))}
+                    {Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel + 1))}
                   </span>
                 </span>
               </div>
@@ -172,9 +159,9 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Физическая защита:</span>
                 <span className="text-slate-200 font-bold">
-                  {Math.round(currentItem.baseDefense * (1 + currentLevel * 0.12))} →{' '}
+                  {Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel))} →{' '}
                   <span className="text-emerald-400">
-                    {Math.round(currentItem.baseDefense * (1 + (currentLevel + 1) * 0.12))}
+                    {Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel + 1))}
                   </span>
                 </span>
               </div>
@@ -182,19 +169,19 @@ export const BlacksmithScreen: React.FC = () => {
             {!currentItem.baseAttack && currentItem.stats.attack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Атака:</span>
-                <span className="text-slate-200">{Math.round(currentItem.stats.attack * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.attack * (1 + (currentLevel + 1) * 0.12))}</span></span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel))} → <span className="text-emerald-400">{Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel + 1))}</span></span>
               </div>
             )}
             {currentItem.stats.magicAttack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Магическая атака:</span>
-                <span className="text-slate-200">{Math.round(currentItem.stats.magicAttack * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.magicAttack * (1 + (currentLevel + 1) * 0.12))}</span></span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel))} → <span className="text-emerald-400">{Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel + 1))}</span></span>
               </div>
             )}
             {!currentItem.baseDefense && currentItem.stats.defense && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">Защита:</span>
-                <span className="text-slate-200">{Math.round(currentItem.stats.defense * (1 + currentLevel * 0.12))} → <span className="text-emerald-400">{Math.round(currentItem.stats.defense * (1 + (currentLevel + 1) * 0.12))}</span></span>
+                <span className="text-slate-200">{Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel))} → <span className="text-emerald-400">{Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel + 1))}</span></span>
               </div>
             )}
           </div>

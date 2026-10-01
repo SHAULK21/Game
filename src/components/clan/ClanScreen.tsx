@@ -1,3 +1,5 @@
+import { CLAN_PROJECTS, clanProjectCost, clanRaidReward, type ClanProject } from '../../utils/clanProjects';
+import { createOperationId } from '../../utils/operationId';
 import { clanCreationCost } from '../../utils/clanEconomy';
 import {ClanManagement} from './ClanManagement';
 import {CLAN_ROLE_LABELS,canUseVault,type ClanRole} from '../../utils/clanRoles';
@@ -20,6 +22,7 @@ type Clan = {
   max_members: number;
   members_count: number;
   treasury_gold: number;
+  projects?: Partial<Record<ClanProject, number>>;
   raid_name: string;
   raid_hp: number;
   raid_max_hp: number;
@@ -258,7 +261,7 @@ export const ClanScreen: React.FC = () => {
                 <div className="text-[10px] text-purple-400 font-mono uppercase">Еженедельный рейд</div>
                 <h3 className="font-cinzel text-sm font-bold text-slate-100 mt-0.5">{clan.raid_name}</h3>
               </div>
-              <button onClick={attackRaid} disabled={action || clan.raid_hp <= 0} className="px-3 py-2 rounded-xl bg-purple-600 text-white text-[10px] font-bold disabled:opacity-40 flex items-center gap-1">
+              <button onClick={attackRaid} disabled={action || clan.raid_hp <= 0 && new Date(clan.raid_reset_at).getTime() > Date.now()} className="px-3 py-2 rounded-xl bg-purple-600 text-white text-[10px] font-bold disabled:opacity-40 flex items-center gap-1">
                 <Swords className="w-3.5 h-3.5" /> Удар
               </button>
             </div>
@@ -269,8 +272,24 @@ export const ClanScreen: React.FC = () => {
             <div className="h-3 mt-1 rounded-full bg-slate-950 overflow-hidden border border-purple-950">
               <div className="h-full bg-gradient-to-r from-purple-600 to-rose-500 transition-all" style={{ width: `${Math.max(0, Number(clan.raid_hp) / Number(clan.raid_max_hp) * 100)}%` }} />
             </div>
-            <div className="text-[9px] text-slate-500 mt-2">Один удар в сутки. Победа: +500 XP клана и +250 золота в казну.</div>
+            <div className="text-[9px] text-slate-500 mt-2">Один удар в сутки. Победа: +{clanRaidReward(clan.level, clan.projects?.research).xp} XP клана и +{clanRaidReward(clan.level, clan.projects?.research).gold} золота в казну. Новый рейд усиливается с уровнем клана.</div>
           </div>
+
+          <section className="rounded-xl border border-cyan-800 p-3 space-y-2">
+            <h3 className="text-sm text-cyan-200">Клановые проекты</h3>
+            {(Object.keys(CLAN_PROJECTS) as ClanProject[]).map(project => {
+              const level=clan.projects?.[project] || 0, cost=clanProjectCost(level);
+              return <div key={project} className="rounded border border-slate-800 p-2 text-xs">
+                <b>{CLAN_PROJECTS[project].name} · {level}/10</b><p className="text-slate-400">{CLAN_PROJECTS[project].description}</p>
+                <button disabled={action || level>=10 || !['owner','officer'].includes(clan.role || '')} onClick={()=>run(async()=>{
+                  const key=`clan_project_${clan.id}_${project}`;
+                  const id=localStorage.getItem(key) || createOperationId();localStorage.setItem(key,id);
+                  await apiRequest('/api/clan/projects/upgrade',{method:'POST',body:JSON.stringify({project,operationId:id})});
+                  localStorage.removeItem(key);
+                })} className="mt-2 rounded bg-cyan-950 p-2 disabled:opacity-40">{level>=10?'Максимум':`Улучшить · ${cost.gold} золота · ${cost.silver} серебра · ${cost.ore} руды`}</button>
+              </div>;
+            })}
+          </section>
 
           <div className="rounded-2xl border border-amber-500/30 bg-[#0d111b] p-4 space-y-3">
             <div className="flex justify-between items-center">

@@ -47,13 +47,13 @@ export function ascensionSkills(classId:CharacterClassId,state:AscensionState):S
  switch(classId){
   case 'warrior':first.hits=2;first.armorBreak=10;first.description+=' Два удара; уязвимость +10% получаемого урона на 3 хода.';break;
   case 'berserker':first.inflicts={type:'bleed',chance:1,duration:2,power:12};first.description+=' Кровотечение 2 хода.';break;
-  case 'knight':first.damageMultiplier=0;first.inflicts={type:'shield',chance:1,duration:2,power:150};first.description+=' Щит на 150 урона, 2 хода.';break;
+  case 'knight':first.damageMultiplier=0;first.inflicts={type:'shield',chance:1,duration:2,power:150};first.description+=' Щит: максимум из 150 и 6% максимального HP, 2 хода.';break;
   case 'rogue':first.inflicts={type:'vulnerability',chance:1,duration:2,power:10};first.description+=' Уязвимость +10% получаемого урона на 2 хода.';break;
   case 'assassin':first.guaranteedHit=true;first.armorBreak=15;first.description+=' Безошибочный удар; уязвимость +15% получаемого урона на 3 хода.';break;
   case 'archer':first.inflicts={type:'stun',chance:.5,duration:1,power:0};first.description+=' 50% шанс оглушения на 1 ход.';break;
   case 'mage':first.damageType='ice';first.inflicts={type:'freeze',chance:.5,duration:1,power:0};first.description+=' 50% шанс заморозки на 1 ход.';break;
   case 'necromancer':first.damageType='dark';first.inflicts={type:'poison',chance:1,duration:3,power:12};first.description+=' Яд на 3 хода.';break;
-  case 'paladin':first.damageMultiplier=0;first.healMultiplier=1.5;first.inflicts={type:'shield',chance:1,duration:1,power:60};first.description+=' Восстанавливает 150 HP и даёт щит на 60.';break;
+  case 'paladin':first.damageMultiplier=0;first.healMultiplier=1.5;first.inflicts={type:'shield',chance:1,duration:1,power:60};first.description+=' Лечение: 150 HP или 6% максимального HP; щит: 60 или 2,4% HP (большее значение).';break;
   case 'druid':first.inflicts={type:'poison',chance:1,duration:3,power:10};first.description+=' Яд на 3 хода.';break;
  }
  if(tier>=6){first.cooldown=3;first.description=first.description.replace('4 хода','3 хода')+' Усиление SS: перезарядка сокращена.';}
@@ -61,12 +61,20 @@ export function ascensionSkills(classId:CharacterClassId,state:AscensionState):S
  const ultimate:Skill={...common,id:`asc_${classId}_S`,name:CLASS_NAMES[classId][4],description:'Приём вознесения ранга S. Перезарядка 7 ходов.',icon:'🌟',isUltimate:true,manaCost:40,cooldown:7,damageMultiplier:2};
  if(['warrior','rogue','archer'].includes(classId))ultimate.hits=2;
  if(['berserker','assassin'].includes(classId)){ultimate.executeThreshold=.3;ultimate.executeMultiplier=1.3;ultimate.description+=' +30% урона по цели ниже 30% HP.';}
- if(classId==='knight'){ultimate.damageMultiplier=1.1;ultimate.inflicts={type:'shield',chance:1,duration:2,power:250};ultimate.description+=' Щит на 250 урона.';}
+ if(classId==='knight'){ultimate.damageMultiplier=1.1;ultimate.inflicts={type:'shield',chance:1,duration:2,power:250};ultimate.description+=' Щит: 250 или 10% максимального HP (большее значение).';}
  if(classId==='mage'){ultimate.damageType='lightning';ultimate.inflicts={type:'vulnerability',chance:1,duration:2,power:10};}
  if(classId==='necromancer'){ultimate.damageType='dark';ultimate.poisonBurst=true;ultimate.description+=' Взрывает накопленный яд.';}
- if(classId==='paladin'){ultimate.damageMultiplier=0;ultimate.healMultiplier=3;ultimate.inflicts={type:'shield',chance:1,duration:2,power:180};ultimate.description+=' Восстанавливает 300 HP и даёт щит на 180.';}
+ if(classId==='paladin'){ultimate.damageMultiplier=0;ultimate.healMultiplier=3;ultimate.inflicts={type:'shield',chance:1,duration:2,power:180};ultimate.description+=' Лечение: 300 HP или 12% максимального HP; щит: 180 или 7,2% HP (большее значение).';}
  if(classId==='druid')ultimate.inflicts={type:'poison',chance:1,duration:3,power:25};
- if(tier>=7){ultimate.cooldown=6;ultimate.damageMultiplier*=1.15;if(ultimate.healMultiplier)ultimate.healMultiplier*=1.15;if(ultimate.inflicts&&ultimate.inflicts.power>0)ultimate.inflicts.power=Math.round(ultimate.inflicts.power*1.15);ultimate.description=ultimate.description.replace('7 ходов','6 ходов').replace('300 HP',`${Math.round(100*(ultimate.healMultiplier||0))} HP`).replace('щит на 180',`щит на ${ultimate.inflicts?.power||0}`).replace('Щит на 250',`Щит на ${ultimate.inflicts?.power||0}`);ultimate.description+=' Эволюция SSS: +15% к силе нового приёма, перезарядка 6 ходов.';}
+ if(tier>=7){
+  ultimate.cooldown=6;ultimate.damageMultiplier*=1.15;
+  if(ultimate.healMultiplier)ultimate.healMultiplier*=1.15;
+  if(ultimate.inflicts&&ultimate.inflicts.power>0)ultimate.inflicts.power=Math.round(ultimate.inflicts.power*1.15);
+  ultimate.description=ultimate.description.replace('7 ходов','6 ходов');
+  ultimate.description+=' Эволюция SSS: +15% к силе приёма, перезарядка 6 ходов.';
+ }
+ if(classId==='paladin')ultimate.description=`Лечение: ${Math.round(100*ultimate.healMultiplier!)} HP или ${(4*ultimate.healMultiplier!).toFixed(1)}% максимального HP; щит: ${ultimate.inflicts!.power} или ${(ultimate.inflicts!.power/25).toFixed(1)}% HP (большее значение). Перезарядка ${ultimate.cooldown} ходов.`;
+ if(classId==='knight')ultimate.description=`Удар и щит: ${ultimate.inflicts!.power} или ${(ultimate.inflicts!.power/25).toFixed(1)}% максимального HP (большее значение). Перезарядка ${ultimate.cooldown} ходов.`;
  return [first,ultimate];
 }
 export function migrateAscension(player:PlayerCharacter):PlayerCharacter {
@@ -95,7 +103,7 @@ export function ascensionBoss(rank:AscensionRank):Monster {
  const index=ASCENSION_STAGES.indexOf(s);
  const heavy={id:'asc_heavy',name:'Удар хранителя',icon:'💥',manaCost:0,cooldown:3,currentCooldown:1,damageMultiplier:1.8,damageType:'physical' as const,description:'Сильный удар. Защита перед его ходом уменьшает полученный урон.'};
  const skills:MonsterSkill[]=[heavy];
- if(index>=2)skills.push({id:'asc_heal',name:'Живой источник',icon:'💚',manaCost:0,cooldown:4,currentCooldown:3,damageMultiplier:0,damageType:'physical',description:'Восстановит 5% HP. Контроль заставляет пропустить ход.'});
+ if(index>=2)skills.push({id:'asc_heal',name:'Живой источник',icon:'💚',manaCost:0,cooldown:4,currentCooldown:3,damageMultiplier:0,damageType:'physical',description:'Восстановит до 5% HP, максимум удвоенную атаку. Контроль заставляет пропустить ход.'});
  if(index>=3)skills.push({id:'asc_magic',name:'Печать разлома',icon:'🌑',manaCost:0,cooldown:4,currentCooldown:2,damageMultiplier:1.5,damageType:'magic',...(index>=4?{effect:'vulnerability' as const,effectChance:1,effectDuration:2,effectPower:10}:{}),description:index>=4?'Магический удар и уязвимость на 2 хода.':'Магический удар.'});
  return {id:`ascension_${rank}`,name:s.name,regionId:'ascension',level:1,hp:s.hp,maxHp:s.hp,mp:100,maxMp:100,attack:s.power,magicAttack:s.power,defense:s.defense,magicDefense:s.defense,speed:15+index*4,critChance:5,evasion:5,isBoss:true,bossPhase:1,avatar:'👑',expReward:0,goldReward:0,drops:[],skills};
 }

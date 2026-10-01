@@ -61,6 +61,7 @@ export type StatusEffectType =
   | 'shield' 
   | 'vulnerability' 
   | 'haste' 
+  | 'focus'
   | 'fury'
   | 'fortify'
   | 'invulnerable';
@@ -531,6 +532,7 @@ export interface PlayerCharacter {
   activePet?: Pet;
   craftedPetIds?: string[];
 
+  smithingXp?: number;
   miningLevel: number;
   miningExp: number;
   alchemyLevel: number;

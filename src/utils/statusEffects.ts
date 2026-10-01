@@ -5,6 +5,7 @@ export interface StatusModifiers {
   attackMultiplier: number;
   damageTakenMultiplier: number;
   invulnerable: boolean;
+  critBonus: number;
 }
 
 export interface StatusTickResult extends StatusModifiers {
@@ -22,8 +23,10 @@ export function getStatusModifiers(effects: StatusEffect[]): StatusModifiers {
   let damageTakenMultiplier = 1;
   let skipTurn = false;
   let invulnerable = false;
+  let critBonus = 0;
 
   for (const effect of effects) {
+    if (effect.type === 'focus') critBonus += Math.max(0, effect.value);
     if (effect.type === 'fury') {
       attackMultiplier *= 1 + Math.max(0, effect.value) / 100;
     }
@@ -48,7 +51,7 @@ export function getStatusModifiers(effects: StatusEffect[]): StatusModifiers {
     skipTurn,
     attackMultiplier,
     damageTakenMultiplier,
-    invulnerable
+    invulnerable, critBonus
   };
 }
 

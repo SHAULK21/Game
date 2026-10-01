@@ -1,3 +1,4 @@
+import { smithingProgress } from '../../utils/professions';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import {
@@ -39,6 +40,7 @@ export const CraftingScreen: React.FC = () => {
 
   if (!player) return null;
 
+  const mastery = smithingProgress(player.smithingXp);
   const selectedClass = classFilter ?? player.classId;
   const selectedRegionId = regionId || player.currentRegionId;
   const recipes = BASIC_CRAFT_RECIPES.filter(recipe => (!recipe.regionId || recipe.regionId === selectedRegionId)
@@ -53,9 +55,10 @@ export const CraftingScreen: React.FC = () => {
           <h2 className="text-xl font-semibold">Крафт снаряжения</h2>
         </div>
         <p className="mt-2 text-xs text-slate-300">Рецепты постоянны для всех игроков. Трофеи добываются в соседних по уровню локациях; шахтные материалы могут быть из разных жил.</p>
+        <p className="mt-2 text-xs text-emerald-300">Кузнечное дело: ур. {mastery.level} · {mastery.xp}/{mastery.nextXp} XP. Редкое качество: +{Math.min(10, (mastery.level - 1) * 0.1).toFixed(1)} п.п. Опыт даёт создание снаряжения.</p>
         <details className="mt-3 text-xs text-slate-300">
           <summary className="cursor-pointer py-2 text-[#d5ba89]">Шансы качества и заточки</summary>
-          <p className="mt-2">Качество созданного снаряжения: {qualityOdds}</p>
+          <p className="mt-2">Базовое качество (до бонуса мастерства): {qualityOdds}</p>
           <p className="mt-2">Уровень снаряжения случаен внутри ступени, все уровни равновероятны. Готовая заточка: +1 — 2%, +2 — 1,5%, +3 — 0,9%, +4 — 0,45%, +5 — 0,15%. Без заточки — 95%.</p>
         </details>
       </div>

@@ -1,3 +1,5 @@
+import { registerClanProjects } from './clanProjects';
+import { clanRaidHealth, clanRaidReward, clanRaidItem } from '../src/utils/clanProjects';
 import { leavePlayerClan } from './clanLeave';
 import { createPaidClan } from './clanCreation';
 import {createMarketListing} from './marketListings';
@@ -375,7 +377,7 @@ app.post('/api/clan/donate', auth, requireClan, async (req, res) => {
 });
 
 app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
-  const damage = 450 + crypto.randomInt(0, 251);
+  let damage = 450 + crypto.randomInt(0, 251);
 
   const client = await pool.connect();
   try {
@@ -385,22 +387,25 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
     let row = clan.rows[0];
 
     if (new Date(row.raid_reset_at).getTime() <= Date.now()) {
-      await client.query(
-        `UPDATE clans SET raid_hp = raid_max_hp, raid_reset_at = NOW() + INTERVAL '7 days', updated_at = NOW() WHERE id = $1`,
-        [row.id]
-      );
-      row.raid_hp = row.raid_max_hp;
+      const hp = clanRaidHealth(Number(row.level));
+      row = (await client.query(
+        `UPDATE clans SET raid_hp=$2,raid_max_hp=$2,raid_reset_at=NOW()+INTERVAL '7 days',updated_at=NOW() WHERE id=$1 RETURNING *`,
+        [row.id,hp]
+      )).rows[0];
+      await client.query('UPDATE clan_members SET raid_damage=0 WHERE clan_id=$1',[row.id]);
     }
 
+    damage = Math.round(damage * (1 + Math.min(10, Number(row.projects?.arsenal || 0)) * 0.05));
     if (Number(row.raid_hp) <= 0) throw new Error('Рейд уже завершён.');
     const attack = await client.query(`UPDATE clan_members SET last_raid_attack = NOW(), raid_damage = raid_damage + $3 WHERE clan_id = $1 AND telegram_id = $2 AND (last_raid_attack IS NULL OR last_raid_attack < date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') RETURNING telegram_id`,[row.id,req.authUser!.id,Math.min(damage,Number(row.raid_hp))]);
     if (!attack.rowCount) throw new Error('Один удар по рейду в сутки. Следующий — в 00:00 UTC.');
     const nextHp = Math.max(0, Number(row.raid_hp) - damage);
     await client.query('UPDATE clans SET raid_hp = $1, updated_at = NOW() WHERE id = $2', [nextHp, row.id]);
     if (nextHp === 0) {
-      await client.query('UPDATE clans SET xp = xp + 500, treasury_gold = treasury_gold + 250, level = GREATEST(level, LEAST(15, 1 + ((xp + 500) / 1000))), max_members = GREATEST(max_members, LEAST(50, 30 + ((xp + 500) / 1000) * 2)) WHERE id = $1',[row.id]);
-      const clanMembers = await client.query('SELECT telegram_id FROM clan_members WHERE clan_id = $1',[row.id]);
-      for (const member of clanMembers.rows) await queueNotification(client,member.telegram_id,'raid_' + row.id + '_' + row.raid_reset_at,'clan','🏆 Клан победил рейдового босса: +500 опыта клана и +250 золота в казну.');
+      const rewards = clanRaidReward(Number(row.level), Number(row.projects?.research || 0));
+      await client.query('UPDATE clans SET xp=xp+$2,treasury_gold=treasury_gold+$3,level=GREATEST(level,LEAST(15,1+((xp+$2)/1000))),max_members=GREATEST(max_members,LEAST(50,30+((xp+$2)/1000)*2)) WHERE id=$1',[row.id,rewards.xp,rewards.gold]);
+      const clanMembers = await client.query('SELECT telegram_id FROM clan_members WHERE clan_id=$1',[row.id]);
+      for (const member of clanMembers.rows) await queueNotification(client,member.telegram_id,'raid_' + row.id + '_' + row.raid_reset_at,'clan',`🏆 Клан победил рейдового босса: +${rewards.xp} опыта клана и +${rewards.gold} золота в казну.`);
     }
     // A single server-minted personal item per player per UTC week. The client
     // supplies neither its stats nor its rarity, so it cannot forge a deposit.
@@ -415,13 +420,7 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
     let reward = null;
     if (claim.rowCount) {
       const rare = crypto.randomInt(100) < 15;
-      const item = {
-        templateId: rare ? 'raid_relic' : 'raid_medallion',
-        name: rare ? 'Реликвия кланового рейда' : 'Медальон кланового рейда',
-        type: 'amulet', rarity: rare ? 'rare' : 'uncommon', level: 1, upgradeLevel: 0,
-        icon: rare ? '🔮' : '📿', stats: { maxHp: rare ? 100 : 45, maxMp: rare ? 50 : 20 },
-        sellPrice: rare ? 120 : 40, disassembleYield: { silver: rare ? 18 : 6, ore: rare ? 2 : 1 }
-      };
+      const item = clanRaidItem(Number(row.level), rare);
       const inserted = await client.query(
         `INSERT INTO owned_items (owner_telegram_id, item_json, origin)
          VALUES ($1, $2::jsonb, 'clan_raid') RETURNING id, item_json`,
@@ -438,6 +437,8 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
     client.release();
   }
 });
+
+registerClanProjects(app, () => pool, auth, requireClan);
 
 // All vault transfers lock the canonical item row and the membership record in
 // one transaction. The request body contains IDs and quantities, never item stats.

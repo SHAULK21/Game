@@ -8,14 +8,17 @@ export function simulateDuel(a: DuelFighter,b: DuelFighter,random = Math.random)
   const make = (f:DuelFighter) => {
     const caster = ['mage','necromancer','druid'].includes(f.classId);
     let hp=1200,attack=130,defense=60,speed=50;
-    if (f.classId==='knight') { hp=1450; attack=112; defense=78; speed=40; }
-    if (f.classId==='paladin') { hp=1410; attack=114; defense=75; speed=40; }
+    if (f.classId==='knight') { hp=1450; attack=110; defense=78; speed=40; }
+    if (f.classId==='paladin') { hp=1380; attack=112; defense=75; speed=40; }
     if (['rogue','assassin','archer'].includes(f.classId)) { hp=1100; attack=137; defense=50; speed=65; }
-    if (f.classId==='berserker') {hp=1280;attack=145;defense=38;}
-    if (['rogue','assassin'].includes(f.classId)) attack=142;
+    if (f.classId==='berserker') {hp=1280;attack=142;defense=38;}
+    if (f.classId==='rogue') attack=144;
+    if (f.classId==='assassin') attack=149;
+    if (f.classId==='archer') attack=142;
     if (caster) {hp=1100;attack=145;defense=55;}
-    if (f.classId==='mage') {hp=1140;attack=150;}
+    if (f.classId==='mage') {hp=1180;attack=148;}
     if (f.classId==='necromancer') hp=1150;
+    if (f.classId==='druid') {hp=1150;attack=141;}
     if (f.stance==='assault') {attack*=1.18;defense*=0.8;}
     if (f.stance==='guard') {defense*=1.35;attack*=0.88;}
     if (f.stance==='control') {speed*=1.3;attack*=0.94;}
@@ -25,7 +28,9 @@ export function simulateDuel(a: DuelFighter,b: DuelFighter,random = Math.random)
   let rounds=0;
   for(let round=1;round<=30 && fighters.every(f=>f.hp>0);round++) {
     rounds=round;
-    const first=fighters[0].speed===fighters[1].speed ? (random()<0.5?0:1) : fighters[0].speed>fighters[1].speed?0:1;
+    // Speed influences initiative without guaranteeing every opening strike.
+    const initiativeChance = 0.5 + Math.max(-0.15, Math.min(0.15, (fighters[0].speed - fighters[1].speed) / 150));
+    const first = random() < initiativeChance ? 0 : 1;
     for(const i of [first,1-first]) {
       const f=fighters[i],enemy=fighters[1-i]; if(f.hp<=0||enemy.hp<=0)break;
       const special=round%3===0;let multiplier=special?1.35:1;
