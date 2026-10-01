@@ -173,3 +173,50 @@ CREATE TABLE IF NOT EXISTS inventory_bulk_disposals (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_inventory_bulk_disposals_user ON inventory_bulk_disposals(telegram_id, created_at DESC);
+
+-- Notifications survive process restarts and are delivered by the bot worker.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS notification_settings JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS bot_started BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS class_id TEXT NOT NULL DEFAULT 'warrior';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS referred_by BIGINT REFERENCES players(telegram_id);
+CREATE TABLE IF NOT EXISTS game_notifications (
+ id BIGSERIAL PRIMARY KEY, telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+ event_key TEXT NOT NULL, category TEXT NOT NULL, text TEXT NOT NULL,
+ due_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), sent_at TIMESTAMPTZ, read_at TIMESTAMPTZ,
+ attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ UNIQUE (telegram_id,event_key)
+);
+CREATE INDEX IF NOT EXISTS idx_game_notifications_pending ON game_notifications(due_at,next_attempt_at) WHERE sent_at IS NULL;
+CREATE TABLE IF NOT EXISTS referral_rewards (
+ invitee BIGINT PRIMARY KEY REFERENCES players(telegram_id), inviter BIGINT NOT NULL REFERENCES players(telegram_id), rewarded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS admin_premium_grants (
+ id UUID PRIMARY KEY, telegram_id BIGINT NOT NULL REFERENCES players(telegram_id), days INTEGER NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE clan_members DROP CONSTRAINT IF EXISTS clan_members_role_check;
+ALTER TABLE clan_members ADD CONSTRAINT clan_members_role_check CHECK (role IN ('owner','officer','quartermaster','veteran','member','recruit'));
+ALTER TABLE clan_members ADD COLUMN IF NOT EXISTS raid_damage BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE clan_members ADD COLUMN IF NOT EXISTS last_raid_attack TIMESTAMPTZ;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS recruitment_open BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS min_join_level INTEGER NOT NULL DEFAULT 1;
+CREATE TABLE IF NOT EXISTS clan_management_events (
+ id BIGSERIAL PRIMARY KEY, clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+ actor BIGINT NOT NULL, text TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- Equalized asynchronous PvP: no client-provided damage, wallet or match result.
+CREATE TABLE IF NOT EXISTS pvp_profiles (
+ telegram_id BIGINT PRIMARY KEY REFERENCES players(telegram_id) ON DELETE CASCADE,
+ rating INTEGER NOT NULL DEFAULT 1000, wins INTEGER NOT NULL DEFAULT 0, losses INTEGER NOT NULL DEFAULT 0,
+ tickets INTEGER NOT NULL DEFAULT 5, ticket_day DATE NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')::date,
+ stance TEXT NOT NULL DEFAULT 'balanced' CHECK (stance IN ('balanced','assault','guard','control')),
+ enrolled BOOLEAN NOT NULL DEFAULT FALSE, last_fight_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS pvp_matches (
+ id UUID PRIMARY KEY, attacker BIGINT NOT NULL REFERENCES players(telegram_id), defender BIGINT NOT NULL REFERENCES players(telegram_id),
+ result JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_pvp_matches_pair ON pvp_matches(attacker,defender,created_at DESC);
+CREATE TABLE IF NOT EXISTS market_listing_requests (
+ id UUID PRIMARY KEY, telegram_id BIGINT NOT NULL REFERENCES players(telegram_id), request_json JSONB NOT NULL,
+ listing_id UUID NOT NULL REFERENCES market_listings(id), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

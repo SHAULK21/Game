@@ -31,7 +31,8 @@ const slugify = (value: string) =>
 const isEquipmentDrop = (drop: MonsterDrop) => EQUIPMENT_TYPES.includes(drop.type);
 
 function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): GameItem {
-  const qty = Math.floor(drop.minQty + Math.random() * (drop.maxQty - drop.minQty + 1));
+  const rawQty = Math.floor(drop.minQty + Math.random() * (drop.maxQty - drop.minQty + 1));
+  const qty = isEquipmentDrop(drop) ? rawQty : Math.max(1, Math.floor(rawQty * 0.5));
   const mult = RARITY_MULTIPLIER[drop.rarity] ?? 1;
   const idBase = `drop_${monsterLevel}_${slugify(drop.itemName)}_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`;
 
@@ -106,7 +107,7 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
   if (weaponClass === 'bow') { stats.accuracy = (stats.accuracy || 0) + 4; stats.armorPenetration = (stats.armorPenetration || 0) + 2; }
   if (weaponClass === 'staff') { stats.magicAttack = (stats.magicAttack || 0) + Math.round(monsterLevel * 2 * mult); stats.maxMp = (stats.maxMp || 0) + Math.round(monsterLevel * 3); }
 
-  const salvageSilver = Math.max(3, Math.round((10 + monsterLevel * 4) * mult * (isEquipmentDrop(drop) ? 0.8 : 0.45)));
+  const salvageSilver = Math.max(3, Math.round((4 + monsterLevel * 1.2) * mult * (isEquipmentDrop(drop) ? 0.8 : 0.45)));
 
   const item: GameItem = {
     id: idBase,
@@ -134,9 +135,9 @@ function makeDropItem(drop: MonsterDrop, monsterLevel: number, index: number): G
     baseDefense,
     baseMagicDef,
     stats,
-    sellPrice: Math.max(1, Math.round((10 + monsterLevel * 4) * mult)),
+    sellPrice: Math.max(1, Math.round((4 + monsterLevel * 1.2) * mult)),
     disassembleYield: {
-      ore: isEquipmentDrop(drop) ? Math.max(1, Math.floor(monsterLevel / 3)) : 0,
+      ore: isEquipmentDrop(drop) ? Math.min(6, Math.max(1, Math.floor(monsterLevel / 12))) : 0,
       silver: salvageSilver
     },
     stackCount: Math.max(1, qty)
@@ -219,52 +220,33 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
   const items: GameItem[] = [];
   const droppedKeys = new Set<string>();
 
-  // Roll every table entry first. Drops are deliberately plentiful, but rarity stays controlled.
+  // Resources are scarce; bosses retain a guaranteed trophy.
   drops.forEach((drop, index) => {
     const key = drop.templateId || drop.itemName;
-    const chance = Math.min(0.92, Math.max(0.03, drop.chance * rarityMultiplierForRoll(drop, rareDropMult)));
-    if (Math.random() <= chance) {
+    const resourceFactor = isEquipmentDrop(drop) ? 0.7 : 0.4;
+    const chance = Math.min(0.9, Math.max(0, drop.chance * rarityMultiplierForRoll(drop, rareDropMult) * resourceFactor));
+    if (Math.random() < chance) {
       items.push(makeDropItem(drop, monster.level, index));
       droppedKeys.add(key);
     }
   });
-
-  // Every normal kill yields at least one trophy. This prevents "empty" fights.
-  if (!items.length && drops.length) {
+  if (monster.isBoss && !items.length && drops.length) {
     const fallback = pickBestFallback(drops);
-    if (fallback) {
-      items.push(makeDropItem(fallback, monster.level, 99));
-      droppedKeys.add(fallback.templateId || fallback.itemName);
-    }
-  }
-
-  // Normal combat usually grants a second distinct item.
-  if (drops.length > 1 && items.length < 2 && Math.random() < 0.82) {
-    const fallback = pickBestFallback(drops, droppedKeys);
-    if (fallback) {
-      items.push(makeDropItem(fallback, monster.level, 100));
-      droppedKeys.add(fallback.templateId || fallback.itemName);
-    }
-  }
-
-  // About one fight in three gets a third distinct item; this is where variety becomes visible.
-  if (drops.length > 2 && items.length < 3 && Math.random() < 0.34 + Math.min(0.18, Math.max(0, rareDropMult - 1) * 0.12)) {
-    const fallback = pickBestFallback(drops, droppedKeys);
-    if (fallback) items.push(makeDropItem(fallback, monster.level, 101));
+    if (fallback) { items.push(makeDropItem(fallback,monster.level,99)); droppedKeys.add(fallback.templateId || fallback.itemName); }
   }
 
   // If the table has equipment and the fight produced only resources, give equipment a modest extra roll.
-  if (items.length < 2 && drops.some(isEquipmentDrop) && Math.random() < 0.55 * Math.max(0.5, rareDropMult)) {
+  if (items.length < 2 && drops.some(isEquipmentDrop) && Math.random() < 0.2 * Math.max(0.5, rareDropMult)) {
     const equipment = pickBestFallback(drops.filter(isEquipmentDrop), droppedKeys);
     if (equipment) items.push(makeDropItem(equipment, monster.level, 102));
   }
 
   // Procedural equipment keeps ordinary fights visually diverse even when a monster has a small fixed drop table.
-  const proceduralChance = monster.isBoss ? 1 : monster.isElite ? 0.86 : 0.62;
+  const proceduralChance = monster.isBoss ? 0.75 : monster.isElite ? 0.4 : 0.2;
   if (items.length < 4 && Math.random() < proceduralChance * Math.min(1.35, Math.max(0.75, rareDropMult))) {
     items.push(makeProceduralEquipment(monster, rareDropMult, 200 + items.length));
   }
-  if (items.length < 5 && Math.random() < (monster.isBoss ? 0.75 : monster.isElite ? 0.42 : 0.20) * Math.min(1.4, Math.max(0.8, rareDropMult))) {
+  if (items.length < 5 && Math.random() < (monster.isBoss ? 0.35 : monster.isElite ? 0.15 : 0.05) * Math.min(1.4, Math.max(0.8, rareDropMult))) {
     items.push(makeProceduralEquipment(monster, rareDropMult * 1.08, 240 + items.length));
   }
 
@@ -280,6 +262,6 @@ export function generateCombatLoot(opts: GenerateLootOptions): {
   return {
     items,
     gold: Math.max(0, Math.round(baseGold * goldMult)),
-    silver: Math.max(1, Math.round(baseSilver * silverMult))
+    silver: Math.max(0, Math.round(baseSilver * silverMult))
   };
 }

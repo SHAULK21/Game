@@ -1,3 +1,5 @@
+import {ClanManagement} from './ClanManagement';
+import {CLAN_ROLE_LABELS,canUseVault,type ClanRole} from '../../utils/clanRoles';
 import React, { useEffect, useState } from 'react';
 import {
   ShieldCheck, Users, Swords, Crown, LogIn, LogOut, Plus,
@@ -21,14 +23,17 @@ type Clan = {
   raid_hp: number;
   raid_max_hp: number;
   raid_reset_at: string;
-  role?: 'owner' | 'officer' | 'member';
+  role?: ClanRole;
+  recruitment_open?: boolean;
+  min_join_level?: number;
 };
 
 type Member = {
   telegram_id: number;
   display_name: string;
   username?: string;
-  role: 'owner' | 'officer' | 'member';
+  role: ClanRole;
+  raid_damage?: number;
   joined_at: string;
 };
 
@@ -67,6 +72,7 @@ export const ClanScreen: React.FC = () => {
   const [storedItems, setStoredItems] = useState<StoredItem[]>([]);
   const [personalItems, setPersonalItems] = useState<StoredItem[]>([]);
   const [storageEvents, setStorageEvents] = useState<StorageEvent[]>([]);
+  const [recipients,setRecipients] = useState<Record<string,string>>({});
   const [bulkRarity, setBulkRarity] = useState('common');
 
   const load = async () => {
@@ -232,8 +238,8 @@ export const ClanScreen: React.FC = () => {
               </div>
               <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 text-center">
                 <Trophy className="w-3.5 h-3.5 mx-auto text-purple-400" />
-                <div className="text-xs font-bold mt-1">+{Math.min(30, clan.level * 2)}%</div>
-                <div className="text-[8px] text-slate-500">клановый бонус</div>
+                <div className="text-xs font-bold mt-1">{clan.max_members} мест</div>
+                <div className="text-[8px] text-slate-500">вместимость</div>
               </div>
             </div>
 
@@ -263,7 +269,7 @@ export const ClanScreen: React.FC = () => {
             <div className="h-3 mt-1 rounded-full bg-slate-950 overflow-hidden border border-purple-950">
               <div className="h-full bg-gradient-to-r from-purple-600 to-rose-500 transition-all" style={{ width: `${Math.max(0, Number(clan.raid_hp) / Number(clan.raid_max_hp) * 100)}%` }} />
             </div>
-            <div className="text-[9px] text-slate-500 mt-2">Урон рассчитывается сервером — клиент не может подменить значение.</div>
+            <div className="text-[9px] text-slate-500 mt-2">Один удар в сутки. Победа: +500 XP клана и +250 золота в казну.</div>
           </div>
 
           <div className="rounded-2xl border border-amber-500/30 bg-[#0d111b] p-4 space-y-3">
@@ -289,8 +295,10 @@ export const ClanScreen: React.FC = () => {
                 <div key={item.id} className="rounded-lg border border-slate-800 p-2 flex items-center gap-2 text-xs">
                   <span>{item.item_json.icon}</span>
                   <span className="flex-1 truncate">{item.item_json.name} ×{item.quantity} · {item.item_json.rarity}</span>
-                  {clan.role !== 'member' && <div className="flex gap-2 text-[10px]">
+                  {canUseVault(clan.role || '') && <div className="flex flex-wrap gap-2 text-[10px]">
                     <button disabled={action} onClick={() => moveItem(item, 'withdraw')} className="text-[#d5ba89]">Забрать</button>
+                    <select aria-label={`Получатель ${item.item_json.name}`} value={recipients[item.id]||''} disabled={action} onChange={e=>setRecipients(prev=>({...prev,[item.id]:e.target.value}))} className="bg-slate-950 rounded w-20"><option value="">Кому?</option>{members.map(m=><option key={m.telegram_id} value={m.telegram_id}>{m.display_name}</option>)}</select>
+                    <button disabled={action||!recipients[item.id]} onClick={()=>run(()=>apiRequest(`/api/clan/storage/${item.id}/give`,{method:'POST',body:JSON.stringify({targetId:recipients[item.id]})}))} className="text-emerald-300 disabled:opacity-40">Выдать</button>
                     <button disabled={action} onClick={() => disposeStored('sell', item.id)} className="text-amber-300">Продать</button>
                     <button disabled={action} onClick={() => disposeStored('disassemble', item.id)} className="text-violet-300">Разобрать</button>
                   </div>}
@@ -298,7 +306,7 @@ export const ClanScreen: React.FC = () => {
               ))}
               {!storedItems.length && <div className="text-[10px] text-slate-600">Хранилище пусто.</div>}
             </div>
-            {clan.role !== 'member' && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[10px]">
+            {canUseVault(clan.role || '') && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[10px]">
               <span className="text-slate-400">До редкости:</span>
               <select value={bulkRarity} onChange={e => setBulkRarity(e.target.value)} className="bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
                 {['common','uncommon','rare','epic','legendary','mythic','ancient','divine'].map(r => <option key={r} value={r}>{r}</option>)}
@@ -311,26 +319,7 @@ export const ClanScreen: React.FC = () => {
             </div>}
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#090e18] p-3">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-cinzel text-xs font-bold text-slate-200">Участники</h3>
-              <span className="text-[9px] text-slate-500">{members.length} игроков</span>
-            </div>
-            <div className="space-y-1.5 max-h-56 overflow-auto">
-              {members.map(member => (
-                <div key={member.telegram_id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-900">
-                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs">⚔️</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-bold text-slate-200 truncate">{member.display_name}</div>
-                    <div className="text-[8px] text-slate-500">@{member.username || 'игрок'}</div>
-                  </div>
-                  <span className={`text-[8px] font-bold ${member.role === 'owner' ? 'text-amber-300' : member.role === 'officer' ? 'text-[#d5ba89]' : 'text-slate-500'}`}>
-                    {member.role === 'owner' ? 'ГЛАВА' : member.role === 'officer' ? 'ОФИЦЕР' : 'УЧАСТНИК'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ClanManagement clan={clan} members={members} busy={action} run={run} />
 
           <div className="rounded-2xl border border-slate-800 bg-[#090e18] p-3">
             <div className="flex items-center justify-between mb-2">
@@ -380,8 +369,8 @@ export const ClanScreen: React.FC = () => {
                     <div className="text-[9px] text-slate-500 mt-0.5">Ур. {c.level} · {c.members_count}/{c.max_members}</div>
                     <div className="text-[9px] text-slate-400 mt-1 line-clamp-2">{c.description || 'Без описания'}</div>
                   </div>
-                  <button onClick={() => joinClan(c.id)} disabled={action || c.members_count >= c.max_members} className="px-2.5 py-1.5 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] text-[9px] font-bold disabled:opacity-40 flex items-center gap-1">
-                    <UserPlus className="w-3 h-3" /> Вступить
+                  <button onClick={() => joinClan(c.id)} disabled={action || c.members_count >= c.max_members || c.recruitment_open === false || player.level < (c.min_join_level || 1)} className="px-2.5 py-1.5 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] text-[9px] font-bold disabled:opacity-40 flex items-center gap-1">
+                    <UserPlus className="w-3 h-3" /> {c.recruitment_open === false ? 'Набор закрыт' : player.level < (c.min_join_level || 1) ? `С ур. ${c.min_join_level}` : 'Вступить'}
                   </button>
                 </div>
               </div>

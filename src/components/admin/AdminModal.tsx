@@ -25,6 +25,7 @@ interface AdminModalProps {
 export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const {
     player,
+    refreshPremiumStatus,
     adminAddGold,
     adminAddSilver,
     adminLevelUp,
@@ -37,6 +38,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const [broadcastText, setBroadcastText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [serverStats, setServerStats] = useState({ totalPlayers: 0, onlinePlayers: 0 });
+  const [premiumDays,setPremiumDays] = useState(30);
+  const [premiumBusy,setPremiumBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -129,6 +132,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div className="mt-1 text-xl font-mono font-bold text-emerald-200">{serverStats.onlinePlayers}</div>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-yellow-500/40 p-3 space-y-2">
+          <div className="text-xs text-yellow-200">👑 Выдать себе игровой Premium</div>
+          <label className="text-xs">Дней <input type="number" min={1} max={365} value={premiumDays} onChange={e=>setPremiumDays(Number(e.target.value))} className="w-20 bg-slate-950 p-2 rounded"/></label>
+          <button disabled={premiumBusy} onClick={async()=>{
+            setPremiumBusy(true);
+            const key='aethelgard_admin_premium_pending';
+            let operationId=localStorage.getItem(key);if(!operationId){operationId=crypto.randomUUID();localStorage.setItem(key,operationId);}
+            try{await apiRequest('/api/admin/premium/self',{method:'POST',body:JSON.stringify({days:premiumDays,operationId})});localStorage.removeItem(key);await refreshPremiumStatus();showNotice('Premium начислен.');}
+            catch(e){showNotice(String(e));}finally{setPremiumBusy(false);}
+          }} className="ml-3 p-2 rounded bg-yellow-800 text-xs disabled:opacity-40">{premiumBusy?'Начисление…':'Выдать'}</button>
         </div>
 
         {/* Quick Resource Cheats */}

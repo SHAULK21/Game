@@ -1,3 +1,5 @@
+import { PvpArena } from './PvpArena';
+import { nextArenaReset } from '../../utils/gameCadence';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ARENA_BOTS } from '../../data/gameData';
@@ -9,6 +11,7 @@ interface ArenaScreenProps {
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) => {
   const { player, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
+  const [mode,setMode] = useState<'pve'|'pvp'>('pve');
   const [fightError, setFightError] = useState<string | null>(null);
 
   if (!player) return null;
@@ -37,6 +40,9 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      <div className="grid grid-cols-2 gap-2">{(['pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{m==='pve'?'Арена против гладиаторов':'PvP — игроки'}</button>)}</div>
+      {mode === 'pvp' ? <PvpArena /> : <>
+      <p className="text-xs text-slate-400">В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.</p>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">
@@ -45,7 +51,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
               <Trophy className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-[10px] font-mono text-yellow-400 uppercase">Рейтинговый сезон I</div>
+              <div className="text-[10px] font-mono text-yellow-400 uppercase">Бои против гладиаторов</div>
               <h2 className="font-cinzel text-base font-bold text-slate-100">
                 Колизей Чемпионов
               </h2>
@@ -55,9 +61,9 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
           <div className="text-right">
             <span className="text-[10px] font-mono text-slate-400 block">Билеты арены:</span>
             <span className="text-xs font-mono font-bold text-yellow-300">
-              🎟️ {player.arenaTickets} / 5
+              🎟️ {player.arenaTickets} (ежедневно до 5)
             </span>
-            <span className="text-[10px] text-slate-400 block">Восстановление: 00:00 UTC</span>
+            <span className="text-[10px] text-slate-400 block">Обновление: {new Date(nextArenaReset()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} · 00:00 UTC</span>
           </div>
         </div>
 
@@ -77,8 +83,8 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">Сезон: 24 дня</span>
-            <span className="text-[10px] text-slate-400 block">Награда: 5,000 🪙</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">Тренировочная арена</span>
+            <span className="text-[10px] text-slate-400 block">PvP имеет отдельный рейтинг</span>
           </div>
         </div>
       </div>
@@ -138,6 +144,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
           })}
         </div>
       </div>
+      </>}
     </div>
   );
 };

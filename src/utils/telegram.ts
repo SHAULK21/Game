@@ -16,6 +16,7 @@ declare global {
         initDataUnsafe?: {
           user?: TelegramUser;
           query_id?: string;
+          start_param?: string;
           auth_date?: number;
           hash?: string;
         };
@@ -61,6 +62,7 @@ declare global {
         setHeaderColor: (color: string) => void;
         setBackgroundColor: (color: string) => void;
         openInvoice?: (url: string, callback?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void) => void;
+        requestWriteAccess?: (callback: (granted: boolean) => void) => void;
         openTelegramLink?: (url: string) => void;
       };
     };

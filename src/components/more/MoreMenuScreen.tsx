@@ -1,3 +1,4 @@
+import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
@@ -23,7 +24,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium'>('quests');
+  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications'>('quests');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       {/* Navigation Sub-Tabs */}
-      <div className="grid grid-cols-5 gap-1.5 text-[10px] font-cinzel font-bold">
+      <div className="grid grid-cols-3 gap-1.5 text-[10px] font-cinzel font-bold">
         <button
           onClick={() => setActiveSection('quests')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
@@ -101,7 +102,9 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >
           Premium
         </button>
+        <button onClick={() => setActiveSection('notifications')} className={`py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}>🔔 Оповещения</button>
       </div>
+      {activeSection === 'notifications' && <NotificationsPanel />}
 
       {/* QUESTS SECTION */}
       {activeSection === 'quests' && (

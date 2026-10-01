@@ -502,6 +502,7 @@ export interface PlayerCharacter {
   statPoints: number;
   talentPoints: number;
   lastBulkDisposalId?: string;
+  lastMarketListingOperation?: string;
 
   gold: number;
   silver: number;
@@ -534,6 +535,8 @@ export interface PlayerCharacter {
   arenaRating: number;
   arenaTickets: number;
   lastArenaTicketRefresh?: string;
+  bossTicketDay?: string;
+  bossTicketsToday?: number;
   arenaLeague: string;
 
   clanId?: string;

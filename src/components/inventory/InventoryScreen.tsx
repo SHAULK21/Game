@@ -358,7 +358,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
         </div>
       )}
 
-      <BulkInventoryActions />
+      {!premium.active && <BulkInventoryActions />}
 
       <div className="grid grid-cols-3 gap-1.5">
         {([
@@ -616,6 +616,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
         </div>
       )}
 
+      {premium.active && <BulkInventoryActions />}
       <div className="text-[9px] text-slate-600 text-center">
         Руда из шахты теперь расходуется на заточку: чем выше +, тем более редкая руда нужна.
       </div>

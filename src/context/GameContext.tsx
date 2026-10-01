@@ -1,3 +1,4 @@
+import { refreshGameTimers, utcDay, miningYield } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -449,8 +450,8 @@ const generateMiningExpeditionRewards = (
   premiumMultiplier = 1
 ): MiningExpeditionReward[] => {
   const available = MINING_EXPEDITION_POOLS.filter(entry => entry.minLevel <= Math.max(1, miningLevel));
-  const rolls = hours >= 7 ? 9 : hours >= 3 ? 6 : 4;
-  const qtyBase = Math.max(1, Math.round(hours * premiumMultiplier));
+  const rolls = hours >= 7 ? 4 : hours >= 3 ? 3 : 2;
+  const qtyBase = Math.max(1, Math.round(hours * premiumMultiplier * 0.45));
   const merged = new Map<string, MiningExpeditionReward>();
 
   for (let roll = 0; roll < rolls; roll += 1) {
@@ -508,7 +509,7 @@ const addMiningRewardsToInventory = (
       icon: reward.icon,
       description: 'Добыто в шахтёрской экспедиции.',
       stats: {},
-      sellPrice: Math.max(2, reward.count * 2),
+      sellPrice: 2,
       disassembleYield: reward.type === 'ore' ? { ore: 1 } : { silver: 2 },
       stackCount: reward.count
     };
@@ -542,6 +543,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const talentFollowup = useRef(0);
   const bulkInventoryBusy = useRef(false);
   const serverInventoryVersion = useRef(0);
+  const marketBusy = useRef(false);
   useEffect(() => {
     if (!isCombatEnded || combatOutcome !== 'defeat') {
       arenaDefeatHandled.current = false;
@@ -620,6 +622,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!player) return;
     refreshPremiumStatus();
+    const refresh=()=>void refreshPremiumStatus();
+    const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);
+    return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
   }, [player?.userId, refreshPremiumStatus]);
 
   useEffect(() => {
@@ -751,26 +756,43 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
-    if (item.serverOwned) return { success: false, message: 'Серверные предметы пока нельзя выставить на старый рынок.' };
-    if (item.isLocked || item.boundToClan) return { success: false, message: 'Запертый или клановый предмет нельзя выставить на рынок.' };
-    if (!player.inventory.some(i => i.id === item.id && !i.isLocked && !i.boundToClan)) return { success: false, message: 'Предмета нет в инвентаре.' };
-    const stack = item.stackCount || 1;
-    if (quantity < 1 || quantity > stack) return { success: false, message: 'Недостаточное количество.' };
+    if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
+    const key = 'aethelgard_market_pending_' + player.userId;
+    let operation: {operationId:string;item:GameItem;quantity:number;priceGold:number} | null = null;
+    try { operation = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
+    if (operation?.operationId === player.lastMarketListingOperation) {localStorage.removeItem(key);operation=null;}
+    if (!operation) {
+      const current = player.inventory.find(i => i.id === item.id);
+      if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
+      if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
+      operation={operationId:crypto.randomUUID(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
+    }
+    marketBusy.current=true;serverInventoryVersion.current+=1;
+    const pending=operation;
     try {
-      await apiRequest('/api/market/list', { method: 'POST', body: JSON.stringify({ item, quantity, price_gold: priceGold }) });
+      await apiRequest('/api/market/list',{method:'POST',body:JSON.stringify({operationId:pending.operationId,item:pending.item,itemId:pending.item.serverOwned?pending.item.id:undefined,quantity:pending.quantity,price_gold:pending.priceGold})});
       setPlayer(prev => {
-        if (!prev) return prev;
-        let left = quantity;
-        const inventory = prev.inventory.map(i => {
-          if (i.id !== item.id || left <= 0) return i;
-          const take = Math.min(left, i.stackCount || 1); left -= take;
-          return { ...i, stackCount: (i.stackCount || 1) - take };
-        }).filter(i => (i.stackCount || 1) > 0);
-        return { ...prev, inventory };
+        if(!prev || prev.userId!==player.userId || prev.lastMarketListingOperation===pending.operationId)return prev;
+        const inventory=prev.inventory.flatMap(i=>{
+          if(i.id!==pending.item.id)return [i];
+          const left=(i.stackCount||1)-pending.quantity;
+          return left>0?[{...i,stackCount:left}]:[];
+        });
+        return {...prev,inventory,lastMarketListingOperation:pending.operationId};
       });
-      return { success: true, message: 'Лот выставлен на рынок.' };
-    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Не удалось выставить лот.' }; }
+      return {success:true,message:'Лот выставлен на рынок.'};
+    }catch(error){
+      const message=error instanceof Error?error.message:'Не удалось выставить лот.';
+      if (/HTTP 400|HTTP 403|HTTP 409/.test(message))localStorage.removeItem(key);
+      return {success:false,message};
+    }finally{marketBusy.current=false;}
   }, [player]);
+
+  useEffect(()=>{
+    if(!player || !localStorage.getItem('aethelgard_market_pending_'+player.userId))return;
+    try{const operation=JSON.parse(localStorage.getItem('aethelgard_market_pending_'+player.userId)!);void listMarketItem(operation.item,operation.quantity,operation.priceGold);}catch{localStorage.removeItem('aethelgard_market_pending_'+player.userId);}
+  },[player?.userId]);
 
   const refreshMarketIncome = useCallback(async () => {
     if (!player) return;
@@ -799,7 +821,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
         upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
         armorClass: raw.armorClass, weaponClass: raw.weaponClass,
-        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: {}, stackCount: result.quantity
+        baseAttack: raw.baseAttack, baseDefense: raw.baseDefense, baseMagicDef: raw.baseMagicDef,
+        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: raw.disassembleYield || {}, stackCount: result.quantity
       };
       const item = applyClassGear(rawMarketItem);
       item.name = getLeveledEquipmentName(item.name, item.type, item.level, item.targetClass);
@@ -823,22 +846,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   }, [player]);
 
-  // Energy is intentionally scarce: active play is designed to last roughly 15 minutes.
-  // Regeneration is deliberately slow: +1 energy every 120 seconds.
+  // Time-based regeneration also catches up after a suspended Telegram WebView.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setPlayer(prev => {
-        if (!prev) return prev;
-        if (prev.energy >= prev.maxEnergy) return prev;
-        return {
-          ...prev,
-          energy: Math.min(prev.maxEnergy, prev.energy + 1),
-          lastEnergyRegenTimestamp: Date.now()
-        };
-      });
-    }, 15000);
-    return () => clearInterval(timer);
-  }, []);
+    const refresh = () => setPlayer(prev => prev ? refreshGameTimers(prev) : prev);
+    refresh();
+    const timer = setInterval(refresh, 10000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
+  }, [player?.userId]);
 
   // Separate mining energy regeneration (+1 every 10 seconds).
   useEffect(() => {
@@ -858,7 +874,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!prev || prev.alchemyEnergy >= prev.maxAlchemyEnergy) return prev;
         return { ...prev, alchemyEnergy: Math.min(prev.maxAlchemyEnergy, prev.alchemyEnergy + 1) };
       });
-    }, 5000);
+    }, 20000);
     return () => clearInterval(timer);
   }, []);
 
@@ -879,6 +895,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (elapsedMins >= 2) {
             setPendingOfflineMinutes(Math.min(elapsedMins, 480));
           }
+          parsed.player.lastEnergyRegenTimestamp ??= parsed.player.lastActiveTimestamp || now;
           parsed.player.lastActiveTimestamp = now;
 
           // Migrate old saves to the two-currency economy.
@@ -924,11 +941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? parsed.player.craftedPetIds
             : [parsed.player.activePet?.id || 'pet_wolf'];
           parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
-          const arenaDay = new Date().toISOString().slice(0, 10);
-          if (!parsed.player.lastArenaTicketRefresh || parsed.player.lastArenaTicketRefresh !== arenaDay) {
-            parsed.player.arenaTickets = 5;
-            parsed.player.lastArenaTicketRefresh = arenaDay;
-          }
+          parsed.player = refreshGameTimers(parsed.player, now);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           const savedRegion = REGIONS.find(region => region.id === parsed.player.currentRegionId);
           if (!savedRegion || parsed.player.level < savedRegion.minLevel) {
@@ -981,26 +994,33 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ]);
   }, []);
 
-  // Arena tickets return each UTC day, including while the game stays open.
-  useEffect(() => {
-    const refreshTickets = () => {
-      const today = new Date().toISOString().slice(0, 10);
-      setPlayer(prev => prev && prev.lastArenaTicketRefresh !== today
-        ? { ...prev, arenaTickets: 5, lastArenaTicketRefresh: today }
-        : prev);
-    };
-    const timer = setInterval(refreshTickets, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Keep the public leaderboard profile synchronized without sending every inventory/gold change.
   useEffect(() => {
     if (!player) return;
     apiRequest('/api/profile/sync', {
       method: 'POST',
-      body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
+      body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating, classId: player.classId })
     }).catch(() => undefined);
   }, [player?.id, player?.name, player?.level, player?.arenaRating]);
+
+  // Server schedules continue to work while the Mini App is closed.
+  const energyReadyAt = player && player.energy < player.maxEnergy
+    ? (player.lastEnergyRegenTimestamp || Date.now()) + (player.maxEnergy - player.energy) * 120000 : 0;
+  useEffect(() => {
+    if (!player) return;
+    const timer = setTimeout(() => {
+      apiRequest('/api/notifications/schedule', {method:'POST',body:JSON.stringify({energy:player.energy,maxEnergy:player.maxEnergy,regenAt:player.lastEnergyRegenTimestamp,miningEndsAt:player.miningExpedition?.endsAt})}).catch(() => undefined);
+    }, 750);
+    return () => clearTimeout(timer);
+  }, [player?.userId,energyReadyAt,player?.miningExpedition?.endsAt]);
+
+  useEffect(() => {
+    if (!player) return;
+    // Sync level before checking referral progress; reopening is also a safe retry.
+    apiRequest('/api/profile/sync',{method:'POST',body:JSON.stringify({characterName:player.name,level:player.level,arenaRating:player.arenaRating,classId:player.classId})})
+      .then(() => apiRequest<{rewarded:boolean}>('/api/referrals/check',{method:'POST',body:'{}'}))
+      .then(result => { if(result.rewarded) void refreshPremiumStatus(); }).catch(() => undefined);
+  }, [player?.userId,player?.level]);
 
   // Periodic Save
   useEffect(() => {
@@ -1014,6 +1034,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
     localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
+    const marketPendingKey='aethelgard_market_pending_'+player.userId;
+    try {const operation=JSON.parse(localStorage.getItem(marketPendingKey)||'null');if(operation?.operationId===player.lastMarketListingOperation)localStorage.removeItem(marketPendingKey);}catch{localStorage.removeItem(marketPendingKey);}
     // Remove the retry record only after the awarded state has been persisted.
     const pending = localStorage.getItem(pendingBulkKey(player.userId));
     if (pending) {
@@ -1431,7 +1453,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isInCombat, isCombatEnded]);
 
   const refreshServerInventory = useCallback(async () => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     const version = ++serverInventoryVersion.current;
     const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
     if (version !== serverInventoryVersion.current) return;
@@ -1462,7 +1484,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player?.userId, refreshServerInventory]);
 
   const bulkDisposeItems = useCallback(async (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => {
-    if (!player || bulkInventoryBusy.current) return {success:false,message:'Обработка уже выполняется.'};
+    if (!player || bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Обработка уже выполняется.'};
     const key = pendingBulkKey(player.userId);
     let operation: PendingBulkDisposal | null = null;
     try { operation = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
@@ -1508,7 +1530,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Equipment & Inventory management
   const equipItem = useCallback((item: GameItem) => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     if (item.serverOwned) {
       if (!player || item.level > player.level) return;
       apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' })
@@ -1540,7 +1562,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, refreshServerInventory]);
 
   const unequipItem = useCallback((type: ItemType) => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     const equippedItem = player?.equipped[type];
     if (equippedItem?.serverOwned) {
       apiRequest('/api/items/' + encodeURIComponent(equippedItem.id) + '/unequip', { method: 'POST', body: '{}' })
@@ -1571,7 +1593,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, refreshServerInventory]);
 
   const sellItem = useCallback((item: GameItem) => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     if (item.serverOwned) {
       apiRequest<{ gold: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'sell' }) })
         .then(async result => { setPlayer(prev => prev ? { ...prev, gold: prev.gold + result.gold } : prev); await refreshServerInventory(); })
@@ -1594,7 +1616,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshServerInventory]);
 
   const disassembleItem = useCallback((item: GameItem) => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     if (item.serverOwned) {
       apiRequest<{ silver: number; ore: number }>('/api/items/' + encodeURIComponent(item.id) + '/dispose', { method: 'POST', body: JSON.stringify({ action: 'disassemble' }) })
         .then(async result => {
@@ -1650,7 +1672,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshServerInventory]);
 
   const toggleItemLock = useCallback((itemId: string) => {
-    if (bulkInventoryBusy.current) return;
+    if (bulkInventoryBusy.current || marketBusy.current) return;
     if (player?.inventory.some(i => i.id === itemId && i.serverOwned) || Object.values(player?.equipped || {}).some(i => i?.id === itemId && i.serverOwned)) {
       apiRequest('/api/items/' + encodeURIComponent(itemId) + '/lock', { method: 'POST', body: '{}' })
         .then(() => refreshServerInventory()).catch(error => console.error('Could not lock item:', error));
@@ -2031,7 +2053,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
     const activeMod = REGION_MODIFIERS[player?.activeRegionModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
     // Every completed combat has a small consumable roll: 0–3 potions.
-    const potionCount = Math.floor(Math.random() * 2);
+    const potionCount = Math.random() < 0.15 ? 1 : 0;
     const potionPool: GameItem[] = [
       { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
       { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
@@ -2048,8 +2070,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lootResult = generateCombatLoot({
         monster,
         rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
-        goldMult: (activeMod.goldMultiplier || 1) * 0.55 * (1 + combatStats.goldBonus / 100),
-        silverMult: (activeMod.silverMultiplier || 1) * 0.65 * (1 + combatStats.goldBonus / 100)
+        goldMult: (activeMod.goldMultiplier || 1) * 0.22 * (1 + combatStats.goldBonus / 100),
+        silverMult: (activeMod.silverMultiplier || 1) * 0.20 * (1 + combatStats.goldBonus / 100)
       });
     } catch (error) {
       console.error('Combat loot generation failed:', error);
@@ -2099,8 +2121,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       exp: expReward,
       items: itemsToAward.map(item => ({ ...item }))
     });
-    const dungeonBonusPotions = completesDungeon ? Math.floor(Math.random() * 4) : 0;
+    const dungeonBonusPotions = completesDungeon && Math.random() < 0.4 ? 1 : 0;
+    const ticketDay = utcDay();
+    const dailyBossTickets = player?.bossTicketDay === ticketDay ? (player.bossTicketsToday || 0) : 0;
+    const bossTicket = monster.isBoss && monster.regionId !== 'arena' && dailyBossTickets < 3 && Math.random() < 0.25 ? 1 : 0;
     const logs = [...baseLogs];
+    if (bossTicket) logs.push({ id: 'ticket_' + Date.now(), turn: currentTurn, text: '🎟️ С босса выпал билет арены!', type: 'system' });
     if (arenaRatingGain) logs.push({
       id: 'arena_rating_' + Date.now(), turn: currentTurn,
       text: `🏅 Рейтинг арены: +${arenaRatingGain} очков.`, type: 'system'
@@ -2176,6 +2202,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const next = {
         ...xpResult.player,
         arenaRating: xpResult.player.arenaRating + arenaRatingGain,
+        arenaTickets: xpResult.player.arenaTickets + bossTicket,
+        bossTicketDay: ticketDay,
+        bossTicketsToday: dailyBossTickets + bossTicket,
         gold: xpResult.player.gold + lootResult.gold,
         silver: xpResult.player.silver + lootResult.silver,
         inventory,
@@ -3215,7 +3244,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const miningAchievementBonus = achievements.some(a => a.id === 'ach_4' && a.claimed) ? 0.10 : 0;
     const isCrit = Math.random() < Math.min(0.75, 0.25 + player.attributes.luck * 0.003 + miningAchievementBonus);
     const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
-    const yieldCount = isCrit ? Math.max(baseYield + 1, Math.ceil(baseYield * 1.5)) : baseYield;
+    const scarceYield = miningYield(baseYield);
+    const yieldCount = isCrit ? scarceYield + 1 : scarceYield;
 
     let inventory = [...player.inventory];
     const oreItem: GameItem = {
@@ -3240,7 +3270,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const bonusMaterialsFound: string[] = [];
     for (const bonus of MINING_BONUS_MATERIALS[node.id] || []) {
-      if (Math.random() > bonus.chance) continue;
+      if (Math.random() > bonus.chance * 0.5) continue;
       const count = bonus.minQty + Math.floor(Math.random() * (bonus.maxQty - bonus.minQty + 1));
       const bonusItem: GameItem = {
         id: 'mine_mat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),

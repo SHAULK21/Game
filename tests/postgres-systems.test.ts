@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+import {createMarketListing} from '../server/marketListings';
+import {registerSocialFeatures} from '../server/socialFeatures';
+
+test('Postgres schema, canonical market transfers, PvP, clan roles and referral grants work together',async()=>{
+ const db=new PGlite();const oldAdmin=process.env.ADMIN_TELEGRAM_ID;process.env.ADMIN_TELEGRAM_ID='1';
+ const query=async(sql:string,args:any[]=[])=>{const r=await db.query<Record<string,any>>(sql,args);return {...r,rowCount:r.affectedRows||r.rows.length};};
+ const client={query,release:()=>{}};const pool:any={query,connect:async()=>client};
+ const routes=new Map<string,any[]>();const app:any={get:(p:string,...h:any[])=>routes.set('GET '+p,h),post:(p:string,...h:any[])=>routes.set('POST '+p,h)};
+ registerSocialFeatures(app,()=>pool,(_r,_s,n)=>n(),async()=>({username:'game_bot'}) as any,'https://game.test');
+ const call=async(method:string,path:string,user:number,body:any={},params:any={})=>{
+  let status=200,response:any;const req:any={body,params,headers:{},authUser:{id:user}};const res:any={status:(code:number)=>{status=code;return res;},json:(value:any)=>{response=value;return res;}};
+  for(const h of routes.get(method+' '+path)!){let next=false;await h(req,res,()=>{next=true;});if(!next)break;}
+  return {status,body:response};
+ };
+ try{
+  // PGlite provides PostgreSQL itself; pgcrypto is absent, UUID generation is built into its PostgreSQL version.
+  const schema=(await fs.readFile('server/schema.sql','utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;','');
+  await db.exec(schema);await db.exec(schema);
+  await query("INSERT INTO players (telegram_id,display_name,level,class_id) VALUES (1,'A',20,'warrior'),(2,'B',20,'archer'),(3,'C',9,'mage')");
+  const item={templateId:'iron',name:'Железная руда',type:'ore',rarity:'common',level:1,upgradeLevel:0,stats:{},sellPrice:2,disassembleYield:{ore:1}};
+  const owned=(await query("INSERT INTO owned_items (owner_telegram_id,item_json,quantity,origin) VALUES (1,$1::jsonb,5,'test') RETURNING id",[JSON.stringify(item)])).rows[0] as any;
+  const body={operationId:'00000000-0000-4000-8000-000000000021',item:{...item,id:owned.id,serverOwned:true,type:'weapon'},itemId:owned.id,quantity:2,price_gold:100};
+  const listing=await createMarketListing(pool,1,body);assert.equal(listing.item_json.type,'ore','canonical JSON overrides client payload');
+  assert.equal((await createMarketListing(pool,1,body)).id,listing.id);
+  assert.equal((await query('SELECT quantity FROM owned_items WHERE id=$1',[owned.id])).rows[0].quantity,3);
+  assert.equal((await query('SELECT COUNT(*)::int AS count FROM market_listings')).rows[0].count,1);
+  await assert.rejects(()=>createMarketListing(pool,1,{...body,quantity:3}));
+  await query('UPDATE owned_items SET locked=TRUE WHERE id=$1',[owned.id]);
+  await assert.rejects(()=>createMarketListing(pool,1,{...body,operationId:'00000000-0000-4000-8000-000000000022'}));
+  assert.equal((await query('SELECT quantity FROM owned_items WHERE id=$1',[owned.id])).rows[0].quantity,3);
+  const legacy=await createMarketListing(pool,1,{operationId:'00000000-0000-4000-8000-000000000023',item:{...item,id:'herb',type:'material',stats:{heal:20}},quantity:1,price_gold:15});assert.equal(legacy.item_json.stats.heal,20);
+  await call('POST','/api/pvp/enroll',1,{stance:'balanced',enrolled:true});await call('POST','/api/pvp/enroll',2,{stance:'guard',enrolled:true});
+  const state=await call('GET','/api/pvp',1);assert.equal(state.status,200);assert.equal(state.body.opponents.length,1);assert.equal(state.body.starsEnabled,false);
+  const fight={targetId:2,matchId:'00000000-0000-4000-8000-000000000024'};
+  const result=await call('POST','/api/pvp/challenge',1,fight);assert.equal(result.status,200,JSON.stringify(result.body));
+  const retry=await call('POST','/api/pvp/challenge',1,fight);assert.deepEqual(retry.body,result.body);
+  assert.equal((await query('SELECT tickets FROM pvp_profiles WHERE telegram_id=1')).rows[0].tickets,4);
+  assert.equal((await query('SELECT COUNT(*)::int AS count FROM pvp_matches')).rows[0].count,1);
+  const clan='00000000-0000-4000-8000-000000000025';
+  await query("INSERT INTO clans (id,tag,name,owner_telegram_id,treasury_gold) VALUES ($1,'TEST','Test clan',1,2000)",[clan]);
+  await query("INSERT INTO clan_members (clan_id,telegram_id,role) VALUES ($1,1,'owner'),($1,2,'officer'),($1,3,'recruit')",[clan]);
+  await query('UPDATE players SET clan_id=$1',[clan]);
+  assert.equal((await call('POST','/api/clan/manage',2,{action:'role',targetId:3,role:'officer'})).status,400);
+  assert.equal((await call('POST','/api/clan/manage',1,{action:'role',targetId:3,role:'quartermaster'})).status,200);
+  assert.equal((await call('POST','/api/clan/manage',1,{action:'settings',description:'Rules',open:false,minLevel:20})).status,200);
+  assert.equal((await call('POST','/api/clan/manage',1,{action:'upgrade'})).status,200);
+  assert.equal((await query('SELECT level FROM clans WHERE id=$1',[clan])).rows[0].level,2);
+  assert.equal((await call('POST','/api/clan/manage',1,{action:'transfer',targetId:2})).status,200);
+  assert.equal(String((await query('SELECT owner_telegram_id FROM clans WHERE id=$1',[clan])).rows[0].owner_telegram_id),'2');
+  assert.equal((await query('SELECT role FROM clan_members WHERE telegram_id=1')).rows[0].role,'officer');
+  const stored=(await query("INSERT INTO owned_items (clan_id,bound_clan_id,item_json,origin) VALUES ($1,$1,$2::jsonb,'test') RETURNING id",[clan,JSON.stringify(item)])).rows[0] as any;
+  assert.equal((await call('POST','/api/clan/storage/:itemId/give',3,{targetId:1},{itemId:stored.id})).status,200);
+  assert.equal(String((await query('SELECT owner_telegram_id FROM owned_items WHERE id=$1',[stored.id])).rows[0].owner_telegram_id),'1');
+  const grant={operationId:'00000000-0000-4000-8000-000000000026',days:30};
+  const before=await call('POST','/api/admin/premium/self',1,grant);assert.equal(before.status,200);
+  assert.deepEqual((await call('POST','/api/admin/premium/self',1,grant)).body,before.body);
+  await query('UPDATE players SET referred_by=1 WHERE telegram_id=3');
+  assert.equal((await call('POST','/api/referrals/check',3)).body.rewarded,false);
+  await query('UPDATE players SET level=10 WHERE telegram_id=3');
+  assert.equal((await call('POST','/api/referrals/check',3)).body.rewarded,true);
+  const expiry=(await query('SELECT premium_until FROM players WHERE telegram_id=1')).rows[0].premium_until;
+  assert.equal((await call('POST','/api/referrals/check',3)).body.rewarded,false);
+  assert.deepEqual((await query('SELECT premium_until FROM players WHERE telegram_id=1')).rows[0].premium_until,expiry);
+  assert.equal((await call('POST','/api/notifications/settings',1,{enabled:true,market:false})).status,200);
+  assert.equal((await call('POST','/api/notifications/schedule',1,{energy:40,maxEnergy:60,regenAt:Date.now()})).status,200);
+  const notifications=await call('GET','/api/notifications',1);assert.equal(notifications.status,200);assert.equal(notifications.body.settings.market,false);assert.ok(notifications.body.notifications.length>0);
+  assert.equal((await call('POST','/api/notifications/read',1)).status,200);
+ }finally{await db.close();if(oldAdmin===undefined)delete process.env.ADMIN_TELEGRAM_ID;else process.env.ADMIN_TELEGRAM_ID=oldAdmin;}
+});

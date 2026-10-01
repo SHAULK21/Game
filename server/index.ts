@@ -1,3 +1,6 @@
+import {createMarketListing} from './marketListings';
+import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
+import { canUseVault } from '../src/utils/clanRoles';
 import { disposeBulkItems, BulkDisposalError } from './bulkDisposal';
 import 'dotenv/config';
 import 'express-async-errors';
@@ -40,7 +43,8 @@ const telegramBotApi = async <T = unknown>(method: string, payload: Record<strin
   const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000)
   });
   const data = await response.json() as { ok: boolean; result?: T; description?: string };
   if (!data.ok) throw new Error(data.description || `Telegram Bot API error: ${method}`);
@@ -191,6 +195,8 @@ const requireClan = async (req: express.Request, res: express.Response, next: ex
   next();
 };
 
+registerSocialFeatures(app, () => pool, auth, telegramBotApi, publicBaseUrl);
+
 app.get('/api/health', async (_req, res) => {
   try {
     const dbStarted = Date.now();
@@ -240,13 +246,15 @@ app.get('/api/admin/status', auth, async (req, res) => {
 });
 
 app.post('/api/profile/sync', auth, async (req, res) => {
-  const level = Math.max(1, Math.min(120, Math.floor(Number(req.body?.level || 1))));
+  const rawLevel = Number(req.body?.level || 1);
+  const level = Number.isFinite(rawLevel) ? Math.max(1, Math.min(120, Math.floor(rawLevel))) : 1;
   const arenaRating = Math.max(0, Math.min(2147483647, Math.floor(Number(req.body?.arenaRating ?? 1000))));
   const characterName = typeof req.body?.characterName === 'string' ? req.body.characterName.trim() || null : null;
   await pool.query(
     'UPDATE players SET level = $1, arena_rating = $2, character_name = COALESCE($3, character_name), updated_at = NOW() WHERE telegram_id = $4',
     [level, arenaRating, characterName, req.authUser!.id]
   );
+  if (Object.hasOwn(CLASS_EQUIPMENT, String(req.body?.classId))) await pool.query('UPDATE players SET class_id = $1 WHERE telegram_id = $2', [req.body.classId,req.authUser!.id]);
   res.json({ ok: true });
 });
 
@@ -277,7 +285,7 @@ app.get('/api/leaderboard', auth, async (_req, res) => {
 app.get('/api/clans', auth, async (req, res) => {
   const q = String(req.query.q || '').trim();
   const result = await pool.query(
-    `SELECT c.id, c.tag, c.name, c.description, c.level, c.xp, c.max_members,
+    `SELECT c.id, c.tag, c.name, c.description, c.level, c.xp, c.max_members, c.recruitment_open, c.min_join_level,
             COUNT(cm.telegram_id)::int AS members_count
      FROM clans c
      LEFT JOIN clan_members cm ON cm.clan_id = c.id
@@ -305,7 +313,7 @@ app.get('/api/clan/me', auth, async (req, res) => {
 
   const clan = result.rows[0];
   const members = await pool.query(
-    `SELECT cm.telegram_id, cm.role, cm.joined_at, p.display_name, p.username
+    `SELECT cm.telegram_id, cm.role, cm.joined_at, cm.raid_damage, p.level, p.display_name, p.username
      FROM clan_members cm JOIN players p ON p.telegram_id = cm.telegram_id
      WHERE cm.clan_id = $1
      ORDER BY CASE cm.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, cm.joined_at ASC`,
@@ -365,12 +373,15 @@ app.post('/api/clan/:clanId/join', auth, async (req, res) => {
     const player = await client.query('SELECT clan_id FROM players WHERE telegram_id = $1 FOR UPDATE', [req.authUser!.id]);
     if (player.rows[0]?.clan_id) throw new Error('Вы уже состоите в клане.');
 
-    const clan = await client.query('SELECT id, max_members FROM clans WHERE id = $1 FOR UPDATE', [req.params.clanId]);
+    const clan = await client.query('SELECT id, max_members, recruitment_open, min_join_level FROM clans WHERE id = $1 FOR UPDATE', [req.params.clanId]);
     if (!clan.rows[0]) throw new Error('Клан не найден.');
+    if (!clan.rows[0].recruitment_open) throw new Error('Набор в клан закрыт.');
+    const levelRow = await client.query('SELECT level FROM players WHERE telegram_id = $1',[req.authUser!.id]);
+    if (Number(levelRow.rows[0].level) < clan.rows[0].min_join_level) throw new Error('Недостаточный уровень для вступления.');
     const members = await client.query('SELECT COUNT(*)::int AS count FROM clan_members WHERE clan_id = $1', [req.params.clanId]);
     if (Number(members.rows[0].count) >= Number(clan.rows[0].max_members)) throw new Error('Клан заполнен.');
 
-    await client.query('INSERT INTO clan_members (clan_id, telegram_id) VALUES ($1, $2)', [req.params.clanId, req.authUser!.id]);
+    await client.query("INSERT INTO clan_members (clan_id, telegram_id, role) VALUES ($1, $2, 'recruit')", [req.params.clanId, req.authUser!.id]);
     await client.query('UPDATE players SET clan_id = $1, updated_at = NOW() WHERE telegram_id = $2', [req.params.clanId, req.authUser!.id]);
     await client.query('COMMIT');
     res.json({ ok: true });
@@ -388,6 +399,9 @@ app.post('/api/clan/leave', auth, requireClan, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SELECT id FROM clans WHERE id = $1 FOR UPDATE',[clan.id]);
+    const current = await client.query('SELECT role FROM clan_members WHERE clan_id=$1 AND telegram_id=$2 FOR UPDATE',[clan.id,req.authUser!.id]);
+    if (!current.rows[0] || current.rows[0].role === 'owner') throw new Error('Перед выходом передайте руководство.');
     await client.query('DELETE FROM clan_members WHERE clan_id = $1 AND telegram_id = $2', [clan.id, req.authUser!.id]);
     await client.query('UPDATE players SET clan_id = NULL, updated_at = NOW() WHERE telegram_id = $1', [req.authUser!.id]);
     await client.query('COMMIT');
@@ -424,8 +438,16 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
       row.raid_hp = row.raid_max_hp;
     }
 
+    if (Number(row.raid_hp) <= 0) throw new Error('Рейд уже завершён.');
+    const attack = await client.query(`UPDATE clan_members SET last_raid_attack = NOW(), raid_damage = raid_damage + $3 WHERE clan_id = $1 AND telegram_id = $2 AND (last_raid_attack IS NULL OR last_raid_attack < date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') RETURNING telegram_id`,[row.id,req.authUser!.id,Math.min(damage,Number(row.raid_hp))]);
+    if (!attack.rowCount) throw new Error('Один удар по рейду в сутки. Следующий — в 00:00 UTC.');
     const nextHp = Math.max(0, Number(row.raid_hp) - damage);
     await client.query('UPDATE clans SET raid_hp = $1, updated_at = NOW() WHERE id = $2', [nextHp, row.id]);
+    if (nextHp === 0) {
+      await client.query('UPDATE clans SET xp = xp + 500, treasury_gold = treasury_gold + 250, level = GREATEST(level, LEAST(15, 1 + ((xp + 500) / 1000))), max_members = GREATEST(max_members, LEAST(50, 30 + ((xp + 500) / 1000) * 2)) WHERE id = $1',[row.id]);
+      const clanMembers = await client.query('SELECT telegram_id FROM clan_members WHERE clan_id = $1',[row.id]);
+      for (const member of clanMembers.rows) await queueNotification(client,member.telegram_id,'raid_' + row.id + '_' + row.raid_reset_at,'clan','🏆 Клан победил рейдового босса: +500 опыта клана и +250 золота в казну.');
+    }
     // A single server-minted personal item per player per UTC week. The client
     // supplies neither its stats nor its rarity, so it cannot forge a deposit.
     const periodStart = new Date();
@@ -444,7 +466,7 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
         name: rare ? 'Реликвия кланового рейда' : 'Медальон кланового рейда',
         type: 'amulet', rarity: rare ? 'rare' : 'uncommon', level: 1, upgradeLevel: 0,
         icon: rare ? '🔮' : '📿', stats: { maxHp: rare ? 100 : 45, maxMp: rare ? 50 : 20 },
-        sellPrice: rare ? 120 : 40, disassembleYield: { silver: rare ? 60 : 20, ore: rare ? 3 : 1 }
+        sellPrice: rare ? 120 : 40, disassembleYield: { silver: rare ? 18 : 6, ore: rare ? 2 : 1 }
       };
       const inserted = await client.query(
         `INSERT INTO owned_items (owner_telegram_id, item_json, origin)
@@ -599,7 +621,7 @@ app.post('/api/clan/storage/:itemId/withdraw', auth, requireClan, async (req, re
   try {
     await client.query('BEGIN');
     const role = await vaultRole(client, clanId, req.authUser!.id);
-    if (role === 'member') throw new Error('Забирать вещи могут глава и офицеры.');
+    if (!canUseVault(role)) throw new Error('Забирать вещи могут глава, офицеры и казначей.');
     const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND clan_id = $2 FOR UPDATE`, [req.params.itemId, clanId]);
     const row = found.rows[0];
     if (!row || row.quantity < quantity) throw new Error('Предмет уже забрали.');
@@ -629,7 +651,7 @@ app.post('/api/clan/storage/dispose', auth, requireClan, async (req, res) => {
   try {
     await client.query('BEGIN');
     const role = await vaultRole(client, clanId, req.authUser!.id);
-    if (role === 'member') throw new Error('Продавать и разбирать вещи могут глава и офицеры.');
+    if (!canUseVault(role)) throw new Error('Продавать и разбирать вещи могут глава, офицеры и казначей.');
     const result = await client.query(`SELECT * FROM owned_items WHERE clan_id = $1 ${itemId ? 'AND id = $2' : ''} ORDER BY created_at, id LIMIT 200 FOR UPDATE`, itemId ? [clanId, itemId] : [clanId]);
     const selected = result.rows.filter(row => itemId || RARITY_ORDER.indexOf(String(row.item_json.rarity)) <= RARITY_ORDER.indexOf(rarity));
     if (!selected.length) throw new Error('Подходящих вещей в хранилище нет.');
@@ -737,28 +759,10 @@ app.get('/api/market/listings', auth, async (req, res) => {
 });
 
 app.post('/api/market/list', auth, async (req, res) => {
-  const item = req.body?.item;
-  const quantity = Math.floor(Number(req.body?.quantity || 1));
-  const price = Math.floor(Number(req.body?.price_gold));
-  if (!item || typeof item !== 'object') return res.status(400).json({ error: 'Предмет не указан.' });
-  if (item.isLocked || item.boundToClan) return res.status(400).json({ error: 'Запертый или клановый предмет нельзя выставить на рынок.' });
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Количество: 1–999.' });
-  if (!Number.isInteger(price) || price < 1 || price > 100000000) return res.status(400).json({ error: 'Цена: 1–100000000 золота.' });
-  const safeItem = {
-    templateId: String(item.templateId || ''), name: String(item.name || 'Предмет').slice(0, 80),
-    type: String(item.type || 'material'), rarity: String(item.rarity || 'common'), level: Number(item.level || 1),
-    upgradeLevel: Number(item.upgradeLevel || 0), icon: String(item.icon || '📦'), stats: item.stats || {},
-    armorClass: ['heavy', 'medium', 'light'].includes(item.armorClass) ? item.armorClass : undefined,
-    weaponClass: ['twoHanded', 'dagger', 'staff', 'shield', 'bow'].includes(item.weaponClass) ? item.weaponClass : undefined,
-    targetClass: Object.hasOwn(CLASS_EQUIPMENT, String(item.targetClass)) ? item.targetClass : undefined,
-    description: String(item.description || '').slice(0, 300), sellPrice: Number(item.sellPrice || 0)
-  };
-  const result = await pool.query(
-    `INSERT INTO market_listings (seller_telegram_id, item_json, quantity, price_gold)
-     VALUES ($1, $2::jsonb, $3, $4) RETURNING id, item_json, quantity, price_gold, created_at`,
-    [req.authUser!.id, JSON.stringify(safeItem), quantity, price]
-  );
-  res.status(201).json({ listing: { ...result.rows[0], display_name: req.authUser!.displayName } });
+  try {
+    const listing = await createMarketListing(pool,req.authUser!.id,req.body);
+    res.status(201).json({listing:{...listing,display_name:req.authUser!.displayName}});
+  } catch(error) {res.status(400).json({error:error instanceof Error?error.message:'Не удалось выставить предмет.'});}
 });
 
 app.get('/api/market/income', auth, async (req, res) => {
@@ -785,6 +789,7 @@ app.post('/api/market/:listingId/buy', auth, async (req, res) => {
       `UPDATE market_listings SET status = 'sold', sale_tax_gold = $2, seller_net_gold = $3, sold_at = NOW() WHERE id = $1`,
       [req.params.listingId, sale.taxGold, sale.sellerGold]
     );
+    await queueNotification(client, listing.rows[0].seller_telegram_id, 'market_' + req.params.listingId, 'market', `🪙 На рынке купили ${listing.rows[0].item_json.name} ×${listing.rows[0].quantity}. Выручка после налога: ${sale.sellerGold} золота.`);
     await client.query('COMMIT');
     res.json({ ok: true, item: listing.rows[0].item_json, quantity: listing.rows[0].quantity, priceGold: listing.rows[0].price_gold, seller: listing.rows[0].seller_telegram_id, ...sale });
   } catch (error) {
@@ -867,6 +872,16 @@ app.post('/api/telegram/webhook', async (req, res) => {
   }
 
   const message = update.message || update.edited_message;
+  if (message?.chat?.type === 'private' && message?.from?.id && String(message.text || '').startsWith('/start')) {
+    const userId = Number(message.from.id);
+    await pool.query(`INSERT INTO players (telegram_id, display_name, bot_started) VALUES ($1,$2,TRUE) ON CONFLICT (telegram_id) DO UPDATE SET bot_started = TRUE`,[userId,String(message.from.first_name || 'Игрок')]);
+    const referral = String(message.text).match(/^\/start(?:@\w+)?\s+ref_(\d+)$/);
+    if (referral && Number(referral[1]) !== userId) {
+      await pool.query(`UPDATE players SET referred_by = $1 WHERE telegram_id = $2 AND referred_by IS NULL AND created_at > NOW() - INTERVAL '10 minutes' AND EXISTS (SELECT 1 FROM players WHERE telegram_id = $1 AND created_at < (SELECT created_at FROM players WHERE telegram_id = $2))`,[referral[1],userId]);
+    }
+    await telegramBotApi('sendMessage',{chat_id:userId,text:'⚔️ Добро пожаловать в Аэтельгард! Приведите нового друга: когда он достигнет 10 уровня, вы оба получите игровой Premium на 3 дня.',...(publicBaseUrl ? {reply_markup:{inline_keyboard:[[{text:'Открыть игру',web_app:{url:publicBaseUrl}}]]}} : {})});
+    return res.json({ok:true});
+  }
   const payment = message?.successful_payment;
   if (payment) {
     const payload = String(payment.invoice_payload || '');
@@ -887,7 +902,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
 
       await pool.query(
         `UPDATE players
-         SET premium_until = $1,
+         SET premium_until = GREATEST(COALESCE(premium_until,$1::timestamptz),$1::timestamptz),
              premium_charge_id = $2,
              updated_at = NOW()
          WHERE telegram_id = $3`,
@@ -908,6 +923,8 @@ app.post('/api/telegram/webhook', async (req, res) => {
           Boolean(payment.is_first_recurring)
         ]
       );
+      await queueNotification(pool,telegramId,'premium_'+payment.telegram_payment_charge_id,'premium','👑 Оплата принята. Игровой Premium активирован.');
+      await queueNotification(pool,telegramId,'premium_expire_'+expiresAt.toISOString(),'premium','👑 Срок игрового Premium истёк.',expiresAt);
     }
   }
 
@@ -960,6 +977,7 @@ const bootstrap = async () => {
     }
   }
 
+  startNotificationWorker(() => pool, telegramBotApi, Boolean(telegramBotToken));
   app.listen(port, () => console.log(`Aethelgard server listening on :${port}`));
 };
 

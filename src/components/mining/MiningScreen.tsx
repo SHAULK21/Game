@@ -1,3 +1,4 @@
+import {miningYield} from '../../utils/gameCadence';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
@@ -148,7 +149,7 @@ export const MiningScreen: React.FC = () => {
                       {locked && <span className="text-[8px] rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 font-bold text-rose-300">🔒 {node.levelReq} ур.</span>}
                     </div>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      {node.oreYield} ×{node.baseYieldMin}-{node.baseYieldMax} · ⛏ {node.staminaCost}
+                      {node.oreYield} ×{miningYield(node.baseYieldMin)}-{miningYield(node.baseYieldMax)} · ⛏ {node.staminaCost}
                     </div>
                   </div>
                 </div>
