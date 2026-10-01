@@ -50,3 +50,13 @@
 Clan creation costs 100,000 gold, or 50,000 with active Premium. The server determines the discount from `premium_until` and stores an idempotent creation receipt. The client reserves the price in the existing local character wallet before sending the request, refunds confirmed rolled-back failures, and resumes an unresolved operation with its original UUID after reopening. Existing clans are unaffected. As elsewhere in this project, local wallet snapshots are not an authoritative server economy; this change does not migrate all gold earnings/spending to PostgreSQL.
 
 Market listing responses expose the trimmed `character_name` as seller `display_name`. Missing names use `Игрок`; Telegram names and usernames are not included in market listing responses.
+
+### Manual mining and pickaxes
+
+Manual ore, bonus materials and gemstones use a weighted 1–5 yield. A critical result is exactly 5; noncritical results are 1–4. For shallow resources the noncritical weights are 60/27/10/3%; deeper nodes shift toward 1. Overall critical chance is capped at 2.5%, below the probability of a four-unit yield even with the strongest tool. Luck and the mining achievement contribute small bounded bonuses.
+
+Five pickaxes are sold in the mine, unlocked at mining levels 1/10/25/50/80 for 250/2,000/10,000/40,000/150,000 gold. Their critical bonuses are +0.15/+0.3/+0.6/+0.9/+1.2 percentage points, and mining XP bonuses are +10/+20/+35/+55/+80%. They occupy a dedicated `pickaxe` slot and have no combat stats. Bonuses apply to manual mining; expedition rewards retain their own rules. Tools can be equipped/removed in the mine or inventory; they do not replace weapons and cannot be sharpened.
+
+### Leaving a clan
+
+Every member, including the owner, can use the visible leave button. The UI requires confirmation. A departing owner transfers leadership to an officer, then quartermaster, veteran, member or recruit, using seniority as the tie breaker. If no members remain, the server requires explicit disband confirmation before deleting the clan, treasury and clan-held storage. Personal items remain personal. Clan creation gold is not refunded.

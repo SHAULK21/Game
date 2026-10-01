@@ -132,8 +132,10 @@ export const ClanScreen: React.FC = () => {
   const joinClan = (id: string) => run(() => apiRequest('/api/clan/' + id + '/join', { method: 'POST' }));
 
   const leaveClan = () => {
-    if (!window.confirm('Выйти из клана?')) return;
-    run(() => apiRequest('/api/clan/leave', { method: 'POST' }));
+    const confirmDisband=clan?.role === 'owner' && members.length <= 1;
+    const message=clan?.role === 'owner' ? confirmDisband ? 'Распустить клан и выйти? Вы последний участник. Казна и клановый склад будут удалены. Стоимость создания не возвращается.' : 'Выйти из клана? Руководство автоматически перейдёт старшему участнику: сначала офицеру. Стоимость создания не возвращается.' : 'Выйти из клана?';
+    if (!window.confirm(message)) return;
+    run(() => apiRequest('/api/clan/leave', { method: 'POST', body:JSON.stringify({confirmDisband}) }));
   };
 
   const attackRaid = () => run(() => apiRequest('/api/clan/raid/attack', { method: 'POST', body: '{}' }));
@@ -243,10 +245,10 @@ export const ClanScreen: React.FC = () => {
 
             <button
               onClick={leaveClan}
-              disabled={action || clan.role === 'owner'}
-              className="mt-3 w-full py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-[10px] font-bold disabled:opacity-40 flex items-center justify-center gap-1.5"
+              disabled={action}
+              className="mt-3 w-full py-2 rounded-xl border border-slate-800 bg-rose-950/30 text-rose-300 text-xs font-bold disabled:opacity-40 flex items-center justify-center gap-1.5"
             >
-              <LogOut className="w-3.5 h-3.5" /> {clan.role === 'owner' ? 'Передайте руководство, чтобы выйти' : 'Выйти из клана'}
+              <LogOut className="w-3.5 h-3.5" /> Выйти из клана
             </button>
           </div>
 

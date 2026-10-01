@@ -1,5 +1,6 @@
+import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
-import { refreshGameTimers, utcDay, miningYield } from '../utils/gameCadence';
+import { refreshGameTimers, utcDay } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -121,6 +122,7 @@ interface GameContextType {
   exitDungeon: () => void;
 
   // Gathering & Crafting
+  buyPickaxe: (id:string) => {success:boolean;message:string};
   mineNode: (nodeId: string) => { success: boolean; yieldCount: number; isCrit: boolean; oreName: string };
   startMiningExpedition: (hours: 1 | 3 | 7) => { success: boolean; message: string };
   claimMiningExpedition: () => { success: boolean; message: string };
@@ -3262,6 +3264,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player]);
 
   // Mining
+  const buyPickaxe = useCallback((id:string) => {
+    const offer=PICKAXES.find(p=>p.id===id);
+    if (!player || !offer) return {success:false,message:'Кирка не найдена.'};
+    if (player.miningLevel<offer.miningLevel) return {success:false,message:`Нужен ${offer.miningLevel} уровень горного дела.`};
+    if (player.gold<offer.price) return {success:false,message:'Недостаточно золота.'};
+    if (player.inventory.length>=player.maxInventorySlots) return {success:false,message:'Освободите место в рюкзаке.'};
+    const item=makePickaxe(id,crypto.randomUUID());
+    setPlayer(prev=>prev && prev.gold>=offer.price && prev.inventory.length<prev.maxInventorySlots ? {...prev,gold:prev.gold-offer.price,inventory:[...prev.inventory,item]} : prev);
+    return {success:true,message:`Куплена ${offer.name}. Экипируйте её перед добычей.`};
+  },[player]);
+
   const mineNode = useCallback((nodeId: string): { success: boolean; yieldCount: number; isCrit: boolean; oreName: string } => {
     if (!player) return { success: false, yieldCount: 0, isCrit: false, oreName: '' };
 
@@ -3283,11 +3296,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, yieldCount: 0, isCrit: false, oreName: node.oreYield };
     }
 
-    const miningAchievementBonus = achievements.some(a => a.id === 'ach_4' && a.claimed) ? 0.10 : 0;
-    const isCrit = Math.random() < Math.min(0.75, 0.25 + player.attributes.luck * 0.003 + miningAchievementBonus);
-    const baseYield = Math.floor(node.baseYieldMin + Math.random() * (node.baseYieldMax - node.baseYieldMin + 1));
-    const scarceYield = miningYield(baseYield);
-    const yieldCount = isCrit ? scarceYield + 1 : scarceYield;
+    const pickaxe=player.equipped.pickaxe;
+    const critChance=miningCritChance(node.levelReq,pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed));
+    const {count:yieldCount,isCrit}=rollMiningYield(node.levelReq,critChance);
 
     let inventory = [...player.inventory];
     const oreItem: GameItem = {
@@ -3313,7 +3324,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const bonusMaterialsFound: string[] = [];
     for (const bonus of MINING_BONUS_MATERIALS[node.id] || []) {
       if (Math.random() > bonus.chance * 0.5) continue;
-      const count = bonus.minQty + Math.floor(Math.random() * (bonus.maxQty - bonus.minQty + 1));
+      const {count,isCrit:bonusCrit}=rollMiningYield(node.levelReq + (bonus.rarity==='epic'?15:0),critChance);
       const bonusItem: GameItem = {
         id: 'mine_mat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         templateId: 'mine_mat_' + bonus.name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '_'),
@@ -3332,7 +3343,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const bonusAdded = addOrStackInventoryItem(inventory, bonusItem, player.maxInventorySlots);
       if (bonusAdded.added) {
         inventory = bonusAdded.inventory;
-        bonusMaterialsFound.push(`${bonus.name} ×${count}`);
+        bonusMaterialsFound.push(`${bonus.name} ×${count}${bonusCrit ? ' (крит!)' : ''}`);
       }
     }
 
@@ -3351,7 +3362,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stats: {},
         sellPrice: 35 + node.levelReq,
         disassembleYield: { silver: 80 },
-        stackCount: 1 + Math.floor(Math.random() * 2)
+        stackCount: rollMiningYield(node.levelReq+20,critChance).count
       };
       const gemAdded = addOrStackInventoryItem(inventory, gemItem, player.maxInventorySlots);
       if (gemAdded.added) {
@@ -3360,7 +3371,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const miningExp = player.miningExp + Math.max(8, node.levelReq * 2 + 6);
+    const miningExp = player.miningExp + miningExperience(Math.max(8, node.levelReq * 2 + 6),pickaxe);
     let miningLevel = player.miningLevel;
     while (miningExp >= miningLevel * 175 && miningLevel < 100) miningLevel += 1;
 
@@ -3801,6 +3812,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       enterDungeon,
       proceedDungeonRoom,
       exitDungeon,
+      buyPickaxe,
       mineNode,
       startMiningExpedition,
       claimMiningExpedition,

@@ -1,3 +1,4 @@
+import { leavePlayerClan } from './clanLeave';
 import { createPaidClan } from './clanCreation';
 import {createMarketListing} from './marketListings';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
@@ -363,24 +364,8 @@ app.post('/api/clan/:clanId/join', auth, async (req, res) => {
 });
 
 app.post('/api/clan/leave', auth, requireClan, async (req, res) => {
-  const clan = res.locals.clan;
-  if (clan.role === 'owner') return res.status(400).json({ error: 'Перед выходом передайте руководство другому игроку.' });
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('SELECT id FROM clans WHERE id = $1 FOR UPDATE',[clan.id]);
-    const current = await client.query('SELECT role FROM clan_members WHERE clan_id=$1 AND telegram_id=$2 FOR UPDATE',[clan.id,req.authUser!.id]);
-    if (!current.rows[0] || current.rows[0].role === 'owner') throw new Error('Перед выходом передайте руководство.');
-    await client.query('DELETE FROM clan_members WHERE clan_id = $1 AND telegram_id = $2', [clan.id, req.authUser!.id]);
-    await client.query('UPDATE players SET clan_id = NULL, updated_at = NOW() WHERE telegram_id = $1', [req.authUser!.id]);
-    await client.query('COMMIT');
-    res.json({ ok: true });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    res.status(500).json({ error: 'Ошибка выхода из клана.' });
-  } finally {
-    client.release();
-  }
+  try {res.json(await leavePlayerClan(pool,req.authUser!.id,res.locals.clan.id,req.body?.confirmDisband === true));}
+  catch(error){res.status(400).json({error:error instanceof Error?error.message:'Ошибка выхода из клана.'});}
 });
 
 app.post('/api/clan/donate', auth, requireClan, async (req, res) => {
@@ -491,7 +476,7 @@ app.post('/api/items/:itemId/equip', auth, async (req, res) => {
     const row = found.rows[0];
     if (!row) throw new Error('Предмет не принадлежит персонажу.');
     const slot = String(row.item_json.type || '');
-    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
+    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact','pickaxe'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
     await client.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE owner_telegram_id = $1 AND equipped_slot = $2`, [req.authUser!.id, slot]);
     await client.query(`UPDATE owned_items SET equipped_slot = $1, updated_at = NOW() WHERE id = $2`, [slot, row.id]);
     await client.query('COMMIT');
