@@ -331,7 +331,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     name: 'Маг',
     role: 'Магический Burst',
     description: 'Повелитель стихийного огня, молнии и льда. Наносит огромный урон по площади и одиночным целям.',
-    passive: { name: 'Элементальный резонанс', description: '+15% магического урона и +20% MP-регенерации. Стихийные эффекты сильнее на 15%.' },
+    passive: { name: 'Элементальный резонанс', description: '+15% магического урона и +20% MP-регенерации. Урон ожога сильнее на 15%.' },
     icon: '🔮',
     image: ASSETS.charMage,
     baseAttributes: { strength: 6, agility: 9, intelligence: 19, vitality: 9, luck: 10, spirit: 15, willpower: 12 },
@@ -1099,6 +1099,29 @@ export const MONSTERS: Record<string, Monster> = {
   }
 };
 
+// Regular enemies keep high-level hunting separate from boss attempts.
+const veteranEnemies = [
+  ['reg_desert','m_sand_scorpion','Барханный скорпион','🦂',40,'m_stone_golem'],
+  ['reg_desert','m_sand_guard','Песчаный страж','🏺',45,'m_death_knight_boss'],
+  ['reg_cursed','m_cursed_soldier','Проклятый легионер','💀',55,'m_death_knight_boss'],
+  ['reg_cursed','m_blood_hound','Кровавый гончий','🐺',62,'m_demon_lord'],
+  ['reg_rift','m_ash_imp','Пепельный бес','👹',75,'m_demon_lord'],
+  ['reg_rift','m_rift_drake','Дракончик разлома','🐲',82,'m_dragon_boss'],
+  ['reg_dragon','m_peak_guard','Страж драконьего пика','🛡️',90,'m_demon_lord'],
+  ['reg_dragon','m_scale_hunter','Чешуйчатый охотник','🐉',100,'m_dragon_boss']
+] as const;
+for (const [regionId,id,name,avatar,level,sourceId] of veteranEnemies) {
+  // Boss trophies remain available through regular regional hunts, with lower rates.
+  MONSTERS[id] = { id, regionId, name, avatar, level, hp: 180 + level * 24,
+    maxHp: 180 + level * 24, mp: 40 + level, maxMp: 40 + level,
+    attack: 20 + level * 3, magicAttack: 15 + level * 2.5,
+    defense: 10 + level * 1.4, magicDefense: 10 + level,
+    speed: 12 + Math.floor(level / 5), critChance: 8, evasion: 6,
+    expReward: 120 + level * 55, goldReward: 30 + level * 12,
+    drops: [], isBoss: false };
+  REGIONS.find(r => r.id === regionId)!.monsters.unshift(id);
+}
+
 // Each material has a concrete mob and a concrete region. Reused monster templates
 // get a different trophy when encountered in a later zone.
 export const REGIONAL_TROPHIES: Record<string, Record<string, { name: string; rarity: ItemRarity; chance: number }>> = {
@@ -1147,6 +1170,11 @@ export const REGIONAL_TROPHIES: Record<string, Record<string, { name: string; ra
     m_dragon_boss: { name: 'Первородная чешуя Аэтельгора', rarity: 'ancient', chance: 0.9 }
   }
 };
+
+for (const [regionId,id,,,,sourceId] of veteranEnemies) {
+  const trophy = REGIONAL_TROPHIES[regionId]?.[sourceId];
+  if (trophy) REGIONAL_TROPHIES[regionId][id] = { ...trophy, chance: 0.55 };
+}
 
 export const REGION_CRAFT_TIERS = [
   { regionId: 'reg_plains', level: 1, miningLevel: 1, ore: 'Уголь', catalyst: 'Кварц', weaponMaterial: 'Волчья шкура', armorMaterial: 'Гоблинский механизм', weaponName: 'Клинок равнинного охотника', armorName: 'Доспех пастбищного дозорного', rarity: 'common' },
@@ -1792,10 +1820,10 @@ export const PETS_LIST: Pet[] = [
     level: 1,
     rarity: 'rare',
     icon: '🐺',
-    passiveBonus: '+8% к физической атаке',
+    passiveBonus: '+8% физического урона',
     stats: { attack: 15, speed: 5 },
     activeSkillName: 'Рвущий укус',
-    activeSkillDesc: 'Наносит 80 урона врагу в начале боя.'
+    activeSkillDesc: 'Наносит до 80 урона в начале боя, оставляя минимум 1 HP.'
   },
   {
     id: 'pet_dragon',
@@ -1806,7 +1834,7 @@ export const PETS_LIST: Pet[] = [
     passiveBonus: '+12% к огненному урону и +5% к криту',
     stats: { magicAttack: 25, critChance: 5 },
     activeSkillName: 'Дыхание пламени',
-    activeSkillDesc: 'Поджигает противника на 2 хода.'
+    activeSkillDesc: 'Поджигает противника на 2 хода: 12 урона за ход.'
   },
   {
     id: 'pet_fairy',
@@ -1817,7 +1845,7 @@ export const PETS_LIST: Pet[] = [
     passiveBonus: '+15% к восстановлению маны и +5 реген HP',
     stats: { mpRegen: 5, hpRegen: 5 },
     activeSkillName: 'Свет исцеления',
-    activeSkillDesc: 'Периодически восстанавливает 50 HP.'
+    activeSkillDesc: 'Каждый третий ход восстанавливает 50 HP.'
   },
   {
     id: 'pet_golem',
@@ -1828,7 +1856,7 @@ export const PETS_LIST: Pet[] = [
     passiveBonus: '+35 защиты и +180 HP',
     stats: { defense: 35, maxHp: 180 },
     activeSkillName: 'Каменный заслон',
-    activeSkillDesc: 'В начале боя укрепляет хозяина.'
+    activeSkillDesc: 'В начале боя: на 15% меньше урона в течение 2 ходов.'
   },
   {
     id: 'pet_voidling',
@@ -1839,7 +1867,7 @@ export const PETS_LIST: Pet[] = [
     passiveBonus: '+40 магической атаки и +7% крита',
     stats: { magicAttack: 40, critChance: 7 },
     activeSkillName: 'Разрыв эфира',
-    activeSkillDesc: 'Ослабляет сопротивление врага магии.'
+    activeSkillDesc: 'В начале боя снижает базовое сопротивление магии на 10 п.п.'
   }
 ];
 

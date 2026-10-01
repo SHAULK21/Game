@@ -238,3 +238,34 @@ CREATE TABLE IF NOT EXISTS clan_creation_requests (
   price_gold INTEGER NOT NULL CHECK (price_gold > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE clans ADD COLUMN IF NOT EXISTS projects JSONB NOT NULL DEFAULT '{}';
+CREATE TABLE IF NOT EXISTS clan_project_operations (
+  id UUID PRIMARY KEY, clan_id UUID NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+  actor BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  project TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Diagnostics only: these records do not authorize rewards or player progression.
+CREATE TABLE IF NOT EXISTS balance_sessions (
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  id UUID NOT NULL, sequence INTEGER NOT NULL, level INTEGER NOT NULL,
+  duration_ms BIGINT NOT NULL, net_gold BIGINT NOT NULL, net_silver BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(telegram_id,id)
+);
+CREATE TABLE IF NOT EXISTS balance_battles (
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  id UUID NOT NULL, session_id UUID NOT NULL, level INTEGER NOT NULL, class_id TEXT NOT NULL,
+  region TEXT NOT NULL, monster TEXT NOT NULL, difficulty TEXT NOT NULL, outcome TEXT NOT NULL,
+  rounds INTEGER NOT NULL, duration_ms BIGINT NOT NULL, gold BIGINT NOT NULL, silver BIGINT NOT NULL, exp BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(telegram_id,id)
+);
+CREATE INDEX IF NOT EXISTS balance_battles_date ON balance_battles(created_at);
+CREATE INDEX IF NOT EXISTS balance_sessions_date ON balance_sessions(created_at);
+
+CREATE TABLE IF NOT EXISTS balance_activity (
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  day DATE NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')::date,
+  PRIMARY KEY(telegram_id,day)
+);

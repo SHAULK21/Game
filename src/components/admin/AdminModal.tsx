@@ -1,3 +1,4 @@
+import { BalanceReport } from './BalanceReport';
 import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
@@ -125,6 +126,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             <div className="mt-1 text-xl font-mono font-bold text-emerald-200">{serverStats.onlinePlayers}</div>
           </div>
         </div>
+
+        <BalanceReport />
 
         <div className="rounded-xl border border-yellow-500/40 p-3 space-y-2">
           <div className="text-xs text-yellow-200">👑 Выдать себе игровой Premium</div>
