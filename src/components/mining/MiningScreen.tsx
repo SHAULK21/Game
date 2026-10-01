@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
 import { Clock3, Crown, PackageCheck, Pickaxe, Sparkles } from 'lucide-react';
-import { RpgIcon } from '../ui/RpgIcon';
+import { getResourceArtwork } from '../../utils/resourceArtwork';
 
 const EXPEDITIONS = [
   { hours: 1 as const, title: 'Короткая смена', description: 'Базовая руда и простые материалы.' },
@@ -141,7 +141,7 @@ export const MiningScreen: React.FC = () => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="p-2 bg-slate-900 rounded-lg border border-slate-800">
-                    <RpgIcon kind="ore" size={28} className="text-amber-300" />
+                    <img src={getResourceArtwork(node.oreYield, 'ore')} alt={node.oreYield} width={28} height={28} />
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -168,7 +168,7 @@ export const MiningScreen: React.FC = () => {
                   <div className="flex flex-wrap gap-1">
                     {(NODE_MATERIALS[node.id] || []).map(material => (
                       <span key={material} className="text-[9px] px-1.5 py-0.5 rounded border border-purple-500/20 bg-purple-950/20 text-purple-200">
-                        {material}
+                        <img src={getResourceArtwork(material, 'material')} alt="" width={18} height={18} className="inline-block mr-1 align-middle" />{material}
                       </span>
                     ))}
                   </div>

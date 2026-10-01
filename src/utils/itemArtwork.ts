@@ -1,4 +1,5 @@
 import { GameItem } from '../types/game';
+import { getResourceArtwork } from './resourceArtwork';
 
 const transliterate = (value: string) => value
   .toLowerCase()
@@ -27,5 +28,7 @@ export const getBaseItemArtworkName = (name: string) => {
 
 export const getItemArtworkSlug = (name: string) => transliterate(getBaseItemArtworkName(name));
 
-export const getItemArtworkPath = (item: Pick<GameItem, 'name' | 'image'>) =>
-  item.image || `/assets/items/${getItemArtworkSlug(item.name)}.webp`;
+export const getItemArtworkPath = (item: Pick<GameItem, 'name' | 'image'> & { type?: GameItem['type'] }) =>
+  item.image || (item.type === 'ore' || item.type === 'material'
+    ? getResourceArtwork(item.name, item.type)
+    : `/assets/items/${getItemArtworkSlug(item.name)}.webp`);
