@@ -1,3 +1,4 @@
+import { clanCreationCost } from '../utils/clanEconomy';
 import { refreshGameTimers, utcDay, miningYield } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
@@ -135,6 +136,7 @@ interface GameContextType {
   purchasePremium: (preparedInvoiceLink?: string | null) => Promise<{ success: boolean; message: string }>;
 
   // Arena & Clan
+  createClan: (details: {name:string;tag:string;description:string}) => Promise<void>;
   challengeArena: (opponent: ArenaOpponent) => boolean;
   claimQuestReward: (questId: string) => void;
   claimAchievementReward: (achievementId: string) => void;
@@ -754,6 +756,44 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [premium.active, premium.invoiceLink, preparePremiumInvoice, refreshPremiumStatus]);
 
+  const clanCreationBusy = useRef(false);
+  const createClan = useCallback(async (details: {name:string;tag:string;description:string}) => {
+    if (!player || clanCreationBusy.current) throw new Error('Дождитесь завершения операции.');
+    const key = 'aethelgard_clan_creation_pending_' + player.userId;
+    let pending = JSON.parse(localStorage.getItem(key) || 'null') as null | {operationId:string;name:string;tag:string;description:string;gold:number;expectedPriceGold:number};
+    if (pending?.operationId === player.lastClanCreationOperation) {localStorage.removeItem(key);pending=null;}
+    if (!pending) {
+      if (premium.loading) throw new Error('Дождитесь загрузки статуса Premium.');
+      const cost = clanCreationCost(premium.active);
+      if (player.gold < cost) throw new Error(`Для создания клана нужно ${cost.toLocaleString()} золота.`);
+      pending = {...details,operationId:crypto.randomUUID(),gold:player.gold,expectedPriceGold:cost};
+      localStorage.setItem(key,JSON.stringify(pending));
+    }
+    const operation = pending;
+    if (player.reservedClanCreationOperation !== operation.operationId) {
+      if (player.gold < operation.expectedPriceGold) throw new Error('Недостаточно золота для завершения создания клана.');
+      setPlayer(prev => !prev || prev.userId !== player.userId || prev.reservedClanCreationOperation === operation.operationId ? prev : {...prev,gold:prev.gold-operation.expectedPriceGold,reservedClanCreationOperation:operation.operationId});
+    }
+    clanCreationBusy.current = true;
+    try {
+      await apiRequest('/api/clan/create',{method:'POST',body:JSON.stringify(operation)});
+      setPlayer(prev => prev && prev.userId === player.userId ? {...prev,lastClanCreationOperation:operation.operationId,reservedClanCreationOperation:undefined} : prev);
+    } catch (error) {
+      // An HTTP 400 is a confirmed rollback; transport failures retain the receipt for retry.
+      if (error instanceof Error && error.message.endsWith('(HTTP 400)')) {
+        setPlayer(prev => prev && prev.userId === player.userId && prev.reservedClanCreationOperation === operation.operationId ? {...prev,gold:prev.gold+operation.expectedPriceGold,reservedClanCreationOperation:undefined} : prev);
+        localStorage.removeItem(key);
+      }
+      throw error;
+    } finally {clanCreationBusy.current=false;}
+  },[player,premium.active,premium.loading]);
+
+  useEffect(() => {
+    if (!player) return;
+    const pending=localStorage.getItem('aethelgard_clan_creation_pending_'+player.userId);
+    if (pending) {try {void createClan(JSON.parse(pending)).catch(()=>{});} catch {}}
+  },[player?.userId]);
+
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
     if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
@@ -1034,6 +1074,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
     localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
+    const clanPendingKey='aethelgard_clan_creation_pending_'+player.userId;
+    try {const pending=JSON.parse(localStorage.getItem(clanPendingKey)||'null');if(pending?.operationId===player.lastClanCreationOperation)localStorage.removeItem(clanPendingKey);}catch{localStorage.removeItem(clanPendingKey);}
     const marketPendingKey='aethelgard_market_pending_'+player.userId;
     try {const operation=JSON.parse(localStorage.getItem(marketPendingKey)||'null');if(operation?.operationId===player.lastMarketListingOperation)localStorage.removeItem(marketPendingKey);}catch{localStorage.removeItem(marketPendingKey);}
     // Remove the retry record only after the awarded state has been persisted.
@@ -3764,6 +3806,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       claimMiningExpedition,
       leaveMiningExpedition,
       craftAlchemy,
+      createClan,
       listMarketItem,
       refreshMarketIncome,
       buyMarketListing,

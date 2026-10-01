@@ -1,3 +1,4 @@
+import { createPaidClan } from './clanCreation';
 import {createMarketListing} from './marketListings';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
 import { canUseVault } from '../src/utils/clanRoles';
@@ -330,40 +331,8 @@ app.get('/api/clan/me', auth, async (req, res) => {
 });
 
 app.post('/api/clan/create', auth, async (req, res) => {
-  const name = String(req.body?.name || '').trim();
-  const tag = String(req.body?.tag || '').trim().toUpperCase();
-  const description = String(req.body?.description || '').trim();
-
-  if (!/^[A-ZА-ЯЁ0-9]{2,6}$/.test(tag)) return res.status(400).json({ error: 'Тег: 2–6 букв или цифр.' });
-  if (name.length < 3 || name.length > 32) return res.status(400).json({ error: 'Название: 3–32 символа.' });
-  if (description.length > 280) return res.status(400).json({ error: 'Описание слишком длинное.' });
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const owner = await client.query('SELECT clan_id FROM players WHERE telegram_id = $1 FOR UPDATE', [req.authUser!.id]);
-    if (owner.rows[0]?.clan_id) throw new Error('Сначала выйдите из текущего клана.');
-
-    const id = crypto.randomUUID();
-    await client.query(
-      `INSERT INTO clans (id, tag, name, description, owner_telegram_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, tag, name, description, req.authUser!.id]
-    );
-    await client.query(
-      `INSERT INTO clan_members (clan_id, telegram_id, role) VALUES ($1, $2, 'owner')`,
-      [id, req.authUser!.id]
-    );
-    await client.query('UPDATE players SET clan_id = $1, updated_at = NOW() WHERE telegram_id = $2', [id, req.authUser!.id]);
-    await client.query('COMMIT');
-    res.status(201).json({ ok: true, clanId: id });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    const message = error instanceof Error ? error.message : 'Не удалось создать клан.';
-    res.status(400).json({ error: message.includes('duplicate') ? 'Такое название или тег уже занят.' : message });
-  } finally {
-    client.release();
-  }
+  try { res.status(201).json(await createPaidClan(pool, req.authUser!.id, req.body)); }
+  catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось создать клан.' }); }
 });
 
 app.post('/api/clan/:clanId/join', auth, async (req, res) => {
@@ -750,7 +719,7 @@ app.get('/api/market/listings', auth, async (req, res) => {
   const typeFilter = type ? `AND item_json->>'type' = $1` : '';
   if (type) params.push(type);
   const result = await pool.query(
-    `SELECT l.id, l.seller_telegram_id, l.item_json, l.quantity, l.price_gold, l.created_at, p.display_name, p.username
+    `SELECT l.id, l.seller_telegram_id, l.item_json, l.quantity, l.price_gold, l.created_at, COALESCE(NULLIF(BTRIM(p.character_name), ''), 'Игрок') AS display_name
      FROM market_listings l JOIN players p ON p.telegram_id = l.seller_telegram_id
      WHERE l.status = 'active' AND l.expires_at > NOW() ${typeFilter}
      ORDER BY l.created_at DESC LIMIT 100`, params
@@ -761,7 +730,8 @@ app.get('/api/market/listings', auth, async (req, res) => {
 app.post('/api/market/list', auth, async (req, res) => {
   try {
     const listing = await createMarketListing(pool,req.authUser!.id,req.body);
-    res.status(201).json({listing:{...listing,display_name:req.authUser!.displayName}});
+    const profile = await pool.query("SELECT COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS display_name FROM players WHERE telegram_id=$1", [req.authUser!.id]);
+    res.status(201).json({listing:{...listing,display_name:profile.rows[0]?.display_name || 'Игрок'}});
   } catch(error) {res.status(400).json({error:error instanceof Error?error.message:'Не удалось выставить предмет.'});}
 });
 

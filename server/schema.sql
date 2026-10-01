@@ -227,3 +227,14 @@ CREATE TABLE IF NOT EXISTS admin_broadcasts (
  players_count INTEGER NOT NULL DEFAULT 0, telegram_count INTEGER NOT NULL DEFAULT 0,
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS clan_creation_requests (
+  operation_id UUID PRIMARY KEY,
+  owner_telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  clan_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  tag TEXT NOT NULL,
+  description TEXT NOT NULL,
+  price_gold INTEGER NOT NULL CHECK (price_gold > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

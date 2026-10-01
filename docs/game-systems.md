@@ -44,3 +44,9 @@
 ## Оповещения администрации
 
 Админка → «Оповещения по шаблону»: выбрать один из десяти шаблонов, аудиторию и открыть предпросмотр. Дополнение необязательно. Нажатие «Отправить оповещение» добавляет объявление в ленту игроков и в очередь Telegram для разрешивших сообщения. Аудитории: все, Premium, без Premium, активные за семь дней. Шаблон приглашения друга подставляет личную ссылку каждого получателя. Повтор после сбоя использует тот же ID, без второй рассылки. История показывает количество записей в игре и поставленных в очередь Telegram; это не подтверждение фактической доставки. Настройки игроков сохраняются, принудительное включение Telegram-уведомлений не выполняется.
+
+### Paid clan creation and market names
+
+Clan creation costs 100,000 gold, or 50,000 with active Premium. The server determines the discount from `premium_until` and stores an idempotent creation receipt. The client reserves the price in the existing local character wallet before sending the request, refunds confirmed rolled-back failures, and resumes an unresolved operation with its original UUID after reopening. Existing clans are unaffected. As elsewhere in this project, local wallet snapshots are not an authoritative server economy; this change does not migrate all gold earnings/spending to PostgreSQL.
+
+Market listing responses expose the trimmed `character_name` as seller `display_name`. Missing names use `Игрок`; Telegram names and usernames are not included in market listing responses.

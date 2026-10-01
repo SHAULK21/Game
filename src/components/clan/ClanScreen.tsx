@@ -1,3 +1,4 @@
+import { clanCreationCost } from '../../utils/clanEconomy';
 import {ClanManagement} from './ClanManagement';
 import {CLAN_ROLE_LABELS,canUseVault,type ClanRole} from '../../utils/clanRoles';
 import React, { useEffect, useState } from 'react';
@@ -55,7 +56,7 @@ type StoredItem = {
 type StorageEvent = { action: string; item_name: string; quantity: number; display_name: string; created_at: string };
 
 export const ClanScreen: React.FC = () => {
-  const { player, refreshServerInventory } = useGame();
+  const { player, createClan: createPaidClan, premium, refreshServerInventory } = useGame();
   const [clan, setClan] = useState<Clan | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<ClanMessage[]>([]);
@@ -121,10 +122,7 @@ export const ClanScreen: React.FC = () => {
   };
 
   const createClan = () => run(async () => {
-    await apiRequest('/api/clan/create', {
-      method: 'POST',
-      body: JSON.stringify({ name, tag, description })
-    });
+    await createPaidClan({name,tag,description});
     setShowCreate(false);
     setName('');
     setTag('');
@@ -391,8 +389,9 @@ export const ClanScreen: React.FC = () => {
               <input value={name} onChange={e => setName(e.target.value)} maxLength={32} placeholder="Название клана" className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs outline-none focus:border-cyan-500" />
               <input value={tag} onChange={e => setTag(e.target.value.toUpperCase())} maxLength={6} placeholder="Тег, например NEXUS" className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs font-mono outline-none focus:border-cyan-500" />
               <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={280} placeholder="Описание и правила клана" rows={3} className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs outline-none focus:border-cyan-500 resize-none" />
-              <button onClick={createClan} disabled={action || name.trim().length < 3 || tag.trim().length < 2} className="w-full py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold disabled:opacity-40">
-                {action ? 'Создание…' : 'Создать'}
+              <p className="text-xs text-amber-200">Стоимость: {clanCreationCost(premium.active).toLocaleString()} 🪙{premium.active ? ' · Скидка Premium 50%' : ' · С Premium — 50 000 🪙'}. Ваш баланс: {player.gold.toLocaleString()} 🪙.</p>
+              <button onClick={createClan} disabled={action || premium.loading || name.trim().length < 3 || tag.trim().length < 2} className="w-full py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold disabled:opacity-40">
+                {action ? 'Создание…' : `Создать за ${clanCreationCost(premium.active).toLocaleString()} 🪙`}
               </button>
             </div>
           </div>

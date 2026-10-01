@@ -503,6 +503,8 @@ export interface PlayerCharacter {
   talentPoints: number;
   lastBulkDisposalId?: string;
   lastMarketListingOperation?: string;
+  reservedClanCreationOperation?: string;
+  lastClanCreationOperation?: string;
 
   gold: number;
   silver: number;
