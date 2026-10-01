@@ -1,3 +1,5 @@
+import { huntLockReason, regionProgress, huntingModeLockReason } from '../../utils/regionalProgress';
+import { predictedMonsterSkill } from '../../utils/autoBattle';
 import { talentManaCost } from '../../data/talents';
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -30,13 +32,7 @@ import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 import { LevelEnvironment } from '../ui/LevelEnvironment';
 import { groupRegionsByLevel } from '../../utils/levelEnvironment';
 
-export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
-  const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
-  if (!ready.length) return null;
-  return [...ready].sort((a, b) =>
-    (b.damageMultiplier + (b.effect ? 0.2 : 0)) - (a.damageMultiplier + (a.effect ? 0.2 : 0))
-  )[0] || null;
-};
+export const getPredictedMonsterSkill = predictedMonsterSkill;
 
 export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnToArena?: () => void }> = ({ onContinueDungeon, onReturnToArena }) => {
   const {
@@ -104,6 +100,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const selectedMonster = regionMonsters.find(mon => mon.id === selectedMonsterId) || regionMonsters[0];
   const activeMod = REGION_MODIFIERS[player.activeRegionModId || currentRegion.defaultModId || 'mod_standard'] || REGION_MODIFIERS.mod_standard;
   const combatEnergyCost = 2;
+  const progress = regionProgress(player, currentRegion);
+  const selectedLock = selectedMonster ? huntLockReason(player, selectedMonster, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id) : null;
   const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
 
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
@@ -115,6 +113,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
       return;
     }
+    const lock = huntLockReason(player, mon, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id);
+    if (lock) {setEnergyError(lock);return;}
     const success = startBattleWithMonster(mon);
     if (!success) {
       setEnergyError(`Недостаточно энергии! Требуется ${combatEnergyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
@@ -265,7 +265,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
           <div className="mt-4 flex gap-2">
             <button
-              disabled={!selectedMonster || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
+              disabled={!selectedMonster || Boolean(selectedLock) || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
               onClick={() => {
                 if (selectedMonster) handleStartBattle(selectedMonster);
               }}
@@ -377,14 +377,20 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               Обитатели локации
             </h3>
             <span className="text-[11px] text-slate-400">
-              Серия: 2–7 врагов
+              Серия: {player.level < 8 ? '2–3' : player.level < 25 ? '2–5' : '2–7'} врагов
             </span>
           </div>
 
+          <div className="mb-3 rounded-lg border border-slate-700 p-3 text-xs text-slate-300">
+            <p>Освоение зоны: обычные враги {Math.min(6,progress.kills)}/6 → элита {Math.min(2,progress.eliteWins)}/2 → босс {progress.bossWins ? '✓' : '0/1'}</p>
+            <p className="mt-1 text-slate-400">Базовый комплект +3–5 — охота. Усиленный комплект +5–10 и зелья — элита и босс. Победа над боссом открывает опасные режимы.</p>
+            {selectedLock && <p role="status" className="mt-1 text-amber-200">{selectedLock}</p>}
+          </div>
           <div className="space-y-2">
             {regionMonsters.map(mon => {
               const isSelected = selectedMonster?.id === mon.id;
               const hasImg = isMonsterImg(mon.avatar);
+              const lock = huntLockReason(player, mon, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id);
 
               return (
                 <div
@@ -414,6 +420,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                         <span className="font-cinzel text-xs font-bold text-slate-100">
                           {mon.name}
                         </span>
+                        {mon.isElite && <span className="text-[10px] text-purple-300">ЭЛИТА</span>}
                         {mon.isBoss && (
                           <span className="text-[10px] font-bold px-1.5 py-0.2 bg-red-950 text-red-300 border border-red-500 rounded">
                             БОСС
@@ -427,6 +434,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                         <span>·</span>
                         <span>Атака: {mon.attack}</span>
                       </div>
+                      {lock && <p className="text-[11px] text-amber-300 mt-1">🔒 {lock}</p>}
                       <div className="text-[11px] text-slate-400 mt-1">
                         Трофеи: {mon.drops.filter(drop => drop.type === 'material').map(drop => drop.itemName).join(', ') || 'нет'}
                       </div>
@@ -438,7 +446,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                       e.stopPropagation();
                       handleStartBattle(mon);
                     }}
-                    className="ui-primary shrink-0 ml-2 px-3 py-3 rounded-lg text-xs font-semibold active:scale-95 transition-transform"
+                    disabled={Boolean(lock)}
+                    className="ui-primary shrink-0 ml-2 px-3 py-3 rounded-lg text-xs font-semibold active:scale-95 transition-transform disabled:opacity-35"
                   >
                     Атаковать
                   </button>

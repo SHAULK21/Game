@@ -261,6 +261,7 @@ CREATE TABLE IF NOT EXISTS balance_battles (
   rounds INTEGER NOT NULL, duration_ms BIGINT NOT NULL, gold BIGINT NOT NULL, silver BIGINT NOT NULL, exp BIGINT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(telegram_id,id)
 );
+ALTER TABLE balance_battles ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'unknown';
 CREATE INDEX IF NOT EXISTS balance_battles_date ON balance_battles(created_at);
 CREATE INDEX IF NOT EXISTS balance_sessions_date ON balance_sessions(created_at);
 

@@ -54,7 +54,7 @@ export function useBalanceTelemetry(player: PlayerCharacter | null, monster: Mon
     if(ended && outcome && fight.current){
       tick();const f=fight.current;fight.current=null;
       enqueue({kind:'battle',id:f.id,sessionId:session.current.id,level:f.level,classId:f.classId,region:f.monster.regionId,
-        monster:f.monster.id,difficulty:f.difficulty,outcome,rounds,durationMs:Math.round(f.activeMs),gold:f.gold,silver:f.silver,exp:f.exp});
+        monster:f.monster.id,role:f.monster.isBoss?'boss':f.monster.isElite?'elite':'normal',difficulty:f.difficulty,outcome,rounds,durationMs:Math.round(f.activeMs),gold:f.gold,silver:f.silver,exp:f.exp});
       snapshot();void flush();
     }
   },[inCombat,ended,outcome,monster?.id,player?.userId]);

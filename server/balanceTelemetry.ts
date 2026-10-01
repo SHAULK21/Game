@@ -6,6 +6,7 @@ export function validTelemetryEvent(e:any):boolean {
   if(!e || !uuid(e.id) || !integer(e.level,1,10000) || !integer(e.durationMs,0,86400000))return false;
   if(e.kind==='session')return integer(e.sequence,1,1000000) && integer(e.netGold,-1000000000,1000000000) && integer(e.netSilver,-1000000000,1000000000);
   if(e.kind!=='battle' || !uuid(e.sessionId) || !['victory','defeat','flee'].includes(e.outcome) || !integer(e.rounds,1,100000))return false;
+  if(e.role !== undefined && !['normal','elite','boss','unknown'].includes(e.role))return false;
   return ['classId','region','monster','difficulty'].every(key=>typeof e[key]==='string' && /^[a-zA-Z0-9_-]{1,80}$/.test(e[key])) && ['gold','silver','exp'].every(key=>integer(e[key],0,1000000000));
 }
 export function registerBalanceTelemetry(app:Express,getPool:()=>Pool,auth:RequestHandler,admin:RequestHandler) {
@@ -19,9 +20,9 @@ export function registerBalanceTelemetry(app:Express,getPool:()=>Pool,auth:Reque
         if(e.kind==='session')await client.query(`INSERT INTO balance_sessions(telegram_id,id,sequence,level,duration_ms,net_gold,net_silver)
           VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(telegram_id,id) DO UPDATE SET sequence=EXCLUDED.sequence,level=EXCLUDED.level,duration_ms=EXCLUDED.duration_ms,net_gold=EXCLUDED.net_gold,net_silver=EXCLUDED.net_silver,updated_at=NOW() WHERE balance_sessions.sequence<EXCLUDED.sequence`,
           [req.authUser!.id,e.id,e.sequence,e.level,e.durationMs,e.netGold,e.netSilver]);
-        else await client.query(`INSERT INTO balance_battles(telegram_id,id,session_id,level,class_id,region,monster,difficulty,outcome,rounds,duration_ms,gold,silver,exp)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT(telegram_id,id) DO NOTHING`,
-          [req.authUser!.id,e.id,e.sessionId,e.level,e.classId,e.region,e.monster,e.difficulty,e.outcome,e.rounds,e.durationMs,e.gold,e.silver,e.exp]);
+        else await client.query(`INSERT INTO balance_battles(telegram_id,id,session_id,level,class_id,region,monster,difficulty,outcome,rounds,duration_ms,gold,silver,exp,role)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) ON CONFLICT(telegram_id,id) DO NOTHING`,
+          [req.authUser!.id,e.id,e.sessionId,e.level,e.classId,e.region,e.monster,e.difficulty,e.outcome,e.rounds,e.durationMs,e.gold,e.silver,e.exp,e.role||'unknown']);
       }
       await client.query('INSERT INTO balance_activity(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[req.authUser!.id]);
       await client.query('COMMIT');res.json({ok:true});
@@ -29,9 +30,9 @@ export function registerBalanceTelemetry(app:Express,getPool:()=>Pool,auth:Reque
   });
   app.get('/api/admin/balance',auth,admin,async(_req,res)=>{
     const results=await Promise.all([
-      getPool().query(`SELECT CASE WHEN level<25 THEN '1–24' WHEN level<55 THEN '25–54' ELSE '55+' END AS band,region,difficulty,COUNT(*)::int AS battles,
+      getPool().query(`SELECT CASE WHEN level<25 THEN '1–24' WHEN level<55 THEN '25–54' ELSE '55+' END AS band,region,difficulty,class_id,role,COUNT(*)::int AS battles,
         ROUND(AVG(duration_ms)/1000,1) AS seconds,ROUND(AVG(rounds),1) AS rounds,ROUND(100.0*COUNT(*) FILTER(WHERE outcome='victory')/COUNT(*),1) AS win_rate,
-        ROUND(AVG(exp),1) AS exp FROM balance_battles WHERE created_at>=NOW()-INTERVAL '30 days' GROUP BY band,region,difficulty ORDER BY band,region,difficulty`),
+        ROUND(AVG(exp),1) AS exp FROM balance_battles WHERE created_at>=NOW()-INTERVAL '30 days' GROUP BY band,region,difficulty,class_id,role ORDER BY band,region,difficulty,class_id,role`),
       getPool().query(`SELECT COUNT(*)::int AS sessions,ROUND(AVG(duration_ms)/60000,1) AS minutes,ROUND(AVG(net_gold),1) AS net_gold,ROUND(AVG(net_silver),1) AS net_silver FROM balance_sessions WHERE created_at>=NOW()-INTERVAL '30 days' AND duration_ms>=60000`),
       getPool().query(`WITH cohorts AS (SELECT telegram_id,MIN(day) AS day FROM balance_activity GROUP BY telegram_id),
         activity AS (SELECT telegram_id,day FROM balance_activity)

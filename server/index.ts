@@ -402,10 +402,10 @@ app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
     const nextHp = Math.max(0, Number(row.raid_hp) - damage);
     await client.query('UPDATE clans SET raid_hp = $1, updated_at = NOW() WHERE id = $2', [nextHp, row.id]);
     if (nextHp === 0) {
-      const rewards = clanRaidReward(Number(row.level), Number(row.projects?.research || 0));
-      await client.query('UPDATE clans SET xp=xp+$2,treasury_gold=treasury_gold+$3,level=GREATEST(level,LEAST(15,1+((xp+$2)/1000))),max_members=GREATEST(max_members,LEAST(50,30+((xp+$2)/1000)*2)) WHERE id=$1',[row.id,rewards.xp,rewards.gold]);
+      const rewards = clanRaidReward(Number(row.level), Number(row.projects?.research || 0), Number(row.projects?.supplies || 0));
+      await client.query('UPDATE clans SET xp=xp+$2,treasury_gold=treasury_gold+$3,treasury_silver=treasury_silver+$4,treasury_ore=treasury_ore+$5,level=GREATEST(level,LEAST(15,1+((xp+$2)/1000))),max_members=GREATEST(max_members,LEAST(50,30+((xp+$2)/1000)*2)) WHERE id=$1',[row.id,rewards.xp,rewards.gold,rewards.silver,rewards.ore]);
       const clanMembers = await client.query('SELECT telegram_id FROM clan_members WHERE clan_id=$1',[row.id]);
-      for (const member of clanMembers.rows) await queueNotification(client,member.telegram_id,'raid_' + row.id + '_' + row.raid_reset_at,'clan',`🏆 Клан победил рейдового босса: +${rewards.xp} опыта клана и +${rewards.gold} золота в казну.`);
+      for (const member of clanMembers.rows) await queueNotification(client,member.telegram_id,'raid_' + row.id + '_' + row.raid_reset_at,'clan',`🏆 Клан победил рейдового босса: +${rewards.xp} опыта клана, +${rewards.gold} золота, +${rewards.silver} серебра и +${rewards.ore} руды в казну.`);
     }
     // A single server-minted personal item per player per UTC week. The client
     // supplies neither its stats nor its rarity, so it cannot forge a deposit.

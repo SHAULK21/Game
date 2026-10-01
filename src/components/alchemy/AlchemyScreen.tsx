@@ -125,18 +125,19 @@ export const AlchemyScreen: React.FC = () => {
 
                   <button
                     onClick={() => handleCraft(rec.id)}
-                    disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || !hasEnergy}
+                    disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
-                    <span>{isCrafting ? 'Варка...' : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} ⚗`}</span>
+                    <span>{isCrafting ? 'Варка...' : player.level < (rec.heroLevelReq || 1) ? `Герой ${rec.heroLevelReq} ур.` : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} ⚗`}</span>
                   </button>
                 </div>
 
                 {/* Ingredients tag list */}
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
                   <span className="text-slate-500">Ингредиенты:</span>
-                  <span className="text-purple-300">Ур. {rec.levelReq}</span>
+                  <span className="text-purple-300">Алхимия: ур. {rec.levelReq}</span>
+                  {rec.heroLevelReq && <span className="text-cyan-300">Герой: ур. {rec.heroLevelReq}</span>}
                   <span className="text-emerald-300">+{alchemyExperience(Math.max(6,6+Math.floor(rec.levelReq*.8)),tool,player.alchemyLevel)} EXP</span>
                   <span className={hasEnergy ? 'text-emerald-300' : 'text-rose-300'}>⚗ {energyCost} энергии</span>
                   {rec.ingredients.map((ing, idx) => (
