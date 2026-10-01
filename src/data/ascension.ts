@@ -105,7 +105,8 @@ export function ascensionBossPhase(monster:Monster):number {
  if(monster.id==='ascension_SSS'||monster.id.startsWith('ascension_echo_'))return ratio<=.3?3:ratio<=.65?2:1;
  return ['ascension_A','ascension_S','ascension_SS'].includes(monster.id)&&ratio<=.5?2:1;
 }
-export const fragmentItem=(id:string)=>({id,templateId:'ascension_fragment',name:'Осколок вознесения',type:'material' as const,rarity:'rare' as const,level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:1,description:'Для вознесения. Выпадает с боссов мира и подземелий; торговля между игроками разрешена.'});
+export const ASCENSION_FRAGMENT_DESCRIPTION = 'Для вознесения на арене. Где взять: победите босса мира или подземелья — шанс выпадения 40%, по 1 осколку за победу. Также можно купить у других игроков на рынке. Хранители арены осколки не дают.';
+export const fragmentItem=(id:string)=>({id,templateId:'ascension_fragment',name:'Осколок вознесения',type:'material' as const,rarity:'rare' as const,level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:1,description:ASCENSION_FRAGMENT_DESCRIPTION});
 
 export const ASCENSION_ECHOES = [
  {id:'storm',name:'Эхо бури',hint:'Хранитель имеет на 30% больше HP и наносит на 20% больше урона.'},

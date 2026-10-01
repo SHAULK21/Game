@@ -1,3 +1,4 @@
+import { ASCENSION_FRAGMENT_DESCRIPTION } from '../../data/ascension';
 import { BulkInventoryActions } from './BulkInventoryActions';
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -125,6 +126,7 @@ const getDisassemblePreview = (item: GameItem) => {
 };
 
 const getResourceUse = (item: GameItem) => {
+  if (item.templateId === 'ascension_fragment') return ASCENSION_FRAGMENT_DESCRIPTION;
   if (item.type === 'ore') return 'Кузница · заточка экипировки';
   if (item.name === 'Сырой самоцвет') return 'Огранка · переработка в серебро';
   if (item.name === 'Лечебная трава' || item.name === 'Чистая вода' || item.name === 'Лунная пыльца' || item.name === 'Ядовитая железа' || item.name === 'Острый клык' || item.name === 'Огненный цветок' || item.name === 'Горный корень' || item.name === 'Магическая эссенция') {
