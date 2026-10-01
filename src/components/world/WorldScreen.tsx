@@ -18,6 +18,8 @@ import {
   Clock
 } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { groupRegionsByLevel } from '../../utils/levelEnvironment';
+import { LevelEnvironment } from '../ui/LevelEnvironment';
 
 interface WorldScreenProps {
   onEnterCombatTab?: () => void;
@@ -41,14 +43,22 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
   const [selectedCaveId, setSelectedCaveId] = useState<string>('cave_bat');
   const [difficulty, setDifficulty] = useState<'normal' | 'hard' | 'nightmare' | 'hell'>('normal');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>(player?.currentRegionId || 'reg_plains');
-  const [selectedModId, setSelectedModId] = useState<string>(player?.activeRegionModId || 'mod_standard');
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
+    const suitable = groupRegionsByLevel(REGIONS, player?.level || 1).recommended;
+    return suitable.find(region => region.id === player?.currentRegionId)?.id || suitable[0]?.id || 'reg_plains';
+  });
+  const [selectedModId, setSelectedModId] = useState<string>(() => {
+    const selected = REGIONS.find(region => region.id === selectedRegionId)!;
+    return selected.id === player?.currentRegionId && selected.availableMods.includes(player.activeRegionModId || '')
+      ? player.activeRegionModId! : selected.defaultModId;
+  });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!player) return null;
 
   const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
   const inspectingRegion = REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
+  const regionGroups = groupRegionsByLevel(REGIONS, player.level);
   const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
 
   const handleStartTravel = (regId: string) => {
@@ -243,6 +253,70 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     );
   }
 
+  const renderRegion = (reg: (typeof REGIONS)[number]) => {
+    const isCurrent = player.currentRegionId === reg.id;
+    const isInspecting = selectedRegionId === reg.id;
+    const isLocked = player.level < reg.minLevel;
+
+    return (
+      <div
+        key={reg.id}
+        onClick={() => {
+          setSelectedRegionId(reg.id);
+          setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
+            ? player.activeRegionModId!
+            : reg.defaultModId);
+          sound.playClick();
+        }}
+        className={`p-3 rounded-xl border transition-all cursor-pointer ${
+          isInspecting
+            ? 'border-cyan-400 bg-cyan-950/40 shadow-md '
+            : isLocked
+            ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
+            : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
+              {reg.icon}
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-cinzel text-xs font-bold text-slate-100">
+                  {reg.name}
+                </span>
+                {reg.isStarter && (
+                  <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">
+                    СТАРТ
+                  </span>
+                )}
+                {isCurrent && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">
+                    ВЫ ЗДЕСЬ
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                {reg.levelRange} · {reg.monsters.length} видов монстров
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            {isLocked ? (
+              <span className="text-[10px] font-mono text-rose-400 font-bold">
+                Треб. ур. {reg.minLevel}
+              </span>
+            ) : (
+              <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
@@ -257,10 +331,13 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               Карта Аэтельгарда
             </h2>
             <p className="text-xs text-slate-300">
-              Выбирайте стартовые локации и активируйте особые модификаторы охоты.
+              Локации вашего уровня — на первом плане. Выберите место для охоты.
             </p>
           </div>
         </div>
+
+        <LevelEnvironment level={player.level} />
+        <p className="mt-2 text-[11px] text-slate-400">Вы находитесь: {currentRegion.name}</p>
 
         {/* Error message */}
         {errorMessage && (
@@ -269,6 +346,30 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <span>{errorMessage}</span>
           </div>
         )}
+      </div>
+
+      {/* Regions List with Starter Locations Badge */}
+      <div className="space-y-2">
+        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">
+          Подходят вашему уровню:
+        </div>
+
+        <div className="space-y-2">
+          {regionGroups.recommended.map(renderRegion)}
+          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">Выберите локацию в соседних этапах.</p>}
+        </div>
+        {([
+          { key: 'earlier', title: 'Локации низких уровней' },
+          { key: 'future', title: 'Локации будущих уровней' },
+        ] as const).map(group => regionGroups[group.key].length > 0 && (
+          <details key={group.key} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+            <summary className="cursor-pointer text-xs text-slate-400">
+              {group.title} · {regionGroups[group.key].length}
+              {regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь'}
+            </summary>
+            <div className="mt-3 space-y-2">{regionGroups[group.key].map(renderRegion)}</div>
+          </details>
+        ))}
       </div>
 
       {/* Selected Region & Mode Control Card */}
@@ -371,79 +472,6 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               )}
             </>
           )}
-        </div>
-      </div>
-
-      {/* Regions List with Starter Locations Badge */}
-      <div className="space-y-2">
-        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">
-          Доступные локации и провинции:
-        </div>
-
-        <div className="space-y-2">
-          {REGIONS.map(reg => {
-            const isCurrent = player.currentRegionId === reg.id;
-            const isInspecting = selectedRegionId === reg.id;
-            const isLocked = player.level < reg.minLevel;
-
-            return (
-              <div
-                key={reg.id}
-                onClick={() => {
-                  setSelectedRegionId(reg.id);
-                  setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
-                    ? player.activeRegionModId!
-                    : reg.defaultModId);
-                  sound.playClick();
-                }}
-                className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                  isInspecting
-                    ? 'border-cyan-400 bg-cyan-950/40 shadow-md '
-                    : isLocked
-                    ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
-                    : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      {reg.icon}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-cinzel text-xs font-bold text-slate-100">
-                          {reg.name}
-                        </span>
-                        {reg.isStarter && (
-                          <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">
-                            СТАРТ
-                          </span>
-                        )}
-                        {isCurrent && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">
-                            ВЫ ЗДЕСЬ
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {reg.levelRange} · {reg.monsters.length} видов монстров
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    {isLocked ? (
-                      <span className="text-[10px] font-mono text-rose-400 font-bold">
-                        Треб. ур. {reg.minLevel}
-                      </span>
-                    ) : (
-                      <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 

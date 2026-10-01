@@ -27,6 +27,8 @@ import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { skillTier } from '../../data/classEvolution';
 import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
+import { LevelEnvironment } from '../ui/LevelEnvironment';
+import { groupRegionsByLevel } from '../../utils/levelEnvironment';
 
 export const getPredictedMonsterSkill = (monster: NonNullable<ReturnType<typeof useGame>['activeMonster']>) => {
   const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost);
@@ -204,6 +206,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           <p className="text-xs text-slate-300 mt-1 leading-relaxed">
             {currentRegion.description}
           </p>
+
+          <LevelEnvironment level={player.level} />
+          {!groupRegionsByLevel(REGIONS, player.level).recommended.some(region => region.id === currentRegion.id) && (
+            <p className="mt-2 text-[11px] text-slate-400">Сейчас вы в локации другого уровня. Подходящие земли выделены на карте.</p>
+          )}
 
           {/* Energy notice */}
           <div className="mt-3 flex flex-wrap gap-2 items-center justify-between text-xs bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
