@@ -2,9 +2,9 @@ import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { GameItem } from '../../../../types/game';
-import { RARITY_COLORS, getUpgradeRequirements, REGIONS } from '../../../../data/gameData';
+import { RARITY_COLORS, getUpgradeRequirements, REGIONS } from '../../data/gameData';
 import { sound } from '../../../../utils/audio';
-import { ItemArtwork } from '../../../../components/ui/ItemArtwork';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { ClassGearBonus } from '../../../../components/ui/ClassGearBonus';
 import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';

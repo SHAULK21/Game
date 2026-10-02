@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PETS_LIST } from '../../../../data/gameData';
+import { PETS_LIST } from '../../data/gameData';
 import { useGame } from '../../../../context/GameContext';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, RpgButton, SectionTitle } from '../ui/BestiaryUI';

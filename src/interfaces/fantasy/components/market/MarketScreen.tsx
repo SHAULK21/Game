@@ -6,9 +6,9 @@ import { useGame } from '../../../../context/GameContext';
 import { apiRequest } from '../../../../utils/api';
 import { triggerHaptic } from '../../../../utils/telegram';
 import { calculateMarketSale } from '../../../../utils/marketEconomy';
-import { RARITY_COLORS, getLeveledEquipmentName } from '../../../../data/gameData';
+import { RARITY_COLORS, getLeveledEquipmentName } from '../../data/gameData';
 import { ClassGearBonus } from '../../../../components/ui/ClassGearBonus';
-import { ItemArtwork } from '../../../../components/ui/ItemArtwork';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ResourceBadge, RpgButton } from '../ui/BestiaryUI';
 

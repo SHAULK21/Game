@@ -1,4 +1,4 @@
-import { ItemArtwork } from '../../../../components/ui/ItemArtwork';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { craftStageLockReason, regionalSealName } from '../../../../utils/regionalProgress';
 import { smithingProgress } from '../../../../utils/professions';
 import React, { useState } from 'react';
@@ -7,7 +7,7 @@ import {
   BASIC_CRAFT_RECIPES, CRAFT_RARITY_CHANCES, MINE_CATALYST_BY_ORE,
   MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,
   getEquipmentLevelRange, getRegionMonster
-} from '../../../../data/gameData';
+} from '../../data/gameData';
 import { ClassGearBonus } from '../../../../components/ui/ClassGearBonus';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../../../../utils/classEquipment';
 import type { CharacterClassId } from '../../../../types/game';

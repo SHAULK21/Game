@@ -3,7 +3,7 @@ import { PvpArena } from './PvpArena';
 import { nextArenaReset } from '../../../../utils/gameCadence';
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { ARENA_BOTS } from '../../../../data/gameData';
+import { ARENA_BOTS } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ResourceBadge, SectionTitle } from '../ui/BestiaryUI';
 

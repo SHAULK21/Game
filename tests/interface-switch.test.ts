@@ -23,6 +23,7 @@ test('registration switches styles without losing input; both layouts share char
   try {
     await w.act(async () => w.mount()); await settle();
     assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
+    assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), 'art');
     const input = w.document.querySelector('input[type="text"]');
     await w.act(async () => {
       Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value')!.set!.call(input, 'Новый герой');
@@ -31,6 +32,7 @@ test('registration switches styles without losing input; both layouts share char
     const fantasy = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.startsWith('Фэнтези')) as any;
     await w.act(async () => fantasy.click());
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy'); assert.equal(input.value, 'Новый герой');
+    assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), '/assets/sprites/generated/heroes/warrior.webp');
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
@@ -89,5 +91,22 @@ test('admin chooses a player and must confirm before sending a reset for that ex
     await w.act(async () => reset.click());
     assert.equal(sent.length, 1); assert.equal(sent[0].url, '/api/admin/players/2/reset'); assert.equal(sent[0].body.confirmTargetId, '2'); assert.equal(sent[0].body.expectedVersion, 0);
     assert.match(w.document.body.textContent, /Прогресс Воин сброшен/);
+  } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
+});
+
+
+test('fantasy artwork uses new sprites and recovers from image failures; modern artwork stays unchanged', async () => {
+  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {ItemArtwork as FantasyItem} from './src/interfaces/fantasy/components/ui/ItemArtwork';import {ItemArtwork as ModernItem} from './src/components/ui/ItemArtwork';import {RpgIcon} from './src/interfaces/fantasy/components/ui/RpgIcon';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));const item={name:'Меч',type:'weapon',rarity:'common',image:'/saved-sword.png'};window.root.render(<><div id="fantasy"><FantasyItem item={item}/></div><div id="modern"><ModernItem item={item}/></div><div id="icon"><RpgIcon kind="attack" title="Атака"/></div></>);};`);
+  try {
+    await w.act(async () => w.mount());
+    const image = (id: string) => w.document.querySelector(`#${id} img`);
+    assert.equal(image('fantasy').getAttribute('src'), '/assets/sprites/generated/ui/gear/weapon.webp');
+    assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
+    assert.equal(image('icon').getAttribute('src'), '/assets/sprites/generated/ui/icons/attack.webp');
+    await w.act(async () => image('fantasy').dispatchEvent(new w.Event('error')));
+    assert.equal(image('fantasy').getAttribute('src'), '/saved-sword.png');
+    await w.act(async () => image('icon').dispatchEvent(new w.Event('error')));
+    assert(w.document.querySelector('#icon svg'));
+    assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
