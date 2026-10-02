@@ -445,3 +445,50 @@ html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper.is-selected 
 html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="text-"] { color: inherit; }
 html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="bg-"] { color: #dfcaa7; }
 html[data-interface="fantasy"] .hero-codex > div:first-child h1 { font-family: Georgia, serif; color: #e4c895; }
+
+
+/* Registration leaf and hero dossier from the three supplied references. */
+html[data-interface="fantasy"] .class-portrait-icon { display:inline-flex; width:44px; height:44px; flex-shrink:0; overflow:hidden; border:2px double #b99a65; border-radius:6px; background:#241d17; box-shadow:inset 0 0 8px #0008, 0 2px 4px #0006; }
+html[data-interface="fantasy"] .class-portrait-icon svg { display:block; }
+html[data-interface="fantasy"] .registration-class-portrait { width:52px; height:50px; margin-bottom:5px; }
+html[data-interface="fantasy"] .header-class-portrait { width:100%; height:100%; border:0; border-radius:0; }
+html[data-interface="fantasy"] .registration-screen > div { max-width:680px; }
+html[data-interface="fantasy"] .registration-screen .registration-skills { padding:10px; border:3px double #9b774a; background:radial-gradient(ellipse at top,#ead7ae,#c4a471); color:#3c291c; }
+html[data-interface="fantasy"] .registration-skills summary { font:700 clamp(16px,3vw,21px) Georgia,serif; color:#3e2a1b; min-height:44px; padding:8px; border-bottom:2px solid #9d774a; }
+html[data-interface="fantasy"] .registration-passive { border:3px double #8f6840; background:linear-gradient(105deg,#e9d4a5,#cdb080); padding:14px; color:#402b1c; }
+html[data-interface="fantasy"] .registration-passive > div { color:inherit; font-size:12px; }
+html[data-interface="fantasy"] .registration-passive > div:first-child { font:700 16px Georgia,serif; text-transform:none; }
+html[data-interface="fantasy"] .skill-codex-card { --skill-aura:#867055; display:grid; grid-template-columns:96px minmax(0,1fr); gap:12px; padding:13px; position:relative; border:3px double #997347; border-radius:5px; background:url('/assets/sprites/generated/ui/parchment-grain.webp'),radial-gradient(ellipse,#f0dfba,#d2b68b); background-size:420px,auto; background-blend-mode:soft-light,normal; color:#412d20; box-shadow:inset 0 0 18px #86552933,0 3px 5px #0003; }
+html[data-interface="fantasy"] .skill-codex-card.is-blood,html[data-interface="fantasy"] .skill-codex-card.is-fire { --skill-aura:#ab3d32; }
+html[data-interface="fantasy"] .skill-codex-card.is-dark,html[data-interface="fantasy"] .skill-codex-card.is-magic { --skill-aura:#8653a6; }
+html[data-interface="fantasy"] .skill-codex-card.is-ice,html[data-interface="fantasy"] .skill-codex-card.is-lightning { --skill-aura:#4b83ac; }
+html[data-interface="fantasy"] .skill-codex-card.is-poison { --skill-aura:#64884a; }
+html[data-interface="fantasy"] .skill-codex-card.is-holy,html[data-interface="fantasy"] .skill-codex-card.is-guard { --skill-aura:#b79b54; }
+html[data-interface="fantasy"] .skill-codex-art { position:relative; display:grid; place-items:center; align-self:start; aspect-ratio:1; border:5px double #b69860; background:repeating-conic-gradient(from 15deg,#0000 0deg 12deg,#ecd29c16 12deg 15deg),radial-gradient(ellipse,var(--skill-aura),#231917 78%); box-shadow:inset 0 0 15px #0009,2px 3px 6px #62422966; color:#f0d9ac; }
+html[data-interface="fantasy"] .skill-codex-art > svg { width:64%; height:64%; filter:drop-shadow(2px 2px 3px #160f10); }
+html[data-interface="fantasy"] .skill-codex-diamond { position:absolute; width:12px; height:12px; bottom:-6px; right:-6px; border:2px solid #c8a76c; transform:rotate(45deg); background:#352318; }
+html[data-interface="fantasy"] .skill-codex-copy { min-width:0; }
+html[data-interface="fantasy"] .skill-codex-copy header { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; }
+html[data-interface="fantasy"] .skill-codex-copy h3 { flex:1; margin:0; font:700 clamp(15px,2.7vw,21px) Georgia,serif; color:#f0deb6; background:linear-gradient(#503622,#2c1d14); padding:6px 10px; border:2px double #957148; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .skill-codex-copy header > span { font:12px Georgia,serif; color:#f0deb6; background:#33261e; border:1px solid #aa8756; padding:4px 7px; white-space:nowrap; }
+html[data-interface="fantasy"] .skill-codex-lines { font-size:12px; line-height:1.55; }
+html[data-interface="fantasy"] .skill-codex-lines p { display:flex; align-items:flex-start; gap:6px; margin:5px 0; }
+html[data-interface="fantasy"] .skill-codex-lines svg { width:16px; height:16px; margin-top:2px; flex-shrink:0; color:#694329; }
+html[data-interface="fantasy"] .hero-codex-heading { position:relative; text-align:center; justify-content:center; padding:12px 48px; border:3px double #9e7a47; background:linear-gradient(#ecd9ad,#cdb081); color:#483220; }
+html[data-interface="fantasy"] .hero-codex-heading > div > div { color:#765634; }
+html[data-interface="fantasy"] .game-shell main .hero-codex-heading h1 { color:#3c291d; font:700 clamp(22px,4vw,32px) Georgia,serif; }
+html[data-interface="fantasy"] .hero-codex-heading > button { position:absolute; right:8px; top:50%; transform:translateY(-50%); }
+html[data-interface="fantasy"] .hero-sheet { border-width:4px; padding:18px; }
+html[data-interface="fantasy"] .hero-class-heading { display:flex; align-items:center; gap:9px; }
+html[data-interface="fantasy"] .hero-class-heading .class-portrait-icon { width:34px; height:34px; }
+html[data-interface="fantasy"] .hero-counters button { color:#432d1d; background:linear-gradient(#eddcb4,#ccb084); box-shadow:inset 0 0 8px #97734422; border-color:#a98553; }
+html[data-interface="fantasy"] .hero-portrait { border:7px double #a48351; box-shadow:2px 4px 10px #52381777,inset 0 0 0 2px #38291e; }
+html[data-interface="fantasy"] .hero-attributes .attribute-card { min-height:62px; }
+html[data-interface="fantasy"] .hero-attributes .attribute-summary { color:#6e543a; }
+html[data-interface="fantasy"] .hero-codex .codex-detail { border-color:#a18358; }
+@media (max-width:420px) {
+  html[data-interface="fantasy"] .skill-codex-card { grid-template-columns:56px minmax(0,1fr); gap:8px; padding:8px; }
+  html[data-interface="fantasy"] .skill-codex-lines { font-size:11px; }
+  html[data-interface="fantasy"] .hero-sheet { padding:10px; }
+  html[data-interface="fantasy"] .hero-class-heading .class-portrait-icon { display:none; }
+}
