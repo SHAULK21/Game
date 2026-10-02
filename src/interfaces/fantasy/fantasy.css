@@ -118,5 +118,218 @@ html[data-interface="fantasy"] .combat-feedback-pop { animation: combat-feedback
 html[data-interface="fantasy"] button:disabled { cursor: not-allowed; }
 html[data-interface="fantasy"] button:disabled:active { transform: none; }
 
+/* Dark folio visual system */
+html[data-interface="fantasy"] .game-shell {
+  background:
+    radial-gradient(ellipse at 50% -12%, rgb(74 61 42 / 24%), transparent 42%),
+    radial-gradient(ellipse at 0% 52%, rgb(30 41 41 / 18%), transparent 44%),
+    linear-gradient(180deg, #100f0d, #090b0d 34%, #0b0c0d);
+}
+html[data-interface="fantasy"] .game-header {
+  position: sticky;
+  background: linear-gradient(180deg, rgb(24 21 17 / 97%), rgb(15 17 18 / 95%));
+  border-bottom-color: #66563a;
+  box-shadow: 0 5px 18px rgb(0 0 0 / 32%);
+}
+html[data-interface="fantasy"] .game-header::after {
+  position: absolute;
+  right: 11%;
+  bottom: -1px;
+  left: 11%;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, #b89558 20%, #69522f 50%, #b89558 80%, transparent);
+  opacity: .62;
+}
+html[data-interface="fantasy"] .game-nav {
+  background: linear-gradient(180deg, rgb(25 22 18 / 98%), rgb(10 11 12 / 99%));
+  border-top-color: #6a5637;
+  box-shadow: 0 -8px 26px rgb(0 0 0 / 38%);
+}
+html[data-interface="fantasy"] .game-nav-item { transition: color 160ms ease, background 160ms ease; }
+html[data-interface="fantasy"] .game-nav-item.is-active { background: linear-gradient(180deg, rgb(164 126 63 / 17%), rgb(113 76 35 / 7%)); }
+html[data-interface="fantasy"] .font-cinzel, html[data-interface="fantasy"] .folio-title, html[data-interface="fantasy"] .section-title { font-family: Georgia, "Times New Roman", serif; }
+html[data-interface="fantasy"] .bestiary-panel {
+  border-color: #4d4639;
+  background:
+    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    linear-gradient(145deg, rgb(34 31 26 / 97%), rgb(17 19 20 / 99%) 70%),
+    #141619;
+  background-size: 360px 360px, 100% 100%, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, normal;
+  border-radius: 12px;
+  box-shadow: inset 0 1px rgb(255 244 213 / 3%), 0 8px 22px rgb(0 0 0 / 17%);
+}
+html[data-interface="fantasy"] .leather-panel {
+  background:
+    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    linear-gradient(145deg, #292319, #181714 72%);
+  background-size: 360px 360px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  background-blend-mode: soft-light, normal;
+  border-color: #685638;
+  box-shadow: inset 0 1px rgb(255 244 213 / 5%), 0 8px 20px rgb(0 0 0 / 22%);
+}
+html[data-interface="fantasy"] .game-drawer, html[data-interface="fantasy"] .dialog-frame {
+  background: linear-gradient(145deg, #25211a, #141619 62%);
+  border-color: #76613d;
+}
+html[data-interface="fantasy"] .game-section { background: linear-gradient(145deg, #25221d, #17191a); }
+html[data-interface="fantasy"] .game-section.is-active {
+  background: linear-gradient(145deg, #3a2c1b, #241e16);
+  color: #ead19b;
+  box-shadow: inset 0 0 0 1px rgb(190 154 87 / 20%);
+}
+html[data-interface="fantasy"] .resource-badge { background: linear-gradient(180deg, #211e18, #111314); border-color: #524632; }
+html[data-interface="fantasy"] .rpg-button { border-radius: 9px; font-family: Georgia, "Times New Roman", serif; letter-spacing: .025em; }
+html[data-interface="fantasy"] .rpg-button-primary {
+  color: #f0dcb4;
+  border-color: #c39a56;
+  background: linear-gradient(180deg, #702d28, #401917 62%, #291411);
+  box-shadow: inset 0 1px rgb(255 235 190 / 13%), inset 0 0 0 1px rgb(42 19 13 / 55%), 0 5px 16px rgb(0 0 0 / 25%);
+}
+html[data-interface="fantasy"] .rpg-button-primary:hover:not(:disabled) { background: linear-gradient(180deg, #843832, #501d19 62%, #321713); }
+html[data-interface="fantasy"] .rpg-button-secondary { background: linear-gradient(180deg, #25231e, #151719); border-color: #66563c; }
+html[data-interface="fantasy"] .rpg-icon-button { border-color: #66563c; background: linear-gradient(145deg, #25221d, #131516); }
+html[data-interface="fantasy"] .codex-tab.is-active { color: #e1c483; border-color: #c09a59; }
+html[data-interface="fantasy"] .progress-track { border-color: #514b40; box-shadow: inset 0 1px 2px rgb(0 0 0 / 55%); }
+
+html[data-interface="fantasy"] .bestiary-list { scrollbar-color: #766342 #171818; scrollbar-width: thin; }
+html[data-interface="fantasy"] .bestiary-entry-row {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  gap: 11px;
+  padding: 6px 9px 6px 7px;
+  border-radius: 9px;
+  border-left: 2px solid transparent;
+  text-align: left;
+}
+html[data-interface="fantasy"] .bestiary-entry-row.is-selected {
+  border-left-color: #d2ad67;
+  background: linear-gradient(90deg, rgb(157 116 52 / 25%), rgb(41 34 25 / 76%) 45%, #17191a);
+  box-shadow: inset 0 0 0 1px rgb(195 157 91 / 23%), 0 2px 9px rgb(0 0 0 / 24%);
+}
+html[data-interface="fantasy"] .bestiary-entry-row.is-locked { opacity: .73; }
+html[data-interface="fantasy"] .bestiary-entry-portrait {
+  position: relative;
+  display: grid;
+  width: 49px;
+  height: 49px;
+  flex: 0 0 49px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #554a39;
+  border-radius: 6px;
+  background: #0a0c0d;
+  box-shadow: inset 0 0 0 2px rgb(0 0 0 / 38%);
+}
+html[data-interface="fantasy"] .bestiary-entry-portrait.is-locked { border-style: dashed; }
+html[data-interface="fantasy"] .bestiary-marker {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid #71603f;
+  border-radius: 4px;
+  background: #272116;
+  color: #d7bd82;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+html[data-interface="fantasy"] .bestiary-marker.is-boss { border-color: #77423d; background: #321c1b; color: #d99d94; }
+html[data-interface="fantasy"] .bestiary-entry-chevron { color: #9b8256; font-family: Georgia, serif; font-size: 24px; line-height: 1; }
+html[data-interface="fantasy"] .bestiary-dossier { border-color: #8b7047; box-shadow: 0 8px 24px rgb(0 0 0 / 35%), inset 0 0 0 1px rgb(219 184 116 / 12%); }
+html[data-interface="fantasy"] .bestiary-dossier-art { background: #101517; }
+html[data-interface="fantasy"] .bestiary-dossier-art-shade {
+  background: linear-gradient(180deg, rgb(7 10 10 / 31%) 0%, transparent 28%, rgb(7 9 9 / 14%) 48%, rgb(8 9 9 / 87%) 100%);
+}
+html[data-interface="fantasy"] .bestiary-art-stamp {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid rgb(189 155 96 / 58%);
+  border-radius: 4px;
+  background: rgb(13 14 14 / 72%);
+  color: #e4d2ad;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+html[data-interface="fantasy"] .bestiary-dossier-paper {
+  color: #302820;
+  background:
+    url('/assets/sprites/generated/ui/parchment-grain.webp'),
+    radial-gradient(ellipse at 8% 10%, rgb(255 248 220 / 62%), transparent 30%),
+    radial-gradient(ellipse at 92% 90%, rgb(140 102 58 / 13%), transparent 30%),
+    linear-gradient(133deg, #eadcc0, #cdb996 58%, #dfcfac);
+  background-size: 420px 420px, auto, auto, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, normal, normal;
+  box-shadow: inset 0 1px rgb(255 251 229 / 55%);
+}
+html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row { border-color: rgb(85 66 42 / 18%); }
+html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row > span { color: #6c5d48; }
+html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row strong { color: #352a20; }
+
+html[data-interface="fantasy"] .combat-scene {
+  border-color: #766344;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgb(213 178 114 / 15%), 0 8px 24px rgb(0 0 0 / 38%);
+}
+html[data-interface="fantasy"] .game-shell [data-battle-scene] > img { filter: brightness(.55) saturate(.78) sepia(.08); }
+html[data-interface="fantasy"] .combat-scene-shade {
+  background: linear-gradient(180deg, rgb(5 8 8 / 48%) 0%, rgb(7 9 9 / 2%) 28%, rgb(7 8 8 / 24%) 59%, rgb(5 6 6 / 93%) 100%);
+}
+html[data-interface="fantasy"] .combat-scene-header { border-bottom: 1px solid rgb(225 204 165 / 22%); }
+html[data-interface="fantasy"] .combat-round {
+  padding: 3px 7px;
+  border: 1px solid rgb(192 154 87 / 47%);
+  border-radius: 4px;
+  background: rgb(9 10 10 / 66%);
+  color: #e2c782;
+  font-family: var(--font-mono);
+}
+html[data-interface="fantasy"] .combat-monster-art { filter: drop-shadow(0 12px 16px rgb(0 0 0 / 52%)); }
+html[data-interface="fantasy"] .combat-enemy-plaque {
+  padding: 8px 10px 5px;
+  border: 1px solid rgb(190 157 98 / 54%);
+  border-radius: 8px;
+  background: linear-gradient(100deg, rgb(10 12 12 / 92%), rgb(16 17 16 / 72%));
+  box-shadow: inset 0 1px rgb(255 240 207 / 7%), 0 3px 10px rgb(0 0 0 / 24%);
+}
+html[data-interface="fantasy"] .combat-hero-plaque { border-color: #66563c; background: linear-gradient(110deg, #211e19, #121516 72%); }
+html[data-interface="fantasy"] .combat-hero-plaque .progress-track { height: 7px; }
+html[data-interface="fantasy"] .combat-action-grid { gap: 8px; }
+html[data-interface="fantasy"] .combat-action {
+  min-height: 76px;
+  border-radius: 9px;
+  gap: 5px;
+  border-width: 1px;
+  box-shadow: inset 0 1px rgb(255 245 216 / 7%), 0 5px 12px rgb(0 0 0 / 25%);
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-interface="fantasy"] .combat-action-attack { border-color: #a56b49; background: linear-gradient(145deg, #61251f, #2b1513); color: #ecd6b4; }
+html[data-interface="fantasy"] .combat-action-attack:hover:not(:disabled) { background: linear-gradient(145deg, #793129, #391815); }
+html[data-interface="fantasy"] .combat-action-skill { border-color: #4e7691; background: linear-gradient(145deg, #16313a, #11191c); color: #c7e4ea; }
+html[data-interface="fantasy"] .combat-action-defend { border-color: #786a4d; background: linear-gradient(145deg, #282822, #151819); color: #ded6c3; }
+html[data-interface="fantasy"] .combat-action-potion { border-color: #71443e; background: linear-gradient(145deg, #321b1a, #171516); color: #e0b5a5; }
+html[data-interface="fantasy"] .combat-action:disabled { filter: saturate(.45); }
+html[data-interface="fantasy"] .combat-turn-status { border-color: #64553a; background: linear-gradient(110deg, #282217, #17191a); }
+
+@media (max-width: 380px) {
+  html[data-interface="fantasy"] .combat-scene { min-height: 316px; }
+  html[data-interface="fantasy"] .combat-monster-art { height: 220px; width: 73%; }
+  html[data-interface="fantasy"] .bestiary-dossier-paper { padding-inline: 13px; }
+  html[data-interface="fantasy"] .bestiary-marker { padding-inline: 4px; }
+}
+
 html[data-interface="fantasy"] .registration-screen { background: radial-gradient(ellipse at top, #292317, #090b0d 65%); }
 html[data-interface="fantasy"] .registration-screen h1 { font-family: Georgia, serif; color: #d4b374; }

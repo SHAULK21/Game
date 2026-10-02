@@ -1,0 +1,52 @@
+{
+  "format": "WebP",
+  "dimensions": "600x600",
+  "alpha": false,
+  "background": "Painted dark forest environment; portraits intentionally use full opaque backgrounds.",
+  "classes": {
+    "warrior": {
+      "name": "Воин",
+      "src": "/assets/sprites/generated/heroes/warrior.webp"
+    },
+    "berserker": {
+      "name": "Берсерк",
+      "src": "/assets/sprites/generated/heroes/berserker.webp"
+    },
+    "knight": {
+      "name": "Рыцарь",
+      "src": "/assets/sprites/generated/heroes/knight.webp"
+    },
+    "rogue": {
+      "name": "Разбойник",
+      "src": "/assets/sprites/generated/heroes/rogue.webp"
+    },
+    "assassin": {
+      "name": "Ассасин",
+      "src": "/assets/sprites/generated/heroes/assassin.webp"
+    },
+    "archer": {
+      "name": "Лучник",
+      "src": "/assets/sprites/generated/heroes/archer.webp"
+    },
+    "mage": {
+      "name": "Маг",
+      "src": "/assets/sprites/generated/heroes/mage.webp"
+    },
+    "necromancer": {
+      "name": "Некромант",
+      "src": "/assets/sprites/generated/heroes/necromancer.webp"
+    },
+    "paladin": {
+      "name": "Паладин",
+      "src": "/assets/sprites/generated/heroes/paladin.webp"
+    },
+    "druid": {
+      "name": "Друид",
+      "src": "/assets/sprites/generated/heroes/druid.webp"
+    }
+  },
+  "namedHunter": {
+    "src": "/assets/sprites/generated/heroes/hunter.webp",
+    "purpose": "Player hero portrait, separate from the archer class portrait."
+  }
+}

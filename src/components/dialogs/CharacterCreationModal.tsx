@@ -1,3 +1,5 @@
+import { useInterface } from '../../context/InterfaceContext';
+import { getFantasyHeroArtwork } from '../../interfaces/fantasy/utils/heroArtwork';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -21,6 +23,7 @@ export const CharacterCreationModal: React.FC = () => {
     createCharacter(name, selectedClass);
   };
 
+  const { style } = useInterface();
   const classList = Object.values(CLASSES);
   const activeClassDef = CLASSES[selectedClass];
 
@@ -43,7 +46,7 @@ export const CharacterCreationModal: React.FC = () => {
         {/* Hero Visual Card */}
         <div className="relative rounded-2xl overflow-hidden border border-slate-700 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent">
           <img
-            src={activeClassDef?.image || ASSETS.heroHunter}
+            src={style === 'fantasy' ? getFantasyHeroArtwork(selectedClass) : activeClassDef?.image || ASSETS.heroHunter}
             alt={activeClassDef?.name || 'Hero'}
             className="w-full h-full object-cover object-top opacity-85 transition-opacity duration-300"
             referrerPolicy="no-referrer"

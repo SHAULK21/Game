@@ -1,10 +1,10 @@
 import {PICKAXES,getPickaxeBonus,miningCritChance,miningYieldRange} from '../../../../utils/mining';
-import {ItemArtwork} from '../../../../components/ui/ItemArtwork';
-import {RARITY_COLORS} from '../../../../data/gameData';
+import {ItemArtwork} from '../ui/ItemArtwork';
+import {RARITY_COLORS} from '../../data/gameData';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { MINING_NODES } from '../../../../data/gameData';
-import { getResourceArtwork } from '../../../../utils/resourceArtwork';
+import { MINING_NODES } from '../../data/gameData';
+import { getResourceArtwork } from '../../utils/resourceArtwork';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 

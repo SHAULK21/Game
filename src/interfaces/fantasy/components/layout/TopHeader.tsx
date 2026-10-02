@@ -1,7 +1,7 @@
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { CLASSES, ASSETS } from '../../../../data/gameData';
+import { CLASSES, ASSETS } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
 import { ResourceBadge, RpgButton } from '../ui/BestiaryUI';

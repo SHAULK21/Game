@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { CLASSES, ASSETS } from '../../../../data/gameData';
+import { CLASSES, ASSETS } from '../../data/gameData';
 import type { CharacterAttributes, ItemType } from '../../../../types/game';
 import { TalentTree } from '../../../../components/character/TalentTree';
 import { HeroStats } from '../../../../components/character/HeroStats';

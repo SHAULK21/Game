@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { ALCHEMY_RECIPES } from '../../../../data/gameData';
+import { ALCHEMY_RECIPES } from '../../data/gameData';
 import { ALCHEMY_TOOLS, getAlchemyToolBonus, alchemyProgress, alchemyExperience } from '../../../../utils/alchemy';
-import { RARITY_COLORS } from '../../../../data/gameData';
-import { ItemArtwork } from '../../../../components/ui/ItemArtwork';
+import { RARITY_COLORS } from '../../data/gameData';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 
