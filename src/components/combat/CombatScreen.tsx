@@ -823,7 +823,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 </button>
               ) : activeDungeonRun ? (
                 <button
-                  onClick={onContinueDungeon}
+                  onClick={() => { exitCombat(); onContinueDungeon?.(); }}
                   className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
                   {activeDungeonRun.completed ? 'Итоги подземелья' : combatOutcome === 'victory' ? 'Продолжить подземелье' : 'Вернуться в подземелье'}
