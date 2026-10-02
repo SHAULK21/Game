@@ -34,6 +34,23 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
+    const activeTab = () => w.document.querySelector('nav button[aria-current="page"]')?.textContent.trim();
+    for (const label of ['Сумка', 'Мир']) {
+      await w.act(async () => button(label).click()); await settle();
+      assert.equal(activeTab(), label);
+      await w.act(async () => button('Современный').click()); await settle();
+      assert.equal(activeTab(), label, 'modern keeps the selected section');
+      await w.act(async () => button('Фэнтези').click()); await settle();
+      assert.equal(activeTab(), label, 'fantasy keeps the selected section');
+    }
+    await w.act(async () => button('Герой').click()); await settle();
+    assert.equal(activeTab(), 'Герой');
+    await w.act(async () => button('Современный').click()); await settle();
+    assert(w.document.querySelector('main').textContent.includes('Новый герой'), 'modern renders the fantasy hero tab');
+    assert.equal([...w.document.querySelectorAll('button')].some((node: any) => node.textContent.includes('Начать охоту')), false);
+    await w.act(async () => button('Фэнтези').click()); await settle();
+    assert.equal(activeTab(), 'Герой');
+    await w.act(async () => button('Охота').click()); await settle();
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'modern'); assert.equal(save().player.id, original.id); assert.equal(save().player.gold, original.gold);
     await w.act(async () => button('Фэнтези').click()); await settle();
