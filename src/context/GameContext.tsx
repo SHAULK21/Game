@@ -1,3 +1,4 @@
+import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
 import { playerDamagePower } from '../utils/pveBalance';
 import { huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
@@ -547,7 +548,7 @@ const SAVE_KEY = 'aethelgard_save_v1_data';
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const accountResetVersion = useRef(Number(localStorage.getItem('aethelgard_reset_version_' + getTelegramUser().id) || 0));
+  const accountResetVersion = useRef(readResetVersion(getTelegramUser().id));
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
@@ -1081,9 +1082,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).catch(() => undefined);
   }, [player?.userId,player?.name,player?.level,player?.arenaRating,player?.classId,refreshPremiumStatus]);
 
-  // Periodic Save
+  // A session from before an admin reset must never restore its old character.
   useEffect(() => {
-    if (!player) return;
+    if (!player || accountResetVersion.current !== readResetVersion(getTelegramUser().id)) return;
     const saveState = {
       resetVersion: accountResetVersion.current,
       player: { ...player, lastActiveTimestamp: Date.now() },

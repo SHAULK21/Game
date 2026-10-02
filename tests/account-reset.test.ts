@@ -81,7 +81,17 @@ test('server reset clears legacy local saves and pending rewards, retaining inte
     assert.equal(entries.has(GAME_SAVE_KEY), false); assert.equal(entries.has('aethelgard_market_pending_2'), false);
     assert.equal(entries.get('aethelgard_interface_style'), 'fantasy'); assert.equal(entries.get('aethelgard_mock_user'), 'identity');
     assert.equal(entries.get(resetVersionKey(2)), '1'); assert.equal(applyAccountReset(2, 1), false);
+    entries.set(GAME_SAVE_KEY, JSON.stringify({ player: { userId: '2', level: 3 } }));
+    entries.set('aethelgard_market_pending_2', 'new-operation');
+    for (let visit = 0; visit < 3; visit++) {
+      assert.equal(applyAccountReset(2, 1), false, 'same admin reset must not erase newly created progress, even in a legacy save');
+      assert.equal(JSON.parse(entries.get(GAME_SAVE_KEY)!).player.level, 3);
+      assert.equal(entries.get('aethelgard_market_pending_2'), 'new-operation');
+    }
     entries.set(GAME_SAVE_KEY, JSON.stringify({ resetVersion: 1, player: { level: 3 } }));
+    entries.delete(resetVersionKey(2));
+    assert.equal(applyAccountReset(2, 1), false, 'an annotated new save recovers a missing acknowledgement');
+    assert.equal(entries.get(resetVersionKey(2)), '1');
     assert.equal(applyAccountReset(2, 0), false); assert.equal(entries.get(resetVersionKey(2)), '1');
     assert.equal(entries.has(GAME_SAVE_KEY), true);
     assert.equal(applyAccountReset(2, 2), true);

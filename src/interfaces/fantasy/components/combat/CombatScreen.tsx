@@ -1,4 +1,3 @@
-import { SkillDetails } from '../../../../components/ui/SkillDetails';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
@@ -511,7 +510,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                               <span className="text-[11px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">{localize("УЛЬТ")}</span>
                             )}
                           </div>
-                          <SkillDetails skill={skill} />
+                          <div className="text-[11px] text-slate-400">{localize(skill.description)}</div>
                           {levelLocked && <div className="text-[11px] text-rose-400 font-mono">{localize("Доступно с уровня ")}{localize(skill.levelReq)}</div>}
                           {onCooldown && <div className="text-[11px] text-amber-300 font-mono">{localize("Перезарядка: ")}{localize(skill.currentCooldown)}</div>}
                         </div>

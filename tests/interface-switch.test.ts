@@ -42,6 +42,8 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
+    assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
+    assert.equal(w.document.querySelector('[data-skill-details]'), null);
     const activeTab = () => w.document.querySelector('nav button[aria-current="page"]')?.textContent.trim();
     for (const label of ['Сумка', 'Мир']) {
       await w.act(async () => button(label).click()); await settle();
@@ -68,6 +70,8 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
     await w.act(async () => button('Современный').click()); await settle();
+    assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
+    assert.equal(w.document.querySelector('[data-skill-details]'), null);
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
     await w.act(async () => button('Фэнтези').click()); await settle(); assert(button('Атака'));
     await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
@@ -76,6 +80,24 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => w.dispatchEvent(new w.CustomEvent('aethelgard-account-reset', { detail: { resetVersion: 1 } }))); await settle();
     assert.equal(w.localStorage.getItem('aethelgard_save_v1_data'), null); assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy');
+    assert(button('Русский')); assert(button('Українська'));
+    assert(w.document.querySelector('[data-skill-details="w_strike"]'));
+    await w.act(async () => button('Начать путешествие').click()); await settle();
+    const recreated = save().player;
+    assert.equal(save().resetVersion, 1);
+    // A previous client can have stored the new character without this field.
+    const legacy = save(); delete legacy.resetVersion;
+    w.localStorage.setItem('aethelgard_save_v1_data', JSON.stringify(legacy));
+    for (let visit = 0; visit < 2; visit++) {
+      await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
+      assert.equal(save().player.id, recreated.id);
+      assert.equal(save().resetVersion, 1);
+      assert.equal(w.document.querySelector('.registration-screen'), null);
+    }
+    serverVersion = 2;
+    await w.act(async () => w.dispatchEvent(new w.CustomEvent('aethelgard-account-reset', { detail: { resetVersion: 2 } }))); await settle();
+    assert.equal(w.localStorage.getItem('aethelgard_save_v1_data'), null);
+    assert(w.document.querySelector('.registration-screen'), 'a new admin reset still applies');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
 
@@ -200,4 +222,25 @@ test('uncatalogued fantasy enemies retain their own portrait instead of using a 
   assert.equal(getMonsterArtworkPath('custom_beast', '🐻'), '');
   assert.equal(getMonsterArtworkPath('custom_beast', 'javascript:alert(1)'), '');
   assert.equal(getMonsterArtworkPath('m_wolf', '/old-wolf.jpg'), '/assets/sprites/generated/monsters/m_wolf.webp');
+});
+
+
+test('a pre-reset provider cannot save over the cleared account while a current provider can create a new hero', async () => {
+  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {getTelegramUser} from './src/utils/telegram';function Probe(){window.game=useGame();return null;}window.act=act;window.userId=getTelegramUser().id;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`);
+  w.fetch = async () => ({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0,isAdmin:false})});
+  const saveKey = 'aethelgard_save_v1_data';
+  const versionKey = 'aethelgard_reset_version_' + w.userId;
+  try {
+    await w.act(async () => w.mount());
+    await w.act(async () => w.game.createCharacter('До сброса','warrior'));
+    assert.equal(JSON.parse(w.localStorage.getItem(saveKey)).resetVersion,0);
+    // Another tab has handled the reset; this provider still has the old epoch.
+    w.localStorage.removeItem(saveKey); w.localStorage.setItem(versionKey,'1');
+    await w.act(async () => w.game.createCharacter('Устаревшая сессия','warrior'));
+    assert.equal(w.localStorage.getItem(saveKey),null);
+    await w.act(async () => w.root.unmount()); await w.act(async () => w.mount());
+    await w.act(async () => w.game.createCharacter('После сброса','warrior'));
+    const save=JSON.parse(w.localStorage.getItem(saveKey));
+    assert.equal(save.resetVersion,1); assert.equal(save.player.name,'После сброса');
+  } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
