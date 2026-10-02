@@ -1,3 +1,4 @@
+import { getResourceSprite } from './itemSprites';
 // Local vector artwork stays available offline and scales to inventory/detail sizes.
 // Names choose a silhouette; resource families use distinct mineral/magic palettes.
 const shapes = {
@@ -59,7 +60,7 @@ const silhouette = (name: string, type: string): Shape => {
   return type === 'ore' ? 'ore' : 'crystal';
 };
 
-export const getResourceArtwork = (name: string, type: 'ore' | 'material'): string => {
+export const getResourceVectorArtwork = (name: string, type: 'ore' | 'material'): string => {
   const key = `${type}:${name}`;
   const cached = cache.get(key);
   if (cached) return cached;
@@ -71,3 +72,6 @@ export const getResourceArtwork = (name: string, type: 'ore' | 'material'): stri
   cache.set(key, src);
   return src;
 };
+
+export const getResourceArtwork = (name: string, type: 'ore' | 'material'): string =>
+  getResourceSprite(name) || getResourceVectorArtwork(name, type);

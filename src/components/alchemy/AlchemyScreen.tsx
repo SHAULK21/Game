@@ -5,7 +5,6 @@ import { FlaskConical, BatteryCharging } from 'lucide-react';
 import { ALCHEMY_TOOLS, getAlchemyToolBonus, alchemyProgress, alchemyExperience } from '../../utils/alchemy';
 import { RARITY_COLORS } from '../../data/gameData';
 import { ItemArtwork } from '../ui/ItemArtwork';
-import { RpgIcon } from '../ui/RpgIcon';
 
 export const AlchemyScreen: React.FC = () => {
   const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
@@ -111,7 +110,7 @@ export const AlchemyScreen: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      <RpgIcon kind="alchemy" size={24} className="text-purple-300" />
+                      <ItemArtwork item={{name:rec.resultItem,type:'potion',rarity:'common',icon:rec.icon}} size={32} />
                     </span>
                     <div>
                       <span className="font-cinzel text-xs font-bold text-slate-100">
