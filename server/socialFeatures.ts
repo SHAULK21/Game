@@ -1,3 +1,4 @@
+import { gameMessagePayload } from './telegramGameMessages';
 import { registerBalanceTelemetry } from './balanceTelemetry';
 import { registerAccountReset } from './accountReset';
 import {registerAdminBroadcasts} from './broadcasts';
@@ -15,13 +16,10 @@ const uuid = (value:unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a
 export async function queueNotification(db: Pool | PoolClient, userId: number, key:string, category:string,text:string,dueAt=new Date()) {
   await db.query(`INSERT INTO game_notifications (telegram_id,event_key,category,text,due_at) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (telegram_id,event_key) DO NOTHING`,[userId,key,category,text,dueAt]);
 }
-export function startNotificationWorker(getPool:()=>Pool, telegram:TelegramApi, enabled:boolean) {
-  if (!enabled) return;
-  let busy=false;
-  const tick=async()=>{
-    if(busy)return;busy=true;
-    const client=await getPool().connect().catch(()=>null);
-    if(!client){busy=false;return;}
+/** One delivery batch, shared by the background worker and integration tests. */
+export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramApi, baseUrl:string) {
+  const client=await getPool().connect().catch(()=>null);
+  if(!client)return;
     try {
       await client.query('BEGIN');
       const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
@@ -35,7 +33,7 @@ export function startNotificationWorker(getPool:()=>Pool, telegram:TelegramApi, 
           if(current.rows[0]?.active){await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;}
         }
         try {
-          await telegram('sendMessage',{chat_id:Number(row.telegram_id),text:row.text});
+          await telegram('sendMessage',gameMessagePayload(Number(row.telegram_id),row.text,baseUrl));
           await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);
         } catch(error) {
           const blocked=/blocked|chat not found|deactivated/i.test(String(error));
@@ -44,7 +42,15 @@ export function startNotificationWorker(getPool:()=>Pool, telegram:TelegramApi, 
         }
       }
       await client.query('COMMIT');
-    }catch(error){await client.query('ROLLBACK');console.error('Notification worker:',error);}finally{client.release();busy=false;}
+    }catch(error){await client.query('ROLLBACK');console.error('Notification worker:',error);}finally{client.release();}
+}
+export function startNotificationWorker(getPool:()=>Pool, telegram:TelegramApi, enabled:boolean, baseUrl='') {
+  if (!enabled) return;
+  let busy=false;
+  const tick=async()=>{
+    if(busy)return;busy=true;
+    try { await runNotificationBatch(getPool,telegram,baseUrl); }
+    finally { busy=false; }
   };
   const timer=setInterval(()=>void tick(),30000);timer.unref();void tick();
 }

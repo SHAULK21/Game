@@ -3,6 +3,7 @@ import { clanRaidHealth, clanRaidReward, clanRaidItem } from '../src/utils/clanP
 import { leavePlayerClan } from './clanLeave';
 import { createPaidClan } from './clanCreation';
 import {createMarketListing} from './marketListings';
+import { gameMessagePayload, gameMenuButton } from './telegramGameMessages';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
 import { canUseVault } from '../src/utils/clanRoles';
 import { disposeBulkItems, BulkDisposalError } from './bulkDisposal';
@@ -847,7 +848,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
     if (referral && Number(referral[1]) !== userId) {
       await pool.query(`UPDATE players SET referred_by = $1 WHERE telegram_id = $2 AND referred_by IS NULL AND created_at > NOW() - INTERVAL '10 minutes' AND EXISTS (SELECT 1 FROM players WHERE telegram_id = $1 AND created_at < (SELECT created_at FROM players WHERE telegram_id = $2))`,[referral[1],userId]);
     }
-    await telegramBotApi('sendMessage',{chat_id:userId,text:'⚔️ Добро пожаловать в Аэтельгард! Приведите нового друга: когда он достигнет 10 уровня, вы оба получите игровой Premium на 3 дня.',...(publicBaseUrl ? {reply_markup:{inline_keyboard:[[{text:'Открыть игру',web_app:{url:publicBaseUrl}}]]}} : {})});
+    await telegramBotApi('sendMessage',gameMessagePayload(userId,'⚔️ Добро пожаловать в Аэтельгард!\n\nНажмите «Играть», чтобы открыть игру. Уведомления об энергии, шахте и других событиях можно включить в разделе «Оповещения» в игре.\n\nПриведите нового друга: когда он достигнет 10 уровня, вы оба получите игровой Premium на 3 дня.',publicBaseUrl));
     return res.json({ok:true});
   }
   const payment = message?.successful_payment;
@@ -945,7 +946,14 @@ const bootstrap = async () => {
     }
   }
 
-  startNotificationWorker(() => pool, telegramBotApi, Boolean(telegramBotToken));
+  if (telegramBotToken) {
+    const menuButton = gameMenuButton(publicBaseUrl);
+    if (menuButton) {
+      try { await telegramBotApi('setChatMenuButton', { menu_button: menuButton }); }
+      catch (error) { console.error('Could not configure game menu button:', error); }
+    }
+  }
+  startNotificationWorker(() => pool, telegramBotApi, Boolean(telegramBotToken), publicBaseUrl);
   app.listen(port, () => console.log(`Aethelgard server listening on :${port}`));
 };
 

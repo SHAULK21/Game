@@ -29,7 +29,7 @@ export const NotificationsPanel:React.FC=()=>{
   return <section className="ui-panel rounded-xl border p-3 space-y-3">
     <h3 className="font-bold text-sm">🔔 Оповещения</h3>
     {error&&<p role="alert" className="text-xs text-rose-300">{error}</p>}
-    <p className="text-xs text-slate-400">Сообщения приходят от игрового бота, даже когда игра закрыта. Сначала нажмите «Старт» в боте.</p>
+    <p className="text-xs text-slate-400">Уведомления приходят в личный чат игрового бота, даже когда игра закрыта. Под каждым сообщением есть кнопка «⚔️ Играть». Сначала нажмите «Старт» в боте.</p>
     <button disabled={busy} onClick={()=>settings.enabled?void save({...settings,enabled:false}):void enable()} className="w-full rounded-lg bg-cyan-950 border p-2 text-xs">{settings.enabled?'Выключить сообщения в Telegram':'Включить сообщения в Telegram'}</button>
     {!started&&<p className="text-xs text-amber-300">Бот ещё не запущен. После «Старт» нажмите «Обновить».</p>}
     <div className="grid grid-cols-2 gap-2">{Object.entries(LABELS).map(([key,label])=><label key={key} className="text-xs text-slate-300 flex gap-2"><input type="checkbox" disabled={busy} checked={settings[key]!==false} onChange={e=>void save({...settings,[key]:e.target.checked})}/>{label}</label>)}</div>
