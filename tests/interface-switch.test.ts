@@ -24,6 +24,11 @@ test('registration switches styles without losing input; both layouts share char
   try {
     await w.act(async () => w.mount()); await settle();
     assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
+    const classButtons = [...w.document.querySelectorAll('.registration-screen button[aria-pressed]')].filter((node: any) => node.querySelector('svg') && /Воин|Берсерк|Рыцарь|Разбойник|Ассасин|Лучник|Маг|Некромант|Паладин|Друид/.test(node.textContent));
+    assert.equal(classButtons.length, 10);
+    assert(classButtons.every((node: any) => !/\p{Extended_Pictographic}/u.test(node.textContent)));
+    assert.match(w.document.querySelector('[data-skill-details="w_strike"]').textContent, /Шанс за удар: 25%/);
+    assert(w.document.querySelector('[data-skill-details="w_charge"]'), 'registration previews advanced class skills too');
     assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), 'art');
     const input = w.document.querySelector('input[type="text"]');
     await w.act(async () => {
