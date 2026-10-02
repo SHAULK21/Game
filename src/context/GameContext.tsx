@@ -547,6 +547,7 @@ const SAVE_KEY = 'aethelgard_save_v1_data';
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const accountResetVersion = useRef(Number(localStorage.getItem('aethelgard_reset_version_' + getTelegramUser().id) || 0));
   const [player, setPlayer] = useState<PlayerCharacter | null>(null);
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
@@ -1084,6 +1085,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!player) return;
     const saveState = {
+      resetVersion: accountResetVersion.current,
       player: { ...player, lastActiveTimestamp: Date.now() },
       quests,
       achievements,
