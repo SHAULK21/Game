@@ -60,8 +60,25 @@ test('autobattle avoids full-health healing and buff potions, respects ultimates
  assert.deepEqual(data.chooseAutoBattleAction({...input,hp:350}),{action:'skill',id:'heal'});
  assert.deepEqual(data.chooseAutoBattleAction({...input,player:{...player,skills:[{...strike,isUltimate:true}]}}),{action:'attack'});
  assert.deepEqual(data.chooseAutoBattleAction({...input,mp:0,player:{...player,classId:'mage',skills:[{...strike,damageType:'magic'}]}}),{action:'defend'});
- const guarded={...input,monster:{...monster,mp:100,skills:[{id:'heavy',manaCost:0,cooldown:4,damageMultiplier:2,damageType:'physical'}]},player:{...player,skills:[strike,{id:'shield',levelReq:1,manaCost:10,currentCooldown:0,damageMultiplier:0,inflicts:{type:'shield',power:200}}]}};
+ const guarded={...input,monster:{...monster,attack:400,mp:100,skills:[{id:'heavy',manaCost:0,cooldown:4,damageMultiplier:2,damageType:'physical'}]},player:{...player,skills:[strike,{id:'shield',levelReq:1,manaCost:10,currentCooldown:0,damageMultiplier:0,inflicts:{type:'shield',power:200}}]}};
  assert.deepEqual(data.chooseAutoBattleAction(guarded),{action:'skill',id:'shield'});
+});
+
+test('autobattle finishes weak enemies and only shields against meaningful incoming damage',()=>{
+ const stats:any={maxHp:1000,maxMp:100,attack:100,magicAttack:100,defense:100,magicDefense:100,armorPenetration:0,mpRegen:3};
+ const shield={id:'shield',levelReq:1,manaCost:10,currentCooldown:0,damageMultiplier:0,inflicts:{type:'shield',power:200}};
+ const strike={id:'strike',levelReq:1,manaCost:10,currentCooldown:0,damageMultiplier:2,damageType:'physical'};
+ const player:any={classId:'knight',level:10,talents:[],skills:[shield,strike],inventory:[]};
+ const heavy={id:'heavy',manaCost:0,cooldown:0,damageMultiplier:2,damageType:'physical'};
+ const input:any={player,stats,hp:1000,mp:100,playerEffects:[],monsterEffects:[],settings:{useSkills:true,useUltimate:true,healAtHpPercent:40,fleeAtHpPercent:0},monster:{hp:50,maxHp:1000,attack:400,magicAttack:10,defense:0,magicDefense:0,mp:100,skills:[heavy]}};
+ assert.deepEqual(data.chooseAutoBattleAction(input),{action:'attack'});
+ assert.deepEqual(data.chooseAutoBattleAction({...input,monster:{...input.monster,hp:150}}),{action:'skill',id:'strike'});
+ assert.deepEqual(data.chooseAutoBattleAction({...input,monster:{...input.monster,hp:1000,attack:10}}),{action:'skill',id:'strike'});
+ assert.deepEqual(data.chooseAutoBattleAction({...input,monster:{...input.monster,hp:1000}}),{action:'skill',id:'shield'});
+ // A caster attacks a nearly defeated target instead of repeatedly recovering mana.
+ assert.deepEqual(data.chooseAutoBattleAction({...input,mp:0,player:{...player,classId:'mage',skills:[{...strike,damageType:'magic'}]},monster:{...input.monster,hp:220,attack:10}}),{action:'attack'});
+ // The same caster may still recover mana early in a long fight.
+ assert.deepEqual(data.chooseAutoBattleAction({...input,mp:0,player:{...player,classId:'mage',skills:[{...strike,damageType:'magic'}]},monster:{...input.monster,hp:1000,attack:10}}),{action:'defend'});
 });
 
 test('actual hunts unlock elite then boss, award seals and first-boss fragment once, craft earned kits and persist progress',async()=>{

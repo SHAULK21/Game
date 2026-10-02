@@ -32,19 +32,6 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
   }
   if (settings.fleeAtHpPercent > 0 && hpPercent <= settings.fleeAtHpPercent) return { action: 'flee' };
 
-  const planned = predictedMonsterSkill(monster);
-  const type = planned?.damageType || monster.damageType || 'physical';
-  const defense = type === 'physical' ? stats.defense : stats.magicDefense;
-  const incoming = (type === 'physical' ? monster.attack : monster.magicAttack) * (planned?.damageMultiplier || 1)
-    * (input.damageMultiplier || 1) * (type === 'physical' ? 80 : 90) / (defense + (type === 'physical' ? 80 : 90));
-  const protectedNow = playerEffects.some(e => e.duration > 1 && (e.type === 'invulnerable' || e.type === 'shield' && e.value >= incoming));
-  if (!protectedNow && !getStatusModifiers(monsterEffects).skipTurn && planned
-      && (planned.damageMultiplier >= 1.7 || incoming >= hp * .3)) {
-    const shield = ready.find(s => s.damageMultiplier === 0 && s.inflicts && ['shield', 'fortify', 'invulnerable'].includes(s.inflicts.type));
-    if (shield) return { action: 'skill', id: shield.id };
-    if (incoming >= hp * .5) return { action: 'defend' };
-  }
-
   const expectedDamage = (s?: Skill) => {
     const damageType = s?.damageType || 'physical';
     const armor = damageType === 'physical' ? Math.max(0, monster.defense - stats.armorPenetration) : monster.magicDefense;
@@ -55,6 +42,26 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
     return damage;
   };
   const basic = expectedDamage();
+  // Finish a weak enemy before spending another turn on protection or mana.
+  // Leave a margin for ordinary damage variance; effect scores are not lethal damage.
+  if (monster.hp <= basic * .85) return { action: 'attack' };
+  const finisher = ready.filter(s => s.damageMultiplier > 0 && monster.hp <= expectedDamage(s) * .85)
+    .sort((a, b) => talentManaCost(a.manaCost, player.talents) - talentManaCost(b.manaCost, player.talents))[0];
+  if (finisher) return { action: 'skill', id: finisher.id };
+
+  const planned = predictedMonsterSkill(monster);
+  const type = planned?.damageType || monster.damageType || 'physical';
+  const defense = type === 'physical' ? stats.defense : stats.magicDefense;
+  const incoming = (type === 'physical' ? monster.attack : monster.magicAttack) * (planned?.damageMultiplier || 1)
+    * (input.damageMultiplier || 1) * (type === 'physical' ? 80 : 90) / (defense + (type === 'physical' ? 80 : 90));
+  const protectedNow = playerEffects.some(e => e.duration > 1 && (e.type === 'invulnerable' || e.type === 'shield' && e.value >= incoming));
+  if (!protectedNow && !getStatusModifiers(monsterEffects).skipTurn && planned
+      && incoming >= hp * .3) {
+    const shield = ready.find(s => s.damageMultiplier === 0 && s.inflicts && ['shield', 'fortify', 'invulnerable'].includes(s.inflicts.type));
+    if (shield) return { action: 'skill', id: shield.id };
+    if (incoming >= hp * .5) return { action: 'defend' };
+  }
+
   const attacks = ready.filter(s => s.damageMultiplier > 0).map(skill => {
     let score = expectedDamage(skill);
     if (skill.inflicts && !monsterEffects.some(e => e.type === skill.inflicts!.type && e.duration > 1)) {
@@ -66,7 +73,7 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
   }).sort((a, b) => b.score - a.score || a.skill.manaCost - b.skill.manaCost);
   // Do not waste mana on a weaker elemental skill or heal at full health.
   if (attacks[0]?.score >= basic * 1.05 && monster.hp > basic) return { action: 'skill', id: attacks[0].skill.id };
-  if (settings.useSkills && ['mage', 'necromancer', 'druid'].includes(player.classId) && monster.hp > basic * 2) {
+  if (settings.useSkills && ['mage', 'necromancer', 'druid'].includes(player.classId) && monster.hp > basic * 2 && monster.hp > monster.maxHp * .25) {
     const waiting = player.skills.find(s => player.level >= s.levelReq && s.damageMultiplier > 0
       && (settings.useUltimate || !s.isUltimate) && (s.currentCooldown || 0) <= 0
       && talentManaCost(s.manaCost, player.talents) > mp && talentManaCost(s.manaCost, player.talents) <= mp + 25 + stats.mpRegen);
