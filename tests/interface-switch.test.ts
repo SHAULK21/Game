@@ -256,3 +256,32 @@ test('a pre-reset provider cannot save over the cleared account while a current 
     assert.equal(save.resetVersion,1); assert.equal(save.player.name,'После сброса');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
+
+
+test('fantasy pets show live active-first cards, exact reference artwork, ingredient counts and unchanged craft/selection actions', async () => {
+  const bundle = await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {PetsScreen} from './src/interfaces/fantasy/components/pets/PetsScreen';import {PETS_LIST} from './src/data/gameData';window.pets=PETS_LIST;window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<PetsScreen/>);};window.render=()=>window.root.render(<PetsScreen/>);`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',plugins:[{name:'fixture',setup(b){b.onResolve({filter:/\/context\/GameContext$/},()=>({path:'fixture',namespace:'pet-test'}));b.onLoad({filter:/.*/,namespace:'pet-test'},()=>({contents:'export const useGame=()=>window.gameData;',loader:'js'}));}},{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
+  w.IS_REACT_ACT_ENVIRONMENT=true;
+  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};
+  w.localStorage.setItem('aethelgard_language','uk');w.eval(bundle.outputFiles[0].text);
+  const calls:string[]=[];
+  w.gameData={player:{miningLevel:40,craftedPetIds:['pet_wolf'],activePet:w.pets[0],inventory:[{name:'Мифриловая руда',stackCount:7}]},setActivePet:(id:string)=>{calls.push(id);return true;},craftPet:(id:string)=>{calls.push(id);return {message:'Недостатньо матеріалів.'};}};
+  try {
+    await w.act(async()=>w.mount());
+    const cards=()=>[...w.document.querySelectorAll('.pet-codex-card')];
+    assert.equal(cards().length,5);assert.match(cards()[0].textContent,/Сніговий лютововк/);
+    assert.equal(w.document.querySelector('.pet-artwork svg').getAttribute('viewBox'),'32 302 215 164');
+    assert.equal(w.document.querySelector('.pet-artwork image').getAttribute('href'),'/assets/sprites/reference/pet-codex.jpg');
+    const dragon=cards().find((c:any)=>c.textContent.includes('85'));const fairy=cards().find((c:any)=>c.textContent.includes('7/10'));
+    assert(dragon.querySelector('button').disabled);assert.equal(fairy.querySelector('button').disabled,false);
+    await w.act(async()=>fairy.querySelector('button').click());assert.deepEqual(calls,['pet_fairy']);
+    assert.match(w.document.querySelector('[role="status"]').textContent,/Недостатньо матеріалів/);
+    w.gameData.player={...w.gameData.player,activePet:w.pets[1],craftedPetIds:['pet_wolf','pet_dragon']};
+    await w.act(async()=>w.render());assert.match(cards()[0].textContent,/Вогняний дракончик/);
+    const wolf=cards().find((c:any)=>c.textContent.includes('Сніговий лютововк'));
+    await w.act(async()=>wolf.querySelector('button').click());assert.equal(calls.at(-1),'pet_wolf');
+    await w.act(async()=>w.document.querySelector('.pet-codex-card.is-active .pet-artwork image').dispatchEvent(new w.Event('error')));
+    assert.equal(w.document.querySelector('.pet-codex-card.is-active .pet-artwork image'),null,'failed artwork keeps the active pet card with a fallback');
+    assert(w.document.querySelector('.pet-artwork'));
+  } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
