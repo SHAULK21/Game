@@ -1,11 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useGame } from '../../context/GameContext';
 import { TopHeader } from '../../components/layout/TopHeader';
-import { BottomNavigation, TabId } from '../../components/layout/BottomNavigation';
+import { BottomNavigation } from '../../components/layout/BottomNavigation';
 import { CombatScreen } from '../../components/combat/CombatScreen';
 import { CharacterCreationModal } from '../../components/dialogs/CharacterCreationModal';
 import { OfflineReportModal } from '../../components/dialogs/OfflineReportModal';
-import { initTelegramApp } from '../../utils/telegram';
+import { useNavigation } from '../../context/NavigationContext';
 
 const WorldScreen = lazy(() => import('../../components/world/WorldScreen').then(module => ({ default: module.WorldScreen })));
 const ArenaScreen = lazy(() => import('../../components/arena/ArenaScreen').then(module => ({ default: module.ArenaScreen })));
@@ -24,21 +24,8 @@ const CharacterScreen = lazy(() => import('../../components/character/CharacterS
 const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(module => ({ default: module.AdminModal })));
 
 export const ModernGameContent: React.FC = () => {
-  const { player, quests, isInCombat, isCombatEnded } = useGame();
-  const [currentTab, setCurrentTab] = useState<TabId>('hunter');
-  const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-
-  useEffect(() => {
-    initTelegramApp();
-  }, []);
-
-  useEffect(() => {
-    if (isInCombat && !isCombatEnded) {
-      setIsCharacterSheetOpen(false);
-      setCurrentTab('hunter');
-    }
-  }, [isInCombat, isCombatEnded]);
+  const { player, quests } = useGame();
+  const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
   if (!player) {
     return <CharacterCreationModal />;
@@ -54,8 +41,8 @@ export const ModernGameContent: React.FC = () => {
       {/* Main View Area */}
       <main className="flex-1 w-full max-w-md mx-auto">
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">Загрузка раздела…</div>}>
-        {isCharacterSheetOpen ? (
-          <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
+        {isCharacterSheetOpen || currentTab === 'character' ? (
+          <CharacterScreen onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') setCurrentTab('hunter'); }} />
         ) : (
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}

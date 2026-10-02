@@ -5,6 +5,7 @@ import { CharacterCreationModal } from './components/dialogs/CharacterCreationMo
 import { InterfaceProvider, useInterface } from './context/InterfaceContext';
 import { AccountSessionGate } from './components/layout/AccountSessionGate';
 import { ModernGameContent } from './interfaces/modern/ModernGameContent';
+import { NavigationProvider } from './context/NavigationContext';
 
 const FantasyGameContent = lazy(() => import('./interfaces/fantasy/FantasyGameContent').then(module => ({ default: module.FantasyGameContent })));
 const InterfaceContent = () => {
@@ -18,5 +19,5 @@ const InterfaceContent = () => {
 
 export default function App() {
   useEffect(() => { initTelegramApp(); }, []);
-  return <InterfaceProvider><AccountSessionGate><GameProvider><InterfaceContent /></GameProvider></AccountSessionGate></InterfaceProvider>;
+  return <InterfaceProvider><AccountSessionGate><GameProvider><NavigationProvider><InterfaceContent /></NavigationProvider></GameProvider></AccountSessionGate></InterfaceProvider>;
 }

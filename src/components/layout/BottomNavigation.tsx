@@ -3,7 +3,8 @@ import { Swords, Compass, Trophy, Backpack, Anvil, Hammer, FlaskConical, Pickaxe
 import { sound } from '../../utils/audio';
 import { triggerHaptic } from '../../utils/telegram';
 
-export type TabId = 'hunter' | 'world' | 'arena' | 'inventory' | 'blacksmith' | 'crafting' | 'alchemy' | 'mine' | 'clan' | 'chat' | 'market' | 'pets' | 'leaderboard' | 'more';
+import type { GameTabId } from '../../types/navigation';
+export type TabId = GameTabId;
 interface BottomNavigationProps {
   currentTab: TabId;
   onSelectTab: (tab: TabId) => void;

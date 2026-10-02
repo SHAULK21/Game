@@ -3,7 +3,8 @@ import { sound } from '../../../../utils/audio';
 import { triggerHaptic } from '../../../../utils/telegram';
 import { RpgIcon, RpgIconKind } from '../ui/RpgIcon';
 
-export type TabId = 'hunter' | 'world' | 'character' | 'arena' | 'inventory' | 'blacksmith' | 'crafting' | 'alchemy' | 'mine' | 'clan' | 'chat' | 'market' | 'pets' | 'leaderboard' | 'more';
+import type { GameTabId } from '../../../../types/navigation';
+export type TabId = GameTabId;
 interface BottomNavigationProps {
   currentTab: TabId;
   onSelectTab: (tab: TabId) => void;
