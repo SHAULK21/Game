@@ -1,3 +1,4 @@
+import { SkillDetails } from '../../../../components/ui/SkillDetails';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
@@ -494,10 +495,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                           performPlayerAction('skill', skill.id);
                           setIsSkillsOpen(false);
                         }}
-                        className={`p-2 rounded-lg border flex items-center justify-between text-left transition-all ${
+                        className={`p-2 rounded-lg border flex items-start gap-2 justify-between text-left transition-all ${
                           canUse
                             ? comboReady.includes(skill.id) ? 'bg-cyan-950/40 border-cyan-400 hover:border-cyan-200 active:scale-98 cursor-pointer' : 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
-                            : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
+                            : 'bg-slate-950/40 border-slate-800 text-slate-500 cursor-not-allowed'
                         }`}
                       >
                         <div>
@@ -510,7 +511,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                               <span className="text-[11px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">{localize("УЛЬТ")}</span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400">{localize(skill.description)}</div>
+                          <SkillDetails skill={skill} />
                           {levelLocked && <div className="text-[11px] text-rose-400 font-mono">{localize("Доступно с уровня ")}{localize(skill.levelReq)}</div>}
                           {onCooldown && <div className="text-[11px] text-amber-300 font-mono">{localize("Перезарядка: ")}{localize(skill.currentCooldown)}</div>}
                         </div>
@@ -518,7 +519,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                           <span className={`text-[11px] font-mono block ${hasMp ? 'text-indigo-300' : 'text-rose-400'}`}>
                             {localize(manaCost)} MP
                           </span>
-                          <span className="text-[11px] font-mono text-slate-400">{localize(skill.damageMultiplier * 100)}{localize("% урона")}</span>
                         </div>
                       </button>
                     );

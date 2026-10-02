@@ -7,7 +7,10 @@ import { useGame } from '../../context/GameContext';
 import { CharacterClassId } from '../../types/game';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { getTelegramUser } from '../../utils/telegram';
-import { Swords, Sparkles, Shield, Zap, Skull, Check } from 'lucide-react';
+import { Swords } from 'lucide-react';
+import { ClassIcon } from '../ui/ClassIcon';
+import { SkillDetails } from '../ui/SkillDetails';
+import { CLASS_SKILLS } from '../../data/classEvolution';
 import { sound } from '../../utils/audio';
 import { CLASS_EQUIPMENT } from '../../utils/classEquipment';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
@@ -54,7 +57,7 @@ export const CharacterCreationModal: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-transparent to-transparent" />
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
             <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
-              <span>{localize(activeClassDef?.icon)}</span>
+              <ClassIcon classId={selectedClass} className="h-4 w-4" />
               <span>{localize("Класс: ")}{localize(activeClassDef?.name)}</span>
             </span>
           </div>
@@ -82,6 +85,7 @@ export const CharacterCreationModal: React.FC = () => {
               return (
                 <button
                   key={c.id}
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setSelectedClass(c.id);
                     sound.playClick();
@@ -92,7 +96,7 @@ export const CharacterCreationModal: React.FC = () => {
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
                   }`}
                 >
-                  <span className="text-xl mb-0.5">{localize(c.icon)}</span>
+                  <ClassIcon classId={c.id} className="h-6 w-6 mb-1" />
                   <span className="font-cinzel text-[11px] font-bold">{localize(c.name)}</span>
                   <span className="text-[8px] text-slate-400 truncate w-full text-center">
                     {localize(c.role.split('/')[0])}
@@ -108,7 +112,7 @@ export const CharacterCreationModal: React.FC = () => {
           <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2 text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
               <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
-                <span>{localize(activeClassDef.icon)}</span>
+                <ClassIcon classId={selectedClass} className="h-4 w-4" />
                 <span>{localize(activeClassDef.name)} ({localize(activeClassDef.role)})</span>
               </span>
               <span className="text-[#d5ba89] font-mono text-[11px]">
@@ -124,6 +128,16 @@ export const CharacterCreationModal: React.FC = () => {
               <p className="mt-1 text-slate-400">{localize("Можно носить оружие и нагрудники любого класса по уровню. Дополнительный бонус работает только у целевого класса.")}</p>
             </div>
             <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-2.5 py-2"><div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">{localize("Пассив: ")}{localize(activeClassDef.passive.name)}</div><div className="text-[10px] text-amber-100/80 mt-0.5">{localize(activeClassDef.passive.description)}</div></div>
+
+            <details className="rounded-lg border border-slate-700 p-2">
+              <summary className="cursor-pointer font-semibold text-slate-200">{localize('Навыки класса и условия применения')}</summary>
+              <div className="mt-2 space-y-3">
+                {[...activeClassDef.startingSkills, ...CLASS_SKILLS[selectedClass]].map(skill => <section key={skill.id}>
+                  <h3 className="flex items-center gap-2 font-semibold text-slate-200"><Swords className="h-4 w-4" aria-hidden="true" />{localize(skill.name)}</h3>
+                  <SkillDetails skill={skill} />
+                </section>)}
+              </div>
+            </details>
 
             {/* Base Attributes preview */}
             <div className="grid grid-cols-4 gap-1 text-[10px] font-mono text-slate-400 pt-1">
