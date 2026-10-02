@@ -1,3 +1,5 @@
+import { ClassPortraitIcon } from '../../interfaces/fantasy/components/ui/ClassPortraitIcon';
+import { SkillCodexCard } from '../../interfaces/fantasy/components/ui/SkillCodexCard';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { useInterface } from '../../context/InterfaceContext';
 import { getFantasyHeroArtwork } from '../../interfaces/fantasy/utils/heroArtwork';
@@ -96,7 +98,7 @@ export const CharacterCreationModal: React.FC = () => {
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
                   }`}
                 >
-                  <ClassIcon classId={c.id} className="h-6 w-6 mb-1" />
+                  {style === 'fantasy' ? <ClassPortraitIcon classId={c.id} className="registration-class-portrait" /> : <ClassIcon classId={c.id} className="h-6 w-6 mb-1" />}
                   <span className="font-cinzel text-[11px] font-bold">{localize(c.name)}</span>
                   <span className="text-[8px] text-slate-400 truncate w-full text-center">
                     {localize(c.role.split('/')[0])}
@@ -127,12 +129,12 @@ export const CharacterCreationModal: React.FC = () => {
               <ClassGearBonus item={{ name: CLASS_EQUIPMENT[selectedClass].armor, type: 'armor', targetClass: selectedClass, level: 1 }} characterClass={selectedClass} />
               <p className="mt-1 text-slate-400">{localize("Можно носить оружие и нагрудники любого класса по уровню. Дополнительный бонус работает только у целевого класса.")}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-2.5 py-2"><div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">{localize("Пассив: ")}{localize(activeClassDef.passive.name)}</div><div className="text-[10px] text-amber-100/80 mt-0.5">{localize(activeClassDef.passive.description)}</div></div>
+            <div className="registration-passive rounded-lg border border-amber-500/30 bg-amber-950/20 px-2.5 py-2"><div className="text-[9px] uppercase tracking-wider font-bold text-amber-300">{localize("Пассив: ")}{localize(activeClassDef.passive.name)}</div><div className="text-[10px] text-amber-100/80 mt-0.5">{localize(activeClassDef.passive.description)}</div></div>
 
-            <details className="rounded-lg border border-slate-700 p-2">
+            <details className="registration-skills rounded-lg border border-slate-700 p-2">
               <summary className="cursor-pointer font-semibold text-slate-200">{localize('Навыки класса и условия применения')}</summary>
               <div className="mt-2 space-y-3">
-                {[...activeClassDef.startingSkills, ...CLASS_SKILLS[selectedClass]].map(skill => <section key={skill.id}>
+                {[...activeClassDef.startingSkills, ...CLASS_SKILLS[selectedClass]].map(skill => style === 'fantasy' ? <SkillCodexCard key={skill.id} skill={skill} /> : <section key={skill.id}>
                   <h3 className="flex items-center gap-2 font-semibold text-slate-200"><Swords className="h-4 w-4" aria-hidden="true" />{localize(skill.name)}</h3>
                   <SkillDetails skill={skill} />
                 </section>)}

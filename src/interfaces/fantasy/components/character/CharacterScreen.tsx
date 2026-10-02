@@ -1,3 +1,4 @@
+import { ClassPortraitIcon } from '../ui/ClassPortraitIcon';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
@@ -53,7 +54,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
   ];
 
   return <FolioPage className="hero-codex space-y-3 pt-3">
-    <div className="flex items-center justify-between gap-3 px-1">
+    <div className="hero-codex-heading flex items-center justify-between gap-3 px-1">
       <div><div className="text-[11px] uppercase tracking-[.16em] text-[#918c82]">{localize("Лист героя")}</div><h1 className="section-title text-lg">{localize("Кодекс персонажа")}</h1></div>
       {onClose && <button onClick={onClose} aria-label={localize("Закрыть лист персонажа")} className="rpg-icon-button"><span className="text-lg">×</span></button>}
     </div>
@@ -62,7 +63,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
       <div className="hero-identity">
         <div className="hero-portrait"><Portrait src={heroImage} alt={localize(classDef.name)} fallback="character" className="h-full w-full object-cover object-top"/><span className="hero-rank">{localize("Ранг ")}{localize(player.ascension?.rank || 'E')}</span></div>
         <div className="hero-biography">
-          <div className="codex-eyebrow">{localize(classDef.role)}</div>
+          <div className="hero-class-heading"><ClassPortraitIcon classId={player.classId} /><span className="codex-eyebrow">{localize(classDef.role)}</span></div>
           <h2>{player.name}</h2>
           <p>{localize(classDef.name)}{localize(" · Уровень ")}{localize(player.level)}{localize(premium.active && ' · Premium')}</p>
           <ProgressBar value={player.exp} max={player.nextExp} tone="energy" label={`До уровня ${player.level + 1}`} className="mt-3"/>
@@ -79,7 +80,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
     <CodexTabs tabs={tabs} active={activeTab} onChange={id => setActiveTab(id as CharacterTab)} />
 
     {activeTab === 'stats' && <div className="space-y-3">
-      <BestiaryPanel className="codex-paper p-3">
+      <BestiaryPanel className="codex-paper hero-attributes p-3">
         <div className="mb-2 flex items-center justify-between gap-2"><SectionTitle>{localize("Основные атрибуты")}</SectionTitle><span className="text-[11px] font-mono text-[#d1ad67]">{localize("Свободно: ")}{localize(player.statPoints)}</span></div>
         <OrnamentDivider />
         <div className="attribute-grid mt-2">
@@ -91,7 +92,6 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
           </div>)}
         </div>
       </BestiaryPanel>
-      <BestiaryPanel className="codex-paper p-3"><SectionTitle action={<button className="codex-link" onClick={() => navigate('inventory')}>{localize("Изменить ›")}</button>}>{localize("Снаряжение")}</SectionTitle><div className="equipment-preview">{equipmentSlots.filter(slot => player.equipped[slot.type]).map(slot => <button key={slot.type} title={localize(player.equipped[slot.type]!.name)} aria-label={localize(`Сменить: ${player.equipped[slot.type]!.name}`)} onClick={() => navigate('inventory')} className="equipment-tile"><ItemArtwork item={player.equipped[slot.type]!} size={48}/></button>)}</div></BestiaryPanel>
       <BestiaryPanel className="codex-paper p-3"><SectionTitle eyebrow="Производные значения">{localize("Боевые показатели")}</SectionTitle><div className="mt-2"><HeroStats stats={combatStats} /></div></BestiaryPanel>
     </div>}
 

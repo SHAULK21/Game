@@ -2,10 +2,10 @@ import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { CLASSES, ASSETS } from '../../data/gameData';
+import { CLASSES } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
-import { Portrait } from '../ui/Portrait';
+import { ClassPortraitIcon } from '../ui/ClassPortraitIcon';
 import { ResourceBadge, RpgButton, DialogFrame } from '../ui/BestiaryUI';
 
 interface TopHeaderProps {
@@ -32,7 +32,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   const elixirPrice = getEnergyElixirPrice(premium.active);
   const expPct = Math.min(100, Math.round((player.exp / Math.max(1, player.nextExp)) * 100));
   const heroClass = CLASSES[player.classId] || CLASSES.warrior;
-  const heroImage = heroClass.image || ASSETS.heroHunter;
   const currentEnergy = player.energy ?? 100;
   const maxEnergy = player.maxEnergy ?? 100;
   const energyPct = Math.min(100, Math.round((currentEnergy / Math.max(1, maxEnergy)) * 100));
@@ -42,7 +41,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
       <div className="header-content mx-auto flex items-center gap-2">
         <button onClick={onOpenCharacterSheet} aria-label={localize("Открыть лист персонажа")} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[#62543b] bg-[#101315]">
-            <Portrait src={heroImage} alt="" fallback="character" className="h-full w-full object-cover object-top"/>
+            <ClassPortraitIcon classId={player.classId} className="header-class-portrait" />
             <span className="absolute bottom-0 inset-x-0 bg-black/80 text-center font-mono text-[11px] font-bold leading-4 text-[#e3c983]">{localize(player.level)}</span>
           </span>
           <span className="min-w-0 flex-1">

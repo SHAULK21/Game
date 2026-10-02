@@ -39,6 +39,14 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => fantasy.click());
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy'); assert.equal(input.value, 'Новый герой');
     assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), '/assets/sprites/generated/heroes/warrior.webp');
+    assert.equal(w.document.querySelectorAll('.registration-class-portrait').length,10);
+    const selectClass = (name: string) => [...w.document.querySelectorAll('.registration-screen button')].find((node: any) => node.querySelector('.registration-class-portrait') && node.textContent.startsWith(name)) as any;
+    await w.act(async () => selectClass('Некромант').click());
+    assert(w.document.querySelector('.skill-codex-card[data-skill-details="n_drain"]'));
+    assert.match(w.document.querySelector('[data-skill-details="n_drain"]').textContent,/50% фактически нанесённого урона/);
+    assert.equal(w.document.querySelector('.registration-class-portrait image').getAttribute('href'),'/assets/sprites/reference/class-portraits.jpg');
+    await w.act(async () => selectClass('Воин').click());
+
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
@@ -124,7 +132,7 @@ test('admin chooses a player and must confirm before sending a reset for that ex
 
 
 test('fantasy artwork uses new sprites and recovers from image failures; modern artwork stays unchanged', async () => {
-  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {ItemArtwork as FantasyItem} from './src/interfaces/fantasy/components/ui/ItemArtwork';import {ItemArtwork as ModernItem} from './src/components/ui/ItemArtwork';import {RpgIcon} from './src/interfaces/fantasy/components/ui/RpgIcon';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));const item={name:'Меч',type:'weapon',rarity:'common',image:'/saved-sword.png'};window.root.render(<><div id="fantasy"><FantasyItem item={item}/></div><div id="modern"><ModernItem item={item}/></div><div id="icon"><RpgIcon kind="attack" title="Атака"/></div></>);};`);
+  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {ItemArtwork as FantasyItem} from './src/interfaces/fantasy/components/ui/ItemArtwork';import {ItemArtwork as ModernItem} from './src/components/ui/ItemArtwork';import {RpgIcon} from './src/interfaces/fantasy/components/ui/RpgIcon';import {ClassPortraitIcon} from './src/interfaces/fantasy/components/ui/ClassPortraitIcon';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));const item={name:'Меч',type:'weapon',rarity:'common',image:'/saved-sword.png'};window.root.render(<><div id="fantasy"><FantasyItem item={item}/></div><div id="modern"><ModernItem item={item}/></div><div id="icon"><RpgIcon kind="attack" title="Атака"/></div><div id="class"><ClassPortraitIcon classId="mage" label="Маг"/></div></>);};`);
   try {
     await w.act(async () => w.mount());
     const image = (id: string) => w.document.querySelector(`#${id} img`);
@@ -136,6 +144,10 @@ test('fantasy artwork uses new sprites and recovers from image failures; modern 
     await w.act(async () => image('icon').dispatchEvent(new w.Event('error')));
     assert(w.document.querySelector('#icon svg'));
     assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
+    assert.equal(w.document.querySelector('#class svg').getAttribute('viewBox'),'504 24 100 96');
+    await w.act(async () => w.document.querySelector('#class image').dispatchEvent(new w.Event('error')));
+    assert.equal(w.document.querySelector('#class image'),null);
+    assert(w.document.querySelector('#class svg'), 'portrait falls back to its class SVG');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
 
