@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useEffect, useState } from 'react';
 import { RpgIcon as VectorIcon } from './SvgRpgIcon';
 import { ItemType } from '../../../../types/game';
@@ -79,16 +80,17 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
   className = 'text-[#a48b60]',
   title
 }) => {
+  useLocale();
   const src = `${SPRITE_ROOT}/${SPRITES[kind]}`;
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  if (failed) return <VectorIcon kind={kind} size={size} className={className} title={title} />;
+  if (failed) return <VectorIcon kind={kind} size={size} className={className} title={localize(title)} />;
   return (
   <span
     className={`inline-flex items-center justify-center shrink-0 ${className}`}
-    title={title}
+    title={localize(title)}
     role={title ? 'img' : undefined}
-    aria-label={title}
+    aria-label={localize(title)}
     aria-hidden={!title}
   >
     <img

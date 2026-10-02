@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React, { lazy, Suspense } from 'react';
 import { useGame } from '../../context/GameContext';
 import { TopHeader } from './components/layout/TopHeader';
@@ -24,6 +25,7 @@ const CharacterScreen = lazy(() => import('./components/character/CharacterScree
 const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(module => ({ default: module.AdminModal })));
 
 export const FantasyGameContent: React.FC = () => {
+  useLocale();
   const { player, quests } = useGame();
   const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
@@ -40,7 +42,7 @@ export const FantasyGameContent: React.FC = () => {
 
       {/* Main View Area */}
       <main className="flex-1 w-full max-w-lg mx-auto">
-        <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">Загрузка раздела…</div>}>
+        <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
         {isCharacterSheetOpen ? (
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
         ) : (
@@ -77,7 +79,7 @@ export const FantasyGameContent: React.FC = () => {
 
       {/* Modals */}
       <OfflineReportModal />
-      {isAdminOpen && <Suspense fallback={<div role="status" className="fixed bottom-24 inset-x-0 text-center text-sm text-slate-400">Загрузка админки…</div>}><AdminModal isOpen onClose={() => setIsAdminOpen(false)} /></Suspense>}
+      {isAdminOpen && <Suspense fallback={<div role="status" className="fixed bottom-24 inset-x-0 text-center text-sm text-slate-400">{localize("Загрузка админки…")}</div>}><AdminModal isOpen onClose={() => setIsAdminOpen(false)} /></Suspense>}
     </div>
   );
 };

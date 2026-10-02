@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../../../i18n/locale';
 import React from 'react';
 import { Portrait } from './Portrait';
 import { useDialog } from './useDialog';
@@ -6,16 +7,16 @@ import { RpgIcon, RpgIconKind } from './RpgIcon';
 type PanelProps = React.PropsWithChildren<{ className?: string }>;
 
 export const FolioPage: React.FC<PanelProps> = ({ children, className = '' }) =>
-  <div className={`folio-page mx-auto w-full max-w-lg px-3 pb-24 ${className}`}>{children}</div>;
+  { useLocale(); return (<div className={`folio-page mx-auto w-full max-w-lg px-3 pb-24 ${className}`}>{children}</div>); };
 
 export const BestiaryPanel: React.FC<PanelProps> = ({ children, className = '' }) =>
-  <section className={`bestiary-panel ${className}`}>{children}</section>;
+  { useLocale(); return (<section className={`bestiary-panel ${className}`}>{children}</section>); };
 
 export const LeatherPanel: React.FC<PanelProps> = ({ children, className = '' }) =>
-  <section className={`leather-panel ${className}`}>{children}</section>;
+  { useLocale(); return (<section className={`leather-panel ${className}`}>{children}</section>); };
 
 export const OrnamentDivider: React.FC<{ className?: string }> = ({ className = '' }) =>
-  <div aria-hidden="true" className={`ornament-divider ${className}`} />;
+  { useLocale(); return (<div aria-hidden="true" className={`ornament-divider ${className}`} />); };
 
 export const ResourceBadge: React.FC<{
   kind: 'gold' | 'silver' | 'energy' | 'stamina' | 'arena';
@@ -25,30 +26,27 @@ export const ResourceBadge: React.FC<{
   title?: string;
   className?: string;
 }> = ({ kind, value, label, onClick, title, className = '' }) => {
-  const content = <><RpgIcon kind={kind} size={16} /><span>{label ? `${label} ` : ''}{value}</span></>;
+  useLocale();
+  const content = <><RpgIcon kind={kind} size={16} /><span>{localize(label ? `${label} ` : '')}{localize(value)}</span></>;
   return onClick
-    ? <button type="button" onClick={onClick} title={title} className={`resource-badge is-${kind} min-h-11 ${className}`}>{content}</button>
-    : <span title={title} className={`resource-badge is-${kind} ${className}`}>{content}</span>;
+    ? <button type="button" onClick={onClick} title={localize(title)} className={`resource-badge is-${kind} min-h-11 ${className}`}>{content}</button>
+    : <span title={localize(title)} className={`resource-badge is-${kind} ${className}`}>{content}</span>;
 };
 
 export const RpgButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'danger';
   icon?: RpgIconKind;
-}> = ({ children, className = '', variant = 'secondary', icon, type = 'button', ...props }) => (
-  <button type={type} className={`rpg-button rpg-button-${variant} ${className}`} {...props}>
+}> = ({ children, className = '', variant = 'secondary', icon, type = 'button', ...props }) => { useLocale(); return (<button type={type} className={`rpg-button rpg-button-${variant} ${className}`} {...props}>
     {icon && <RpgIcon kind={icon} size={18} />}
     {children}
-  </button>
-);
+  </button>); };
 
 export const RpgIconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {
   icon: RpgIconKind;
   label: string;
-}> = ({ icon, label, className = '', type = 'button', ...props }) => (
-  <button type={type} aria-label={label} title={label} className={`rpg-icon-button ${className}`} {...props}>
+}> = ({ icon, label, className = '', type = 'button', ...props }) => { useLocale(); return (<button type={type} aria-label={localize(label)} title={localize(label)} className={`rpg-icon-button ${className}`} {...props}>
     <RpgIcon kind={icon} size={19} />
-  </button>
-);
+  </button>); };
 
 export const BestiaryEntry: React.FC<{
   title: string;
@@ -58,8 +56,7 @@ export const BestiaryEntry: React.FC<{
   locked?: boolean;
   marker?: string;
   onClick: () => void;
-}> = ({ title, subtitle, image, selected = false, locked = false, marker, onClick }) => (
-  <button type="button" onClick={onClick} aria-pressed={selected} title={locked ? `${title} · пока недоступен` : title} className={`bestiary-entry bestiary-entry-row ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}>
+}> = ({ title, subtitle, image, selected = false, locked = false, marker, onClick }) => { useLocale(); return (<button type="button" onClick={onClick} aria-pressed={selected} title={localize(locked ? `${title} · пока недоступен` : title)} className={`bestiary-entry bestiary-entry-row ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}>
     <span className={`bestiary-entry-portrait ${locked ? 'is-locked' : ''}`}>
       {image
         ? <Portrait src={image} alt="" className={`h-full w-full object-contain ${locked ? 'grayscale brightness-75' : ''}`} />
@@ -67,36 +64,29 @@ export const BestiaryEntry: React.FC<{
       {locked && <span aria-hidden="true" className="absolute inset-0 grid place-items-center bg-black/25 text-lg font-serif text-[#c2b7a5]">?</span>}
     </span>
     <span className="min-w-0 flex-1 text-left">
-      <span className="block truncate text-xs font-semibold">{title}</span>
-      {subtitle && <span className="mt-0.5 block text-[11px] text-[#918c82]">{subtitle}</span>}
+      <span className="block truncate text-xs font-semibold">{localize(title)}</span>
+      {subtitle && <span className="mt-0.5 block text-[11px] text-[#918c82]">{localize(subtitle)}</span>}
     </span>
-    {marker && <span className={`bestiary-marker ${marker === 'Босс' ? 'is-boss' : 'is-elite'}`}>{marker}</span>}
+    {marker && <span className={`bestiary-marker ${marker === 'Босс' ? 'is-boss' : 'is-elite'}`}>{localize(marker)}</span>}
     <span aria-hidden="true" className="bestiary-entry-chevron">›</span>
-  </button>
-);
+  </button>); };
 
 export const ItemSlot: React.FC<{
   label: string;
   itemName?: string;
   icon?: RpgIconKind;
   className?: string;
-}> = ({ label, itemName, icon = 'inventory', className = '' }) => (
-  <div className={`rarity-frame flex min-h-[68px] items-center gap-2 rounded-lg border bg-[#101315] p-2 ${className}`}>
+}> = ({ label, itemName, icon = 'inventory', className = '' }) => { useLocale(); return (<div className={`rarity-frame flex min-h-[68px] items-center gap-2 rounded-lg border bg-[#101315] p-2 ${className}`}>
     <RpgIcon kind={icon} size={22} className="text-[#a48b60]" />
-    <div className="min-w-0"><div className="text-[10px] uppercase tracking-wide text-[#918c82]">{label}</div><div className="truncate text-xs text-[#d8d1c4]">{itemName || 'Пусто'}</div></div>
-  </div>
-);
+    <div className="min-w-0"><div className="text-[10px] uppercase tracking-wide text-[#918c82]">{localize(label)}</div><div className="truncate text-xs text-[#d8d1c4]">{localize(itemName || 'Пусто')}</div></div>
+  </div>); };
 
-export const StatRow: React.FC<{ label: string; value: React.ReactNode; tone?: 'default' | 'hp' | 'mana' | 'energy' }> = ({ label, value, tone = 'default' }) => (
-  <div className="stat-row flex items-center justify-between gap-3 py-1.5 text-xs">
-    <span className="text-[#918c82]">{label}</span>
-    <strong className={tone === 'hp' ? 'text-[#cf8885]' : tone === 'mana' ? 'text-[#88a8d0]' : tone === 'energy' ? 'text-[#d1ad67]' : 'text-[#d8d1c4]'}>{value}</strong>
-  </div>
-);
+export const StatRow: React.FC<{ label: string; value: React.ReactNode; tone?: 'default' | 'hp' | 'mana' | 'energy' }> = ({ label, value, tone = 'default' }) => { useLocale(); return (<div className="stat-row flex items-center justify-between gap-3 py-1.5 text-xs">
+    <span className="text-[#918c82]">{localize(label)}</span>
+    <strong className={tone === 'hp' ? 'text-[#cf8885]' : tone === 'mana' ? 'text-[#88a8d0]' : tone === 'energy' ? 'text-[#d1ad67]' : 'text-[#d8d1c4]'}>{localize(value)}</strong>
+  </div>); };
 
-export const RarityFrame: React.FC<PanelProps & { rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' }> = ({ children, className = '', rarity = 'common' }) => (
-  <div className={`rarity-frame rounded-lg border ${rarity !== 'common' && rarity !== 'uncommon' ? `is-${rarity}` : ''} ${className}`}>{children}</div>
-);
+export const RarityFrame: React.FC<PanelProps & { rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' }> = ({ children, className = '', rarity = 'common' }) => { useLocale(); return (<div className={`rarity-frame rounded-lg border ${rarity !== 'common' && rarity !== 'uncommon' ? `is-${rarity}` : ''} ${className}`}>{children}</div>); };
 
 export const ProgressBar: React.FC<{
   value: number;
@@ -105,40 +95,38 @@ export const ProgressBar: React.FC<{
   label?: string;
   className?: string;
 }> = ({ value, max, tone = 'hp', label, className = '' }) => {
+  useLocale();
   const percent = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
   return <div className={className}>
-    {(label || max > 0) && <div className="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span className="text-[#918c82]">{label || tone.toUpperCase()}</span><span className="text-[#d8d1c4]">{value}/{max}</span></div>}
-    <div role="progressbar" aria-label={label || tone.toUpperCase()} aria-valuemin={0} aria-valuemax={Math.max(0, max)} aria-valuenow={Math.max(0, Math.min(value, max))} className="progress-track h-2"><div className={`progress-fill is-${tone}`} style={{ width: `${percent}%` }} /></div>
+    {(label || max > 0) && <div className="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span className="text-[#918c82]">{localize(label || tone.toUpperCase())}</span><span className="text-[#d8d1c4]">{localize(value)}/{localize(max)}</span></div>}
+    <div role="progressbar" aria-label={localize(label || tone.toUpperCase())} aria-valuemin={0} aria-valuemax={Math.max(0, max)} aria-valuenow={Math.max(0, Math.min(value, max))} className="progress-track h-2"><div className={`progress-fill is-${tone}`} style={{ width: `${percent}%` }} /></div>
   </div>;
 };
 
-export const SectionTitle: React.FC<React.PropsWithChildren<{ eyebrow?: string; action?: React.ReactNode; className?: string }>> = ({ children, eyebrow, action, className = '' }) => (
-  <div className={`flex items-end justify-between gap-3 ${className}`}>
-    <div>{eyebrow && <div className="text-[10px] uppercase tracking-[.16em] text-[#918c82]">{eyebrow}</div>}<h2 className="section-title text-base">{children}</h2></div>
-    {action}
-  </div>
-);
+export const SectionTitle: React.FC<React.PropsWithChildren<{ eyebrow?: string; action?: React.ReactNode; className?: string }>> = ({ children, eyebrow, action, className = '' }) => { useLocale(); return (<div className={`flex items-end justify-between gap-3 ${className}`}>
+    <div>{eyebrow && <div className="text-[10px] uppercase tracking-[.16em] text-[#918c82]">{localize(eyebrow)}</div>}<h2 className="section-title text-base">{children}</h2></div>
+    {localize(action)}
+  </div>); };
 
 export const CodexTabs: React.FC<{
   tabs: Array<{ id: string; label: string }>;
   active: string;
   onChange: (id: string) => void;
   className?: string;
-}> = ({ tabs, active, onChange, className = '' }) => (
-  <div role="tablist" className={`flex gap-2 overflow-x-auto border-b border-[#343638] ${className}`}>
-    {tabs.map(tab => <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} onClick={() => onChange(tab.id)} className={`codex-tab shrink-0 px-3 text-xs font-semibold ${active === tab.id ? 'is-active' : ''}`}>{tab.label}</button>)}
-  </div>
-);
+}> = ({ tabs, active, onChange, className = '' }) => { useLocale(); return (<div role="tablist" className={`flex gap-2 overflow-x-auto border-b border-[#343638] ${className}`}>
+    {tabs.map(tab => <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} onClick={() => onChange(tab.id)} className={`codex-tab shrink-0 px-3 text-xs font-semibold ${active === tab.id ? 'is-active' : ''}`}>{localize(tab.label)}</button>)}
+  </div>); };
 
 export const DialogFrame: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void; className?: string; bottom?: boolean }>> = ({ open, title, onClose, className = '', bottom = false, children }) => {
+  useLocale();
   const ref = useDialog(open, onClose);
   if (!open) return null;
   return <div className={`bottom-sheet-backdrop fixed inset-0 z-[80] flex justify-center p-3 ${bottom ? 'items-end' : 'items-center'}`} onClick={onClose}>
-    <section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={`dialog-frame w-full max-w-lg p-4 ${className}`} onClick={event => event.stopPropagation()}>
-      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="section-title text-lg">{title}</h2><button type="button" className="rpg-icon-button" aria-label={`Закрыть: ${title}`} onClick={onClose}>×</button></div>
+    <section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={localize(title)} className={`dialog-frame w-full max-w-lg p-4 ${className}`} onClick={event => event.stopPropagation()}>
+      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="section-title text-lg">{localize(title)}</h2><button type="button" className="rpg-icon-button" aria-label={localize(`Закрыть: ${title}`)} onClick={onClose}>×</button></div>
       {children}
     </section>
   </div>;
 };
 
-export const BottomSheet: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>> = props => <DialogFrame {...props} bottom />;
+export const BottomSheet: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>> = props => { useLocale(); return (<DialogFrame {...props} bottom />); };

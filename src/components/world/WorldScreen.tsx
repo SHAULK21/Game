@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import { huntingModeLockReason } from '../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../utils/dungeonRewards';
 import React, { useState } from 'react';
@@ -28,6 +29,7 @@ interface WorldScreenProps {
 }
 
 export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) => {
+  useLocale();
   const {
     player,
     combatStats,
@@ -95,11 +97,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           </div>
 
           <h3 className="font-cinzel text-lg font-bold text-slate-100 mb-1">
-            {travelState.isAmbush ? 'ВНЕЗАПНАЯ ЗАСАДА!' : `Путь в: ${travelState.targetRegionName}`}
+            {localize(travelState.isAmbush ? 'ВНЕЗАПНАЯ ЗАСАДА!' : `Путь в: ${travelState.targetRegionName}`)}
           </h3>
 
           <p className="text-xs text-slate-300 mb-5 leading-relaxed min-h-[36px]">
-            {travelState.message}
+            {localize(travelState.message)}
           </p>
 
           {/* Travel Progress Bar */}
@@ -115,8 +117,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           </div>
 
           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-            <span>Прогресс перехода</span>
-            <span className="text-[#d5ba89] font-bold">{travelState.progress}%</span>
+            <span>{localize("Прогресс перехода")}</span>
+            <span className="text-[#d5ba89] font-bold">{localize(travelState.progress)}%</span>
           </div>
         </div>
       </div>
@@ -132,20 +134,18 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
         <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700 rounded-xl p-3">
           <div>
-            <div className="text-[10px] font-mono text-[#d5ba89] uppercase">Подземелье</div>
-            <h2 className="font-cinzel text-sm font-bold text-slate-100">{activeDungeonRun.dungeonName}</h2>
-            <div className="text-[10px] text-[#d5ba89]">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
+            <div className="text-[10px] font-mono text-[#d5ba89] uppercase">{localize("Подземелье")}</div>
+            <h2 className="font-cinzel text-sm font-bold text-slate-100">{localize(activeDungeonRun.dungeonName)}</h2>
+            <div className="text-[10px] text-[#d5ba89]">{localize("Побед: ")}{localize(activeDungeonRun.kills || 0)} · HP {localize(activeDungeonRun.savedHp ?? combatStats.maxHp)} · MP {localize(activeDungeonRun.savedMp ?? combatStats.maxMp)}</div>
           </div>
           <button
-            onClick={() => { if (window.confirm('Покинуть подземелье? Прогресс этого захода будет потерян.')) exitDungeon(); }}
+            onClick={() => { if (window.confirm(localize('Покинуть подземелье? Прогресс этого захода будет потерян.'))) exitDungeon(); }}
             className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800 border border-slate-700"
-          >
-            Покинуть
-          </button>
+          >{localize("Покинуть")}</button>
         </div>
 
-        {activeDungeonRun.lastEvent && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-200">{activeDungeonRun.lastEvent}</p>}
-        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-slate-700 p-3 text-xs text-cyan-200">✨ {activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}. Действует только в этом походе.</p>}
+        {activeDungeonRun.lastEvent && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-200">{localize(activeDungeonRun.lastEvent)}</p>}
+        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-slate-700 p-3 text-xs text-cyan-200">✨ {localize(activeDungeonRun.temporaryBlessing.name)}{localize(": +10% к физической и магической атаке и защите. Осталось побед: ")}{localize(activeDungeonRun.temporaryBlessing.remainingBattles)}{localize(". Действует только в этом походе.")}</p>}
 
         {/* Room Stepper */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -171,23 +171,17 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         {isCompleted ? (
           <div className="ui-panel rounded-2xl border p-6 text-center space-y-4">
             <Crown className="w-12 h-12 text-amber-400 mx-auto" />
-            <h3 className="font-cinzel text-lg font-bold text-slate-100">
-              Подземелье успешно зачищено!
-            </h3>
-            <p className="text-xs text-slate-300">
-              Все комнаты пройдены, а босс повержен.
-            </p>
+            <h3 className="font-cinzel text-lg font-bold text-slate-100">{localize("Подземелье успешно зачищено!")}</h3>
+            <p className="text-xs text-slate-300">{localize("Все комнаты пройдены, а босс повержен.")}</p>
             {activeDungeonRun.completionReward && <div className="rounded-xl border border-amber-500/30 bg-black/30 p-3 text-xs text-amber-200 space-y-1">
-              <div className="font-bold">Награда за прохождение зачислена</div>
-              <div>+{activeDungeonRun.completionReward.gold} золота · +{activeDungeonRun.completionReward.silver} серебра · +{activeDungeonRun.completionReward.exp} опыта</div>
-              <div className="text-[10px] text-slate-400">Дополнительно к добыче с босса. Повторное открытие итогов не выдаёт награду повторно.</div>
+              <div className="font-bold">{localize("Награда за прохождение зачислена")}</div>
+              <div>+{localize(activeDungeonRun.completionReward.gold)}{localize(" золота · +")}{localize(activeDungeonRun.completionReward.silver)}{localize(" серебра · +")}{localize(activeDungeonRun.completionReward.exp)}{localize(" опыта")}</div>
+              <div className="text-[10px] text-slate-400">{localize("Дополнительно к добыче с босса. Повторное открытие итогов не выдаёт награду повторно.")}</div>
             </div>}
             <button
               onClick={exitDungeon}
               className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all"
-            >
-              Вернуться в город
-            </button>
+            >{localize("Вернуться в город")}</button>
           </div>
         ) : (
           <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0a0f1d]">
@@ -199,23 +193,22 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent" />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-[#d5ba89] text-[10px] font-mono">
-                Комната {activeDungeonRun.currentRoomIndex + 1} из {activeDungeonRun.totalRooms}
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-[#d5ba89] text-[10px] font-mono">{localize("Комната ")}{localize(activeDungeonRun.currentRoomIndex + 1)}{localize(" из ")}{localize(activeDungeonRun.totalRooms)}
               </div>
             </div>
 
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">
-                  {currentRoom.type === 'boss' ? '👑' : currentRoom.type === 'treasure' ? '🎁' : currentRoom.type === 'shrine' ? '✨' : '⚔️'}
+                  {localize(currentRoom.type === 'boss' ? '👑' : currentRoom.type === 'treasure' ? '🎁' : currentRoom.type === 'shrine' ? '✨' : '⚔️')}
                 </span>
                 <h3 className="font-cinzel text-base font-bold text-slate-100">
-                  {currentRoom.title}
+                  {localize(currentRoom.title)}
                 </h3>
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                {currentRoom.description}
+                {localize(currentRoom.description)}
               </p>
 
               <div className="pt-2">
@@ -227,7 +220,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Skull className="w-4 h-4" />
-                    <span>Сразиться с врагом</span>
+                    <span>{localize("Сразиться с врагом")}</span>
                   </button>
                 ) : currentRoom.type === 'treasure' ? (
                   <button
@@ -235,7 +228,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Key className="w-4 h-4" />
-                    <span>Открыть сундук · 25% пустой</span>
+                    <span>{localize("Открыть сундук · 25% пустой")}</span>
                   </button>
                 ) : (
                   <button
@@ -243,7 +236,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Получить благословение · шанс 70%</span>
+                    <span>{localize("Получить благословение · шанс 70%")}</span>
                   </button>
                 )}
               </div>
@@ -280,34 +273,28 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-              {reg.icon}
+              {localize(reg.icon)}
             </span>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-cinzel text-xs font-bold text-slate-100">
-                  {reg.name}
+                  {localize(reg.name)}
                 </span>
                 {reg.isStarter && (
-                  <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">
-                    СТАРТ
-                  </span>
+                  <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">{localize("СТАРТ")}</span>
                 )}
                 {isCurrent && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">
-                    ВЫ ЗДЕСЬ
-                  </span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">{localize("ВЫ ЗДЕСЬ")}</span>
                 )}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">
-                {reg.levelRange} · {reg.monsters.length} видов монстров
-              </div>
+                {localize(reg.levelRange)} · {localize(reg.monsters.length)}{localize(" видов монстров")}</div>
             </div>
           </div>
 
           <div className="text-right">
             {isLocked ? (
-              <span className="text-[10px] font-mono text-rose-400 font-bold">
-                Треб. ур. {reg.minLevel}
+              <span className="text-[10px] font-mono text-rose-400 font-bold">{localize("Треб. ур. ")}{localize(reg.minLevel)}
               </span>
             ) : (
               <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
@@ -328,36 +315,30 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <Compass className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="font-cinzel text-lg font-bold text-slate-100">
-              Карта Аэтельгарда
-            </h2>
-            <p className="text-xs text-slate-300">
-              Локации вашего уровня — на первом плане. Выберите место для охоты.
-            </p>
+            <h2 className="font-cinzel text-lg font-bold text-slate-100">{localize("Карта Аэтельгарда")}</h2>
+            <p className="text-xs text-slate-300">{localize("Локации вашего уровня — на первом плане. Выберите место для охоты.")}</p>
           </div>
         </div>
 
         <LevelEnvironment level={player.level} />
-        <p className="mt-2 text-[11px] text-slate-400">Вы находитесь: {currentRegion.name}</p>
+        <p className="mt-2 text-[11px] text-slate-400">{localize("Вы находитесь: ")}{localize(currentRegion.name)}</p>
 
         {/* Error message */}
         {errorMessage && (
           <div className="mt-3 p-2.5 bg-rose-950/80 border border-rose-500/50 rounded-lg text-rose-200 text-xs flex items-center gap-2 animate-shake">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMessage}</span>
+            <span>{localize(errorMessage)}</span>
           </div>
         )}
       </div>
 
       {/* Regions List with Starter Locations Badge */}
       <div className="space-y-2">
-        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">
-          Подходят вашему уровню:
-        </div>
+        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">{localize("Подходят вашему уровню:")}</div>
 
         <div className="space-y-2">
-          {regionGroups.recommended.map(renderRegion)}
-          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">Выберите локацию в соседних этапах.</p>}
+          {localize(regionGroups.recommended.map(renderRegion))}
+          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">{localize("Выберите локацию в соседних этапах.")}</p>}
         </div>
         {([
           { key: 'earlier', title: 'Локации низких уровней' },
@@ -365,10 +346,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         ] as const).map(group => regionGroups[group.key].length > 0 && (
           <details key={group.key} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
             <summary className="cursor-pointer text-xs text-slate-400">
-              {group.title} · {regionGroups[group.key].length}
-              {regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь'}
+              {localize(group.title)} · {localize(regionGroups[group.key].length)}
+              {localize(regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь')}
             </summary>
-            <div className="mt-3 space-y-2">{regionGroups[group.key].map(renderRegion)}</div>
+            <div className="mt-3 space-y-2">{localize(regionGroups[group.key].map(renderRegion))}</div>
           </details>
         ))}
       </div>
@@ -378,21 +359,19 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800">
-              {inspectingRegion.icon}
+              {localize(inspectingRegion.icon)}
             </span>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-cinzel text-sm font-bold text-slate-100">
-                  {inspectingRegion.name}
+                  {localize(inspectingRegion.name)}
                 </h3>
                 {inspectingRegion.isStarter && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[9px] font-mono font-bold">
-                    СТАРТОВАЯ
-                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[9px] font-mono font-bold">{localize("СТАРТОВАЯ")}</span>
                 )}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">
-                {inspectingRegion.levelRange} · {inspectingRegion.description}
+                {localize(inspectingRegion.levelRange)} · {localize(inspectingRegion.description)}
               </div>
             </div>
           </div>
@@ -401,8 +380,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         {/* Region Mode / Modifier Selector */}
         <div className="pt-2 border-t border-slate-800/80">
           <div className="flex items-center justify-between text-xs font-mono text-[#d5ba89] mb-2">
-            <span>Режим охоты:</span>
-            <span className="text-[10px] text-amber-300">Расход: {activeMod.energyCost} ⚡</span>
+            <span>{localize("Режим охоты:")}</span>
+            <span className="text-[10px] text-amber-300">{localize("Расход: ")}{localize(activeMod.energyCost)} ⚡</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -428,14 +407,14 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   }`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span>{mod.icon}</span>
+                    <span>{localize(mod.icon)}</span>
                     <span className="font-cinzel text-[11px] font-bold text-slate-200 truncate">
-                      {mod.name}
+                      {localize(mod.name)}
                     </span>
                   </div>
-                  {modeLock && <p className="text-[9px] text-amber-300 mb-1">🔒 {modeLock}</p>}
+                  {modeLock && <p className="text-[9px] text-amber-300 mb-1">🔒 {localize(modeLock)}</p>}
                   <div className="text-[9px] text-slate-400 leading-tight">
-                    HP ×{mod.hpMultiplier||1} · Урон ×{mod.damageMultiplier}<br/>Защита ×{mod.defenseMultiplier||1} · Дроп: x{mod.rareDropMultiplier}
+                    HP ×{localize(mod.hpMultiplier||1)}{localize(" · Урон ×")}{localize(mod.damageMultiplier)}<br/>{localize("Защита ×")}{localize(mod.defenseMultiplier||1)}{localize(" · Дроп: x")}{localize(mod.rareDropMultiplier)}
                   </div>
                 </button>
               );
@@ -444,8 +423,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
           {/* Active Mode Description Box */}
           <div className="mt-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
-            <span className="font-bold text-amber-300">{activeMod.name}: </span>
-            {activeMod.description}
+            <span className="font-bold text-amber-300">{localize(activeMod.name)}: </span>
+            {localize(activeMod.description)}
           </div>
         </div>
 
@@ -458,7 +437,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               }}
               className="ui-primary w-full py-2.5 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              <span>⚔️ Перейти к охоте на монстров</span>
+              <span>{localize("⚔️ Перейти к охоте на монстров")}</span>
             </button>
           ) : (
             <>
@@ -468,10 +447,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 className="ui-primary w-full py-2.5 rounded-xl disabled:opacity-50 font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <Footprints className="w-4 h-4" />
-                <span>Отправиться в путь (3 сек, {activeMod.energyCost} ⚡)</span>
+                <span>{localize("Отправиться в путь (3 сек, ")}{localize(activeMod.energyCost)} ⚡)</span>
               </button>
               {player.level < inspectingRegion.minLevel && (
-                <p className="mt-2 text-center text-xs text-rose-300">Локация откроется на {inspectingRegion.minLevel}-м уровне. Сейчас её можно только посмотреть.</p>
+                <p className="mt-2 text-center text-xs text-rose-300">{localize("Локация откроется на ")}{localize(inspectingRegion.minLevel)}{localize("-м уровне. Сейчас её можно только посмотреть.")}</p>
               )}
             </>
           )}
@@ -481,19 +460,15 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       {/* Caves & Dungeons Section */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
-          <div className="text-xs font-mono text-purple-400 uppercase tracking-wider">
-            Древние пещеры и подземелья:
-          </div>
+          <div className="text-xs font-mono text-purple-400 uppercase tracking-wider">{localize("Древние пещеры и подземелья:")}</div>
           <span className="text-[11px] text-slate-400">
-            {Object.keys(CAVES).length} локаций
-          </span>
+            {localize(Object.keys(CAVES).length)}{localize(" локаций")}</span>
         </div>
 
-        <label className="block text-xs text-purple-200">Сложность похода
-          <select value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
-            <option value="normal">Обычная · награда ×1</option><option value="hard">Сложная · награда ×1,5</option><option value="nightmare">Кошмар · награда ×2</option><option value="hell">Ад · награда ×3</option>
+        <label className="block text-xs text-purple-200">{localize("Сложность похода")}<select value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
+            <option value="normal">{localize("Обычная · награда ×1")}</option><option value="hard">{localize("Сложная · награда ×1,5")}</option><option value="nightmare">{localize("Кошмар · награда ×2")}</option><option value="hell">{localize("Ад · награда ×3")}</option>
           </select>
-          <span className="mt-1 block text-slate-400">HP врагов ×{DUNGEON_DIFFICULTIES[difficulty].hp} · урон ×{DUNGEON_DIFFICULTIES[difficulty].damage} · защита ×{DUNGEON_DIFFICULTIES[difficulty].defense}. Множитель награды относится к завершению похода.</span>
+          <span className="mt-1 block text-slate-400">{localize("HP врагов ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].hp)}{localize(" · урон ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].damage)}{localize(" · защита ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].defense)}{localize(". Множитель награды относится к завершению похода.")}</span>
         </label>
 
         <div className="space-y-2">
@@ -516,15 +491,14 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      {cave.icon}
+                      {localize(cave.icon)}
                     </span>
                     <div>
                       <span className="font-cinzel text-xs font-bold text-slate-100">
-                        {cave.name}
+                        {localize(cave.name)}
                       </span>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        {cave.roomsCount} комнат · Рекомендуемый ур. {cave.minLevel} · Вход 15 ⚡
-                      </div>
+                        {localize(cave.roomsCount)}{localize(" комнат · Рекомендуемый ур. ")}{localize(cave.minLevel)}{localize(" · Вход 15 ⚡")}</div>
                     </div>
                   </div>
 
@@ -535,14 +509,12 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                       enterDungeon(cave.id, difficulty);
                     }}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white active:scale-95 transition-transform"
-                  >
-                    Войти
-                  </button>
+                  >{localize("Войти")}</button>
                 </div>
               </div>
             );
           })}
-          <p className="text-[10px] text-slate-400">Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.</p>
+          <p className="text-[10px] text-slate-400">{localize("Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.")}</p>
         </div>
       </div>
     </div>

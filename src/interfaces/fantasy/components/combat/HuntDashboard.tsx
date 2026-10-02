@@ -1,3 +1,4 @@
+import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import React from 'react';
 import { useNavigation } from '../../../../context/NavigationContext';
 import { Portrait } from '../ui/Portrait';
@@ -42,6 +43,7 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
   autoBattle, isSettingsOpen, premiumActive, elixirPrice, getMonsterLock, onSelectMonster, onStartHunt, onToggleSettings,
   onUpdateAutoBattle, onMeditate, onBuyElixir, onLeaveMine
 }) => {
+  useLocale();
   const scene = getBattleScene(currentRegion.id, currentRegion.id);
   const loot = selectedMonster?.drops || [];
   const { setCurrentTab } = useNavigation();
@@ -54,104 +56,103 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
       <div className="absolute inset-0 -z-10"><BattleBackdrop scene={scene} /><div className="absolute inset-0 bg-gradient-to-r from-[#090b0de8] via-[#090b0d91] to-[#090b0d3b]" /></div>
       <div className="relative flex min-h-[150px] flex-col justify-between p-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="text-[11px] font-semibold uppercase tracking-[.2em] text-[#c4b79e]">Охотничьи угодья</div>
-          <span className="rounded border border-[#756344] bg-black/45 px-2 py-1 text-[11px] font-mono text-[#d2c5af]">{currentRegion.levelRange}</span>
+          <div className="text-[11px] font-semibold uppercase tracking-[.2em] text-[#c4b79e]">{localize("Охотничьи угодья")}</div>
+          <span className="rounded border border-[#756344] bg-black/45 px-2 py-1 text-[11px] font-mono text-[#d2c5af]">{localize(currentRegion.levelRange)}</span>
         </div>
         <div>
-          <h1 className="folio-title text-xl font-bold leading-tight">{currentRegion.name.split(':')[0]}</h1>
+          <h1 className="folio-title text-xl font-bold leading-tight">{localize(currentRegion.name.split(':')[0])}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-[#635237] bg-black/55 px-2 py-1 text-[11px] font-semibold text-[#d1ad67]">{activeMod.name}</span>
-            <span className="text-[11px] text-[#c2bdb3]">Ур. {player.level} · {regionMonsters.length} следов</span>
+            <span className="rounded border border-[#635237] bg-black/55 px-2 py-1 text-[11px] font-semibold text-[#d1ad67]">{localize(activeMod.name)}</span>
+            <span className="text-[11px] text-[#c2bdb3]">{localize("Ур. ")}{localize(player.level)} · {localize(regionMonsters.length)}{localize(" следов")}</span>
           </div>
         </div>
       </div>
     </BestiaryPanel>
 
-    <RpgButton variant="primary" icon="hunt" disabled={!canStart} onClick={onStartHunt} className="w-full text-sm uppercase tracking-[.08em]">
-      Начать охоту <span className="font-mono text-[11px] font-semibold">· {combatEnergyCost} энергии</span>
+    <RpgButton variant="primary" icon="hunt" disabled={!canStart} onClick={onStartHunt} className="w-full text-sm uppercase tracking-[.08em]">{localize("Начать охоту ")}<span className="font-mono text-[11px] font-semibold">· {localize(combatEnergyCost)}{localize(" энергии")}</span>
     </RpgButton>
-    {selectedLock && <p className="px-1 text-center text-[11px] text-[#d1ad67]">{selectedLock}</p>}
-    {needsLevel && <p className="px-1 text-center text-[11px] text-[#d1ad67]">Для этой области нужен уровень {currentRegion.minLevel}.</p>}
+    {selectedLock && <p className="px-1 text-center text-[11px] text-[#d1ad67]">{localize(selectedLock)}</p>}
+    {needsLevel && <p className="px-1 text-center text-[11px] text-[#d1ad67]">{localize("Для этой области нужен уровень ")}{localize(currentRegion.minLevel)}.</p>}
 
     {isMiningLocked && <BestiaryPanel className="flex items-center justify-between gap-3 p-3">
-      <div className="flex items-center gap-2 text-xs text-[#d1ad67]"><RpgIcon kind="mine" size={19} /><span>Герой на шахтной экспедиции</span></div>
-      <button onClick={onLeaveMine} className="rpg-button rpg-button-secondary shrink-0 px-3 text-xs">Вернуться</button>
+      <div className="flex items-center gap-2 text-xs text-[#d1ad67]"><RpgIcon kind="mine" size={19} /><span>{localize("Герой на шахтной экспедиции")}</span></div>
+      <button onClick={onLeaveMine} className="rpg-button rpg-button-secondary shrink-0 px-3 text-xs">{localize("Вернуться")}</button>
     </BestiaryPanel>}
 
     {energyError && <div role="status" aria-live="polite" className="bestiary-panel space-y-2 border-[#673b3b] bg-[#211719] p-3">
-      <div className="flex items-start gap-2 text-xs text-[#e1b7b3]"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#81504d] font-bold">!</span><span>{energyError}</span></div>
+      <div className="flex items-start gap-2 text-xs text-[#e1b7b3]"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#81504d] font-bold">!</span><span>{localize(energyError)}</span></div>
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={onMeditate} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Медитация +10</button>
-        <button onClick={onBuyElixir} disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Эликсир +30 · {elixirPrice} серебра</button>
+        <button onClick={onMeditate} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">{localize("Медитация +10")}</button>
+        <button onClick={onBuyElixir} disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">{localize("Эликсир +30 · ")}{localize(elixirPrice)}{localize(" серебра")}</button>
       </div>
     </div>}
 
 
 
     <div className="bestiary-spread">
-    <aside className="codex-paper atlas-sidebar"><SectionTitle eyebrow="Атлас Аэтельгарда">Земли</SectionTitle><ul>{REGIONS.map(region => <li key={region.id} aria-current={region.id === currentRegion.id ? 'location' : undefined}><RpgIcon kind={player.level < region.minLevel ? 'bestiary' : 'map'} size={23}/><span>{region.name}<small>{region.levelRange}{player.level < region.minLevel && ' · Закрыто'}</small></span></li>)}</ul><RpgButton icon="map" onClick={() => setCurrentTab('world')}>Выбрать локацию</RpgButton></aside>
+    <aside className="codex-paper atlas-sidebar"><SectionTitle eyebrow="Атлас Аэтельгарда">{localize("Земли")}</SectionTitle><ul>{REGIONS.map(region => <li key={region.id} aria-current={region.id === currentRegion.id ? 'location' : undefined}><RpgIcon kind={player.level < region.minLevel ? 'bestiary' : 'map'} size={23}/><span>{localize(region.name)}<small>{localize(region.levelRange)}{localize(player.level < region.minLevel && ' · Закрыто')}</small></span></li>)}</ul><RpgButton icon="map" onClick={() => setCurrentTab('world')}>{localize("Выбрать локацию")}</RpgButton></aside>
     <BestiaryPanel className="codex-paper bestiary-catalog p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <SectionTitle eyebrow="Обитатели локации">Бестиарий</SectionTitle>
+        <SectionTitle eyebrow="Обитатели локации">{localize("Бестиарий")}</SectionTitle>
         <RpgIconButton icon="settings" label="Настройки автобоя" onClick={onToggleSettings} />
       </div>
       <div className="bestiary-list mt-2">
         {regionMonsters.map(monster => {
           const locked = Boolean(getMonsterLock(monster));
           const marker = monster.isBoss ? 'Босс' : monster.isElite ? 'Элита' : undefined;
-          return <BestiaryEntry key={monster.id} title={monster.name} subtitle={`Ур. ${monster.level}`} image={getMonsterArtworkPath(monster.id, monster.avatar)} selected={monster.id === selectedMonster?.id} locked={locked} marker={marker} onClick={() => onSelectMonster(monster.id)} />;
+          return <BestiaryEntry key={monster.id} title={localize(monster.name)} subtitle={`Ур. ${monster.level}`} image={getMonsterArtworkPath(monster.id, monster.avatar)} selected={monster.id === selectedMonster?.id} locked={locked} marker={marker} onClick={() => onSelectMonster(monster.id)} />;
         })}
-        {!regionMonsters.length && <p role="status">В этой локации пока нет доступных противников.</p>}
+        {!regionMonsters.length && <p role="status">{localize("В этой локации пока нет доступных противников.")}</p>}
       </div>
       <OrnamentDivider />
       <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>Следы</span><span>{Math.min(6, progress.kills)}/6</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${Math.min(100, progress.kills / 6 * 100)}%` }} /></div></div>
-        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>Элиты</span><span>{Math.min(2, progress.eliteWins)}/2</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${Math.min(100, progress.eliteWins / 2 * 100)}%` }} /></div></div>
-        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>Босс</span><span>{progress.bossWins ? 'Готово' : '0/1'}</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${progress.bossWins ? 100 : 0}%` }} /></div></div>
+        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>{localize("Следы")}</span><span>{localize(Math.min(6, progress.kills))}/6</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${Math.min(100, progress.kills / 6 * 100)}%` }} /></div></div>
+        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>{localize("Элиты")}</span><span>{localize(Math.min(2, progress.eliteWins))}/2</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${Math.min(100, progress.eliteWins / 2 * 100)}%` }} /></div></div>
+        <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>{localize("Босс")}</span><span>{localize(progress.bossWins ? 'Готово' : '0/1')}</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${progress.bossWins ? 100 : 0}%` }} /></div></div>
       </div>
     </BestiaryPanel>
 
     {selectedMonster && <BestiaryPanel className="codex-paper bestiary-dossier overflow-hidden">
       <div className="bestiary-dossier-art relative min-h-[248px] overflow-hidden">
         <div className="dossier-etching" aria-hidden="true"/>
-        <Portrait src={getMonsterArtworkPath(selectedMonster.id, selectedMonster.avatar)} alt={selectedMonster.name} className="absolute inset-0 h-full w-full object-contain object-center"/>
+        <Portrait src={getMonsterArtworkPath(selectedMonster.id, selectedMonster.avatar)} alt={localize(selectedMonster.name)} className="absolute inset-0 h-full w-full object-contain object-center"/>
         <div className="bestiary-dossier-art-shade absolute inset-0" />
         <div className="relative flex min-h-[248px] flex-col justify-between p-3.5">
           <div className="flex items-start justify-between gap-2">
-            <span className="bestiary-art-stamp"><RpgIcon kind="bestiary" size={16} /> Досье охотника</span>
-            <span className="rounded border border-[#c1a775]/50 bg-black/60 px-2 py-1 text-[11px] font-mono text-[#e7d7b8]">Ур. {selectedMonster.level}</span>
+            <span className="bestiary-art-stamp"><RpgIcon kind="bestiary" size={16} />{localize(" Досье охотника")}</span>
+            <span className="rounded border border-[#c1a775]/50 bg-black/60 px-2 py-1 text-[11px] font-mono text-[#e7d7b8]">{localize("Ур. ")}{localize(selectedMonster.level)}</span>
           </div>
           <div>
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-              {selectedMonster.isBoss && <span className="rounded border border-[#824b47] bg-[#35191a]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3aba2]">Босс</span>}
-              {selectedMonster.isElite && <span className="rounded border border-[#8a7145] bg-[#302719]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3c17b]">Элита</span>}
-              <span className="text-[11px] uppercase tracking-[.12em] text-[#ded2bd]">{damageTypeLabel(selectedMonster.damageType)}</span>
+              {selectedMonster.isBoss && <span className="rounded border border-[#824b47] bg-[#35191a]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3aba2]">{localize("Босс")}</span>}
+              {selectedMonster.isElite && <span className="rounded border border-[#8a7145] bg-[#302719]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3c17b]">{localize("Элита")}</span>}
+              <span className="text-[11px] uppercase tracking-[.12em] text-[#ded2bd]">{localize(damageTypeLabel(selectedMonster.damageType))}</span>
             </div>
-            <h2 className="folio-title break-words text-2xl font-bold leading-tight text-white">{selectedMonster.name}</h2>
+            <h2 className="folio-title break-words text-2xl font-bold leading-tight text-white">{localize(selectedMonster.name)}</h2>
           </div>
         </div>
       </div>
       <div className="bestiary-dossier-paper px-4 py-3.5">
         <div className="grid grid-cols-2 gap-x-5 gap-y-0.5">
-          <StatRow label="Здоровье" value={selectedMonster.maxHp.toLocaleString()} tone="hp" />
-          <StatRow label="Атака" value={selectedMonster.attack.toLocaleString()} />
-          <StatRow label="Защита" value={selectedMonster.defense.toLocaleString()} />
-          <StatRow label="Маг. защита" value={selectedMonster.magicDefense.toLocaleString()} />
+          <StatRow label="Здоровье" value={selectedMonster.maxHp.toLocaleString(intlLocale())} tone="hp" />
+          <StatRow label="Атака" value={selectedMonster.attack.toLocaleString(intlLocale())} />
+          <StatRow label="Защита" value={selectedMonster.defense.toLocaleString(intlLocale())} />
+          <StatRow label="Маг. защита" value={selectedMonster.magicDefense.toLocaleString(intlLocale())} />
         </div>
         <div className="mt-3 border-t border-[#75634a]/35 pt-2.5">
-          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-[#65553e]">Находки</div>
+          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-[#65553e]">{localize("Находки")}</div>
           <div className="dossier-loot">
-            {loot.length ? loot.map((drop, index) => <div key={`${selectedMonster.id}-${drop.itemName}-${index}`} className="loot-entry"><ItemArtwork item={{ name: drop.itemName, type: drop.type, rarity: drop.rarity, icon: '' }} size={35}/><span>{drop.itemName}<small>{drop.minQty === drop.maxQty ? drop.minQty : `${drop.minQty}–${drop.maxQty}`} шт. · базовый шанс {Math.round(drop.chance * 100)}%</small></span></div>) : <span className="text-[#766958]">Следов добычи пока нет</span>}
+            {loot.length ? loot.map((drop, index) => <div key={`${selectedMonster.id}-${drop.itemName}-${index}`} className="loot-entry"><ItemArtwork item={{ name: drop.itemName, type: drop.type, rarity: drop.rarity, icon: '' }} size={35}/><span>{localize(drop.itemName)}<small>{localize(drop.minQty === drop.maxQty ? drop.minQty : `${drop.minQty}–${drop.maxQty}`)}{localize(" шт. · базовый шанс ")}{localize(Math.round(drop.chance * 100))}%</small></span></div>) : <span className="text-[#766958]">{localize("Следов добычи пока нет")}</span>}
           </div>
         </div>
       </div>
     </BestiaryPanel>}
     </div>
 
-    <DialogFrame open={isSettingsOpen} title="Настройки автобоя" onClose={onToggleSettings} className="space-y-3">
-      <label className="flex min-h-11 items-center justify-between gap-3 text-xs text-[#c5c0b6]"><span>Использовать навыки</span><input type="checkbox" checked={autoBattle.useSkills} onChange={event => onUpdateAutoBattle({ useSkills: event.target.checked })} className="h-5 w-5 accent-[#b99558]" /></label>
-      <label className="flex items-center justify-between text-xs text-[#c5c0b6]"><span>Автозелье при HP ниже</span><span className="font-mono text-[#d1ad67]">{autoBattle.healAtHpPercent}%</span></label>
-      <input type="range" min="20" max="70" value={autoBattle.healAtHpPercent} onChange={event => onUpdateAutoBattle({ healAtHpPercent: Number(event.target.value) })} aria-label="Порог автозелья по здоровью" className="w-full accent-[#b99558]" />
+    <DialogFrame open={isSettingsOpen} title={localize("Настройки автобоя")} onClose={onToggleSettings} className="space-y-3">
+      <label className="flex min-h-11 items-center justify-between gap-3 text-xs text-[#c5c0b6]"><span>{localize("Использовать навыки")}</span><input type="checkbox" checked={autoBattle.useSkills} onChange={event => onUpdateAutoBattle({ useSkills: event.target.checked })} className="h-5 w-5 accent-[#b99558]" /></label>
+      <label className="flex items-center justify-between text-xs text-[#c5c0b6]"><span>{localize("Автозелье при HP ниже")}</span><span className="font-mono text-[#d1ad67]">{localize(autoBattle.healAtHpPercent)}%</span></label>
+      <input type="range" min="20" max="70" value={autoBattle.healAtHpPercent} onChange={event => onUpdateAutoBattle({ healAtHpPercent: Number(event.target.value) })} aria-label={localize("Порог автозелья по здоровью")} className="w-full accent-[#b99558]" />
     </DialogFrame>
   </FolioPage>;
 };

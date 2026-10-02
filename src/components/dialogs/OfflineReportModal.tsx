@@ -1,9 +1,11 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { Moon, Package, Check, Crown } from 'lucide-react';
 import { sound } from '../../utils/audio';
 
 export const OfflineReportModal: React.FC = () => {
+  useLocale();
   const { offlineReport, dismissOfflineReport } = useGame();
 
   if (!offlineReport) return null;
@@ -23,12 +25,9 @@ export const OfflineReportModal: React.FC = () => {
 
         <div className="space-y-1">
           <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-widest flex items-center justify-center gap-1">
-            <Crown className="w-3 h-3" /> Premium офлайн-добыча
-          </span>
-          <h3 className="font-cinzel text-lg font-bold text-slate-100">Шахтёры вернулись</h3>
-          <p className="text-xs text-slate-400">
-            Пока вас не было ({timeStr}), Premium автоматически собирал доступные по вашему уровню ресурсы.
-          </p>
+            <Crown className="w-3 h-3" />{localize(" Premium офлайн-добыча")}</span>
+          <h3 className="font-cinzel text-lg font-bold text-slate-100">{localize("Шахтёры вернулись")}</h3>
+          <p className="text-xs text-slate-400">{localize("Пока вас не было (")}{localize(timeStr)}{localize("), Premium автоматически собирал доступные по вашему уровню ресурсы.")}</p>
         </div>
 
         <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-2 text-xs font-mono text-left">
@@ -36,20 +35,18 @@ export const OfflineReportModal: React.FC = () => {
             <>
               <div className="flex justify-between items-center pb-2 border-b border-slate-800">
                 <span className="text-slate-400 flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-purple-400" />
-                  Всего ресурсов
-                </span>
-                <span className="text-purple-300 font-bold">×{totalResources}</span>
+                  <Package className="w-3.5 h-3.5 text-purple-400" />{localize("Всего ресурсов")}</span>
+                <span className="text-purple-300 font-bold">×{localize(totalResources)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-1.5">
                 {miningRewards.map(reward => (
                   <div key={reward.name} className="rounded-lg border border-slate-800 bg-black/20 p-2 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-lg shrink-0">{reward.icon}</span>
+                      <span className="text-lg shrink-0">{localize(reward.icon)}</span>
                       <div className="min-w-0">
-                        <div className="text-[10px] text-slate-200 leading-tight break-words">{reward.name}</div>
-                        <div className="text-[9px] text-emerald-300 font-bold">×{reward.count}</div>
+                        <div className="text-[10px] text-slate-200 leading-tight break-words">{localize(reward.name)}</div>
+                        <div className="text-[9px] text-emerald-300 font-bold">×{localize(reward.count)}</div>
                       </div>
                     </div>
                   </div>
@@ -57,9 +54,7 @@ export const OfflineReportModal: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="text-center text-[11px] text-rose-300">
-              Рюкзак был заполнен, поэтому автоматическую добычу сохранить не удалось.
-            </div>
+            <div className="text-center text-[11px] text-rose-300">{localize("Рюкзак был заполнен, поэтому автоматическую добычу сохранить не удалось.")}</div>
           )}
         </div>
 
@@ -71,7 +66,7 @@ export const OfflineReportModal: React.FC = () => {
           className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
         >
           <Check className="w-4 h-4" />
-          <span>Понятно</span>
+          <span>{localize("Понятно")}</span>
         </button>
       </div>
     </div>

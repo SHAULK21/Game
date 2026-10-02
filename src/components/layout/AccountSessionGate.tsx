@@ -1,9 +1,11 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../../utils/api';
 import { getTelegramUser } from '../../utils/telegram';
 import { applyAccountReset, readResetVersion, resetVersionKey } from '../../utils/accountReset';
 
 export const AccountSessionGate: React.FC<React.PropsWithChildren> = ({ children }) => {
+  useLocale();
   const userId = getTelegramUser().id;
   const [version, setVersion] = useState<number | null>(null);
   const [wasReset, setWasReset] = useState(false);
@@ -29,11 +31,9 @@ export const AccountSessionGate: React.FC<React.PropsWithChildren> = ({ children
     document.addEventListener('visibilitychange', onVisible);
     return () => { alive = false; window.clearInterval(timer); window.removeEventListener('aethelgard-account-reset', onReset); window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible); };
   }, [userId]);
-  if (version === null) return <div role="status" className="p-6 text-center">Загрузка персонажа…</div>;
+  if (version === null) return <div role="status" className="p-6 text-center">{localize("Загрузка персонажа…")}</div>;
   return <React.Fragment key={version}>
-    {wasReset && <div role="status" className="fixed inset-x-3 top-2 z-[60] rounded-xl border border-amber-400 bg-slate-950 p-3 text-center text-sm text-amber-100">
-      Администратор сбросил прогресс. Создайте нового персонажа.
-      <button onClick={() => setWasReset(false)} className="ml-2 min-h-11 px-3 underline">Понятно</button>
+    {wasReset && <div role="status" className="fixed inset-x-3 top-2 z-[60] rounded-xl border border-amber-400 bg-slate-950 p-3 text-center text-sm text-amber-100">{localize("Администратор сбросил прогресс. Создайте нового персонажа.")}<button onClick={() => setWasReset(false)} className="ml-2 min-h-11 px-3 underline">{localize("Понятно")}</button>
     </div>}
     {children}
   </React.Fragment>;

@@ -1,9 +1,10 @@
+import { translateText } from '../src/i18n/translate';
 import { registerClanProjects } from './clanProjects';
 import { clanRaidHealth, clanRaidReward, clanRaidItem } from '../src/utils/clanProjects';
 import { leavePlayerClan } from './clanLeave';
 import { createPaidClan } from './clanCreation';
 import {createMarketListing} from './marketListings';
-import { gameMessagePayload, gameMenuButton } from './telegramGameMessages';
+import { gameMessagePayload, gameMenuButton, messageLanguage } from './telegramGameMessages';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
 import { canUseVault } from '../src/utils/clanRoles';
 import { disposeBulkItems, BulkDisposalError } from './bulkDisposal';
@@ -786,7 +787,7 @@ app.get('/api/premium/status', auth, async (req, res) => {
 app.post('/api/premium/invoice', auth, async (req, res) => {
   try {
     const status = await pool.query(
-      'SELECT premium_until FROM players WHERE telegram_id = $1',
+      'SELECT premium_until, preferred_language FROM players WHERE telegram_id = $1',
       [req.authUser!.id]
     );
     const currentUntil = status.rows[0]?.premium_until ? new Date(status.rows[0].premium_until) : null;
@@ -797,10 +798,10 @@ app.post('/api/premium/invoice', auth, async (req, res) => {
     const payload = `aethelgard_premium:${req.authUser!.id}`;
     const invoiceLink = await telegramBotApi<string>('createInvoiceLink', {
       title: 'Aethelgard Premium',
-      description: 'Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.',
+      description: translateText('Premium на 30 дней: автобой, автопродолжение серии и расширенные настройки автобоя.', messageLanguage(req.get('X-Game-Language'),status.rows[0]?.preferred_language)),
       payload,
       currency: 'XTR',
-      prices: [{ label: 'Aethelgard Premium · 30 дней', amount: PREMIUM_PRICE_STARS }],
+      prices: [{ label: translateText('Aethelgard Premium · 30 дней', messageLanguage(req.get('X-Game-Language'),status.rows[0]?.preferred_language)), amount: PREMIUM_PRICE_STARS }],
       subscription_period: PREMIUM_PERIOD_SECONDS
     });
 
@@ -843,12 +844,15 @@ app.post('/api/telegram/webhook', async (req, res) => {
   const message = update.message || update.edited_message;
   if (message?.chat?.type === 'private' && message?.from?.id && String(message.text || '').startsWith('/start')) {
     const userId = Number(message.from.id);
-    await pool.query(`INSERT INTO players (telegram_id, display_name, bot_started) VALUES ($1,$2,TRUE) ON CONFLICT (telegram_id) DO UPDATE SET bot_started = TRUE`,[userId,String(message.from.first_name || 'Игрок')]);
+    const profile=await pool.query(`INSERT INTO players (telegram_id, display_name, bot_started, preferred_language) VALUES ($1,$2,TRUE,$3) ON CONFLICT (telegram_id) DO UPDATE SET bot_started = TRUE, preferred_language = COALESCE(players.preferred_language,EXCLUDED.preferred_language) RETURNING preferred_language`,[userId,String(message.from.first_name || 'Игрок'),messageLanguage(null,message.from.language_code)]);
+    const language=messageLanguage(profile.rows[0]?.preferred_language,message.from.language_code);
     const referral = String(message.text).match(/^\/start(?:@\w+)?\s+ref_(\d+)$/);
     if (referral && Number(referral[1]) !== userId) {
       await pool.query(`UPDATE players SET referred_by = $1 WHERE telegram_id = $2 AND referred_by IS NULL AND created_at > NOW() - INTERVAL '10 minutes' AND EXISTS (SELECT 1 FROM players WHERE telegram_id = $1 AND created_at < (SELECT created_at FROM players WHERE telegram_id = $2))`,[referral[1],userId]);
     }
-    await telegramBotApi('sendMessage',gameMessagePayload(userId,'⚔️ Добро пожаловать в Аэтельгард!\n\nНажмите «Играть», чтобы открыть игру. Уведомления об энергии, шахте и других событиях можно включить в разделе «Оповещения» в игре.\n\nПриведите нового друга: когда он достигнет 10 уровня, вы оба получите игровой Premium на 3 дня.',publicBaseUrl));
+    await telegramBotApi('sendMessage',gameMessagePayload(userId,'⚔️ Добро пожаловать в Аэтельгард!\n\nНажмите «Играть», чтобы открыть игру. Уведомления об энергии, шахте и других событиях можно включить в разделе «Оповещения» в игре.\n\nПриведите нового друга: когда он достигнет 10 уровня, вы оба получите игровой Premium на 3 дня.',publicBaseUrl,language));
+    const menu=gameMenuButton(publicBaseUrl,language);
+    if(menu)try{await telegramBotApi('setChatMenuButton',{chat_id:userId,menu_button:menu});}catch{/* The welcome still includes its Play button. */}
     return res.json({ok:true});
   }
   const payment = message?.successful_payment;

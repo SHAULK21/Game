@@ -1,4 +1,4 @@
-import { gameMessagePayload } from './telegramGameMessages';
+import { gameMessagePayload, gameMenuButton } from './telegramGameMessages';
 import { registerBalanceTelemetry } from './balanceTelemetry';
 import { registerAccountReset } from './accountReset';
 import {registerAdminBroadcasts} from './broadcasts';
@@ -22,7 +22,7 @@ export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramAp
   if(!client)return;
     try {
       await client.query('BEGIN');
-      const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
+      const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started,p.preferred_language FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
       for(const row of rows.rows) {
         if(!row.bot_started || row.notification_settings?.enabled!==true || row.notification_settings?.[row.category]===false) {
           if(row.category==='announcements'){await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);continue;}
@@ -33,7 +33,7 @@ export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramAp
           if(current.rows[0]?.active){await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;}
         }
         try {
-          await telegram('sendMessage',gameMessagePayload(Number(row.telegram_id),row.text,baseUrl));
+          await telegram('sendMessage',gameMessagePayload(Number(row.telegram_id),row.text,baseUrl,row.preferred_language === 'uk' ? 'uk' : 'ru'));
           await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);
         } catch(error) {
           const blocked=/blocked|chat not found|deactivated/i.test(String(error));
@@ -79,6 +79,17 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     const p=(await getPool().query('SELECT notification_settings,bot_started FROM players WHERE telegram_id=$1',[req.authUser!.id])).rows[0];
     const rows=await getPool().query('SELECT id,category,text,due_at,read_at FROM game_notifications WHERE telegram_id=$1 AND due_at<=NOW() ORDER BY id DESC LIMIT 50',[req.authUser!.id]);
     res.json({settings:p.notification_settings,botStarted:p.bot_started,notifications:rows.rows});
+  });
+  app.post('/api/preferences/language',auth,async(req,res)=>{
+    const language=req.body?.language;
+    if(language!=='ru' && language!=='uk')return res.status(400).json({error:'Unsupported language.'});
+    const changed=await getPool().query('UPDATE players SET preferred_language=$1 WHERE telegram_id=$2 AND preferred_language IS DISTINCT FROM $1 RETURNING bot_started',[language,req.authUser!.id]);
+    const menu=gameMenuButton(baseUrl,language);
+    if(changed.rows[0]?.bot_started && menu) {
+      try { await telegram('setChatMenuButton',{chat_id:Number(req.authUser!.id),menu_button:menu}); }
+      catch { /* Notification buttons still use the saved language if menu setup fails. */ }
+    }
+    res.json({language});
   });
   app.post('/api/notifications/settings',auth,async(req,res)=>{
     const settings:Record<string,boolean>={enabled:req.body?.enabled===true};

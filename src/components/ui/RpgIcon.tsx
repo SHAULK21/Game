@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React from 'react';
 import { ItemType } from '../../types/game';
 
@@ -30,6 +31,7 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
   className = 'text-cyan-300',
   title
 }) => {
+  useLocale();
   const common = {
     fill: 'none',
     stroke: 'currentColor',
@@ -104,11 +106,11 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
   return (
     <span
       className={`inline-flex items-center justify-center shrink-0 ${className}`}
-      title={title}
+      title={localize(title)}
       aria-hidden={!title}
     >
       <svg width={size} height={size} viewBox="0 0 28 28" role={title ? 'img' : undefined}>
-        {title ? <title>{title}</title> : null}
+        {title ? <title>{localize(title)}</title> : null}
         {render()}
       </svg>
     </span>
