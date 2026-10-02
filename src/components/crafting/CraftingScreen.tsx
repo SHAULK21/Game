@@ -7,6 +7,7 @@ import {
   MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,
   getEquipmentLevelRange, getRegionMonster
 } from '../../data/gameData';
+import { ItemArtwork } from '../ui/ItemArtwork';
 import { Hammer } from 'lucide-react';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../../utils/classEquipment';
@@ -108,7 +109,7 @@ export const CraftingScreen: React.FC = () => {
           return (
             <div key={recipe.id} className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3">
               <div className="flex items-start gap-2">
-                <span className="text-2xl shrink-0">{recipe.icon}</span>
+                <ItemArtwork item={{name:recipe.result?.name || recipe.name,type:recipe.result?.type || 'material',rarity:recipe.result?.rarity || 'common',icon:recipe.icon}} size={40} className="shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-100">{recipe.name}{recipe.huntStage === 'boss' ? ' · Мастерский' : recipe.huntStage === 'elite' ? ' · Усиленный' : ''}</div>
                   {stageLock && <p className="mt-1 text-[11px] text-amber-300">🔒 {stageLock}</p>}

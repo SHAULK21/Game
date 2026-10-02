@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { GameItem } from '../../types/game';
 import { RpgIcon, getRpgIconKind } from './RpgIcon';
+import { getItemSpritePath } from '../../utils/itemSprites';
+import { getResourceVectorArtwork } from '../../utils/resourceArtwork';
 import { getItemArtworkPath } from '../../utils/itemArtwork';
 
 interface ItemArtworkProps {
@@ -16,14 +18,18 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
   className = '',
   fallbackClassName = ''
 }) => {
-  const [failed, setFailed] = useState(false);
-  const src = getItemArtworkPath(item);
+  const primary = getItemArtworkPath(item);
+  const backup = item.type === 'ore' || item.type === 'material'
+    ? getResourceVectorArtwork(item.name, item.type) : getItemSpritePath(item);
+  const sources = [...new Set([primary, backup].filter((s): s is string => Boolean(s)))];
+  const [failedSources, setFailedSources] = useState<string[]>([]);
+  const src = sources.find(source => !failedSources.includes(source));
 
   useEffect(() => {
-    setFailed(false);
-  }, [src]);
+    setFailedSources([]);
+  }, [primary, backup]);
 
-  if (!failed) {
+  if (src) {
     return (
       <img
         src={src}
@@ -32,7 +38,7 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
         height={size}
         loading="lazy"
         className={`object-contain rounded-md ${className}`}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSources(failed => [...failed, src])}
         referrerPolicy="no-referrer"
       />
     );
