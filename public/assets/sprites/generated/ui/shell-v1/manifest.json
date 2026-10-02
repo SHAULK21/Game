@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "status": "awaiting-author-visual-approval",
+  "image": "ornaments.webp",
+  "width": 1254,
+  "height": 1254,
+  "source": "Generated from approved inventory/world visual direction; not extracted screenshot UI",
+  "regions": {
+    "hudFrame": {
+      "x": 39,
+      "y": 45,
+      "width": 550,
+      "height": 537
+    },
+    "navigationInactive": {
+      "x": 686,
+      "y": 88,
+      "width": 522,
+      "height": 499
+    },
+    "navigationActive": {
+      "x": 34,
+      "y": 655,
+      "width": 560,
+      "height": 522
+    },
+    "divider": {
+      "x": 629,
+      "y": 889,
+      "width": 620,
+      "height": 87
+    }
+  },
+  "constraints": [
+    "No text, data, menu icons or click targets are baked into these assets.",
+    "Retain alpha; preserve corners and ornaments without stretching.",
+    "Bounds include six pixels of padding around alpha >128; exclude low-alpha atlas noise outside each region.",
+    "Generated geometry must be visually approved before use; regions are not yet a validated nine-slice specification."
+  ]
+}
