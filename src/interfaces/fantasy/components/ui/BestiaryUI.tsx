@@ -1,4 +1,6 @@
 import React from 'react';
+import { Portrait } from './Portrait';
+import { useDialog } from './useDialog';
 import { RpgIcon, RpgIconKind } from './RpgIcon';
 
 type PanelProps = React.PropsWithChildren<{ className?: string }>;
@@ -57,15 +59,15 @@ export const BestiaryEntry: React.FC<{
   marker?: string;
   onClick: () => void;
 }> = ({ title, subtitle, image, selected = false, locked = false, marker, onClick }) => (
-  <button type="button" onClick={onClick} aria-pressed={selected} className={`bestiary-entry bestiary-entry-row ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}>
+  <button type="button" onClick={onClick} aria-pressed={selected} title={locked ? `${title} · пока недоступен` : title} className={`bestiary-entry bestiary-entry-row ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}>
     <span className={`bestiary-entry-portrait ${locked ? 'is-locked' : ''}`}>
       {image
-        ? <img src={image} alt="" className={`h-full w-full object-cover ${locked ? 'scale-110 grayscale blur-[2px] brightness-50' : ''}`} />
+        ? <Portrait src={image} alt="" className={`h-full w-full object-contain ${locked ? 'grayscale brightness-75' : ''}`} />
         : <RpgIcon kind="monster" size={27} className={locked ? 'text-[#73665a]' : 'text-[#98805b]'} />}
       {locked && <span aria-hidden="true" className="absolute inset-0 grid place-items-center bg-black/25 text-lg font-serif text-[#c2b7a5]">?</span>}
     </span>
     <span className="min-w-0 flex-1 text-left">
-      <span className="block truncate text-xs font-semibold">{locked ? 'Неизвестный след' : title}</span>
+      <span className="block truncate text-xs font-semibold">{title}</span>
       {subtitle && <span className="mt-0.5 block text-[11px] text-[#918c82]">{subtitle}</span>}
     </span>
     {marker && <span className={`bestiary-marker ${marker === 'Босс' ? 'is-boss' : 'is-elite'}`}>{marker}</span>}
@@ -128,19 +130,15 @@ export const CodexTabs: React.FC<{
   </div>
 );
 
-export const BottomSheet: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>> = ({ open, title, onClose, children }) => !open ? null : (
-  <div className="bottom-sheet-backdrop fixed inset-0 z-[70] flex items-end justify-center" onClick={onClose}>
-    <section role="dialog" aria-modal="true" aria-label={title} className="dialog-frame w-full max-w-lg rounded-b-none p-4 pb-safe" onClick={event => event.stopPropagation()}>
-      <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#6b665d]" />
-      <h2 className="section-title mb-3 text-lg">{title}</h2>{children}
+export const DialogFrame: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void; className?: string; bottom?: boolean }>> = ({ open, title, onClose, className = '', bottom = false, children }) => {
+  const ref = useDialog(open, onClose);
+  if (!open) return null;
+  return <div className={`bottom-sheet-backdrop fixed inset-0 z-[80] flex justify-center p-3 ${bottom ? 'items-end' : 'items-center'}`} onClick={onClose}>
+    <section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={`dialog-frame w-full max-w-lg p-4 ${className}`} onClick={event => event.stopPropagation()}>
+      <div className="mb-3 flex items-center justify-between gap-3"><h2 className="section-title text-lg">{title}</h2><button type="button" className="rpg-icon-button" aria-label={`Закрыть: ${title}`} onClick={onClose}>×</button></div>
+      {children}
     </section>
-  </div>
-);
+  </div>;
+};
 
-export const DialogFrame: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void; className?: string }>> = ({ open, title, onClose, className = '', children }) => !open ? null : (
-  <div className="bottom-sheet-backdrop fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={onClose}>
-    <section role="dialog" aria-modal="true" aria-label={title} className={`dialog-frame w-full max-w-sm p-4 ${className}`} onClick={event => event.stopPropagation()}>
-      <h2 className="section-title mb-3 text-lg">{title}</h2>{children}
-    </section>
-  </div>
-);
+export const BottomSheet: React.FC<React.PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>> = props => <DialogFrame {...props} bottom />;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDialog } from '../ui/useDialog';
 import { useGame } from '../../../../context/GameContext';
 import { sound } from '../../../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
@@ -7,6 +8,7 @@ import { BestiaryPanel, RpgButton } from '../ui/BestiaryUI';
 export const OfflineReportModal: React.FC = () => {
   const { offlineReport, dismissOfflineReport } = useGame();
 
+  const dialogRef = useDialog(Boolean(offlineReport), dismissOfflineReport);
   if (!offlineReport) return null;
 
   const hours = Math.floor(offlineReport.minutes / 60);
@@ -17,7 +19,7 @@ export const OfflineReportModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div role="dialog" aria-modal="true" aria-label="Отчёт офлайн-добычи" className="dialog-frame w-full max-w-sm space-y-4 p-5 text-center animate-in zoom-in-95 duration-200">
+      <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Отчёт офлайн-добычи" className="dialog-frame w-full max-w-sm space-y-4 p-5 text-center animate-in zoom-in-95 duration-200">
         <div className="w-12 h-12 rounded-full bg-yellow-950/80 border border-yellow-400 text-yellow-300 flex items-center justify-center mx-auto">
           <RpgIcon kind="mine" size={25} />
         </div>
@@ -74,7 +76,7 @@ export const OfflineReportModal: React.FC = () => {
         >
           Понятно
         </RpgButton>
-      </div>
+      </section>
     </div>
   );
 };
