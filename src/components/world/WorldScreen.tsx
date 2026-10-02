@@ -219,11 +219,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               </p>
 
               <div className="pt-2">
-                {currentRoom.type === 'combat' || currentRoom.type === 'boss' ? (
+                {currentRoom.type === 'combat' || currentRoom.type === 'boss' || currentRoom.type === 'elite' ? (
                   <button
                     onClick={() => {
-                      proceedDungeonRoom('fight');
-                      if (onEnterCombatTab) onEnterCombatTab();
+                      if (proceedDungeonRoom('fight')) onEnterCombatTab?.();
                     }}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >

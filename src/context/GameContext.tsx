@@ -130,7 +130,7 @@ interface GameContextType {
   setCurrentRegion: (regionId: string) => void;
   startTravel: (regionId: string, modId?: string) => { success: boolean; message: string };
   enterDungeon: (caveId: string, difficulty?: DungeonRun['difficulty']) => void;
-  proceedDungeonRoom: (choice?: 'fight' | 'open' | 'pray' | 'disarm') => void;
+  proceedDungeonRoom: (choice?: 'fight' | 'open' | 'pray' | 'disarm') => boolean;
   exitDungeon: () => void;
 
   // Gathering & Crafting
@@ -1909,7 +1909,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isInCombat && !isCombatEnded) return false;
 
     const huntingRegion = REGIONS.find(region=>region.id===monster.regionId);
-    if (huntingRegion && player && player.level<huntingRegion.minLevel) return false;
+    if (huntingRegion && player && !activeDungeonRun && player.level<huntingRegion.minLevel) return false;
     if (huntingRegion && player && !activeDungeonRun && (huntLockReason(player, monster, huntingRegion) || huntingModeLockReason(player, huntingRegion, activeModId))) return false;
     const huntMode = !activeDungeonRun && huntingRegion ? activeMod : undefined;
     const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId,huntMode) : [applyHuntingMode(prepareMonsterForCombat(monster),huntMode)];
@@ -3117,24 +3117,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, activeDungeonRun, travelState.isTraveling, isInCombat, isCombatEnded, premium.active]);
 
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {
-    if (!activeDungeonRun) return;
-    if (activeDungeonRun.completed || isInCombat && !isCombatEnded) return;
+    if (!activeDungeonRun) return false;
+    if (activeDungeonRun.completed || isInCombat && !isCombatEnded) return false;
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
-    if (!currentRoom || currentRoom.resolved) return;
+    if (!currentRoom || currentRoom.resolved) return false;
 
     if (currentRoom.type === 'combat' || currentRoom.type === 'boss') {
-      if (!currentRoom.monster) return;
+      if (!currentRoom.monster) return false;
       const started = startBattleWithMonster(currentRoom.monster, { chain: false, energyCost: 0 });
-      if (!started) return;
+      if (!started) return false;
       // Combat rooms are resolved only by completeCombatVictory().
-      return;
+      return true;
     }
 
     if (currentRoom.type === 'elite') {
-      if (!currentRoom.monster) return;
+      if (!currentRoom.monster) return false;
       const started = startBattleWithMonster({ ...currentRoom.monster, isElite: true }, { chain: false, energyCost: 0 });
-      if (!started) return;
-      return;
+      if (!started) return false;
+      return true;
     }
 
     if (currentRoom.type === 'treasure') {
@@ -3176,6 +3176,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completed: isLast
       };
     });
+    return false; // Non-combat rooms keep the player in the dungeon view.
   }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp, isInCombat, isCombatEnded]);
 
   const exitDungeon = useCallback(() => {
