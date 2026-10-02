@@ -207,8 +207,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         latestEvent={battleLog.at(-1)}
       />
       {/* Combat status and actions */}
-      <div className="space-y-2">
-        <div className={`flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
+      <div className="combat-command-center space-y-2">
+        <div className={`combat-turn-status flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
           turnPhase === 'player'
             ? 'bg-[#211f1a] border-[#69583a] text-[#d5ba89]'
             : turnPhase === 'monster'
@@ -390,12 +390,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </div>
         ) : (
           <div className={`space-y-2 transition-all ${turnPhase === 'monster' ? 'pointer-events-none opacity-60' : 'opacity-100'}`}>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="combat-action-grid grid grid-cols-2 gap-2">
               {/* Attack */}
               <button
                 onClick={() => performPlayerAction('attack')}
                 disabled={turnPhase !== 'player'}
-                className="rpg-button rpg-button-primary min-h-[54px] flex-col text-xs"
+                className="combat-action combat-action-attack rpg-button rpg-button-primary min-h-[76px] flex-col text-xs"
               >
                 <RpgIcon kind="attack" size={20} />
                 <span>Атака</span>
@@ -405,7 +405,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <button
                 onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
-                className="rpg-button rpg-button-secondary min-h-[54px] flex-col text-xs"
+                className="combat-action combat-action-skill rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs"
               >
                 <RpgIcon kind="skill" size={20} className="text-[#a892bf]" />
                 <span>Навыки</span>
@@ -415,7 +415,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <button
                 onClick={() => performPlayerAction('defend')}
                 disabled={turnPhase !== 'player'}
-                className="rpg-button rpg-button-secondary min-h-[54px] flex-col text-xs"
+                className="combat-action combat-action-defend rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs"
               >
                 <RpgIcon kind="defend" size={20} />
                 <span>Защита (+25 MP)</span>
@@ -425,7 +425,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <button
                 onClick={() => setIsPotionsOpen(prev => !prev)}
                 disabled={turnPhase !== 'player' || potionCount <= 0}
-                className={`rpg-button min-h-[54px] flex-col text-xs ${
+                className={`combat-action combat-action-potion rpg-button min-h-[76px] flex-col text-xs ${
                   potionCount > 0
                     ? 'rpg-button-secondary'
                     : 'rpg-button-secondary opacity-55'

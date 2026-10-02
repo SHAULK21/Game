@@ -20,33 +20,40 @@ import {
 import { createTalentTree } from './talents';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../utils/classEquipment';
 
-// Generated assets
-import heroHunterImg from '../assets/images/game_hero_hunter_1790595108742.jpg';
-import bossDragonImg from '../assets/images/game_monster_dragon_1790595120603.jpg';
-import dungeonCaveImg from '../assets/images/game_dungeon_cave_1790595131021.jpg';
-import relicWeaponImg from '../assets/images/game_relic_weapon_1790595141902.jpg';
-import charWarriorImg from '../assets/images/char_warrior_paladin_1790595905774.jpg';
-import charMageImg from '../assets/images/char_mage_sorceress_1790595917068.jpg';
-import charRogueImg from '../assets/images/char_rogue_assassin_1790595929467.jpg';
-import mobWolfImg from '../assets/images/mob_forest_wolf_1790595941216.jpg';
-import mobGoblinImg from '../assets/images/mob_goblin_shaman_1790595953042.jpg';
-import mobDeathKnightImg from '../assets/images/mob_death_knight_1790595963615.jpg';
-import itemRelicShieldImg from '../assets/images/item_relic_shield_1790595973300.jpg';
-import itemRelicHelmImg from '../assets/images/item_relic_helm_1790595985059.jpg';
+// Generated raster sprites. Keep these paths centralized so character and item art stays consistent.
+import dungeonCaveImg from '../assets/battle/cave-bat.webp';
+
+const HERO_SPRITE_ROOT = '/assets/sprites/generated/heroes';
+const MONSTER_SPRITE_ROOT = '/assets/sprites/generated/monsters';
+const GEAR_SPRITE_ROOT = '/assets/sprites/generated/ui/gear';
+
+const HERO_SPRITES = {
+  archer: `${HERO_SPRITE_ROOT}/archer.webp`,
+  assassin: `${HERO_SPRITE_ROOT}/assassin.webp`,
+  berserker: `${HERO_SPRITE_ROOT}/berserker.webp`,
+  druid: `${HERO_SPRITE_ROOT}/druid.webp`,
+  hunter: `${HERO_SPRITE_ROOT}/hunter.webp`,
+  knight: `${HERO_SPRITE_ROOT}/knight.webp`,
+  mage: `${HERO_SPRITE_ROOT}/mage.webp`,
+  necromancer: `${HERO_SPRITE_ROOT}/necromancer.webp`,
+  paladin: `${HERO_SPRITE_ROOT}/paladin.webp`,
+  rogue: `${HERO_SPRITE_ROOT}/rogue.webp`,
+  warrior: `${HERO_SPRITE_ROOT}/warrior.webp`
+};
 
 export const ASSETS = {
-  heroHunter: heroHunterImg,
-  bossDragon: bossDragonImg,
+  heroHunter: HERO_SPRITES.hunter,
+  bossDragon: `${MONSTER_SPRITE_ROOT}/m_dragon_boss.webp`,
   dungeonCave: dungeonCaveImg,
-  relicWeapon: relicWeaponImg,
-  charWarrior: charWarriorImg,
-  charMage: charMageImg,
-  charRogue: charRogueImg,
-  mobWolf: mobWolfImg,
-  mobGoblin: mobGoblinImg,
-  mobDeathKnight: mobDeathKnightImg,
-  itemRelicShield: itemRelicShieldImg,
-  itemRelicHelm: itemRelicHelmImg,
+  relicWeapon: `${GEAR_SPRITE_ROOT}/weapon.webp`,
+  charWarrior: HERO_SPRITES.warrior,
+  charMage: HERO_SPRITES.mage,
+  charRogue: HERO_SPRITES.rogue,
+  mobWolf: `${MONSTER_SPRITE_ROOT}/m_wolf.webp`,
+  mobGoblin: `${MONSTER_SPRITE_ROOT}/m_goblin.webp`,
+  mobDeathKnight: `${MONSTER_SPRITE_ROOT}/m_death_knight_boss.webp`,
+  itemRelicShield: `${GEAR_SPRITE_ROOT}/offhand.webp`,
+  itemRelicHelm: `${GEAR_SPRITE_ROOT}/helmet.webp`,
 };
 
 export interface ClassDefinition {
@@ -78,7 +85,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Мастер тяжелой брони и щита. Непоколебим в обороне и наносит сокрушительные удары в ближнем бою.',
     passive: { name: 'Железная воля', description: 'Получает на 10% меньше прямого урона. При HP ниже 35% дополнительно +12% защиты.' },
     icon: '🛡️',
-    image: ASSETS.charWarrior,
+    image: HERO_SPRITES.warrior,
     baseAttributes: { strength: 16, vitality: 15, willpower: 12, agility: 10, luck: 8, spirit: 7, intelligence: 6 },
     startingSkills: [
       {
@@ -134,7 +141,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Жертвует защитой ради колоссального физического урона. Чем ниже его здоровье, тем сильнее удары.',
     passive: { name: 'Ярость крови', description: 'Урон +18%, а при HP ниже 50% ещё +22% к урону.' },
     icon: '🪓',
-    image: ASSETS.charWarrior,
+    image: HERO_SPRITES.berserker,
     baseAttributes: { strength: 18, agility: 12, intelligence: 5, vitality: 12, luck: 10, spirit: 6, willpower: 11 },
     startingSkills: [
       {
@@ -189,7 +196,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Стойкий защитник порядка в латных доспехах. Обладает высочайшим сопротивлением урону.',
     passive: { name: 'Бастион', description: '+15% физической и магической защиты и +10 ко всем базовым сопротивлениям.' },
     icon: '🏰',
-    image: ASSETS.charWarrior,
+    image: HERO_SPRITES.knight,
     baseAttributes: { strength: 14, agility: 9, intelligence: 7, vitality: 18, luck: 6, spirit: 9, willpower: 13 },
     startingSkills: [
       {
@@ -229,7 +236,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Мастер кинжалов, скрытности и ядов. Высокий шанс критического удара и уклонения.',
     passive: { name: 'Охотник за слабостями', description: '+8% уклонения и +10% критического урона; после критического удара следующий удар получает +12% урона.' },
     icon: '🗡️',
-    image: ASSETS.charRogue,
+    image: HERO_SPRITES.rogue,
     baseAttributes: { strength: 11, agility: 18, intelligence: 7, vitality: 10, luck: 15, spirit: 6, willpower: 8 },
     startingSkills: [
       {
@@ -283,7 +290,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Хладнокровный ликвидатор. Способен уничтожить противника до того, как тот успеет среагировать.',
     passive: { name: 'Палач', description: 'По врагам с HP ниже 40% наносит на 25% больше урона и получает +10% пробивания брони.' },
     icon: '🥷',
-    image: ASSETS.charRogue,
+    image: HERO_SPRITES.assassin,
     baseAttributes: { strength: 12, agility: 19, intelligence: 8, vitality: 9, luck: 14, spirit: 5, willpower: 9 },
     startingSkills: [
       {
@@ -309,7 +316,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Мастер стрельбы из лука. Никогда не промахивается и расстреливает врагов с дистанции.',
     passive: { name: 'Орлиный глаз', description: '+12 точности и +6% критического шанса; дальняя атака игнорирует ещё 10% защиты.' },
     icon: '🏹',
-    image: ASSETS.heroHunter,
+    image: HERO_SPRITES.archer,
     baseAttributes: { strength: 11, agility: 17, intelligence: 8, vitality: 10, luck: 12, spirit: 8, willpower: 9 },
     startingSkills: [
       {
@@ -335,7 +342,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Повелитель стихийного огня, молнии и льда. Наносит огромный урон по площади и одиночным целям.',
     passive: { name: 'Элементальный резонанс', description: '+15% магического урона и +20% MP-регенерации. Урон ожога сильнее на 15%.' },
     icon: '🔮',
-    image: ASSETS.charMage,
+    image: HERO_SPRITES.mage,
     baseAttributes: { strength: 6, agility: 9, intelligence: 19, vitality: 9, luck: 10, spirit: 15, willpower: 12 },
     startingSkills: [
       {
@@ -390,7 +397,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Жрец смерти. Истощает жизненные силы врагов и обращает их плоть в проклятую пыль.',
     passive: { name: 'Пожиратель душ', description: '+8% вампиризма. При убийстве восстанавливает 12% максимального HP и MP.' },
     icon: '💀',
-    image: ASSETS.charMage,
+    image: HERO_SPRITES.necromancer,
     baseAttributes: { strength: 7, agility: 9, intelligence: 18, vitality: 10, luck: 11, spirit: 14, willpower: 14 },
     startingSkills: [
       {
@@ -417,7 +424,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Сочетает непревзойденную броню, сокрушительный святой урон и молитвы исцеления.',
     passive: { name: 'Божественная аура', description: '+10% защиты, +12% HP-регенерации и +15% сопротивления тьме. Лечение сильнее на 15%.' },
     icon: '✝️',
-    image: ASSETS.charWarrior,
+    image: HERO_SPRITES.paladin,
     baseAttributes: { strength: 14, agility: 9, intelligence: 12, vitality: 15, luck: 8, spirit: 13, willpower: 14 },
     startingSkills: [
       {
@@ -457,7 +464,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     description: 'Хранитель первобытных рощ. Управляет силами природы и ядовитыми лозами.',
     passive: { name: 'Дух природы', description: '+10% HP/MP-регенерации и +20 к сопротивлению яду. При HP ниже 45% получает +15% защиты.' },
     icon: '🌿',
-    image: ASSETS.heroHunter,
+    image: HERO_SPRITES.druid,
     baseAttributes: { strength: 11, agility: 11, intelligence: 14, vitality: 13, luck: 10, spirit: 15, willpower: 12 },
     startingSkills: [
       {

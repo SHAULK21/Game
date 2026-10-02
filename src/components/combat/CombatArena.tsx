@@ -4,6 +4,7 @@ import type { BattleScene } from './BattleBackdrop';
 import { BattleBackdrop } from './BattleBackdrop';
 import { BestiaryPanel, ProgressBar } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';
+import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
 interface CombatArenaProps {
   player: PlayerCharacter;
@@ -25,8 +26,6 @@ interface CombatArenaProps {
   latestEvent?: BattleLogEntry;
 }
 
-const imageAvatar = (avatar: string) => avatar.startsWith('/') || avatar.startsWith('http') || avatar.includes('.');
-
 export const CombatArena: React.FC<CombatArenaProps> = ({
   player, monster, heroImage, heroClassName, locationName, modifierName, scene, dungeonId, round, turnPhase,
   playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, latestEvent
@@ -41,23 +40,22 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const damageValue = latestEvent?.text.match(/[+-]\d[\d.,]*/)?.[0];
   const hpPercent = maxHp ? Math.max(0, Math.min(100, playerHp / maxHp * 100)) : 0;
   const monsterHpPercent = monster.maxHp ? Math.max(0, Math.min(100, monster.hp / monster.maxHp * 100)) : 0;
+  const monsterArtwork = getMonsterArtworkPath(monster.id, monster.avatar);
 
   return <>
-    <section className="relative isolate flex min-h-[240px] flex-col overflow-hidden rounded-2xl border border-[#45423a] bg-[#090b0d] p-3 sm:min-h-[300px]">
+    <section className="combat-scene relative isolate flex min-h-[334px] flex-col overflow-hidden rounded-2xl border border-[#756344] bg-[#090b0d] p-3 sm:min-h-[390px]">
       <div className="absolute inset-0 -z-20"><BattleBackdrop scene={scene} dungeonId={dungeonId} /></div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#090b0da8] via-[#090b0d12] to-[#090b0de8]" />
-      <div className="relative z-10 flex items-center justify-between gap-2 border-b border-white/10 pb-2 text-[11px]">
-        <span className="truncate font-semibold text-[#d7cbb4]">{locationName}</span>
-        <div className="flex shrink-0 items-center gap-2"><span className="text-[#aaa49a]">{modifierName}</span><span className="text-[#c7a365]">Раунд {round}</span></div>
+      <div className="combat-scene-shade absolute inset-0 -z-10" />
+      <div className="combat-scene-header relative z-10 flex items-center justify-between gap-2 pb-2 text-[11px]">
+        <span className="truncate font-semibold text-[#e0d2b7]">{locationName}</span>
+        <div className="flex shrink-0 items-center gap-2"><span className="truncate text-[#b4aea2]">{modifierName}</span><span className="combat-round">Раунд {round}</span></div>
       </div>
 
-      <div className="pointer-events-none absolute right-0 top-9 z-0 h-[155px] w-[58%] overflow-hidden sm:h-[205px]">
-        {imageAvatar(monster.avatar)
-          ? <img src={monster.avatar} alt="" className="h-full w-full object-cover object-center [mask-image:linear-gradient(to_right,transparent,black_32%)]" referrerPolicy="no-referrer" />
-          : <div className="grid h-full place-items-center [mask-image:linear-gradient(to_right,transparent,black_32%)]"><RpgIcon kind="monster" size={100} className="text-[#95805c]" /></div>}
+      <div className="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[75%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[69%]">
+        <img src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom" referrerPolicy="no-referrer" />
       </div>
 
-      <div className="relative z-10 mt-auto max-w-[82%] pb-1 sm:max-w-[72%]">
+      <div className="combat-enemy-plaque relative z-10 mt-auto max-w-[88%] pb-1 sm:max-w-[76%]">
         <div className="mb-1 flex items-center gap-2">
           {monster.isBoss && <span className="rounded border border-[#824b47] bg-[#321b1b]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e0aaa3]">Босс</span>}
           {monster.isElite && <span className="rounded border border-[#695637] bg-[#2c251a]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]">Элита</span>}
@@ -77,12 +75,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       </div>
     </section>
 
-    <BestiaryPanel className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-2 p-2">
-      <div className={`relative h-[42px] w-[32px] overflow-hidden rounded-md border bg-[#0d1012] ${turnPhase === 'player' ? 'border-[#a98951]' : 'border-[#3b3d3d]'}`}>
+    <BestiaryPanel className="combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2">
+      <div className={`relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] ${turnPhase === 'player' ? 'border-[#a98951]' : 'border-[#3b3d3d]'}`}>
         <img src={heroImage} alt="" className="h-full w-full object-cover object-top" referrerPolicy="no-referrer" />
       </div>
       <div className="min-w-0">
-        <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#ddd6c9]">{player.name} · {heroClassName}</span><span className="shrink-0 font-mono text-[11px] text-[#bca16d]">Ур. {player.level}</span></div>
+        <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {heroClassName}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">Ур. {player.level}</span></div>
         <ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
         <ProgressBar value={playerMp} max={maxMp} tone="mana" />
         {playerEffects.length > 0 && <div className="mt-1 truncate text-[11px] text-[#9aafb4]" title={playerEffects.map(effect => effect.name).join(', ')}>{playerEffects.map(effect => `${effect.name}${effect.stacks ? ` ×${effect.stacks}` : ''}`).join(' · ')}</div>}

@@ -1,0 +1,1854 @@
+{
+  "atlases": {
+    "atlases/ui-icons.png": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "grid": [
+        4,
+        4
+      ]
+    },
+    "atlases/ui-utility.png": {
+      "size": [
+        1448,
+        1086
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "grid": [
+        3,
+        4
+      ]
+    },
+    "atlases/resources.png": {
+      "size": [
+        1402,
+        1122
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "grid": [
+        5,
+        4
+      ]
+    },
+    "atlases/gear.png": {
+      "size": [
+        1263,
+        1246
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "grid": [
+        4,
+        4
+      ]
+    }
+  },
+  "sprites": {
+    "attack": {
+      "path": "icons/attack.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 1,
+      "column": 1,
+      "cell": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "crop": [
+        0,
+        23,
+        314,
+        291
+      ],
+      "size": [
+        314,
+        291
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Crossed steel swords with antique-gold hilts"
+    },
+    "skill": {
+      "path": "icons/skill.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 1,
+      "column": 2,
+      "cell": [
+        314,
+        0,
+        313,
+        314
+      ],
+      "crop": [
+        320,
+        0,
+        307,
+        314
+      ],
+      "size": [
+        307,
+        314
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Teal arcane vortex medallion"
+    },
+    "defend": {
+      "path": "icons/defend.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 1,
+      "column": 3,
+      "cell": [
+        627,
+        0,
+        313,
+        314
+      ],
+      "crop": [
+        636,
+        5,
+        304,
+        309
+      ],
+      "size": [
+        304,
+        309
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark iron kite shield with gold rim"
+    },
+    "potion": {
+      "path": "icons/potion.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 1,
+      "column": 4,
+      "cell": [
+        940,
+        0,
+        314,
+        314
+      ],
+      "crop": [
+        940,
+        9,
+        258,
+        305
+      ],
+      "size": [
+        258,
+        305
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Red healing elixir flask"
+    },
+    "map": {
+      "path": "icons/map.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 2,
+      "column": 1,
+      "cell": [
+        0,
+        314,
+        314,
+        313
+      ],
+      "crop": [
+        0,
+        326,
+        314,
+        301
+      ],
+      "size": [
+        314,
+        301
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Aged parchment world map with compass"
+    },
+    "hunt": {
+      "path": "icons/hunt.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 2,
+      "column": 2,
+      "cell": [
+        314,
+        314,
+        313,
+        313
+      ],
+      "crop": [
+        314,
+        314,
+        313,
+        313
+      ],
+      "size": [
+        313,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Hunter arrow piercing an iron target"
+    },
+    "bestiary": {
+      "path": "icons/bestiary.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 2,
+      "column": 3,
+      "cell": [
+        627,
+        314,
+        313,
+        313
+      ],
+      "crop": [
+        627,
+        314,
+        313,
+        313
+      ],
+      "size": [
+        313,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Antlered beast skull emblem"
+    },
+    "character": {
+      "path": "icons/character.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 2,
+      "column": 4,
+      "cell": [
+        940,
+        314,
+        314,
+        313
+      ],
+      "crop": [
+        940,
+        314,
+        310,
+        313
+      ],
+      "size": [
+        310,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Hooded hunter bust portrait"
+    },
+    "inventory": {
+      "path": "icons/inventory.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 3,
+      "column": 1,
+      "cell": [
+        0,
+        627,
+        314,
+        313
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        313
+      ],
+      "size": [
+        314,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Worn leather satchel"
+    },
+    "forge": {
+      "path": "icons/forge.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 3,
+      "column": 2,
+      "cell": [
+        314,
+        627,
+        313,
+        313
+      ],
+      "crop": [
+        314,
+        627,
+        313,
+        313
+      ],
+      "size": [
+        313,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Smith hammer and anvil"
+    },
+    "mine": {
+      "path": "icons/mine.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 3,
+      "column": 3,
+      "cell": [
+        627,
+        627,
+        313,
+        313
+      ],
+      "crop": [
+        627,
+        627,
+        313,
+        313
+      ],
+      "size": [
+        313,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Pickaxe and ore chip"
+    },
+    "arena": {
+      "path": "icons/arena.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 3,
+      "column": 4,
+      "cell": [
+        940,
+        627,
+        314,
+        313
+      ],
+      "crop": [
+        940,
+        627,
+        296,
+        313
+      ],
+      "size": [
+        296,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Engraved gladiator helmet"
+    },
+    "clan": {
+      "path": "icons/clan.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 4,
+      "column": 1,
+      "cell": [
+        0,
+        940,
+        314,
+        314
+      ],
+      "crop": [
+        11,
+        940,
+        303,
+        305
+      ],
+      "size": [
+        303,
+        305
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Guild banner with wax seal"
+    },
+    "market": {
+      "path": "icons/market.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 4,
+      "column": 2,
+      "cell": [
+        314,
+        940,
+        313,
+        314
+      ],
+      "crop": [
+        314,
+        940,
+        313,
+        278
+      ],
+      "size": [
+        313,
+        278
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Coin purse with antique-gold coins"
+    },
+    "quest": {
+      "path": "icons/quest.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 4,
+      "column": 3,
+      "cell": [
+        627,
+        940,
+        313,
+        314
+      ],
+      "crop": [
+        627,
+        941,
+        313,
+        313
+      ],
+      "size": [
+        313,
+        313
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Rolled quest parchment with wax seal"
+    },
+    "settings": {
+      "path": "icons/settings.webp",
+      "atlas": "atlases/ui-icons.png",
+      "row": 4,
+      "column": 4,
+      "cell": [
+        940,
+        940,
+        314,
+        314
+      ],
+      "crop": [
+        940,
+        940,
+        305,
+        276
+      ],
+      "size": [
+        305,
+        276
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Engraved antique gear"
+    },
+    "more": {
+      "path": "icons/more.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 1,
+      "column": 1,
+      "cell": [
+        0,
+        0,
+        483,
+        272
+      ],
+      "crop": [
+        18,
+        42,
+        440,
+        230
+      ],
+      "size": [
+        440,
+        230
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Three antique-gold beads"
+    },
+    "refresh": {
+      "path": "icons/refresh.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 1,
+      "column": 2,
+      "cell": [
+        483,
+        0,
+        482,
+        272
+      ],
+      "crop": [
+        541,
+        9,
+        423,
+        263
+      ],
+      "size": [
+        423,
+        263
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Circular paired arrows"
+    },
+    "leave": {
+      "path": "icons/leave.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 1,
+      "column": 3,
+      "cell": [
+        965,
+        0,
+        483,
+        272
+      ],
+      "crop": [
+        1058,
+        9,
+        371,
+        263
+      ],
+      "size": [
+        371,
+        263
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Open door with outward arrow"
+    },
+    "crown": {
+      "path": "icons/crown.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 2,
+      "column": 1,
+      "cell": [
+        0,
+        272,
+        483,
+        271
+      ],
+      "crop": [
+        143,
+        272,
+        340,
+        271
+      ],
+      "size": [
+        340,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Antique royal crown"
+    },
+    "hp": {
+      "path": "icons/hp.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 2,
+      "column": 2,
+      "cell": [
+        483,
+        272,
+        482,
+        271
+      ],
+      "crop": [
+        483,
+        272,
+        477,
+        271
+      ],
+      "size": [
+        477,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Crimson heart medallion"
+    },
+    "gold": {
+      "path": "icons/gold.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 2,
+      "column": 3,
+      "cell": [
+        965,
+        272,
+        483,
+        271
+      ],
+      "crop": [
+        1047,
+        272,
+        374,
+        271
+      ],
+      "size": [
+        374,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Antique-gold coin"
+    },
+    "silver": {
+      "path": "icons/silver.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 3,
+      "column": 1,
+      "cell": [
+        0,
+        543,
+        483,
+        271
+      ],
+      "crop": [
+        20,
+        543,
+        439,
+        271
+      ],
+      "size": [
+        439,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Aged silver crescent coin"
+    },
+    "energy": {
+      "path": "icons/energy.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 3,
+      "column": 2,
+      "cell": [
+        483,
+        543,
+        482,
+        271
+      ],
+      "crop": [
+        483,
+        543,
+        482,
+        271
+      ],
+      "size": [
+        482,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Teal lightning shard"
+    },
+    "stamina": {
+      "path": "icons/stamina.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 3,
+      "column": 3,
+      "cell": [
+        965,
+        543,
+        483,
+        271
+      ],
+      "crop": [
+        965,
+        543,
+        454,
+        271
+      ],
+      "size": [
+        454,
+        271
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Leather bootprint emblem"
+    },
+    "monster": {
+      "path": "icons/monster.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 4,
+      "column": 1,
+      "cell": [
+        0,
+        814,
+        483,
+        272
+      ],
+      "crop": [
+        0,
+        814,
+        483,
+        272
+      ],
+      "size": [
+        483,
+        272
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark beast head emblem"
+    },
+    "alchemy": {
+      "path": "icons/alchemy.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 4,
+      "column": 2,
+      "cell": [
+        483,
+        814,
+        482,
+        272
+      ],
+      "crop": [
+        483,
+        814,
+        445,
+        247
+      ],
+      "size": [
+        445,
+        247
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Glass alembic retort"
+    },
+    "compass": {
+      "path": "icons/compass.webp",
+      "atlas": "atlases/ui-utility.png",
+      "row": 4,
+      "column": 3,
+      "cell": [
+        965,
+        814,
+        483,
+        272
+      ],
+      "crop": [
+        1050,
+        814,
+        373,
+        255
+      ],
+      "size": [
+        373,
+        255
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Antique-gold compass rose"
+    },
+    "ore": {
+      "path": "resources/ore.webp",
+      "atlas": "atlases/resources.png",
+      "row": 1,
+      "column": 1,
+      "cell": [
+        0,
+        0,
+        280,
+        280
+      ],
+      "crop": [
+        0,
+        20,
+        279,
+        260
+      ],
+      "size": [
+        279,
+        260
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark ore chunk with warm metallic seam"
+    },
+    "crystal": {
+      "path": "resources/crystal.webp",
+      "atlas": "atlases/resources.png",
+      "row": 1,
+      "column": 2,
+      "cell": [
+        280,
+        0,
+        281,
+        280
+      ],
+      "crop": [
+        306,
+        6,
+        255,
+        274
+      ],
+      "size": [
+        255,
+        274
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Faceted blue crystal"
+    },
+    "dust": {
+      "path": "resources/dust.webp",
+      "atlas": "atlases/resources.png",
+      "row": 1,
+      "column": 3,
+      "cell": [
+        561,
+        0,
+        280,
+        280
+      ],
+      "crop": [
+        561,
+        12,
+        280,
+        268
+      ],
+      "size": [
+        280,
+        268
+      ],
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "description": "Pale mineral dust mound"
+    },
+    "herb": {
+      "path": "resources/herb.webp",
+      "atlas": "atlases/resources.png",
+      "row": 1,
+      "column": 4,
+      "cell": [
+        841,
+        0,
+        281,
+        280
+      ],
+      "crop": [
+        841,
+        8,
+        281,
+        272
+      ],
+      "size": [
+        281,
+        272
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Tied green medicinal herbs"
+    },
+    "flower": {
+      "path": "resources/flower.webp",
+      "atlas": "atlases/resources.png",
+      "row": 1,
+      "column": 5,
+      "cell": [
+        1122,
+        0,
+        280,
+        280
+      ],
+      "crop": [
+        1122,
+        4,
+        275,
+        276
+      ],
+      "size": [
+        275,
+        276
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dusky violet flower"
+    },
+    "root": {
+      "path": "resources/root.webp",
+      "atlas": "atlases/resources.png",
+      "row": 2,
+      "column": 1,
+      "cell": [
+        0,
+        280,
+        280,
+        281
+      ],
+      "crop": [
+        0,
+        285,
+        280,
+        276
+      ],
+      "size": [
+        280,
+        276
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Gnarled root with shoots"
+    },
+    "vial": {
+      "path": "resources/vial.webp",
+      "atlas": "atlases/resources.png",
+      "row": 2,
+      "column": 2,
+      "cell": [
+        280,
+        280,
+        281,
+        281
+      ],
+      "crop": [
+        282,
+        280,
+        279,
+        281
+      ],
+      "size": [
+        279,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Stoppered glass vial of water"
+    },
+    "core": {
+      "path": "resources/core.webp",
+      "atlas": "atlases/resources.png",
+      "row": 2,
+      "column": 3,
+      "cell": [
+        561,
+        280,
+        280,
+        281
+      ],
+      "crop": [
+        564,
+        280,
+        277,
+        281
+      ],
+      "size": [
+        277,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Glowing teal magical core"
+    },
+    "thread": {
+      "path": "resources/thread.webp",
+      "atlas": "atlases/resources.png",
+      "row": 2,
+      "column": 4,
+      "cell": [
+        841,
+        280,
+        281,
+        281
+      ],
+      "crop": [
+        841,
+        280,
+        280,
+        281
+      ],
+      "size": [
+        280,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Pale enchanted thread spool"
+    },
+    "scale": {
+      "path": "resources/scale.webp",
+      "atlas": "atlases/resources.png",
+      "row": 2,
+      "column": 5,
+      "cell": [
+        1122,
+        280,
+        280,
+        281
+      ],
+      "crop": [
+        1122,
+        280,
+        273,
+        281
+      ],
+      "size": [
+        273,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Overlapping dark monster scales"
+    },
+    "hide": {
+      "path": "resources/hide.webp",
+      "atlas": "atlases/resources.png",
+      "row": 3,
+      "column": 1,
+      "cell": [
+        0,
+        561,
+        280,
+        281
+      ],
+      "crop": [
+        0,
+        561,
+        280,
+        281
+      ],
+      "size": [
+        280,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Folded beast hide"
+    },
+    "fang": {
+      "path": "resources/fang.webp",
+      "atlas": "atlases/resources.png",
+      "row": 3,
+      "column": 2,
+      "cell": [
+        280,
+        561,
+        281,
+        281
+      ],
+      "crop": [
+        280,
+        561,
+        281,
+        281
+      ],
+      "size": [
+        281,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Ivory monster fang"
+    },
+    "meat": {
+      "path": "resources/meat.webp",
+      "atlas": "atlases/resources.png",
+      "row": 3,
+      "column": 3,
+      "cell": [
+        561,
+        561,
+        280,
+        281
+      ],
+      "crop": [
+        561,
+        561,
+        280,
+        281
+      ],
+      "size": [
+        280,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Roasted meat ration"
+    },
+    "coin": {
+      "path": "resources/coin.webp",
+      "atlas": "atlases/resources.png",
+      "row": 3,
+      "column": 4,
+      "cell": [
+        841,
+        561,
+        281,
+        281
+      ],
+      "crop": [
+        841,
+        569,
+        281,
+        273
+      ],
+      "size": [
+        281,
+        273
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Aged silver crescent coin"
+    },
+    "gear": {
+      "path": "resources/gear.webp",
+      "atlas": "atlases/resources.png",
+      "row": 3,
+      "column": 5,
+      "cell": [
+        1122,
+        561,
+        280,
+        281
+      ],
+      "crop": [
+        1122,
+        561,
+        275,
+        281
+      ],
+      "size": [
+        275,
+        281
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark iron gear mechanism"
+    },
+    "key": {
+      "path": "resources/key.webp",
+      "atlas": "atlases/resources.png",
+      "row": 4,
+      "column": 1,
+      "cell": [
+        0,
+        842,
+        280,
+        280
+      ],
+      "crop": [
+        0,
+        842,
+        280,
+        280
+      ],
+      "size": [
+        280,
+        280
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Antique brass key with leather tassel"
+    },
+    "wing": {
+      "path": "resources/wing.webp",
+      "atlas": "atlases/resources.png",
+      "row": 4,
+      "column": 2,
+      "cell": [
+        280,
+        842,
+        281,
+        280
+      ],
+      "crop": [
+        308,
+        842,
+        253,
+        269
+      ],
+      "size": [
+        253,
+        269
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark raven feather"
+    },
+    "spark": {
+      "path": "resources/spark.webp",
+      "atlas": "atlases/resources.png",
+      "row": 4,
+      "column": 3,
+      "cell": [
+        561,
+        842,
+        280,
+        280
+      ],
+      "crop": [
+        578,
+        842,
+        263,
+        280
+      ],
+      "size": [
+        263,
+        280
+      ],
+      "alphaExtrema": [
+        0,
+        253
+      ],
+      "description": "Golden magical spark"
+    },
+    "web": {
+      "path": "resources/web.webp",
+      "atlas": "atlases/resources.png",
+      "row": 4,
+      "column": 4,
+      "cell": [
+        841,
+        842,
+        281,
+        280
+      ],
+      "crop": [
+        841,
+        842,
+        281,
+        280
+      ],
+      "size": [
+        281,
+        280
+      ],
+      "alphaExtrema": [
+        0,
+        253
+      ],
+      "description": "Silver spider web strand"
+    },
+    "badge": {
+      "path": "resources/badge.webp",
+      "atlas": "atlases/resources.png",
+      "row": 4,
+      "column": 5,
+      "cell": [
+        1122,
+        842,
+        280,
+        280
+      ],
+      "crop": [
+        1134,
+        842,
+        243,
+        280
+      ],
+      "size": [
+        243,
+        280
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Bronze star badge"
+    },
+    "weapon": {
+      "path": "gear/weapon.webp",
+      "atlas": "atlases/gear.png",
+      "row": 1,
+      "column": 1,
+      "cell": [
+        0,
+        0,
+        316,
+        312
+      ],
+      "crop": [
+        6,
+        7,
+        310,
+        305
+      ],
+      "size": [
+        310,
+        305
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Steel longsword with antique-gold crossguard"
+    },
+    "offhand": {
+      "path": "gear/offhand.webp",
+      "atlas": "atlases/gear.png",
+      "row": 1,
+      "column": 2,
+      "cell": [
+        316,
+        0,
+        316,
+        312
+      ],
+      "crop": [
+        316,
+        5,
+        316,
+        307
+      ],
+      "size": [
+        316,
+        307
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark iron shield with gold edge"
+    },
+    "helmet": {
+      "path": "gear/helmet.webp",
+      "atlas": "atlases/gear.png",
+      "row": 1,
+      "column": 3,
+      "cell": [
+        632,
+        0,
+        315,
+        312
+      ],
+      "crop": [
+        643,
+        6,
+        276,
+        306
+      ],
+      "size": [
+        276,
+        306
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Closed engraved iron helmet"
+    },
+    "armor": {
+      "path": "gear/armor.webp",
+      "atlas": "atlases/gear.png",
+      "row": 1,
+      "column": 4,
+      "cell": [
+        947,
+        0,
+        316,
+        312
+      ],
+      "crop": [
+        947,
+        0,
+        309,
+        312
+      ],
+      "size": [
+        309,
+        312
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark engraved breastplate"
+    },
+    "pants": {
+      "path": "gear/pants.webp",
+      "atlas": "atlases/gear.png",
+      "row": 2,
+      "column": 1,
+      "cell": [
+        0,
+        312,
+        316,
+        311
+      ],
+      "crop": [
+        33,
+        316,
+        277,
+        307
+      ],
+      "size": [
+        277,
+        307
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Armored leather trousers"
+    },
+    "gloves": {
+      "path": "gear/gloves.webp",
+      "atlas": "atlases/gear.png",
+      "row": 2,
+      "column": 2,
+      "cell": [
+        316,
+        312,
+        316,
+        311
+      ],
+      "crop": [
+        325,
+        325,
+        307,
+        298
+      ],
+      "size": [
+        307,
+        298
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Iron-plated leather gauntlets"
+    },
+    "boots": {
+      "path": "gear/boots.webp",
+      "atlas": "atlases/gear.png",
+      "row": 2,
+      "column": 3,
+      "cell": [
+        632,
+        312,
+        315,
+        311
+      ],
+      "crop": [
+        632,
+        312,
+        315,
+        311
+      ],
+      "size": [
+        315,
+        311
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Rugged hunter boots"
+    },
+    "amulet": {
+      "path": "gear/amulet.webp",
+      "atlas": "atlases/gear.png",
+      "row": 2,
+      "column": 4,
+      "cell": [
+        947,
+        312,
+        316,
+        311
+      ],
+      "crop": [
+        952,
+        314,
+        297,
+        309
+      ],
+      "size": [
+        297,
+        309
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Gold pendant with teal rune stone"
+    },
+    "ring": {
+      "path": "gear/ring.webp",
+      "atlas": "atlases/gear.png",
+      "row": 3,
+      "column": 1,
+      "cell": [
+        0,
+        623,
+        316,
+        311
+      ],
+      "crop": [
+        0,
+        630,
+        316,
+        304
+      ],
+      "size": [
+        316,
+        304
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Gold ring with teal gem"
+    },
+    "belt": {
+      "path": "gear/belt.webp",
+      "atlas": "atlases/gear.png",
+      "row": 3,
+      "column": 2,
+      "cell": [
+        316,
+        623,
+        316,
+        311
+      ],
+      "crop": [
+        316,
+        623,
+        316,
+        311
+      ],
+      "size": [
+        316,
+        311
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Dark leather belt with brass buckle"
+    },
+    "cloak": {
+      "path": "gear/cloak.webp",
+      "atlas": "atlases/gear.png",
+      "row": 3,
+      "column": 3,
+      "cell": [
+        632,
+        623,
+        315,
+        311
+      ],
+      "crop": [
+        632,
+        623,
+        315,
+        311
+      ],
+      "size": [
+        315,
+        311
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Folded dark hunter cloak"
+    },
+    "artifact": {
+      "path": "gear/artifact.webp",
+      "atlas": "atlases/gear.png",
+      "row": 3,
+      "column": 4,
+      "cell": [
+        947,
+        623,
+        316,
+        311
+      ],
+      "crop": [
+        947,
+        623,
+        310,
+        311
+      ],
+      "size": [
+        310,
+        311
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Teal relic prism in gold mount"
+    },
+    "pickaxe": {
+      "path": "gear/pickaxe.webp",
+      "atlas": "atlases/gear.png",
+      "row": 4,
+      "column": 1,
+      "cell": [
+        0,
+        934,
+        316,
+        312
+      ],
+      "crop": [
+        0,
+        934,
+        316,
+        310
+      ],
+      "size": [
+        316,
+        310
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Iron mining pickaxe"
+    },
+    "alchemyTool": {
+      "path": "gear/alchemyTool.webp",
+      "atlas": "atlases/gear.png",
+      "row": 4,
+      "column": 2,
+      "cell": [
+        316,
+        934,
+        316,
+        312
+      ],
+      "crop": [
+        316,
+        934,
+        316,
+        300
+      ],
+      "size": [
+        316,
+        300
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Glass alembic with teal liquid"
+    },
+    "pet": {
+      "path": "gear/pet.webp",
+      "atlas": "atlases/gear.png",
+      "row": 4,
+      "column": 3,
+      "cell": [
+        632,
+        934,
+        315,
+        312
+      ],
+      "crop": [
+        632,
+        934,
+        315,
+        312
+      ],
+      "size": [
+        315,
+        312
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Spectral wolf companion bust"
+    },
+    "material": {
+      "path": "gear/material.webp",
+      "atlas": "atlases/gear.png",
+      "row": 4,
+      "column": 4,
+      "cell": [
+        947,
+        934,
+        316,
+        312
+      ],
+      "crop": [
+        947,
+        938,
+        309,
+        263
+      ],
+      "size": [
+        309,
+        263
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "description": "Forged iron ingot with warm seam"
+    }
+  },
+  "aliases": {
+    "water": "resources/vial.webp",
+    "toxin": "resources/vial.webp",
+    "pollen": "resources/dust.webp",
+    "gem": "resources/crystal.webp",
+    "shard": "resources/crystal.webp",
+    "silver": "icons/silver.webp",
+    "gold": "icons/gold.webp",
+    "hp": "icons/hp.webp",
+    "energy": "icons/energy.webp",
+    "stamina": "icons/stamina.webp",
+    "more": "icons/more.webp",
+    "refresh": "icons/refresh.webp",
+    "leave": "icons/leave.webp",
+    "crown": "icons/crown.webp",
+    "monster": "icons/monster.webp",
+    "alchemy": "icons/alchemy.webp",
+    "alchemyTool": "gear/alchemyTool.webp",
+    "material": "gear/material.webp",
+    "pet": "gear/pet.webp",
+    "pickaxe": "gear/pickaxe.webp"
+  },
+  "textures": {
+    "leather-grain": {
+      "png": "leather-grain.png",
+      "webp": "leather-grain.webp",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        167
+      ],
+      "edgeCheck": {
+        "top_bottom_mean_abs_diff": 0.961,
+        "left_right_mean_abs_diff": 0.692,
+        "mean_alpha": 10.51
+      }
+    },
+    "parchment-grain": {
+      "png": "parchment-grain.png",
+      "webp": "parchment-grain.webp",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        211
+      ],
+      "edgeCheck": {
+        "top_bottom_mean_abs_diff": 2.929,
+        "left_right_mean_abs_diff": 1.32,
+        "mean_alpha": 14.65
+      }
+    }
+  }
+}

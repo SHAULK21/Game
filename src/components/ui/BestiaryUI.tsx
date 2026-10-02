@@ -57,16 +57,19 @@ export const BestiaryEntry: React.FC<{
   marker?: string;
   onClick: () => void;
 }> = ({ title, subtitle, image, selected = false, locked = false, marker, onClick }) => (
-  <button type="button" onClick={onClick} aria-pressed={selected} className={`bestiary-entry ${selected ? 'is-selected' : ''} flex min-w-[112px] flex-col items-center gap-1.5 p-2 text-center`}>
-    <span className={`relative grid h-16 w-16 place-items-center overflow-hidden rounded-lg border border-[#3a3b39] bg-[#090b0d] ${locked ? 'border-dashed' : ''}`}>
+  <button type="button" onClick={onClick} aria-pressed={selected} className={`bestiary-entry bestiary-entry-row ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}>
+    <span className={`bestiary-entry-portrait ${locked ? 'is-locked' : ''}`}>
       {image
         ? <img src={image} alt="" className={`h-full w-full object-cover ${locked ? 'scale-110 grayscale blur-[2px] brightness-50' : ''}`} />
-        : <RpgIcon kind="monster" size={28} className={locked ? 'text-[#73665a]' : 'text-[#98805b]'} />}
+        : <RpgIcon kind="monster" size={27} className={locked ? 'text-[#73665a]' : 'text-[#98805b]'} />}
       {locked && <span aria-hidden="true" className="absolute inset-0 grid place-items-center bg-black/25 text-lg font-serif text-[#c2b7a5]">?</span>}
-      {marker && <span className="absolute bottom-0 inset-x-0 bg-black/75 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#d1b978]">{marker}</span>}
     </span>
-    <span className="max-w-24 truncate text-xs font-semibold">{locked ? 'Неизвестный след' : title}</span>
-    {subtitle && <span className="text-[11px] text-[#918c82]">{subtitle}</span>}
+    <span className="min-w-0 flex-1 text-left">
+      <span className="block truncate text-xs font-semibold">{locked ? 'Неизвестный след' : title}</span>
+      {subtitle && <span className="mt-0.5 block text-[11px] text-[#918c82]">{subtitle}</span>}
+    </span>
+    {marker && <span className={`bestiary-marker ${marker === 'Босс' ? 'is-boss' : 'is-elite'}`}>{marker}</span>}
+    <span aria-hidden="true" className="bestiary-entry-chevron">›</span>
   </button>
 );
 

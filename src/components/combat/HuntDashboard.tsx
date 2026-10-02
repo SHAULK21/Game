@@ -5,6 +5,7 @@ import type { RegionProgress } from '../../utils/regionalProgress';
 import { BattleBackdrop, getBattleScene } from './BattleBackdrop';
 import { BestiaryEntry, BestiaryPanel, FolioPage, OrnamentDivider, RpgButton, RpgIconButton, SectionTitle, StatRow } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';
+import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
 interface HuntDashboardProps {
   player: PlayerCharacter;
@@ -30,7 +31,6 @@ interface HuntDashboardProps {
   onLeaveMine: () => void;
 }
 
-const hasImage = (avatar: string) => avatar.startsWith('/') || avatar.startsWith('http') || avatar.includes('.');
 const damageTypeLabel = (type?: Monster['damageType']) => type === 'magic' ? 'Магический урон' : type === 'physical' ? 'Физический урон' : type ? `Урон: ${type}` : 'Тип урона неизвестен';
 
 export const HuntDashboard: React.FC<HuntDashboardProps> = ({
@@ -67,11 +67,11 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
         <SectionTitle eyebrow="Каталог существ">Бестиарий</SectionTitle>
         <RpgIconButton icon="settings" label="Настройки автобоя" onClick={onToggleSettings} />
       </div>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+      <div className="bestiary-list mt-2 max-h-[292px] space-y-1.5 overflow-y-auto pr-1">
         {regionMonsters.map(monster => {
           const locked = Boolean(getMonsterLock(monster));
           const marker = monster.isBoss ? 'Босс' : monster.isElite ? 'Элита' : undefined;
-          return <BestiaryEntry key={monster.id} title={monster.name} subtitle={`Ур. ${monster.level}`} image={hasImage(monster.avatar) ? monster.avatar : undefined} selected={monster.id === selectedMonster?.id} locked={locked} marker={marker} onClick={() => onSelectMonster(monster.id)} />;
+          return <BestiaryEntry key={monster.id} title={monster.name} subtitle={`Ур. ${monster.level}`} image={getMonsterArtworkPath(monster.id, monster.avatar)} selected={monster.id === selectedMonster?.id} locked={locked} marker={marker} onClick={() => onSelectMonster(monster.id)} />;
         })}
       </div>
       <OrnamentDivider />
@@ -82,33 +82,36 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
       </div>
     </BestiaryPanel>
 
-    {selectedMonster && <BestiaryPanel className="overflow-hidden">
-      <div className="relative grid min-h-[230px] grid-cols-[minmax(0,1fr)_minmax(120px,42%)] items-stretch">
-        <div className="flex flex-col justify-center p-4 pr-2">
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            {selectedMonster.isBoss && <span className="rounded border border-[#713f3d] bg-[#35191a] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d59a91]">Босс</span>}
-            {selectedMonster.isElite && <span className="rounded border border-[#635237] bg-[#302719] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]">Элита</span>}
-            <span className="text-[11px] uppercase tracking-[.12em] text-[#918c82]">Ур. {selectedMonster.level}</span>
+    {selectedMonster && <BestiaryPanel className="bestiary-dossier overflow-hidden">
+      <div className="bestiary-dossier-art relative min-h-[248px] overflow-hidden">
+        <div className="absolute inset-0 bg-[#111615]"><BattleBackdrop scene={scene} /></div>
+        <img src={getMonsterArtworkPath(selectedMonster.id, selectedMonster.avatar)} alt={selectedMonster.name} className="absolute inset-0 h-full w-full object-contain object-center" referrerPolicy="no-referrer" />
+        <div className="bestiary-dossier-art-shade absolute inset-0" />
+        <div className="relative flex min-h-[248px] flex-col justify-between p-3.5">
+          <div className="flex items-start justify-between gap-2">
+            <span className="bestiary-art-stamp"><RpgIcon kind="bestiary" size={16} /> Досье охотника</span>
+            <span className="rounded border border-[#c1a775]/50 bg-black/60 px-2 py-1 text-[11px] font-mono text-[#e7d7b8]">Ур. {selectedMonster.level}</span>
           </div>
-          <h2 className="folio-title break-words text-lg font-bold leading-tight">{selectedMonster.name}</h2>
-          <p className="mt-1 text-[11px] text-[#918c82]">{damageTypeLabel(selectedMonster.damageType)}</p>
-          <div className="mt-3 space-y-0.5">
-            <StatRow label="Здоровье" value={selectedMonster.maxHp.toLocaleString()} tone="hp" />
-            <StatRow label="Атака" value={selectedMonster.attack.toLocaleString()} />
+          <div>
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+              {selectedMonster.isBoss && <span className="rounded border border-[#824b47] bg-[#35191a]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3aba2]">Босс</span>}
+              {selectedMonster.isElite && <span className="rounded border border-[#8a7145] bg-[#302719]/90 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e3c17b]">Элита</span>}
+              <span className="text-[11px] uppercase tracking-[.12em] text-[#ded2bd]">{damageTypeLabel(selectedMonster.damageType)}</span>
+            </div>
+            <h2 className="folio-title break-words text-2xl font-bold leading-tight text-white">{selectedMonster.name}</h2>
           </div>
-        </div>
-        <div className="relative min-h-[230px] overflow-hidden border-l border-[#343638] bg-[#0b0d0f]">
-          {hasImage(selectedMonster.avatar)
-            ? <img src={selectedMonster.avatar} alt={selectedMonster.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-            : <div className="grid h-full place-items-center"><RpgIcon kind="monster" size={68} className="text-[#756344]" /></div>}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#111416]/35 via-transparent to-transparent" />
-          <span className="absolute bottom-2 right-2 rounded bg-black/65 px-1.5 py-1 text-[11px] uppercase tracking-wide text-[#c8bdab]">Досье</span>
         </div>
       </div>
-      <div className="border-t border-[#343638] px-4 py-3">
-        <div className="mb-1 text-[11px] uppercase tracking-[.14em] text-[#918c82]">Находки</div>
-        <div className="flex min-h-5 flex-wrap gap-x-3 gap-y-1 text-xs text-[#c6bdae]">
-          {loot.length ? loot.map(drop => <span key={`${selectedMonster.id}-${drop.itemName}`}>{drop.itemName}</span>) : <span className="text-[#918c82]">Следов добычи пока нет</span>}
+      <div className="bestiary-dossier-paper px-4 py-3.5">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-0.5">
+          <StatRow label="Здоровье" value={selectedMonster.maxHp.toLocaleString()} tone="hp" />
+          <StatRow label="Атака" value={selectedMonster.attack.toLocaleString()} />
+        </div>
+        <div className="mt-3 border-t border-[#75634a]/35 pt-2.5">
+          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-[#65553e]">Находки</div>
+          <div className="flex min-h-5 flex-wrap gap-x-3 gap-y-1 text-xs text-[#332b23]">
+            {loot.length ? loot.map(drop => <span key={`${selectedMonster.id}-${drop.itemName}`}>{drop.itemName}</span>) : <span className="text-[#766958]">Следов добычи пока нет</span>}
+          </div>
         </div>
       </div>
     </BestiaryPanel>}

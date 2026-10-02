@@ -4,10 +4,12 @@ interface LevelRegion {
   levelRange: string;
 }
 
+type EnvironmentIcon = 'herb' | 'attack' | 'monster';
+
 export function levelEnvironment(level: number) {
-  if (level < 25) return { name: 'Земли начинающих', range: '1–24', icon: '🌿', color: 'border-emerald-500/30 bg-emerald-950/40 text-emerald-200' };
-  if (level < 55) return { name: 'Земли опытных героев', range: '25–54', icon: '⚔️', color: 'border-amber-500/30 bg-amber-950/40 text-amber-200' };
-  return { name: 'Земли ветеранов', range: '55+', icon: '🐉', color: 'border-purple-500/30 bg-purple-950/40 text-purple-200' };
+  if (level < 25) return { name: 'Земли начинающих', range: '1–24', icon: 'herb' as EnvironmentIcon, color: 'border-emerald-500/30 bg-emerald-950/40 text-emerald-200' };
+  if (level < 55) return { name: 'Земли опытных героев', range: '25–54', icon: 'attack' as EnvironmentIcon, color: 'border-amber-500/30 bg-amber-950/40 text-amber-200' };
+  return { name: 'Земли ветеранов', range: '55+', icon: 'monster' as EnvironmentIcon, color: 'border-purple-500/30 bg-purple-950/40 text-purple-200' };
 }
 
 export function groupRegionsByLevel<T extends LevelRegion>(regions: readonly T[], level: number) {

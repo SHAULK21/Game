@@ -1,16 +1,9 @@
 # Aethelgard item art
 
-The game can display local Canva item art from this folder.
+Item artwork is resolved from the shared generated WebP sprite catalog in `../sprites/generated/ui/`.
 
-Export the four generated Canva sheets at original resolution and place them in:
+- Equipment uses `gear/` sprites selected by item type.
+- Ores and materials use `resources/` sprites selected from the item name.
+- Combat and navigation symbols use `icons/` sprites.
 
-`canva_item_sheets/equipment-sheet.jpg`
-`canva_item_sheets/unique-sheet.jpg`
-`canva_item_sheets/resources-sheet.jpg`
-`canva_item_sheets/potions-sheet.jpg`
-
-Then run:
-
-`python scripts/split_item_icon_sheets.py`
-
-The script creates 256×256 WebP icons in this folder. The UI automatically falls back to the existing emoji/SVG icon when a local artwork file is missing.
+`src/utils/itemArtwork.ts` intentionally resolves saved items through this catalog, so old image URLs do not bring back mismatched art styles. Generated asset manifests live beside their sprite sets.
