@@ -3,10 +3,18 @@ import { useGame } from '../../context/GameContext';
 import { CharacterClassId } from '../../types/game';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { getTelegramUser } from '../../utils/telegram';
-import { Swords, Sparkles, Shield, Zap, Skull, Check } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { CLASS_EQUIPMENT } from '../../utils/classEquipment';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
+import { RpgIcon, type RpgIconKind } from '../ui/RpgIcon';
+
+const classIconFor = (id: CharacterClassId): RpgIconKind => {
+  const icons: Record<CharacterClassId, RpgIconKind> = {
+  warrior: 'attack', berserker: 'attack', knight: 'defend', rogue: 'hunt', assassin: 'attack',
+  archer: 'attack', mage: 'skill', necromancer: 'skill', paladin: 'defend', druid: 'herb'
+  };
+  return icons[id] || 'character';
+};
 
 export const CharacterCreationModal: React.FC = () => {
   const { createCharacter } = useGame();
@@ -48,7 +56,7 @@ export const CharacterCreationModal: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-transparent to-transparent" />
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
             <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
-              <span>{activeClassDef?.icon}</span>
+              <RpgIcon kind={classIconFor(selectedClass)} size={19} />
               <span>Класс: {activeClassDef?.name}</span>
             </span>
           </div>
@@ -90,9 +98,9 @@ export const CharacterCreationModal: React.FC = () => {
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
                   }`}
                 >
-                  <span className="text-xl mb-0.5">{c.icon}</span>
-                  <span className="font-cinzel text-[11px] font-bold">{c.name}</span>
-                  <span className="text-[8px] text-slate-400 truncate w-full text-center">
+                  <RpgIcon kind={classIconFor(c.id)} size={22} className="mb-1" />
+                  <span className="font-cinzel text-xs font-bold">{c.name}</span>
+                  <span className="w-full truncate text-[11px] text-center text-slate-400">
                     {c.role.split('/')[0]}
                   </span>
                 </button>
@@ -106,7 +114,7 @@ export const CharacterCreationModal: React.FC = () => {
           <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2 text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
               <span className="font-cinzel font-bold text-slate-100 flex items-center gap-1.5">
-                <span>{activeClassDef.icon}</span>
+                <RpgIcon kind={classIconFor(selectedClass)} size={18} />
                 <span>{activeClassDef.name} ({activeClassDef.role})</span>
               </span>
               <span className="text-[#d5ba89] font-mono text-[11px]">
@@ -139,9 +147,9 @@ export const CharacterCreationModal: React.FC = () => {
         <button
           onClick={handleStart}
           disabled={!name.trim()}
-          className="ui-primary w-full py-3.5 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
+          className="rpg-button rpg-button-primary min-h-12 w-full border border-cyan-400/40"
         >
-          <Swords className="w-4 h-4" />
+          <RpgIcon kind="attack" size={17} />
           <span>Начать путешествие</span>
         </button>
       </div>

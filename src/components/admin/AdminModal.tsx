@@ -3,22 +3,9 @@ import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { 
-  ShieldAlert, 
-  Coins, 
-  Gem, 
-  Zap, 
-  Sparkles, 
-  Trash2, 
-  UserCheck, 
-  Megaphone,
-  X,
-  Check,
-  Users,
-  Activity
-} from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { apiRequest } from '../../utils/api';
+import { RpgIcon } from '../ui/RpgIcon';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -96,13 +83,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-purple-500/30 pb-2.5">
           <div className="flex items-center gap-2 text-purple-300">
-            <ShieldAlert className="w-5 h-5 text-purple-400" />
+            <RpgIcon kind="settings" size={19} className="text-purple-400" />
             <h3 className="font-cinzel text-sm font-bold text-slate-100">
               Панель Управления Игрой (Admin Console)
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
+          <button aria-label="Закрыть админ-панель" onClick={onClose} className="rpg-icon-button text-slate-400 hover:text-white">
+            <span aria-hidden="true" className="text-xl">×</span>
           </button>
         </div>
 
@@ -115,13 +102,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3">
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-indigo-300">
-              <Users className="w-3.5 h-3.5" /> Всего игроков
+              <RpgIcon kind="clan" size={16} /> Всего игроков
             </div>
             <div className="mt-1 text-xl font-mono font-bold text-slate-100">{serverStats.totalPlayers}</div>
           </div>
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3">
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-300">
-              <Activity className="w-3.5 h-3.5" /> Сейчас онлайн
+              <RpgIcon kind="hunt" size={16} /> Сейчас онлайн
             </div>
             <div className="mt-1 text-xl font-mono font-bold text-emerald-200">{serverStats.onlinePlayers}</div>
           </div>
@@ -130,7 +117,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         <BalanceReport />
 
         <div className="rounded-xl border border-yellow-500/40 p-3 space-y-2">
-          <div className="text-xs text-yellow-200">👑 Выдать себе игровой Premium</div>
+          <div className="flex items-center gap-2 text-xs text-yellow-200"><RpgIcon kind="crown" size={16} />Выдать себе игровой Premium</div>
           <label className="text-xs">Дней <input type="number" min={1} max={365} value={premiumDays} onChange={e=>setPremiumDays(Number(e.target.value))} className="w-20 bg-slate-950 p-2 rounded"/></label>
           <button disabled={premiumBusy} onClick={async()=>{
             setPremiumBusy(true);
@@ -155,8 +142,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               }}
               className="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
-              <Coins className="w-4 h-4" />
-              <span>+10,000 🪙 Золота</span>
+              <RpgIcon kind="gold" size={17} />
+              <span>+10,000 золота</span>
             </button>
 
             <button
@@ -166,8 +153,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               }}
               className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-[#d5ba89] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
-              <Gem className="w-4 h-4" />
-              <span>+500 🥈 Серебра</span>
+              <RpgIcon kind="silver" size={17} />
+              <span>+500 серебра</span>
             </button>
 
             <button
@@ -177,7 +164,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               }}
               className="p-2.5 rounded-xl bg-slate-900 border border-indigo-500/40 text-indigo-300 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
-              <Zap className="w-4 h-4" />
+              <RpgIcon kind="energy" size={17} />
               <span>+1 Уровень (EXP)</span>
             </button>
 
@@ -188,7 +175,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               }}
               className="p-2.5 rounded-xl bg-purple-950 border border-purple-400/60 text-purple-200 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md"
             >
-              <Sparkles className="w-4 h-4" />
+              <RpgIcon kind="skill" size={17} />
               <span>Древний меч (+10)</span>
             </button>
           </div>
@@ -240,7 +227,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             }}
             className="w-full py-2.5 rounded-xl bg-red-950/80 border border-red-500/50 hover:bg-red-900 text-red-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all"
           >
-            <Trash2 className="w-4 h-4" />
+            <RpgIcon kind="leave" size={17} />
             <span>Сбросить персонажа (Полный вайп)</span>
           </button>
         </div>

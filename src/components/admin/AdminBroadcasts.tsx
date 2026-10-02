@@ -3,6 +3,7 @@ import React,{useEffect,useState} from 'react';
 import {apiRequest} from '../../utils/api';
 import {getTelegramUser} from '../../utils/telegram';
 import {BROADCAST_AUDIENCES,NOTIFICATION_TEMPLATES,renderBroadcast,type BroadcastAudience} from '../../utils/notificationTemplates';
+import { RpgIcon } from '../ui/RpgIcon';
 type BroadcastRequest={operationId:string;templateId:string;audience:BroadcastAudience;details:string};
 type Summary={audiences:Record<BroadcastAudience,{players:number;telegram:number}>;recent:{id:string;template_id:string;audience:BroadcastAudience;players_count:number;telegram_count:number;created_at:string}[]};
 export const AdminBroadcasts:React.FC=()=>{
@@ -23,7 +24,7 @@ export const AdminBroadcasts:React.FC=()=>{
  };
  const pending=!!localStorage.getItem(key);
  return <section className="rounded-xl border border-purple-500/40 p-3 space-y-3">
-  <h3 className="text-xs font-bold text-purple-200">📢 Оповещения по шаблону</h3>
+  <h3 className="flex items-center gap-2 text-xs font-bold text-purple-200"><RpgIcon kind="quest" size={16} />Оповещения по шаблону</h3>
   <p className="text-[11px] text-slate-400">В игре объявление увидит вся выбранная аудитория. В Telegram оно придёт тем, кто запустил бота, включил сообщения и разрешил объявления администрации.</p>
   {feedback&&<p role="status" className="rounded-lg bg-slate-950 p-2 text-xs text-purple-200">{feedback}</p>}
   <label className="block text-xs text-slate-300">Готовый шаблон<select aria-label="Шаблон оповещения" value={templateId} disabled={busy||pending} onChange={e=>setTemplateId(e.target.value)} className="w-full mt-1 rounded-lg bg-slate-950 p-2">{NOTIFICATION_TEMPLATES.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>

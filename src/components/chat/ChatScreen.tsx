@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { apiRequest } from '../../utils/api';
 import { triggerHaptic } from '../../utils/telegram';
+import { RpgIcon } from '../ui/RpgIcon';
+import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';
 
 type GlobalMessage = {
   id: number | string;
@@ -106,31 +107,31 @@ export const ChatScreen: React.FC = () => {
   if (!player) return null;
 
   return (
-    <div className="p-3 max-w-lg mx-auto pb-24 min-h-[calc(100dvh-120px)] flex flex-col gap-3">
-      <div className="ui-panel rounded-2xl border p-4">
-        <div className="text-[10px] text-purple-300 font-mono uppercase tracking-widest">Социальный центр</div>
+    <FolioPage className="flex min-h-[calc(100dvh-120px)] flex-col gap-3 pt-3">
+      <BestiaryPanel className="p-3">
+        <div className="text-[11px] uppercase tracking-widest text-purple-300">Социальный центр</div>
         <div className="flex items-center justify-between mt-1">
           <h2 className="font-cinzel text-lg font-bold">Общий чат</h2>
-          <button onClick={() => void load(true)} disabled={loading} className="p-2 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+          <button aria-label="Обновить чат" onClick={() => void load(true)} disabled={loading} className="rpg-icon-button disabled:opacity-50">
+            <RpgIcon kind="refresh" size={18} className={loading ? 'animate-spin' : 'text-slate-400'} />
           </button>
         </div>
-        <div className="flex items-center justify-between gap-2 text-[9px] mt-1">
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
           <span className="text-slate-500">Серверный канал · сообщения видят все игроки</span>
           <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-2 py-0.5 font-mono font-bold text-emerald-300">
             ● Онлайн: {onlinePlayers}
           </span>
         </div>
-      </div>
+      </BestiaryPanel>
 
       {error && (
-        <div className="rounded-xl bg-rose-950/30 border border-rose-500/30 p-3 text-[10px] text-rose-200">
+        <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-xs text-rose-200">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span aria-hidden="true" className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-rose-400 font-bold">!</span>
             <div className="min-w-0 flex-1">
               <div className="font-bold">Не удалось подключиться к чату</div>
               <div className="mt-1 break-words">{error}</div>
-              <button onClick={() => void load(true)} className="mt-2 px-2.5 py-1.5 rounded-lg border border-rose-500/40 bg-rose-950/50 font-bold">
+              <button onClick={() => void load(true)} className="mt-2 min-h-11 rounded-lg border border-rose-500/40 bg-rose-950/50 px-2.5 font-bold">
                 Повторить
               </button>
             </div>
@@ -151,13 +152,13 @@ export const ChatScreen: React.FC = () => {
               className={`p-2.5 rounded-xl border ${me ? 'ml-5 bg-cyan-950/30 border-slate-700' : 'bg-[#0a0f1d] border-slate-800'}`}
             >
               <div className="flex justify-between gap-2">
-                <span className={`text-[10px] font-bold ${me ? 'text-[#d5ba89]' : 'text-slate-200'}`}>
-                  {message.is_premium && <span className="mr-1 text-amber-300" title="Premium">👑</span>}
+                <span className={`text-[11px] font-bold ${me ? 'text-[#d5ba89]' : 'text-slate-200'}`}>
+                  {message.is_premium && <RpgIcon kind="crown" size={13} className="mr-1 inline-flex text-amber-300" title="Premium" />}
                   {message.display_name}
                 </span>
-                <span className="text-[8px] text-slate-600">{time}</span>
+                <span className="text-[11px] text-slate-600">{time}</span>
               </div>
-              <div className="text-[11px] text-slate-300 mt-1 break-words">{message.text}</div>
+              <div className="mt-1 break-words text-xs text-slate-300">{message.text}</div>
             </div>
           );
         })}
@@ -172,12 +173,10 @@ export const ChatScreen: React.FC = () => {
           onChange={e => setInput(e.target.value)}
           maxLength={500}
           placeholder="Сообщение всему Аэтельгарду…"
-          className="flex-1 min-w-0 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-purple-500"
+          className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm outline-none focus:border-purple-500"
         />
-        <button disabled={sending || !input.trim()} className="p-2.5 bg-purple-600 text-white rounded-xl disabled:opacity-40">
-          <Send className="w-4 h-4" />
-        </button>
+        <RpgButton type="submit" variant="primary" icon="quest" disabled={sending || !input.trim()} className="min-h-11 px-3 disabled:opacity-40" aria-label="Отправить сообщение" />
       </form>
-    </div>
+    </FolioPage>
   );
 };

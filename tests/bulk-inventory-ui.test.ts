@@ -27,7 +27,7 @@ test('Premium inventory bulk controls sell only confirmed matching gear and keep
   save.player.inventory=[gear('ordinary'),gear('uncommon',{rarity:'uncommon'}),gear('rare',{rarity:'rare'}),gear('pants',{type:'pants'}),gear('locked',{isLocked:true}),gear('upgraded',{upgradeLevel:1})];save.player.equipped={};save.player.gold=100;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));await w.act(async()=>w.mount());
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text) as any;
-  await w.act(async()=>button('👑 Массовая продажа и разбор+').click());
+  await w.act(async()=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent?.includes('Массовая продажа и разбор'))?.click());
   await w.act(async()=>button('Необычные').click());
   const select=w.document.querySelector('select');await w.act(async()=>{select.value='gloves';select.dispatchEvent(new w.Event('change',{bubbles:true}));});
   assert.ok(w.document.body.textContent.includes('Подходит: 2 вещей'));

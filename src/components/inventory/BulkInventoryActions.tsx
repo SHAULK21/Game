@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { BULK_EQUIPMENT_TYPES, BULK_RARITIES, bulkReward, selectBulkItems, type BulkAction, type BulkFilters } from '../../utils/bulkInventory';
 import type { ItemRarity } from '../../types/game';
+import { RpgIcon } from '../ui/RpgIcon';
 const TYPE_LABELS: Record<string,string> = {weapon:'Оружие',offhand:'Вторая рука',helmet:'Шлемы',armor:'Доспехи',pants:'Поножи / штаны',gloves:'Рукавицы / перчатки',boots:'Сапоги',amulet:'Амулеты',ring:'Кольца',belt:'Пояса',cloak:'Плащи',artifact:'Артефакты'};
 const RARITY_LABELS: Record<ItemRarity,string> = {common:'Обычные',uncommon:'Необычные',rare:'Редкие',epic:'Эпические',legendary:'Легендарные',mythic:'Мифические',ancient:'Древние',divine:'Божественные'};
 export function BulkInventoryActions() {
@@ -28,7 +29,7 @@ export function BulkInventoryActions() {
     } finally {setBusy(false);}
   };
   return <section className="rounded-xl border border-amber-900/50 bg-amber-950/10 p-3 space-y-3">
-    <button aria-expanded={open} onClick={()=>setOpen(!open)} className="w-full flex items-center justify-between gap-2 text-left text-xs font-semibold text-amber-200"><span>👑 Массовая продажа и разбор</span><span aria-hidden="true">{open?'−':'+'}</span></button>
+    <button aria-expanded={open} onClick={()=>setOpen(!open)} className="min-h-11 w-full flex items-center justify-between gap-2 text-left text-xs font-semibold text-amber-200"><span className="flex items-center gap-2"><RpgIcon kind="crown" size={16} />Массовая продажа и разбор</span><span aria-hidden="true">{open?'−':'+'}</span></button>
     {open && <>
       {!premium.active ? <div className="space-y-2"><p className="text-[11px] text-slate-400">С Premium можно обработать выбранные редкости и типы снаряжения одним действием.</p><button disabled={busy||premium.loading} onClick={async()=>{setBusy(true);try{const result=await purchasePremium();setFeedback(result.message);}finally{setBusy(false);}}} className="rounded-lg border border-amber-700 bg-amber-950/40 px-3 py-2 text-xs text-amber-100 disabled:opacity-40">Подключить Premium</button></div> : <>
         <div className="space-y-2"><div className="text-[11px] text-slate-400">Редкость — можно выбрать несколько</div><div className="flex flex-wrap gap-1.5">{BULK_RARITIES.map(rarity=><button key={rarity} disabled={busy} aria-pressed={filters.rarities.includes(rarity)} onClick={()=>changeFilters({...filters,rarities:filters.rarities.includes(rarity)?filters.rarities.filter(r=>r!==rarity):[...filters.rarities,rarity]})} className={`rounded-lg border px-2 py-1.5 text-[10px] ${filters.rarities.includes(rarity)?'border-amber-700 bg-amber-950/40 text-amber-100':'border-slate-800 text-slate-500'} disabled:opacity-40`}>{RARITY_LABELS[rarity]}</button>)}</div></div>

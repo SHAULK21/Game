@@ -1,7 +1,8 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
-import { Moon, Package, Check, Crown } from 'lucide-react';
 import { sound } from '../../utils/audio';
+import { RpgIcon } from '../ui/RpgIcon';
+import { BestiaryPanel, RpgButton } from '../ui/BestiaryUI';
 
 export const OfflineReportModal: React.FC = () => {
   const { offlineReport, dismissOfflineReport } = useGame();
@@ -16,14 +17,14 @@ export const OfflineReportModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-yellow-500/40 bg-[#0a0f1d] p-5 space-y-4 text-center animate-in zoom-in-95 duration-200">
+      <div role="dialog" aria-modal="true" aria-label="Отчёт офлайн-добычи" className="dialog-frame w-full max-w-sm space-y-4 p-5 text-center animate-in zoom-in-95 duration-200">
         <div className="w-12 h-12 rounded-full bg-yellow-950/80 border border-yellow-400 text-yellow-300 flex items-center justify-center mx-auto">
-          <Moon className="w-6 h-6" />
+          <RpgIcon kind="mine" size={25} />
         </div>
 
         <div className="space-y-1">
           <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-widest flex items-center justify-center gap-1">
-            <Crown className="w-3 h-3" /> Premium офлайн-добыча
+            <RpgIcon kind="crown" size={14} /> Premium офлайн-добыча
           </span>
           <h3 className="font-cinzel text-lg font-bold text-slate-100">Шахтёры вернулись</h3>
           <p className="text-xs text-slate-400">
@@ -31,12 +32,12 @@ export const OfflineReportModal: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-2 text-xs font-mono text-left">
+        <BestiaryPanel className="space-y-2 p-3 text-left">
           {miningRewards.length > 0 ? (
             <>
               <div className="flex justify-between items-center pb-2 border-b border-slate-800">
                 <span className="text-slate-400 flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-purple-400" />
+                  <RpgIcon kind="inventory" size={16} className="text-purple-400" />
                   Всего ресурсов
                 </span>
                 <span className="text-purple-300 font-bold">×{totalResources}</span>
@@ -46,10 +47,10 @@ export const OfflineReportModal: React.FC = () => {
                 {miningRewards.map(reward => (
                   <div key={reward.name} className="rounded-lg border border-slate-800 bg-black/20 p-2 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-lg shrink-0">{reward.icon}</span>
+                      <RpgIcon kind="ore" size={20} />
                       <div className="min-w-0">
-                        <div className="text-[10px] text-slate-200 leading-tight break-words">{reward.name}</div>
-                        <div className="text-[9px] text-emerald-300 font-bold">×{reward.count}</div>
+                        <div className="break-words text-xs leading-tight text-slate-200">{reward.name}</div>
+                        <div className="text-xs font-bold text-emerald-300">×{reward.count}</div>
                       </div>
                     </div>
                   </div>
@@ -61,18 +62,18 @@ export const OfflineReportModal: React.FC = () => {
               Рюкзак был заполнен, поэтому автоматическую добычу сохранить не удалось.
             </div>
           )}
-        </div>
+        </BestiaryPanel>
 
-        <button
+        <RpgButton
           onClick={() => {
             sound.playVictory();
             dismissOfflineReport();
           }}
-          className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          variant="primary"
+          className="w-full"
         >
-          <Check className="w-4 h-4" />
-          <span>Понятно</span>
-        </button>
+          Понятно
+        </RpgButton>
       </div>
     </div>
   );

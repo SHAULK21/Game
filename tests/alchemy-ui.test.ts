@@ -35,12 +35,12 @@ test('alchemy UI buys, equips, crafts once, preserves other items and XP; combat
   await w.act(async()=>{result=w.game.buyAlchemyTool('retort_legendary');});assert.equal(result.success,true);assert.equal(w.game.player.gold,50000);
   const tool=w.game.player.inventory.find((i:any)=>i.type==='alchemyTool');const weapon=w.game.player.equipped.weapon.id;
   await w.act(async()=>w.game.equipItem(tool));assert.equal(w.game.player.equipped.alchemyTool.id,tool.id);assert.equal(w.game.player.equipped.weapon.id,weapon);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
-  assert.ok(w.document.body.textContent.includes('+80% опыта'));assert.ok(w.document.body.textContent.includes('219 / 220 EXP'));
+  assert.ok(w.document.body.textContent.includes('+80% опыта'));assert.ok(w.document.body.textContent.includes('219/220'));
   const before=w.game.player.alchemyExp;const energy=w.game.player.alchemyEnergy;const count=w.game.player.statsSummary.potionsCrafted;
-  const button=[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent==='Сварить · 4 ⚗') as any;
+  const button=[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent?.startsWith('Сварить · 4')) as any;
   w.Math.random=()=>0;
   await w.act(async()=>{button.click();button.click();});
-  assert.equal(w.game.player.alchemyExp,before+11);assert.equal(w.game.player.alchemyLevel,81);assert.equal(w.game.player.alchemyEnergy,energy-4);assert.equal(w.game.player.statsSummary.potionsCrafted,count+3);assert.ok(w.game.player.inventory.some((i:any)=>i.id==='keep'));assert.ok(w.document.body.textContent.includes('10 / 220 EXP'));
+  assert.equal(w.game.player.alchemyExp,before+11);assert.equal(w.game.player.alchemyLevel,81);assert.equal(w.game.player.alchemyEnergy,energy-4);assert.equal(w.game.player.statsSummary.potionsCrafted,count+3);assert.ok(w.game.player.inventory.some((i:any)=>i.id==='keep'));assert.ok(w.document.body.textContent.includes('10/220'));
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.equal(w.game.player.equipped.alchemyTool.id,tool.id);assert.equal(w.game.player.alchemyExp,before+11);
   await w.act(async()=>w.game.unequipItem('alchemyTool'));const exp=w.game.player.alchemyExp;await w.act(async()=>{result=w.game.craftAlchemy('alc_hp_small');});assert.equal(result,true);assert.equal(w.game.player.alchemyExp,exp+6);
   const monster={id:'series_test',name:'Манекен',regionId:'reg_plains',level:1,hp:10,maxHp:10,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:10,goldReward:10,drops:[]};

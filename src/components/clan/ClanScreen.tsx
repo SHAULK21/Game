@@ -4,13 +4,11 @@ import { clanCreationCost } from '../../utils/clanEconomy';
 import {ClanManagement} from './ClanManagement';
 import {CLAN_ROLE_LABELS,canUseVault,type ClanRole} from '../../utils/clanRoles';
 import React, { useEffect, useState } from 'react';
-import {
-  ShieldCheck, Users, Swords, Crown, LogIn, LogOut, Plus,
-  RefreshCw, Send, UserPlus, Search, Trophy, Coins, X
-} from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useGame } from '../../context/GameContext';
 import { triggerHaptic } from '../../utils/telegram';
+import { RpgIcon } from '../ui/RpgIcon';
+import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 
 type Clan = {
   id: string;
@@ -184,148 +182,146 @@ export const ClanScreen: React.FC = () => {
   if (!player) return null;
 
   return (
-    <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <div className="ui-panel rounded-2xl border p-4">
+    <FolioPage className="space-y-3 pt-3">
+      <BestiaryPanel className="rounded-xl p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-950/70 border border-blue-400/40 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-blue-300" />
+            <div className="grid h-11 w-11 place-items-center rounded-lg border border-[#514633] bg-[#111416] text-[#c7a365]">
+              <RpgIcon kind="clan" size={24} />
             </div>
             <div>
-              <div className="text-[10px] font-mono text-blue-400 uppercase tracking-widest">Социальная система</div>
+              <div className="text-[11px] uppercase tracking-widest text-[#b6a47f]">Союз охотников</div>
               <h2 className="font-cinzel text-lg font-bold text-slate-100">Кланы</h2>
             </div>
           </div>
-          <button onClick={load} disabled={loading || action} className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <button aria-label="Обновить клан" onClick={load} disabled={loading || action} className="rpg-icon-button">
+            <RpgIcon kind="refresh" size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
-      </div>
+      </BestiaryPanel>
 
       {error && (
-        <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-200">
+        <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-200">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-8 text-center text-xs text-slate-500">Загрузка кланов…</div>
+        <BestiaryPanel className="p-8 text-center text-xs text-slate-500">Загрузка кланов…</BestiaryPanel>
       ) : clan ? (
         <>
-          <div className="rounded-2xl border border-cyan-500/25 bg-[#0a101d] p-4">
+          <BestiaryPanel className="space-y-3 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold text-[#d5ba89]">[{clan.tag}]</span>
+                  <span className="text-[11px] font-mono font-bold text-[#d5ba89]">[{clan.tag}]</span>
                   <h3 className="font-cinzel text-base font-bold text-slate-100">{clan.name}</h3>
-                  {clan.role === 'owner' && <Crown className="w-4 h-4 text-amber-300" />}
+                  {clan.role === 'owner' && <RpgIcon kind="crown" size={16} className="text-amber-300" />}
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">{clan.description || 'У клана пока нет описания.'}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{clan.description || 'У клана пока нет описания.'}</p>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-xs font-bold text-[#d5ba89]">Ур. {clan.level}</div>
-                <div className="text-[9px] text-slate-500">{clan.xp.toLocaleString()} XP</div>
+                <div className="text-[11px] text-slate-500">{clan.xp.toLocaleString()} XP</div>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 mt-3">
               <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 text-center">
-                <Users className="w-3.5 h-3.5 mx-auto text-[#d5ba89]" />
+                <RpgIcon kind="clan" size={16} className="mx-auto text-[#d5ba89]" />
                 <div className="text-xs font-bold mt-1">{clan.members_count}/{clan.max_members}</div>
-                <div className="text-[8px] text-slate-500">участники</div>
+                <div className="text-[11px] text-slate-500">участники</div>
               </div>
               <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 text-center">
-                <Coins className="w-3.5 h-3.5 mx-auto text-amber-400" />
+                <RpgIcon kind="gold" size={16} className="mx-auto text-amber-400" />
                 <div className="text-xs font-bold mt-1">{Number(clan.treasury_gold).toLocaleString()}</div>
-                <div className="text-[8px] text-slate-500">казна</div>
+                <div className="text-[11px] text-slate-500">казна</div>
               </div>
               <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 text-center">
-                <Trophy className="w-3.5 h-3.5 mx-auto text-purple-400" />
+                <RpgIcon kind="arena" size={16} className="mx-auto text-purple-400" />
                 <div className="text-xs font-bold mt-1">{clan.max_members} мест</div>
-                <div className="text-[8px] text-slate-500">вместимость</div>
+                <div className="text-[11px] text-slate-500">вместимость</div>
               </div>
             </div>
 
             <button
               onClick={leaveClan}
               disabled={action}
-              className="mt-3 w-full py-2 rounded-xl border border-slate-800 bg-rose-950/30 text-rose-300 text-xs font-bold disabled:opacity-40 flex items-center justify-center gap-1.5"
+              className="rpg-button rpg-button-danger mt-3 w-full disabled:opacity-40"
             >
-              <LogOut className="w-3.5 h-3.5" /> Выйти из клана
+              <RpgIcon kind="leave" size={16} /> Выйти из клана
             </button>
-          </div>
+          </BestiaryPanel>
 
-          <div className="rounded-2xl border border-purple-500/30 bg-[#0c0d1c] p-4">
+          <BestiaryPanel className="p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[10px] text-purple-400 font-mono uppercase">Еженедельный рейд</div>
+                <div className="text-[11px] text-purple-400 font-mono uppercase">Еженедельный рейд</div>
                 <h3 className="font-cinzel text-sm font-bold text-slate-100 mt-0.5">{clan.raid_name}</h3>
               </div>
-              <button onClick={attackRaid} disabled={action || clan.raid_hp <= 0 && new Date(clan.raid_reset_at).getTime() > Date.now()} className="px-3 py-2 rounded-xl bg-purple-600 text-white text-[10px] font-bold disabled:opacity-40 flex items-center gap-1">
-                <Swords className="w-3.5 h-3.5" /> Удар
-              </button>
+              <RpgButton onClick={attackRaid} disabled={action || clan.raid_hp <= 0 && new Date(clan.raid_reset_at).getTime() > Date.now()} variant="primary" icon="attack" className="px-3 disabled:opacity-40">
+                Удар
+              </RpgButton>
             </div>
-            <div className="mt-3 flex justify-between text-[10px] font-mono">
+            <div className="mt-3 flex justify-between text-[11px] font-mono">
               <span className="text-purple-300">HP босса</span>
               <span>{Number(clan.raid_hp).toLocaleString()} / {Number(clan.raid_max_hp).toLocaleString()}</span>
             </div>
-            <div className="h-3 mt-1 rounded-full bg-slate-950 overflow-hidden border border-purple-950">
-              <div className="h-full bg-gradient-to-r from-purple-600 to-rose-500 transition-all" style={{ width: `${Math.max(0, Number(clan.raid_hp) / Number(clan.raid_max_hp) * 100)}%` }} />
-            </div>
-            <div className="text-[9px] text-slate-500 mt-2">Один удар в сутки. Победа: +{clanRaidReward(clan.level, clan.projects?.research).xp} XP клана и +{clanRaidReward(clan.level, clan.projects?.research).gold} золота в казну. Новый рейд усиливается с уровнем клана.</div>
-          </div>
+            <ProgressBar value={Number(clan.raid_hp)} max={Number(clan.raid_max_hp)} label="HP босса" className="mt-2" />
+            <p className="mt-2 text-xs text-slate-500">Один удар в сутки. Победа: +{clanRaidReward(clan.level, clan.projects?.research).xp} XP клана и +{clanRaidReward(clan.level, clan.projects?.research).gold} золота в казну.</p>
+          </BestiaryPanel>
 
-          <section className="rounded-xl border border-cyan-800 p-3 space-y-2">
-            <h3 className="text-sm text-cyan-200">Клановые проекты</h3>
+          <BestiaryPanel className="space-y-2 p-3">
+            <SectionTitle eyebrow="Развитие союза">Клановые проекты</SectionTitle>
             {(Object.keys(CLAN_PROJECTS) as ClanProject[]).map(project => {
               const level=clan.projects?.[project] || 0, cost=clanProjectCost(level);
               return <div key={project} className="rounded border border-slate-800 p-2 text-xs">
                 <b>{CLAN_PROJECTS[project].name} · {level}/10</b><p className="text-slate-400">{CLAN_PROJECTS[project].description}</p>
-                <button disabled={action || level>=10 || !['owner','officer'].includes(clan.role || '')} onClick={()=>run(async()=>{
+                <RpgButton variant="secondary" disabled={action || level>=10 || !['owner','officer'].includes(clan.role || '')} onClick={()=>run(async()=>{
                   const key=`clan_project_${clan.id}_${project}`;
                   const id=localStorage.getItem(key) || createOperationId();localStorage.setItem(key,id);
                   await apiRequest('/api/clan/projects/upgrade',{method:'POST',body:JSON.stringify({project,operationId:id})});
                   localStorage.removeItem(key);
-                })} className="mt-2 rounded bg-cyan-950 p-2 disabled:opacity-40">{level>=10?'Максимум':`Улучшить · ${cost.gold} золота · ${cost.silver} серебра · ${cost.ore} руды`}</button>
+                })} className="mt-2 disabled:opacity-40">{level>=10?'Максимум':`Улучшить · ${cost.gold} золота · ${cost.silver} серебра · ${cost.ore} руды`}</RpgButton>
               </div>;
             })}
-          </section>
+          </BestiaryPanel>
 
-          <div className="rounded-2xl border border-amber-500/30 bg-[#0d111b] p-4 space-y-3">
+          <BestiaryPanel className="space-y-3 p-3">
             <div className="flex justify-between items-center">
-              <h3 className="font-cinzel text-sm font-bold text-amber-200">🏦 Хранилище клана</h3>
-              <span className="text-[10px] text-slate-400">{storedItems.length} вещей</span>
+              <h3 className="font-cinzel text-sm font-bold text-amber-200">Хранилище клана</h3>
+              <span className="text-xs text-slate-400">{storedItems.length} вещей</span>
             </div>
-            <div className="text-[10px] text-slate-400">Вносить можно вещи с подтверждённым сервером происхождением. Старые локальные трофеи остаются личными.</div>
-            <div className="text-[10px] text-amber-300">Казна: {Number(clan.treasury_gold || 0)} 🪙 · {Number((clan as Clan & { treasury_silver?: number }).treasury_silver || 0)} 🥈 · {Number((clan as Clan & { treasury_ore?: number }).treasury_ore || 0)} руды</div>
+            <div className="text-xs text-slate-400">Вносить можно вещи с подтверждённым сервером происхождением. Старые локальные трофеи остаются личными.</div>
+            <div className="text-xs text-amber-300">Казна: {Number(clan.treasury_gold || 0)} золота · {Number((clan as Clan & { treasury_silver?: number }).treasury_silver || 0)} серебра · {Number((clan as Clan & { treasury_ore?: number }).treasury_ore || 0)} руды</div>
             <div className="space-y-1.5 max-h-44 overflow-y-auto">
-              <div className="text-[10px] uppercase text-slate-500">Мои серверные вещи</div>
+              <div className="text-[11px] uppercase text-slate-500">Мои серверные вещи</div>
               {personalItems.filter(i => !i.locked && !i.equipped_slot && (!i.bound_clan_id || i.bound_clan_id === clan.id)).map(item => (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg border border-slate-800 p-2 text-xs">
-                  <span>{item.item_json.icon}</span><span className="flex-1 truncate">{item.item_json.name} ×{item.quantity}</span>
-                  <button disabled={action} onClick={() => moveItem(item, 'deposit')} className="text-amber-300 disabled:opacity-40">Положить</button>
+                  <RpgIcon kind="material" size={18} /><span className="flex-1 truncate">{item.item_json.name} ×{item.quantity}</span>
+                  <button disabled={action} onClick={() => moveItem(item, 'deposit')} className="min-h-11 px-2 text-amber-300 disabled:opacity-40">Положить</button>
                 </div>
               ))}
-              {!personalItems.length && <div className="text-[10px] text-slate-600">Серверных вещей пока нет. Первое участие в рейде выдаёт личный предмет раз в неделю.</div>}
+              {!personalItems.length && <div className="text-[11px] text-slate-600">Серверных вещей пока нет. Первое участие в рейде выдаёт личный предмет раз в неделю.</div>}
             </div>
             <div className="space-y-1.5 max-h-56 overflow-y-auto">
-              <div className="text-[10px] uppercase text-slate-500">Общие вещи</div>
+              <div className="text-[11px] uppercase text-slate-500">Общие вещи</div>
               {storedItems.map(item => (
                 <div key={item.id} className="rounded-lg border border-slate-800 p-2 flex items-center gap-2 text-xs">
-                  <span>{item.item_json.icon}</span>
+                  <RpgIcon kind="material" size={18} />
                   <span className="flex-1 truncate">{item.item_json.name} ×{item.quantity} · {item.item_json.rarity}</span>
-                  {canUseVault(clan.role || '') && <div className="flex flex-wrap gap-2 text-[10px]">
-                    <button disabled={action} onClick={() => moveItem(item, 'withdraw')} className="text-[#d5ba89]">Забрать</button>
-                    <select aria-label={`Получатель ${item.item_json.name}`} value={recipients[item.id]||''} disabled={action} onChange={e=>setRecipients(prev=>({...prev,[item.id]:e.target.value}))} className="bg-slate-950 rounded w-20"><option value="">Кому?</option>{members.map(m=><option key={m.telegram_id} value={m.telegram_id}>{m.display_name}</option>)}</select>
-                    <button disabled={action||!recipients[item.id]} onClick={()=>run(()=>apiRequest(`/api/clan/storage/${item.id}/give`,{method:'POST',body:JSON.stringify({targetId:recipients[item.id]})}))} className="text-emerald-300 disabled:opacity-40">Выдать</button>
-                    <button disabled={action} onClick={() => disposeStored('sell', item.id)} className="text-amber-300">Продать</button>
-                    <button disabled={action} onClick={() => disposeStored('disassemble', item.id)} className="text-violet-300">Разобрать</button>
+                  {canUseVault(clan.role || '') && <div className="flex flex-wrap gap-2 text-[11px]">
+                    <button disabled={action} onClick={() => moveItem(item, 'withdraw')} className="min-h-11 px-1 text-[#d5ba89]">Забрать</button>
+                    <select aria-label={`Получатель ${item.item_json.name}`} value={recipients[item.id]||''} disabled={action} onChange={e=>setRecipients(prev=>({...prev,[item.id]:e.target.value}))} className="min-h-11 w-20 rounded bg-slate-950"><option value="">Кому?</option>{members.map(m=><option key={m.telegram_id} value={m.telegram_id}>{m.display_name}</option>)}</select>
+                    <button disabled={action||!recipients[item.id]} onClick={()=>run(()=>apiRequest(`/api/clan/storage/${item.id}/give`,{method:'POST',body:JSON.stringify({targetId:recipients[item.id]})}))} className="min-h-11 px-1 text-emerald-300 disabled:opacity-40">Выдать</button>
+                    <button disabled={action} onClick={() => disposeStored('sell', item.id)} className="min-h-11 px-1 text-amber-300">Продать</button>
+                    <button disabled={action} onClick={() => disposeStored('disassemble', item.id)} className="min-h-11 px-1 text-violet-300">Разобрать</button>
                   </div>}
                 </div>
               ))}
-              {!storedItems.length && <div className="text-[10px] text-slate-600">Хранилище пусто.</div>}
+              {!storedItems.length && <div className="text-[11px] text-slate-600">Хранилище пусто.</div>}
             </div>
-            {canUseVault(clan.role || '') && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[10px]">
+            {canUseVault(clan.role || '') && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[11px]">
               <span className="text-slate-400">До редкости:</span>
               <select value={bulkRarity} onChange={e => setBulkRarity(e.target.value)} className="bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
                 {['common','uncommon','rare','epic','legendary','mythic','ancient','divine'].map(r => <option key={r} value={r}>{r}</option>)}
@@ -333,66 +329,60 @@ export const ClanScreen: React.FC = () => {
               <button disabled={action} onClick={() => disposeStored('sell', undefined, bulkRarity)} className="text-amber-300">Продать пачкой</button>
               <button disabled={action} onClick={() => disposeStored('disassemble', undefined, bulkRarity)} className="text-violet-300">Разобрать пачкой</button>
             </div>}
-            {storageEvents.length > 0 && <div className="border-t border-slate-800 pt-2 space-y-1 max-h-24 overflow-y-auto text-[9px] text-slate-500">
+            {storageEvents.length > 0 && <div className="border-t border-slate-800 pt-2 space-y-1 max-h-24 overflow-y-auto text-[11px] text-slate-500">
               {storageEvents.map((event, index) => <div key={index}>{event.display_name}: {event.action} · {event.item_name} ×{event.quantity}</div>)}
             </div>}
-          </div>
+          </BestiaryPanel>
 
           <ClanManagement clan={clan} members={members} busy={action} run={run} />
 
-          <div className="rounded-2xl border border-slate-800 bg-[#090e18] p-3">
+          <BestiaryPanel className="p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-cinzel text-xs font-bold text-slate-200">Клановый чат</h3>
-              <span className="text-[9px] text-slate-500">серверный</span>
+              <span className="text-xs text-slate-500">серверный</span>
             </div>
             <div className="space-y-1.5 max-h-48 overflow-auto mb-2">
               {messages.length ? messages.map(message => (
                 <div key={message.id} className="p-2 rounded-lg bg-slate-950 border border-slate-900">
-                  <div className="text-[9px] font-bold text-[#d5ba89]">{message.display_name}</div>
-                  <div className="text-[10px] text-slate-300 mt-0.5 break-words">{message.text}</div>
+                  <div className="text-xs font-bold text-[#d5ba89]">{message.display_name}</div>
+                  <div className="mt-0.5 break-words text-xs text-slate-300">{message.text}</div>
                 </div>
               )) : (
-                <div className="p-5 text-center text-[10px] text-slate-600">Чат пока пуст.</div>
+                <div className="p-5 text-center text-[11px] text-slate-600">Чат пока пуст.</div>
               )}
             </div>
             <form onSubmit={sendMessage} className="flex gap-2">
               <input value={chatText} onChange={e => setChatText(e.target.value)} maxLength={500} placeholder="Написать клану…" className="flex-1 min-w-0 rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs outline-none focus:border-cyan-500" />
-              <button disabled={action || !chatText.trim()} className="p-2 rounded-xl bg-cyan-600 text-white disabled:opacity-40">
-                <Send className="w-4 h-4" />
-              </button>
+              <RpgButton type="submit" variant="primary" icon="quest" disabled={action || !chatText.trim()} className="min-h-11 px-3 disabled:opacity-40" aria-label="Отправить сообщение" />
             </form>
-          </div>
+          </BestiaryPanel>
         </>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowCreate(true)} className="py-3 rounded-xl bg-cyan-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
-              <Plus className="w-4 h-4" /> Создать клан
-            </button>
-            <button onClick={load} className="py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5">
-              <Search className="w-4 h-4" /> Обновить список
-            </button>
+            <RpgButton variant="primary" icon="clan" onClick={() => setShowCreate(true)} className="w-full">Создать клан</RpgButton>
+            <RpgButton variant="secondary" icon="map" onClick={load} className="w-full">Обновить список</RpgButton>
           </div>
 
           <div className="flex gap-2">
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Название или тег…" className="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs outline-none focus:border-cyan-500" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Название или тег…" className="min-h-11 flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 text-sm outline-none focus:border-cyan-500" />
           </div>
 
           <div className="space-y-2">
             {visibleClans.map(c => (
-              <div key={c.id} className="rounded-xl border border-slate-800 bg-[#090e18] p-3">
+              <BestiaryPanel key={c.id} className="p-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-950 border border-slate-700 flex items-center justify-center font-mono text-[9px] font-bold text-[#d5ba89]">[{c.tag}]</div>
+                  <div className="grid h-10 w-10 place-items-center rounded-lg border border-slate-700 bg-cyan-950 font-mono text-xs font-bold text-[#d5ba89]">[{c.tag}]</div>
                   <div className="min-w-0 flex-1">
                     <div className="font-cinzel text-xs font-bold text-slate-100">{c.name}</div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Ур. {c.level} · {c.members_count}/{c.max_members}</div>
-                    <div className="text-[9px] text-slate-400 mt-1 line-clamp-2">{c.description || 'Без описания'}</div>
+                    <div className="mt-0.5 text-xs text-slate-500">Ур. {c.level} · {c.members_count}/{c.max_members}</div>
+                    <div className="mt-1 line-clamp-2 text-xs text-slate-400">{c.description || 'Без описания'}</div>
                   </div>
-                  <button onClick={() => joinClan(c.id)} disabled={action || c.members_count >= c.max_members || c.recruitment_open === false || player.level < (c.min_join_level || 1)} className="px-2.5 py-1.5 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] text-[9px] font-bold disabled:opacity-40 flex items-center gap-1">
-                    <UserPlus className="w-3 h-3" /> {c.recruitment_open === false ? 'Набор закрыт' : player.level < (c.min_join_level || 1) ? `С ур. ${c.min_join_level}` : 'Вступить'}
-                  </button>
+                  <RpgButton variant="secondary" icon="clan" onClick={() => joinClan(c.id)} disabled={action || c.members_count >= c.max_members || c.recruitment_open === false || player.level < (c.min_join_level || 1)} className="shrink-0 px-2 disabled:opacity-40">
+                    {c.recruitment_open === false ? 'Набор закрыт' : player.level < (c.min_join_level || 1) ? `С ур. ${c.min_join_level}` : 'Вступить'}
+                  </RpgButton>
                 </div>
-              </div>
+              </BestiaryPanel>
             ))}
             {!visibleClans.length && <div className="p-8 text-center text-xs text-slate-600">Кланы не найдены.</div>}
           </div>
@@ -400,24 +390,24 @@ export const ClanScreen: React.FC = () => {
       )}
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-2">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#080c15] p-4">
+        <div className="bottom-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-2 backdrop-blur-sm sm:items-center">
+          <div role="dialog" aria-modal="true" aria-label="Создать клан" className="dialog-frame w-full max-w-lg p-4">
             <div className="flex justify-between items-center">
               <h3 className="font-cinzel text-sm font-bold text-[#d5ba89]">Создать клан</h3>
-              <button onClick={() => setShowCreate(false)}><X className="w-5 h-5 text-slate-500" /></button>
+              <button className="rpg-icon-button" aria-label="Закрыть" onClick={() => setShowCreate(false)}><span aria-hidden="true" className="text-xl">×</span></button>
             </div>
             <div className="space-y-2 mt-3">
-              <input value={name} onChange={e => setName(e.target.value)} maxLength={32} placeholder="Название клана" className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs outline-none focus:border-cyan-500" />
-              <input value={tag} onChange={e => setTag(e.target.value.toUpperCase())} maxLength={6} placeholder="Тег, например NEXUS" className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs font-mono outline-none focus:border-cyan-500" />
-              <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={280} placeholder="Описание и правила клана" rows={3} className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 text-xs outline-none focus:border-cyan-500 resize-none" />
-              <p className="text-xs text-amber-200">Стоимость: {clanCreationCost(premium.active).toLocaleString()} 🪙{premium.active ? ' · Скидка Premium 50%' : ' · С Premium — 50 000 🪙'}. Ваш баланс: {player.gold.toLocaleString()} 🪙.</p>
-              <button onClick={createClan} disabled={action || premium.loading || name.trim().length < 3 || tag.trim().length < 2} className="w-full py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold disabled:opacity-40">
-                {action ? 'Создание…' : `Создать за ${clanCreationCost(premium.active).toLocaleString()} 🪙`}
-              </button>
+              <input value={name} onChange={e => setName(e.target.value)} maxLength={32} placeholder="Название клана" className="min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 text-sm outline-none focus:border-cyan-500" />
+              <input value={tag} onChange={e => setTag(e.target.value.toUpperCase())} maxLength={6} placeholder="Тег, например NEXUS" className="min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 text-sm font-mono outline-none focus:border-cyan-500" />
+              <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={280} placeholder="Описание и правила клана" rows={3} className="w-full resize-none rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm outline-none focus:border-cyan-500" />
+              <p className="text-xs text-amber-200">Стоимость: {clanCreationCost(premium.active).toLocaleString()} золота{premium.active ? ' · Скидка Premium 50%' : ' · С Premium — 50 000 золота'}. Ваш баланс: {player.gold.toLocaleString()} золота.</p>
+              <RpgButton variant="primary" icon="clan" onClick={createClan} disabled={action || premium.loading || name.trim().length < 3 || tag.trim().length < 2} className="w-full disabled:opacity-40">
+                {action ? 'Создание…' : `Создать за ${clanCreationCost(premium.active).toLocaleString()} золота`}
+              </RpgButton>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </FolioPage>
   );
 };

@@ -1,19 +1,10 @@
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { 
-  Scroll, 
-  Trophy, 
-  BarChart2, 
-  Store, 
-  Crown, 
-  ShieldAlert, 
-  Check, 
-  Sparkles,
-  Coins
-} from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { apiRequest } from '../../utils/api';
+import { RpgIcon, type RpgIconKind } from '../ui/RpgIcon';
+import { FolioPage, ResourceBadge } from '../ui/BestiaryUI';
 
 interface MoreMenuScreenProps {
   onOpenAdmin: () => void;
@@ -24,6 +15,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications'>('quests');
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -45,9 +37,13 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   if (!player) return null;
 
   return (
-    <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+    <FolioPage className="space-y-3 pt-3">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#35383a] bg-[#111416] px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-[#aaa49a]"><RpgIcon kind="settings" size={17} /><span>Настройки звука</span></div>
+        <button className="rpg-button rpg-button-secondary min-h-10 px-3 text-xs" onClick={() => setIsMuted(sound.toggleMute())}>{isMuted ? 'Звук выключен' : 'Звук включён'}</button>
+      </div>
       {/* Navigation Sub-Tabs */}
-      <div className="grid grid-cols-3 gap-1.5 text-[10px] font-cinzel font-bold">
+      <div className="grid grid-cols-3 gap-1.5 text-[11px] font-cinzel font-bold">
         <button
           onClick={() => setActiveSection('quests')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
@@ -102,7 +98,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >
           Premium
         </button>
-        <button onClick={() => setActiveSection('notifications')} className={`py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}>🔔 Оповещения</button>
+        <button onClick={() => setActiveSection('notifications')} className={`min-h-11 flex items-center justify-center gap-1 py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}><RpgIcon kind="quest" size={15} />Оповещения</button>
       </div>
       {activeSection === 'notifications' && <NotificationsPanel />}
 
@@ -132,7 +128,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                         <span className="font-cinzel text-xs font-bold text-slate-100">
                           {q.title}
                         </span>
-                        <span className="text-[10px] font-mono px-1 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                        <span className="text-[11px] font-mono px-1 rounded bg-slate-900 text-slate-400 border border-slate-800">
                           {q.category}
                         </span>
                       </div>
@@ -143,7 +139,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
                     {q.completed ? (
                       q.claimed ? (
-                        <span className="text-[10px] font-mono text-slate-500 font-bold px-2 py-1 bg-slate-900 rounded">
+                        <span className="text-[11px] font-mono text-slate-500 font-bold px-2 py-1 bg-slate-900 rounded">
                           Сдано
                         </span>
                       ) : (
@@ -155,17 +151,17 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                         </button>
                       )
                     ) : (
-                      <span className="text-[10px] font-mono text-[#d5ba89]">
+                      <span className="text-[11px] font-mono text-[#d5ba89]">
                         {q.currentCount}/{q.targetCount}
                       </span>
                     )}
                   </div>
 
                   {/* Rewards preview */}
-                  <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-slate-400">
+                  <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-800/60 text-[11px] font-mono text-slate-400">
                     <span>Награда:</span>
-                    <span className="text-amber-300 font-bold">+{q.rewardGold} 🪙</span>
-                    <span className="text-slate-300 font-bold">+{q.rewardSilver || 0} 🥈</span>
+                    <ResourceBadge kind="gold" value={`+${q.rewardGold}`} />
+                    <ResourceBadge kind="silver" value={`+${q.rewardSilver || 0}`} />
                     <span className="text-indigo-300 font-bold">+{q.rewardExp} EXP</span>
                   </div>
                 </div>
@@ -189,8 +185,8 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                 className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                    {ach.icon}
+                  <span className="grid h-11 w-11 place-items-center rounded-lg border border-[#514633] bg-slate-900">
+                    <RpgIcon kind="quest" size={24} className="text-[#b99558]" />
                   </span>
                   <div>
                     <span className="font-cinzel text-xs font-bold text-slate-100">
@@ -199,7 +195,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       {ach.description}
                     </p>
-                    <div className="text-[10px] font-mono text-emerald-400 mt-1">
+                    <div className="text-[11px] font-mono text-emerald-400 mt-1">
                       {ach.permanentBonusDesc}
                     </div>
                   </div>
@@ -209,16 +205,16 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                   {ach.completed && !ach.claimed ? (
                     <button
                       onClick={() => claimAchievementReward(ach.id)}
-                      className="text-[10px] font-mono text-amber-300 font-bold px-2 py-1 bg-amber-950/60 border border-amber-500/40 rounded"
+                      className="text-[11px] font-mono text-amber-300 font-bold px-2 py-1 bg-amber-950/60 border border-amber-500/40 rounded"
                     >
                       Забрать
                     </button>
                   ) : ach.claimed ? (
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold px-2 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded">
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold px-2 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded">
                       Получено
                     </span>
                   ) : (
-                    <span className="text-[10px] font-mono text-slate-500">
+                    <span className="text-[11px] font-mono text-slate-500">
                       {ach.progress}/{ach.maxProgress}
                     </span>
                   )}
@@ -268,9 +264,9 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {/* LEADERBOARD SECTION */}
       {activeSection === 'leaderboard' && (
         <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-5 text-center">
-          <Trophy className="w-8 h-8 mx-auto text-amber-400 mb-2" />
+          <RpgIcon kind="arena" size={32} className="mx-auto mb-2 text-amber-400" />
           <div className="font-cinzel text-sm font-bold text-slate-200">Рейтинг игроков</div>
-          <p className="text-[10px] text-slate-500 mt-1">
+          <p className="text-[11px] text-slate-500 mt-1">
             Глобальный рейтинг будет показываться только из серверной базы. Тестовые персонажи больше не используются.
           </p>
         </div>
@@ -282,12 +278,12 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-yellow-300" />
+                  <RpgIcon kind="crown" size={20} className="text-yellow-300" />
                   <h3 className="font-cinzel text-base font-bold text-yellow-200">Aethelgard Premium</h3>
                 </div>
-                <div className="mt-1 text-xs text-slate-300">150 ⭐ / 30 дней · автоматическое продление через Telegram Stars</div>
+                <div className="mt-1 text-xs text-slate-300">150 Telegram Stars / 30 дней · автоматическое продление</div>
               </div>
-              <span className={`px-2 py-1 rounded-lg border text-[10px] font-bold ${
+              <span className={`px-2 py-1 rounded-lg border text-[11px] font-bold ${
                 premium.active
                   ? 'border-emerald-500/40 bg-emerald-950/50 text-emerald-300'
                   : 'border-slate-700 bg-slate-900 text-slate-400'
@@ -304,18 +300,18 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
             <div className="mt-4 space-y-2">
               {[
-                ['⚔️', 'Автобой', 'Сам выполняет ходы в бою.'],
-                ['🎒', 'Массовая продажа и разбор', 'Обработка снаряжения по редкости и типу с защитой ценных вещей.'],
-                ['🔁', 'Автопродолжение серии', 'Переходит к следующему врагу без нажатий.'],
-                ['⚙️', 'Расширенные настройки автобоя', 'Порог лечения, навыки, ультимейт и отступление.'],
-                ['⛏️', 'Автоматическая офлайн-добыча', 'Пока вас нет, шахтёры собирают руду и материалы по уровню горного дела.'],
-                ['👑', 'VIP-статус', 'Premium-метка в игровых сообщениях.']
+                ['attack', 'Автобой', 'Сам выполняет ходы в бою.'],
+                ['inventory', 'Массовая продажа и разбор', 'Обработка снаряжения по редкости и типу с защитой ценных вещей.'],
+                ['hunt', 'Автопродолжение серии', 'Переходит к следующему врагу без нажатий.'],
+                ['settings', 'Расширенные настройки автобоя', 'Порог лечения, навыки, ультимейт и отступление.'],
+                ['mine', 'Автоматическая офлайн-добыча', 'Пока вас нет, шахтёры собирают руду и материалы по уровню горного дела.'],
+                ['crown', 'VIP-статус', 'Premium-метка в игровых сообщениях.']
               ].map(([icon, title, desc]) => (
-                <div key={title} className="rounded-xl border border-yellow-500/15 bg-black/20 p-2.5 flex gap-2.5">
-                  <span className="text-lg">{icon}</span>
+                <div key={title} className="bestiary-panel flex gap-2.5 p-2.5">
+                  <RpgIcon kind={icon as RpgIconKind} size={20} className="text-[#b99558]" />
                   <div>
                     <div className="text-xs font-bold text-slate-100">{title}</div>
-                    <div className="text-[10px] text-slate-400">{desc}</div>
+                    <div className="text-[11px] text-slate-400">{desc}</div>
                   </div>
                 </div>
               ))}
@@ -333,7 +329,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
                 }}
                 className="ui-primary mt-4 w-full py-3 rounded-xl disabled:opacity-50 font-cinzel font-bold text-sm active:scale-95 transition-all"
               >
-                {premiumBusy ? 'Открываю оплату…' : 'Подключить Premium · 150 ⭐'}
+                {premiumBusy ? 'Открываю оплату…' : 'Подключить Premium · 150 Stars'}
               </button>
             )}
 
@@ -362,11 +358,11 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           onClick={onOpenAdmin}
           className="w-full py-2.5 px-3 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300 font-cinzel font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-900/60 active:scale-95 transition-all"
         >
-          <ShieldAlert className="w-4 h-4 text-purple-400" />
+          <RpgIcon kind="settings" size={17} className="text-purple-400" />
           <span>Панель Администратора</span>
         </button>
         </div>
       )}
-    </div>
+    </FolioPage>
   );
 };
