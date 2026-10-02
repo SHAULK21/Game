@@ -1,3 +1,4 @@
+import { getLanguage } from '../i18n/locale';
 import { getTelegramWebApp, getTelegramUser } from './telegram';
 import { readResetVersion } from './accountReset';
 
@@ -5,6 +6,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const tg = getTelegramWebApp();
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
+  headers.set('X-Game-Language', getLanguage());
   headers.set('X-Game-Reset-Version', String(readResetVersion(getTelegramUser().id)));
   if (tg?.initData) headers.set('X-Telegram-Init-Data', tg.initData);
 

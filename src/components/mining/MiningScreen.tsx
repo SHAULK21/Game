@@ -1,3 +1,4 @@
+import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import {PICKAXES,getPickaxeBonus,miningCritChance,miningYieldRange} from '../../utils/mining';
 import {ItemArtwork} from '../ui/ItemArtwork';
 import {RARITY_COLORS} from '../../data/gameData';
@@ -35,6 +36,7 @@ const formatRemaining = (ms: number) => {
 };
 
 export const MiningScreen: React.FC = () => {
+  useLocale();
   const {
     player,
     premium,
@@ -109,11 +111,11 @@ export const MiningScreen: React.FC = () => {
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       <div className="ui-panel rounded-2xl border p-3 space-y-2">
-        <h3 className="text-sm font-bold text-amber-200">⛏️ Кирка для шахты</h3>
-        <p className="text-[10px] text-slate-400">Отдельный слот. Бонусы работают при ручной добыче. Максимум жилы — редкий крит; Обычная добыча зависит от жилы.</p>
-        {player.equipped.pickaxe ? <div className="flex items-center gap-2 text-xs"><ItemArtwork item={player.equipped.pickaxe} size={36}/><div className="flex-1">{player.equipped.pickaxe.name}<div className="text-[10px] text-emerald-300">+{getPickaxeBonus(player.equipped.pickaxe)?.critBonus||0} п.п. крита · +{getPickaxeBonus(player.equipped.pickaxe)?.expBonus||0}% опыта</div></div><button disabled={isMining || player.inventory.length>=player.maxInventorySlots} onClick={()=>unequipItem('pickaxe')} className="text-slate-400 disabled:opacity-40">Снять</button></div> : <p className="text-xs text-slate-500">Кирка не экипирована</p>}
-        {player.inventory.filter(i=>i.type==='pickaxe').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={30}/><span className="flex-1">{item.name}</span><button disabled={isMining || player.miningLevel<(getPickaxeBonus(item)?.miningLevel||1)} onClick={()=>equipItem(item)} className="text-cyan-300">Экипировать</button></div>)}
-        <details><summary className="text-xs text-amber-300 cursor-pointer">Купить кирку · 5 редкостей</summary><div className="mt-2 space-y-2">{PICKAXES.map(offer=><div key={offer.id} className="rounded-lg bg-slate-950 p-2 flex items-center gap-2"><div className="flex-1"><div className={`text-xs ${RARITY_COLORS[offer.rarity].text}`}>{offer.name} · {RARITY_COLORS[offer.rarity].label}</div><div className="text-[10px] text-slate-400">Шахта {offer.miningLevel} ур. · +{offer.critBonus} п.п. крита · +{offer.expBonus}% опыта</div></div><button disabled={isMining || player.miningLevel<offer.miningLevel || player.gold<offer.price || player.inventory.length>=player.maxInventorySlots} onClick={()=>{const result=buyPickaxe(offer.id);setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-[10px] text-amber-300 disabled:opacity-40">{player.miningLevel<offer.miningLevel ? `С ${offer.miningLevel} ур.` : `${offer.price.toLocaleString()} 🪙`}</button></div>)}</div></details>
+        <h3 className="text-sm font-bold text-amber-200">{localize("⛏️ Кирка для шахты")}</h3>
+        <p className="text-[10px] text-slate-400">{localize("Отдельный слот. Бонусы работают при ручной добыче. Максимум жилы — редкий крит; Обычная добыча зависит от жилы.")}</p>
+        {player.equipped.pickaxe ? <div className="flex items-center gap-2 text-xs"><ItemArtwork item={player.equipped.pickaxe} size={36}/><div className="flex-1">{localize(player.equipped.pickaxe.name)}<div className="text-[10px] text-emerald-300">+{localize(getPickaxeBonus(player.equipped.pickaxe)?.critBonus||0)}{localize(" п.п. крита · +")}{localize(getPickaxeBonus(player.equipped.pickaxe)?.expBonus||0)}{localize("% опыта")}</div></div><button disabled={isMining || player.inventory.length>=player.maxInventorySlots} onClick={()=>unequipItem('pickaxe')} className="text-slate-400 disabled:opacity-40">{localize("Снять")}</button></div> : <p className="text-xs text-slate-500">{localize("Кирка не экипирована")}</p>}
+        {player.inventory.filter(i=>i.type==='pickaxe').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={30}/><span className="flex-1">{localize(item.name)}</span><button disabled={isMining || player.miningLevel<(getPickaxeBonus(item)?.miningLevel||1)} onClick={()=>equipItem(item)} className="text-cyan-300">{localize("Экипировать")}</button></div>)}
+        <details><summary className="text-xs text-amber-300 cursor-pointer">{localize("Купить кирку · 5 редкостей")}</summary><div className="mt-2 space-y-2">{PICKAXES.map(offer=><div key={offer.id} className="rounded-lg bg-slate-950 p-2 flex items-center gap-2"><div className="flex-1"><div className={`text-xs ${RARITY_COLORS[offer.rarity].text}`}>{localize(offer.name)} · {localize(RARITY_COLORS[offer.rarity].label)}</div><div className="text-[10px] text-slate-400">{localize("Шахта ")}{localize(offer.miningLevel)}{localize(" ур. · +")}{localize(offer.critBonus)}{localize(" п.п. крита · +")}{localize(offer.expBonus)}{localize("% опыта")}</div></div><button disabled={isMining || player.miningLevel<offer.miningLevel || player.gold<offer.price || player.inventory.length>=player.maxInventorySlots} onClick={()=>{const result=buyPickaxe(offer.id);setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-[10px] text-amber-300 disabled:opacity-40">{localize(player.miningLevel<offer.miningLevel ? `С ${offer.miningLevel} ур.` : `${offer.price.toLocaleString(intlLocale())} 🪙`)}</button></div>)}</div></details>
       </div>
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between gap-3">
@@ -122,30 +124,27 @@ export const MiningScreen: React.FC = () => {
               <Pickaxe className="w-6 h-6" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-cinzel text-base font-bold text-slate-100">Королевские Рудники</h2>
-              <div className="text-[11px] font-mono text-slate-400">
-                Горное дело: <span className="text-amber-300 font-bold">{player.miningLevel} ур.</span>
+              <h2 className="font-cinzel text-base font-bold text-slate-100">{localize("Королевские Рудники")}</h2>
+              <div className="text-[11px] font-mono text-slate-400">{localize("Горное дело: ")}<span className="text-amber-300 font-bold">{localize(player.miningLevel)}{localize(" ур.")}</span>
               </div>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-[10px] font-mono text-slate-400 block">Энергия шахты</span>
-            <span className="text-xs font-mono text-emerald-300 font-bold">{player.stamina}/{player.maxStamina}</span>
+            <span className="text-[10px] font-mono text-slate-400 block">{localize("Энергия шахты")}</span>
+            <span className="text-xs font-mono text-emerald-300 font-bold">{localize(player.stamina)}/{localize(player.maxStamina)}</span>
           </div>
         </div>
 
         <div className="mt-3">
           <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
-            <span>Опыт шахтёра: {currentLevelExp}/{currentLevelNeed}</span>
-            <span>{levelProgress}%</span>
+            <span>{localize("Опыт шахтёра: ")}{localize(currentLevelExp)}/{localize(currentLevelNeed)}</span>
+            <span>{localize(levelProgress)}%</span>
           </div>
           <div className="mt-1 h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
             <div className="h-full bg-gradient-to-r from-amber-700 to-yellow-400" style={{ width: `${levelProgress}%` }} />
           </div>
           {nextNode && (
-            <div className="mt-1 text-[9px] text-slate-500">
-              Следующая жила: <span className="text-slate-300">{nextNode.name}</span> с {nextNode.levelReq} ур.
-            </div>
+            <div className="mt-1 text-[9px] text-slate-500">{localize("Следующая жила: ")}<span className="text-slate-300">{localize(nextNode.name)}</span>{localize(" с ")}{localize(nextNode.levelReq)}{localize(" ур.")}</div>
           )}
         </div>
       </div>
@@ -153,8 +152,8 @@ export const MiningScreen: React.FC = () => {
       {/* Manual extraction first */}
       <div className="space-y-2">
         <div className="px-1">
-          <div className="text-xs font-mono text-amber-400 uppercase tracking-wider">Ручная добыча</div>
-          <div className="text-[10px] text-slate-500">Доступна всем игрокам. Кроме руды можно найти дополнительные материалы.</div>
+          <div className="text-xs font-mono text-amber-400 uppercase tracking-wider">{localize("Ручная добыча")}</div>
+          <div className="text-[10px] text-slate-500">{localize("Доступна всем игрокам. Кроме руды можно найти дополнительные материалы.")}</div>
         </div>
 
         {visibleNodes.map(node => {
@@ -169,11 +168,11 @@ export const MiningScreen: React.FC = () => {
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="font-cinzel text-xs font-bold text-slate-100">{node.name}</div>
-                      {locked && <span className="text-[8px] rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 font-bold text-rose-300">🔒 {node.levelReq} ур.</span>}
+                      <div className="font-cinzel text-xs font-bold text-slate-100">{localize(node.name)}</div>
+                      {locked && <span className="text-[8px] rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 font-bold text-rose-300">🔒 {localize(node.levelReq)}{localize(" ур.")}</span>}
                     </div>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      {node.oreYield} ×{node.baseYieldMin}–{node.baseYieldMax} ({node.baseYieldMax} — крит) · ⛏ {node.staminaCost} · крит {(miningCritChance(node.levelReq,player.equipped.pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed))*100).toFixed(2)}%
+                      {localize(node.oreYield)} ×{localize(node.baseYieldMin)}–{localize(node.baseYieldMax)} ({localize(node.baseYieldMax)}{localize(" — крит) · ⛏ ")}{localize(node.staminaCost)}{localize(" · крит ")}{localize((miningCritChance(node.levelReq,player.equipped.pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed))*100).toFixed(2))}%
                     </div>
                   </div>
                 </div>
@@ -182,7 +181,7 @@ export const MiningScreen: React.FC = () => {
                   disabled={locked || isMining || player.stamina < node.staminaCost}
                   className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 text-slate-950 font-bold text-xs active:scale-95"
                 >
-                  {locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : player.stamina < node.staminaCost ? `Нужно ${node.staminaCost} энергии` : 'Добывать'}
+                  {localize(locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : player.stamina < node.staminaCost ? `Нужно ${node.staminaCost} энергии` : 'Добывать')}
                 </button>
               </div>
 
@@ -192,7 +191,7 @@ export const MiningScreen: React.FC = () => {
                   <div className="flex flex-wrap gap-1">
                     {(NODE_MATERIALS[node.id] || []).map(material => (
                       <span key={material} className="text-[9px] px-1.5 py-0.5 rounded border border-purple-500/20 bg-purple-950/20 text-purple-200">
-                        <ItemArtwork item={{name:material,type:'material',rarity:'common',icon:'💎'}} size={18} className="inline-block mr-1 align-middle" />{material}
+                        <ItemArtwork item={{name:material,type:'material',rarity:'common',icon:'💎'}} size={18} className="inline-block mr-1 align-middle" />{localize(material)}
                       </span>
                     ))}
                   </div>
@@ -206,7 +205,7 @@ export const MiningScreen: React.FC = () => {
       {miningLog.length > 0 && (
         <div className="rounded-xl border border-slate-800 bg-[#070912] p-2.5 space-y-1 font-mono text-[11px]">
           {miningLog.map((log, index) => (
-            <div key={index} className={log.startsWith('❌') ? 'text-rose-300' : 'text-slate-300'}>{log}</div>
+            <div key={index} className={log.startsWith('❌') ? 'text-rose-300' : 'text-slate-300'}>{localize(log)}</div>
           ))}
         </div>
       )}
@@ -216,11 +215,11 @@ export const MiningScreen: React.FC = () => {
         <div className="flex items-center gap-2 mb-3">
           <Clock3 className="w-4 h-4 text-[#d5ba89]" />
           <div>
-            <div className="text-xs font-bold text-cyan-200">Офлайн-экспедиция</div>
+            <div className="text-xs font-bold text-cyan-200">{localize("Офлайн-экспедиция")}</div>
             <div className="text-[10px] text-slate-500">
-              {premium.active
+              {localize(premium.active
                 ? 'Premium добывает ресурсы офлайн автоматически — запускать экспедицию не нужно.'
-                : 'Для обычного аккаунта экспедицию нужно запустить перед выходом из игры.'}
+                : 'Для обычного аккаунта экспедицию нужно запустить перед выходом из игры.')}
             </div>
           </div>
         </div>
@@ -229,13 +228,11 @@ export const MiningScreen: React.FC = () => {
           <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-700 bg-cyan-950/10'}`}>
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="text-xs font-bold text-slate-100">Экспедиция на {expedition.durationHours} ч.</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.
-                </div>
+                <div className="text-xs font-bold text-slate-100">{localize("Экспедиция на ")}{localize(expedition.durationHours)}{localize(" ч.")}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{localize("Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.")}</div>
               </div>
               <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-[#d5ba89]'}`}>
-                {expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs)}
+                {localize(expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs))}
               </div>
             </div>
 
@@ -243,7 +240,7 @@ export const MiningScreen: React.FC = () => {
               <div className="mt-2 flex flex-wrap gap-1">
                 {expedition.rewards.map(reward => (
                   <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
-                    {reward.icon} {reward.name} ×{reward.count}
+                    {localize(reward.icon)} {localize(reward.name)} ×{localize(reward.count)}
                   </span>
                 ))}
               </div>
@@ -251,8 +248,7 @@ export const MiningScreen: React.FC = () => {
 
             {expeditionReady ? (
               <button onClick={handleClaim} className="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2">
-                <PackageCheck className="w-4 h-4" /> Забрать добычу
-              </button>
+                <PackageCheck className="w-4 h-4" />{localize(" Забрать добычу")}</button>
             ) : (
               <button
                 onClick={() => {
@@ -260,16 +256,14 @@ export const MiningScreen: React.FC = () => {
                   setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
                 }}
                 className="mt-3 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs"
-              >
-                Уйти с шахты
-              </button>
+              >{localize("Уйти с шахты")}</button>
             )}
           </div>
         ) : premium.active ? (
           <div className="rounded-xl border border-yellow-500/25 bg-yellow-950/10 p-3 text-center">
             <Crown className="w-5 h-5 mx-auto text-yellow-300 mb-1" />
-            <div className="text-xs font-bold text-yellow-200">Автоматическая Premium-добыча активна</div>
-            <div className="text-[10px] text-slate-500 mt-1">Просто закройте игру — ресурсы будут рассчитаны при возвращении.</div>
+            <div className="text-xs font-bold text-yellow-200">{localize("Автоматическая Premium-добыча активна")}</div>
+            <div className="text-[10px] text-slate-500 mt-1">{localize("Просто закройте игру — ресурсы будут рассчитаны при возвращении.")}</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2">
@@ -284,12 +278,11 @@ export const MiningScreen: React.FC = () => {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs font-bold text-slate-100">{option.title}</div>
-                    <div className="text-[10px] text-slate-500">{option.description}</div>
+                    <div className="text-xs font-bold text-slate-100">{localize(option.title)}</div>
+                    <div className="text-[10px] text-slate-500">{localize(option.description)}</div>
                   </div>
                   <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] font-mono text-xs font-bold">
-                    {option.hours} ч.
-                  </span>
+                    {localize(option.hours)}{localize(" ч.")}</span>
                 </div>
               </button>
             ))}

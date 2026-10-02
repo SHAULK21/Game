@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -12,6 +13,7 @@ interface TopHeaderProps {
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
+  useLocale();
   const { player, combatStats, meditateOrRefillEnergy, premium } = useGame();
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
   const [showEnergyModal, setShowEnergyModal] = useState(false);
@@ -47,7 +49,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
                   referrerPolicy="no-referrer"
                 />
                 <span className="absolute -bottom-1 -right-1 bg-[#302c24] border border-[#9d8459] text-[#d5ba89] text-[10px] font-mono font-bold px-1 rounded-sm leading-tight">
-                  {player.level}
+                  {localize(player.level)}
                 </span>
               </div>
 
@@ -64,7 +66,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
                   )}
                 </div>
 
-                <span className="text-[11px] text-slate-400">{CLASSES[player.classId].name} · Ур. {player.level}</span>
+                <span className="text-[11px] text-slate-400">{localize(CLASSES[player.classId].name)}{localize(" · Ур. ")}{localize(player.level)}</span>
                 {/* EXP Bar */}
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
@@ -74,7 +76,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
                     />
                   </div>
                   <span className="text-[9px] font-mono text-[#d5ba89]">
-                    {expPct}%
+                    {localize(expPct)}%
                   </span>
                 </div>
               </div>
@@ -86,11 +88,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               <button
                 onClick={() => setShowEnergyModal(true)}
                 className="flex items-center gap-1 min-h-11 px-2 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/40 rounded text-amber-300 active:scale-95 transition-transform"
-                title="Энергия для боя и переходов"
+                title={localize("Энергия для боя и переходов")}
               >
                 <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                 <span className="text-xs font-mono font-bold">
-                  {player.energy ?? 100}/{player.maxEnergy ?? 100}
+                  {localize(player.energy ?? 100)}/{localize(player.maxEnergy ?? 100)}
                 </span>
                 <Plus className="w-3 h-3 text-amber-300 bg-amber-600/40 rounded-full" />
               </button>
@@ -98,7 +100,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               {/* Sound Toggle */}
               <button
                 onClick={handleToggleSound}
-                aria-label="Переключить звук"
+                aria-label={localize("Переключить звук")}
                 className="w-11 h-11 rounded-lg flex items-center justify-center text-slate-300 hover:bg-white/5 active:scale-95 transition-transform"
               >
                 {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-[#d5ba89]" />}
@@ -112,13 +114,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
             {/* Gold */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-amber-500/20 text-amber-300">
               <RpgIcon kind="gold" size={15} className="text-amber-300" />
-              <span className="font-bold">{player.gold >= 10000 ? `${(player.gold / 1000).toFixed(1)}k` : player.gold}</span>
+              <span className="font-bold">{localize(player.gold >= 10000 ? `${(player.gold / 1000).toFixed(1)}k` : player.gold)}</span>
             </div>
 
             {/* Silver */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-slate-400/20 text-slate-300">
               <RpgIcon kind="silver" size={15} className="text-slate-200" />
-              <span className="font-bold">{player.silver ?? 150}</span>
+              <span className="font-bold">{localize(player.silver ?? 150)}</span>
             </div>
 
           </div>
@@ -139,17 +141,15 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
 
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />
-              <h3 className="font-cinzel text-lg font-bold text-amber-300">Энергия странника</h3>
+              <h3 className="font-cinzel text-lg font-bold text-amber-300">{localize("Энергия странника")}</h3>
             </div>
 
-            <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-              Энергия расходуется на вступление в бой и переходы. Бой стоит 2 ⚡. Естественное восстановление: +1 ⚡ каждые 120 секунд.
-            </p>
+            <p className="text-xs text-slate-300 mb-4 leading-relaxed">{localize("Энергия расходуется на вступление в бой и переходы. Бой стоит 2 ⚡. Естественное восстановление: +1 ⚡ каждые 120 секунд.")}</p>
 
             <div className="mb-4 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
               <div className="flex justify-between text-xs font-mono mb-1.5">
-                <span className="text-slate-400">Текущий запас:</span>
-                <span className="text-amber-300 font-bold">{player.energy ?? 100} / {player.maxEnergy ?? 100} ⚡</span>
+                <span className="text-slate-400">{localize("Текущий запас:")}</span>
+                <span className="text-amber-300 font-bold">{localize(player.energy ?? 100)} / {localize(player.maxEnergy ?? 100)} ⚡</span>
               </div>
               <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
                 <div
@@ -169,9 +169,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               >
                 <div className="flex items-center gap-2">
                   <span>🧘</span>
-                  <span>Медитация · бесплатно</span>
+                  <span>{localize("Медитация · бесплатно")}</span>
                 </div>
-                <span className="text-amber-300 font-mono">+10 ⚡ · 1 раз / 30 мин</span>
+                <span className="text-amber-300 font-mono">{localize("+10 ⚡ · 1 раз / 30 мин")}</span>
               </button>
 
               <button
@@ -184,9 +184,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               >
                 <div className="flex items-center gap-2">
                   <span>🧪</span>
-                  <span>Купить Эликсир Бодрости</span>
+                  <span>{localize("Купить Эликсир Бодрости")}</span>
                 </div>
-                <span className="text-slate-200 font-mono">+30 ⚡ ({elixirPrice} 🥈){premium.active ? ' · −50% Premium' : ''}</span>
+                <span className="text-slate-200 font-mono">+30 ⚡ ({localize(elixirPrice)} 🥈){localize(premium.active ? ' · −50% Premium' : '')}</span>
               </button>
             </div>
           </div>

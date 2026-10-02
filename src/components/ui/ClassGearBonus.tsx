@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React from 'react';
 import type { CharacterClassId, GameItem } from '../../types/game';
 import { CLASS_EQUIPMENT, getClassGearBonus } from '../../utils/classEquipment';
@@ -15,11 +16,12 @@ export const ClassGearBonus: React.FC<{
   characterClass: CharacterClassId;
   compact?: boolean;
 }> = ({ item, characterClass, compact }) => {
+  useLocale();
   const bonus = getClassGearBonus(item);
   if (!bonus) return null;
   const matches = bonus.targetClass === characterClass;
   return <div className={`${compact ? 'text-[8px] mt-1' : 'text-[10px] rounded-lg border border-slate-700 p-2 mt-2'} ${matches ? 'text-emerald-300' : 'text-slate-400'}`}>
-    <div>✦ +{bonus.value}{PERCENT.has(bonus.stat) ? '%' : ''} {LABELS[bonus.stat]} · {CLASS_EQUIPMENT[bonus.targetClass].label}</div>
-    <div>{matches ? item.isEquipped ? 'Бонус активен' : 'Активируется при экипировке' : 'Бонус неактивен: другой класс'}</div>
+    <div>✦ +{localize(bonus.value)}{localize(PERCENT.has(bonus.stat) ? '%' : '')} {localize(LABELS[bonus.stat])} · {localize(CLASS_EQUIPMENT[bonus.targetClass].label)}</div>
+    <div>{localize(matches ? item.isEquipped ? 'Бонус активен' : 'Активируется при экипировке' : 'Бонус неактивен: другой класс')}</div>
   </div>;
 };

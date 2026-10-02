@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { apiRequest } from '../../../../utils/api';
@@ -7,6 +8,7 @@ import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';
 type Row = { telegram_id: number; character_name?: string; level: number; arena_rating: number };
 
 export const LeaderboardScreen: React.FC = () => {
+  useLocale();
   const { player } = useGame();
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState('');
@@ -37,22 +39,22 @@ export const LeaderboardScreen: React.FC = () => {
       <BestiaryPanel className="rounded-xl p-3">
         <div className="flex items-center gap-3">
           <RpgIcon kind="arena" size={30} className="text-yellow-300" />
-          <div><div className="text-[11px] uppercase tracking-widest text-yellow-400 font-mono">Аэтельгард</div><h2 className="font-cinzel text-lg font-bold">Рейтинг игроков</h2></div>
+          <div><div className="text-[11px] uppercase tracking-widest text-yellow-400 font-mono">{localize("Аэтельгард")}</div><h2 className="font-cinzel text-lg font-bold">{localize("Рейтинг игроков")}</h2></div>
         </div>
       </BestiaryPanel>
-      {error && <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-200">{error}</div>}
-      <RpgButton variant="secondary" icon="refresh" onClick={load} className="w-full">Обновить</RpgButton>
+      {error && <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-200">{localize(error)}</div>}
+      <RpgButton variant="secondary" icon="refresh" onClick={load} className="w-full">{localize("Обновить")}</RpgButton>
       <div className="space-y-2">
         {merged.slice(0, 50).map((row, i) => {
           const isMe = me && String(row.telegram_id) === String(me.telegram_id);
           return <BestiaryPanel key={String(row.telegram_id)} className={`flex items-center gap-3 p-3 ${isMe ? 'border-cyan-400/50 bg-cyan-950/20' : ''}`}>
-            <div className="w-8 text-center font-bold text-slate-500">{i + 1}</div>
+            <div className="w-8 text-center font-bold text-slate-500">{localize(i + 1)}</div>
             <RpgIcon kind={i === 0 ? 'crown' : 'arena'} size={20} className={i === 0 ? 'text-yellow-300' : 'text-slate-600'} />
-            <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.character_name || 'Игрок'}</div><div className="text-[11px] text-slate-500">Уровень {row.level} · Арена {row.arena_rating}</div></div>
-            {isMe && <span className="text-[11px] text-[#d5ba89] font-bold">ВЫ</span>}
+            <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.character_name || localize('Игрок')}</div><div className="text-[11px] text-slate-500">{localize("Уровень ")}{localize(row.level)}{localize(" · Арена ")}{localize(row.arena_rating)}</div></div>
+            {isMe && <span className="text-[11px] text-[#d5ba89] font-bold">{localize("ВЫ")}</span>}
           </BestiaryPanel>;
         })}
-        {!merged.length && !error && <div className="text-center text-xs text-slate-600 p-8">Пока нет игроков в рейтинге.</div>}
+        {!merged.length && !error && <div className="text-center text-xs text-slate-600 p-8">{localize("Пока нет игроков в рейтинге.")}</div>}
       </div>
     </FolioPage>
   );

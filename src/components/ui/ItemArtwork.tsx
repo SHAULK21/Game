@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useEffect, useState } from 'react';
 import { GameItem } from '../../types/game';
 import { RpgIcon, getRpgIconKind } from './RpgIcon';
@@ -18,6 +19,7 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
   className = '',
   fallbackClassName = ''
 }) => {
+  useLocale();
   const primary = getItemArtworkPath(item);
   const backup = item.type === 'ore' || item.type === 'material'
     ? getResourceVectorArtwork(item.name, item.type) : getItemSpritePath(item);
@@ -33,7 +35,7 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
     return (
       <img
         src={src}
-        alt={item.name}
+        alt={localize(item.name)}
         width={size}
         height={size}
         loading="lazy"
@@ -48,9 +50,9 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
     <div
       className={`relative rounded-lg bg-slate-950/80 border border-slate-700 flex items-center justify-center ${fallbackClassName}`}
       style={{ width: size, height: size }}
-      title={item.name}
+      title={localize(item.name)}
     >
-      <span className="text-xl leading-none">{item.icon || '📦'}</span>
+      <span className="text-xl leading-none">{localize(item.icon || '📦')}</span>
       <span className="absolute -bottom-1 -right-1 rounded bg-slate-950 border border-slate-700 p-0.5">
         <RpgIcon kind={getRpgIconKind(item)} size={Math.max(10, Math.round(size * 0.3))} className="text-slate-400" />
       </span>

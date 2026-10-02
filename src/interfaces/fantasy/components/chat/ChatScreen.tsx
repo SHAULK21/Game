@@ -1,3 +1,4 @@
+import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { apiRequest } from '../../../../utils/api';
@@ -30,6 +31,7 @@ const normalizeMessages = (value: unknown): GlobalMessage[] => {
 };
 
 export const ChatScreen: React.FC = () => {
+  useLocale();
   const { player } = useGame();
   const [messages, setMessages] = useState<GlobalMessage[]>([]);
   const [input, setInput] = useState('');
@@ -109,17 +111,16 @@ export const ChatScreen: React.FC = () => {
   return (
     <FolioPage className="flex min-h-[calc(100dvh-120px)] flex-col gap-3 pt-3">
       <BestiaryPanel className="p-3">
-        <div className="text-[11px] uppercase tracking-widest text-purple-300">Социальный центр</div>
+        <div className="text-[11px] uppercase tracking-widest text-purple-300">{localize("Социальный центр")}</div>
         <div className="flex items-center justify-between mt-1">
-          <h2 className="font-cinzel text-lg font-bold">Общий чат</h2>
-          <button aria-label="Обновить чат" onClick={() => void load(true)} disabled={loading} className="rpg-icon-button disabled:opacity-50">
+          <h2 className="font-cinzel text-lg font-bold">{localize("Общий чат")}</h2>
+          <button aria-label={localize("Обновить чат")} onClick={() => void load(true)} disabled={loading} className="rpg-icon-button disabled:opacity-50">
             <RpgIcon kind="refresh" size={18} className={loading ? 'animate-spin' : 'text-slate-400'} />
           </button>
         </div>
         <div className="mt-1 flex items-center justify-between gap-2 text-xs">
-          <span className="text-slate-500">Серверный канал · сообщения видят все игроки</span>
-          <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-2 py-0.5 font-mono font-bold text-emerald-300">
-            ● Онлайн: {onlinePlayers}
+          <span className="text-slate-500">{localize("Серверный канал · сообщения видят все игроки")}</span>
+          <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-2 py-0.5 font-mono font-bold text-emerald-300">{localize("● Онлайн: ")}{localize(onlinePlayers)}
           </span>
         </div>
       </BestiaryPanel>
@@ -129,11 +130,9 @@ export const ChatScreen: React.FC = () => {
           <div className="flex items-start gap-2">
             <span aria-hidden="true" className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-rose-400 font-bold">!</span>
             <div className="min-w-0 flex-1">
-              <div className="font-bold">Не удалось подключиться к чату</div>
-              <div className="mt-1 break-words">{error}</div>
-              <button onClick={() => void load(true)} className="mt-2 min-h-11 rounded-lg border border-rose-500/40 bg-rose-950/50 px-2.5 font-bold">
-                Повторить
-              </button>
+              <div className="font-bold">{localize("Не удалось подключиться к чату")}</div>
+              <div className="mt-1 break-words">{localize(error)}</div>
+              <button onClick={() => void load(true)} className="mt-2 min-h-11 rounded-lg border border-rose-500/40 bg-rose-950/50 px-2.5 font-bold">{localize("Повторить")}</button>
             </div>
           </div>
         </div>
@@ -156,14 +155,14 @@ export const ChatScreen: React.FC = () => {
                   {message.is_premium && <RpgIcon kind="crown" size={13} className="mr-1 inline-flex text-amber-300" title="Premium" />}
                   {message.display_name}
                 </span>
-                <span className="text-[11px] text-slate-600">{time}</span>
+                <span className="text-[11px] text-slate-600">{localize(time)}</span>
               </div>
               <div className="mt-1 break-words text-xs text-slate-300">{message.text}</div>
             </div>
           );
         })}
         {!renderedMessages.length && !loading && !error && (
-          <div className="text-center text-xs text-slate-600 py-12">Чат пуст. Напишите первым.</div>
+          <div className="text-center text-xs text-slate-600 py-12">{localize("Чат пуст. Напишите первым.")}</div>
         )}
       </div>
 
@@ -172,10 +171,10 @@ export const ChatScreen: React.FC = () => {
           value={input}
           onChange={e => setInput(e.target.value)}
           maxLength={500}
-          placeholder="Сообщение всему Аэтельгарду…"
+          placeholder={localize("Сообщение всему Аэтельгарду…")}
           className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm outline-none focus:border-purple-500"
         />
-        <RpgButton type="submit" variant="primary" icon="quest" disabled={sending || !input.trim()} className="min-h-11 px-3 disabled:opacity-40" aria-label="Отправить сообщение" />
+        <RpgButton type="submit" variant="primary" icon="quest" disabled={sending || !input.trim()} className="min-h-11 px-3 disabled:opacity-40" aria-label={localize("Отправить сообщение")} />
       </form>
     </FolioPage>
   );

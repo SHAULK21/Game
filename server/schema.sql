@@ -280,3 +280,6 @@ CREATE TABLE IF NOT EXISTS balance_activity (
   day DATE NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')::date,
   PRIMARY KEY(telegram_id,day)
 );
+
+-- UI language is independent of notifications opt-in and character resets.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_language TEXT CHECK (preferred_language IN ('ru', 'uk'));
