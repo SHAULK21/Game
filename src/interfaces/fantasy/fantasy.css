@@ -539,3 +539,72 @@ html[data-interface="fantasy"] .pet-codex-feedback { padding:12px; border:2px do
 }
 
 html[data-interface="fantasy"] .pet-codex-card.is-active .pet-artwork { aspect-ratio:215/164; }
+
+/* Literal artwork fragments from the hero reference, with live values on top. */
+html[data-interface="fantasy"] .hero-reference-codex { position:relative; isolation:isolate; max-width:1280px; padding:20px 18.5% 100px; min-height:930px; }
+html[data-interface="fantasy"] .hero-reference-art { display:inline-flex; overflow:hidden; width:30px; height:30px; flex-shrink:0; }
+html[data-interface="fantasy"] .hero-reference-art svg { display:block; }
+html[data-interface="fantasy"] .hero-reference-backdrop { position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+html[data-interface="fantasy"] .hero-reference-codex .codex-paper { position:relative; isolation:isolate; border:3px double #9c784d; border-radius:3px; background:#dbc196; box-shadow:0 2px 4px #4a2d1966; }
+html[data-interface="fantasy"] .hero-paper-surface { position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-sheet { padding:12px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-identity { grid-template-columns:26% minmax(0,1fr) 18%; gap:14px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-portrait { min-height:0; aspect-ratio:225/289; border:0; transform:none; box-shadow:none; background:#2b2117; align-self:start; }
+html[data-interface="fantasy"] .hero-reference-portrait { position:absolute; inset:0; width:100%; height:100%; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-rank { left:16%; bottom:5%; width:49%; padding:5px 2px; text-align:center; font-size:clamp(11px,1.3vw,17px); border:2px double #ae8a4c; background:#1d1c19; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-biography { padding-top:0; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading { padding:0 28px 9px; border:0; border-bottom:1px solid #94764e; background:none; box-shadow:none; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading h1 { font:700 clamp(18px,2.2vw,29px) Georgia,serif; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { right:0; top:0; transform:none; width:28px; height:28px; min-width:28px; border:2px double #9b7445; color:#3f2a1b; background:#ceb181; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-class-heading { margin-top:12px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-biography h2 { font-size:clamp(20px,2.3vw,30px); }
+html[data-interface="fantasy"] .hero-reference-castle { width:100%; height:100%; align-self:stretch; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-counters { margin-top:9px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-counters button { display:grid; grid-template-columns:28px minmax(0,1fr); padding:7px 4px; min-height:60px; gap:3px; border:1px solid #a07f54; background:#ead5af55; box-shadow:none; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-counters button span:last-child { grid-column:2; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-passive { margin-top:4px; font-size:11px; }
+html[data-interface="fantasy"] .hero-reference-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; margin:0!important; }
+html[data-interface="fantasy"] .hero-reference-tabs button { position:relative; isolation:isolate; min-height:48px; padding:5px; font:700 clamp(10px,1.4vw,16px) Georgia,serif; color:#d8c098; }
+html[data-interface="fantasy"] .hero-reference-tabs .hero-reference-art { position:absolute; inset:0; width:100%; height:100%; z-index:-1; }
+html[data-interface="fantasy"] .hero-reference-tabs button > span:last-child { display:block; margin:auto; width:94%; padding:3px 0; background:#342217; }
+html[data-interface="fantasy"] .hero-reference-tabs button[aria-selected="true"] > span:last-child { color:#ead687; background:#29371f; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-grid { gap:5px 18px; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-card { min-height:52px; padding:5px; border:1px solid #a17f52; background:#e7d2ac44; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-summary { font-size:11px; }
+html[data-interface="fantasy"] .hero-attribute-icon { width:34px; height:34px; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-card button { border:0; border-radius:0; background:none; width:36px; height:36px; }
+html[data-interface="fantasy"] .hero-plus-icon { width:36px; height:36px; }
+html[data-interface="fantasy"] .hero-stat-icon { width:26px; height:26px; }
+html[data-interface="fantasy"] .hero-reference-codex .codex-detail summary { display:flex; align-items:center; gap:8px; }
+html[data-interface="fantasy"] .hero-reference-codex .codex-detail summary::before { content:'▸'; font-size:13px; }
+html[data-interface="fantasy"] .hero-reference-codex .codex-detail[open] summary::before { content:'▾'; }
+html[data-interface="fantasy"] .hero-reference-codex .codex-stat { padding:5px 8px; }
+@media (max-width:760px) {
+  html[data-interface="fantasy"] .hero-reference-codex { padding:10px 3% 96px; min-height:0; }
+  html[data-interface="fantasy"] .hero-reference-codex .hero-identity { grid-template-columns:28% minmax(0,1fr); gap:9px; }
+  html[data-interface="fantasy"] .hero-reference-castle { display:none; }
+  html[data-interface="fantasy"] .hero-reference-codex .hero-counters button { display:flex; padding:5px 2px; min-height:70px; }
+  html[data-interface="fantasy"] .hero-reference-codex .hero-counters button span:last-child { font-size:9px; }
+  html[data-interface="fantasy"] .hero-reference-codex .attribute-grid { gap:5px; }
+  html[data-interface="fantasy"] .hero-reference-codex .attribute-card { flex-wrap:wrap; gap:4px; }
+  html[data-interface="fantasy"] .hero-reference-codex .attribute-summary { font-size:10px; }
+  html[data-interface="fantasy"] .hero-reference-codex .hero-rank { font-size:10px; padding:2px; }
+}
+
+html[data-interface="fantasy"] .hero-reference-clean-page { position:absolute; inset:0 18.5% 70px; z-index:-1; pointer-events:none; background:#d9c096; }
+html[data-interface="fantasy"] .hero-reference-clean-page > .hero-reference-art { width:100%; height:100%; }
+@media(max-width:760px) { html[data-interface="fantasy"] .hero-reference-clean-page { inset:0 3% 70px; } }
+
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading { position:static; min-height:67px; isolation:isolate; }
+html[data-interface="fantasy"] .hero-title-art { position:absolute; left:29%; right:20%; top:7px; width:auto; height:67px; z-index:-1; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > div { width:82%; padding:2px; background:#d7be95; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { top:8px; right:8px; width:39px; height:43px; border:0; background:none; }
+html[data-interface="fantasy"] .hero-close-art { width:39px; height:43px; }
+@media(max-width:760px) {
+  html[data-interface="fantasy"] .hero-title-art { left:31%; right:4%; }
+  html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { width:28px; height:30px; right:3px; }
+  html[data-interface="fantasy"] .hero-close-art { width:28px; height:30px; }
+}
+
+html[data-interface="fantasy"] .class-portrait-icon { border:0; border-radius:0; box-shadow:none; background:none; }
+html[data-interface="fantasy"] .registration-class-portrait { width:52px; height:52px; }

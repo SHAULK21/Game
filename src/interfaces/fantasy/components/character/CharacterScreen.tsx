@@ -1,4 +1,4 @@
-import { ClassPortraitIcon } from '../ui/ClassPortraitIcon';
+import { HeroReferenceArt } from '../ui/HeroReferenceArt';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
@@ -10,7 +10,7 @@ import { useNavigation } from '../../../../context/NavigationContext';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
-import { BestiaryPanel, CodexTabs, FolioPage, ItemSlot, OrnamentDivider, ProgressBar, SectionTitle, StatRow } from '../ui/BestiaryUI';
+import { BestiaryPanel, FolioPage, ItemSlot, OrnamentDivider, ProgressBar, SectionTitle, StatRow } from '../ui/BestiaryUI';
 
 interface CharacterScreenProps {
   onClose?: () => void;
@@ -53,46 +53,51 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
     { id: 'pet', label: 'Спутник' },
   ];
 
-  return <FolioPage className="hero-codex space-y-3 pt-3">
-    <div className="hero-codex-heading flex items-center justify-between gap-3 px-1">
-      <div><div className="text-[11px] uppercase tracking-[.16em] text-[#918c82]">{localize("Лист героя")}</div><h1 className="section-title text-lg">{localize("Кодекс персонажа")}</h1></div>
-      {onClose && <button onClick={onClose} aria-label={localize("Закрыть лист персонажа")} className="rpg-icon-button"><span className="text-lg">×</span></button>}
-    </div>
+  return <FolioPage className="hero-codex hero-reference-codex space-y-3 pt-3">
+    <HeroReferenceArt region="frame" stretch className="hero-reference-backdrop"/>
+    <div className="hero-reference-clean-page" aria-hidden="true"><HeroReferenceArt region="paper" stretch/></div>
 
-    <BestiaryPanel className="codex-paper hero-sheet">
+    <BestiaryPanel className="codex-paper hero-sheet"><HeroReferenceArt region="paper" stretch className="hero-paper-surface"/>
       <div className="hero-identity">
-        <div className="hero-portrait"><Portrait src={heroImage} alt={localize(classDef.name)} fallback="character" className="h-full w-full object-cover object-top"/><span className="hero-rank">{localize("Ранг ")}{localize(player.ascension?.rank || 'E')}</span></div>
+        <div className="hero-portrait">{player.classId === 'necromancer' ? <HeroReferenceArt region="necromancer" className="hero-reference-portrait"/> : <Portrait src={heroImage} alt={localize(classDef.name)} fallback="character" className="h-full w-full object-cover object-top"/>}<span className="hero-rank">{localize("Ранг ")}{localize(player.ascension?.rank || 'E')}</span></div>
         <div className="hero-biography">
-          <div className="hero-class-heading"><ClassPortraitIcon classId={player.classId} /><span className="codex-eyebrow">{localize(classDef.role)}</span></div>
+    <div className="hero-codex-heading flex items-center justify-between gap-3 px-1"><HeroReferenceArt region="title" stretch className="hero-title-art"/>
+      <div><div className="text-[11px] uppercase tracking-[.16em] text-[#918c82]">{localize("Лист героя")}</div><h1 className="section-title text-lg">{localize("Кодекс персонажа")}</h1></div>
+      {onClose && <button onClick={onClose} aria-label={localize("Закрыть лист персонажа")} className="rpg-icon-button"><HeroReferenceArt region="close" className="hero-close-art"/></button>}
+    </div>
+          <div className="hero-class-heading"><span className="codex-eyebrow">{localize(classDef.role)}</span></div>
           <h2>{player.name}</h2>
           <p>{localize(classDef.name)}{localize(" · Уровень ")}{localize(player.level)}{localize(premium.active && ' · Premium')}</p>
           <ProgressBar value={player.exp} max={player.nextExp} tone="energy" label={`До уровня ${player.level + 1}`} className="mt-3"/>
           <div className="hero-counters">
-            <button onClick={() => setActiveTab('stats')}><RpgIcon kind="attack" size={22}/><strong>{localize(player.statPoints)}</strong><span>{localize("Атрибуты")}</span></button>
-            <button onClick={() => setActiveTab('talents')}><RpgIcon kind="quest" size={22}/><strong>{localize(player.talentPoints)}</strong><span>{localize("Таланты")}</span></button>
-            <button onClick={() => navigate('mine')}><RpgIcon kind="forge" size={22}/><strong>{localize(player.miningLevel)}/{localize(player.alchemyLevel)}</strong><span>{localize("Профессии")}</span></button>
+            <button onClick={() => setActiveTab('stats')}><HeroReferenceArt region="strength"/><strong>{localize(player.statPoints)}</strong><span>{localize("Атрибуты")}</span></button>
+            <button onClick={() => setActiveTab('talents')}><HeroReferenceArt region="intelligence"/><strong>{localize(player.talentPoints)}</strong><span>{localize("Таланты")}</span></button>
+            <button onClick={() => navigate('mine')}><HeroReferenceArt region="critical"/><strong>{localize(player.miningLevel)}/{localize(player.alchemyLevel)}</strong><span>{localize("Профессии")}</span></button>
           </div>
         </div>
+        <HeroReferenceArt region="castle" className="hero-reference-castle"/>
       </div>
       <details className="codex-detail hero-passive"><summary>{localize("Класс и пассивка · ")}{localize(classDef.passive.name)}</summary><p>{localize(classDef.description)}</p><p>{localize(classDef.passive.description)}</p></details>
     </BestiaryPanel>
 
-    <CodexTabs tabs={tabs} active={activeTab} onChange={id => setActiveTab(id as CharacterTab)} />
+    <div className="hero-reference-tabs" role="tablist">{tabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={activeTab===tab.id} onClick={()=>setActiveTab(tab.id as CharacterTab)}>
+      <HeroReferenceArt region={activeTab===tab.id?'tabActive':'tab'} stretch/><span>{localize(tab.label)}</span>
+    </button>)}</div>
 
     {activeTab === 'stats' && <div className="space-y-3">
-      <BestiaryPanel className="codex-paper hero-attributes p-3">
+      <BestiaryPanel className="codex-paper hero-attributes p-3"><HeroReferenceArt region="paper" stretch className="hero-paper-surface"/>
         <div className="mb-2 flex items-center justify-between gap-2"><SectionTitle>{localize("Основные атрибуты")}</SectionTitle><span className="text-[11px] font-mono text-[#d1ad67]">{localize("Свободно: ")}{localize(player.statPoints)}</span></div>
         <OrnamentDivider />
         <div className="attribute-grid mt-2">
           {attributes.map(attribute => <div key={attribute.key} className="attribute-card">
-            <RpgIcon kind={attribute.icon} size={19} className="text-[#a48b60]" />
+            <HeroReferenceArt region={attribute.key} className="hero-attribute-icon"/>
             <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-[#d8d1c4]">{localize(attribute.label)}</div><div className="attribute-summary">{localize(attribute.summary)}</div></div>
             <strong className="font-mono text-sm text-[#e5ddd0]">{localize(player.attributes[attribute.key])}</strong>
-            <button disabled={player.statPoints <= 0} aria-label={localize(`Повысить: ${attribute.label}`)} onClick={() => allocateAttribute(attribute.key)} className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[#71603e] bg-[#282218] text-lg font-bold text-[#d1ad67] disabled:opacity-35">+</button>
+            <button disabled={player.statPoints <= 0} aria-label={localize(`Повысить: ${attribute.label}`)} onClick={() => allocateAttribute(attribute.key)} className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[#71603e] bg-[#282218] text-lg font-bold text-[#d1ad67] disabled:opacity-35"><HeroReferenceArt region="plus" className="hero-plus-icon"/></button>
           </div>)}
         </div>
       </BestiaryPanel>
-      <BestiaryPanel className="codex-paper p-3"><SectionTitle eyebrow="Производные значения">{localize("Боевые показатели")}</SectionTitle><div className="mt-2"><HeroStats stats={combatStats} /></div></BestiaryPanel>
+      <BestiaryPanel className="codex-paper hero-combat-figures p-3"><HeroReferenceArt region="paper" stretch className="hero-paper-surface"/><SectionTitle>{localize("Боевые показатели")}</SectionTitle><div className="mt-2"><HeroStats stats={combatStats} /></div></BestiaryPanel>
     </div>}
 
     {activeTab === 'equipment' && <BestiaryPanel className="codex-paper space-y-3 p-3">
