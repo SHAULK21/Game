@@ -144,7 +144,7 @@ test('fantasy artwork uses new sprites and recovers from image failures; modern 
     await w.act(async () => image('icon').dispatchEvent(new w.Event('error')));
     assert(w.document.querySelector('#icon svg'));
     assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
-    assert.equal(w.document.querySelector('#class svg').getAttribute('viewBox'),'504 24 100 96');
+    assert.equal(w.document.querySelector('#class svg').getAttribute('viewBox'),'504 23 100 100');
     await w.act(async () => w.document.querySelector('#class image').dispatchEvent(new w.Event('error')));
     assert.equal(w.document.querySelector('#class image'),null);
     assert(w.document.querySelector('#class svg'), 'portrait falls back to its class SVG');
@@ -204,6 +204,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
       assert.equal(w.document.querySelector('[aria-label="Другие разделы"]'),null);
     }
     await click('Мир');await click('Герой');
+    assert(w.document.querySelector('[data-reference-region="frame"] image'));
+    assert(w.document.querySelector('[data-reference-region="castle"] image'));
+    assert(w.document.querySelector('[data-reference-region="strength"] image'));
+    assert.equal(w.document.querySelector('.hero-reference-tabs [aria-selected="true"]').textContent,'Характеристики');
+    assert.equal(w.document.querySelector('[data-reference-region="frame"] image').getAttribute('href'),'/assets/sprites/reference/hero-codex.jpg');
     await click('Современный');
     assert.equal(w.document.querySelector('.hero-codex'),null,'modern retains its own character layout');
     assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.id,before.id);
