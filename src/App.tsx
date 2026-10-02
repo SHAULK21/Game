@@ -52,7 +52,7 @@ const MainGameContent: React.FC = () => {
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full max-w-md mx-auto">
+      <main className="flex-1 w-full max-w-lg mx-auto">
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">Загрузка раздела…</div>}>
         {isCharacterSheetOpen ? (
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />
@@ -60,6 +60,7 @@ const MainGameContent: React.FC = () => {
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
+            {currentTab === 'character' && <CharacterScreen onClose={() => setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
