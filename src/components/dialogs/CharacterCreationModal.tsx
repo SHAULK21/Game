@@ -1,3 +1,4 @@
+import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CharacterClassId } from '../../types/game';
@@ -24,7 +25,7 @@ export const CharacterCreationModal: React.FC = () => {
   const activeClassDef = CLASSES[selectedClass];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07090e] overflow-y-auto p-4 flex flex-col items-center justify-center">
+    <div className="registration-screen fixed inset-0 z-50 bg-[#07090e] overflow-y-auto p-4 flex flex-col items-center justify-center">
       <div className="w-full max-w-md space-y-4 my-auto">
         {/* Logo / Header */}
         <div className="text-center space-y-1">
@@ -36,6 +37,8 @@ export const CharacterCreationModal: React.FC = () => {
             Выберите класс и имя персонажа.
           </p>
         </div>
+
+        <InterfaceSwitcher />
 
         {/* Hero Visual Card */}
         <div className="relative rounded-2xl overflow-hidden border border-slate-700 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent">

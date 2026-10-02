@@ -171,12 +171,18 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
       req.authUser = validateTelegramInitData(initData);
     }
 
-    await pool.query(
+    const authenticated = await pool.query(
       `INSERT INTO players (telegram_id, username, display_name)
        VALUES ($1, $2, $3)
-       ON CONFLICT (telegram_id) DO UPDATE SET username = EXCLUDED.username, display_name = EXCLUDED.display_name, updated_at = NOW()`,
+       ON CONFLICT (telegram_id) DO UPDATE SET username = EXCLUDED.username, display_name = EXCLUDED.display_name, updated_at = NOW()
+       RETURNING reset_version`,
       [req.authUser.id, req.authUser.username || null, req.authUser.displayName]
     );
+    const resetVersion = Number(authenticated.rows[0].reset_version);
+    if (!['GET', 'HEAD'].includes(req.method) && Number(req.get('X-Game-Reset-Version') || 0) !== resetVersion) {
+      res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion, error: 'Прогресс сброшен администратором. Создайте нового персонажа.' });
+      return;
+    }
     next();
   } catch (error) {
     console.error('Telegram auth failed:', error);
@@ -254,11 +260,15 @@ app.post('/api/profile/sync', auth, async (req, res) => {
   const level = Number.isFinite(rawLevel) ? Math.max(1, Math.min(120, Math.floor(rawLevel))) : 1;
   const arenaRating = Math.max(0, Math.min(2147483647, Math.floor(Number(req.body?.arenaRating ?? 1000))));
   const characterName = typeof req.body?.characterName === 'string' ? req.body.characterName.trim() || null : null;
-  await pool.query(
-    'UPDATE players SET level = $1, arena_rating = $2, character_name = COALESCE($3, character_name), updated_at = NOW() WHERE telegram_id = $4',
-    [level, arenaRating, characterName, req.authUser!.id]
+  const updated = await pool.query(
+    'UPDATE players SET level = $1, arena_rating = $2, character_name = COALESCE($3, character_name), updated_at = NOW() WHERE telegram_id = $4 AND reset_version=$5',
+    [level, arenaRating, characterName, req.authUser!.id, Number(req.get('X-Game-Reset-Version') || 0)]
   );
-  if (Object.hasOwn(CLASS_EQUIPMENT, String(req.body?.classId))) await pool.query('UPDATE players SET class_id = $1 WHERE telegram_id = $2', [req.body.classId,req.authUser!.id]);
+  if (!updated.rowCount) {
+    const current = (await pool.query('SELECT reset_version FROM players WHERE telegram_id=$1', [req.authUser!.id])).rows[0];
+    res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion: Number(current.reset_version), error: 'Прогресс сброшен администратором.' }); return;
+  }
+  if (Object.hasOwn(CLASS_EQUIPMENT, String(req.body?.classId))) await pool.query('UPDATE players SET class_id = $1 WHERE telegram_id = $2 AND reset_version=$3', [req.body.classId,req.authUser!.id,Number(req.get('X-Game-Reset-Version') || 0)]);
   res.json({ ok: true });
 });
 
@@ -724,7 +734,9 @@ app.post('/api/market/list', auth, async (req, res) => {
 app.get('/api/market/income', auth, async (req, res) => {
   const result = await pool.query(
     `SELECT COALESCE(SUM(seller_net_gold), 0) AS total_gold FROM market_listings
-     WHERE seller_telegram_id = $1 AND status = 'sold'`, [req.authUser!.id]
+     WHERE seller_telegram_id = $1 AND status = 'sold'
+       AND (sold_at > (SELECT reset_at FROM players WHERE telegram_id=$1)
+         OR (SELECT reset_at FROM players WHERE telegram_id=$1) IS NULL)`, [req.authUser!.id]
   );
   res.json({ totalGold: Number(result.rows[0].total_gold) });
 });

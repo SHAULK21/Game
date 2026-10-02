@@ -1,4 +1,5 @@
 import { BalanceReport } from './BalanceReport';
+import { AdminPlayerReset } from './AdminPlayerReset';
 import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
@@ -128,6 +129,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <BalanceReport />
+        <AdminPlayerReset />
 
         <div className="rounded-xl border border-yellow-500/40 p-3 space-y-2">
           <div className="text-xs text-yellow-200">👑 Выдать себе игровой Premium</div>

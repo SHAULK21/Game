@@ -1,3 +1,4 @@
+import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
@@ -122,6 +123,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
 
           </div>
         </div>
+      <InterfaceSwitcher compact />
       </header>
 
       {/* Energy Modal */}

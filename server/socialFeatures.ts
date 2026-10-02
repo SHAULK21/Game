@@ -1,4 +1,5 @@
 import { registerBalanceTelemetry } from './balanceTelemetry';
+import { registerAccountReset } from './accountReset';
 import {registerAdminBroadcasts} from './broadcasts';
 import type { Express, RequestHandler } from 'express';
 import type { Pool, PoolClient } from 'pg';
@@ -53,6 +54,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     if(!id || String(req.authUser!.id)!==id){res.status(403).json({error:'Только администратор.'});return;}next();
   };
   registerBalanceTelemetry(app,getPool,auth,admin);
+  registerAccountReset(app,getPool,auth,admin);
   registerAdminBroadcasts(app,getPool,auth,admin,async()=>{const bot=await telegram<{username:string}>('getMe',{});return bot.username;});
   app.post('/api/admin/premium/self',auth,admin,async(req,res)=>{
     const days=Number(req.body?.days ?? 30),id=req.body?.operationId;
