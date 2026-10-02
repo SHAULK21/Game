@@ -3,25 +3,11 @@ import { DUNGEON_DIFFICULTIES } from '../../utils/dungeonRewards';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS, CAVES, ASSETS, REGION_MODIFIERS } from '../../data/gameData';
-import { 
-  Compass, 
-  MapPin, 
-  Skull, 
-  Flame, 
-  Sparkles, 
-  ChevronRight, 
-  ArrowLeft,
-  Crown,
-  Key,
-  Shield,
-  Zap,
-  AlertTriangle,
-  Footprints,
-  Clock
-} from 'lucide-react';
 import { sound } from '../../utils/audio';
-import { groupRegionsByLevel } from '../../utils/levelEnvironment';
-import { LevelEnvironment } from '../ui/LevelEnvironment';
+import { groupRegionsByLevel, levelEnvironment } from '../../utils/levelEnvironment';
+import { BattleBackdrop, getBattleScene } from '../combat/BattleBackdrop';
+import { BestiaryPanel, FolioPage, OrnamentDivider, RpgButton, SectionTitle } from '../ui/BestiaryUI';
+import { RpgIcon } from '../ui/RpgIcon';
 
 interface WorldScreenProps {
   onEnterCombatTab?: () => void;
@@ -85,11 +71,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <div className="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
             {travelState.isAmbush ? (
               <div className="p-4 rounded-full bg-rose-900/60 border border-rose-500">
-                <AlertTriangle className="w-10 h-10 text-rose-300" />
+                <RpgIcon kind="skill" size={40} className="text-[#d38d87]" />
               </div>
             ) : (
               <div className="p-4 rounded-full bg-cyan-950/60 border border-cyan-400">
-                <Footprints className="w-10 h-10 text-[#d5ba89]" />
+                <RpgIcon kind="map" size={40} className="text-[#c7a365]" />
               </div>
             )}
           </div>
@@ -114,7 +100,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             />
           </div>
 
-          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+          <div className="flex justify-between items-center text-[11px] font-mono text-slate-400">
             <span>Прогресс перехода</span>
             <span className="text-[#d5ba89] font-bold">{travelState.progress}%</span>
           </div>
@@ -129,12 +115,12 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     const isCompleted = activeDungeonRun.completed;
 
     return (
-      <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-        <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700 rounded-xl p-3">
+      <FolioPage className="space-y-3 pt-3">
+        <BestiaryPanel className="flex items-center justify-between rounded-xl p-3">
           <div>
-            <div className="text-[10px] font-mono text-[#d5ba89] uppercase">Подземелье</div>
+            <div className="text-[11px] font-mono text-[#d5ba89] uppercase">Подземелье</div>
             <h2 className="font-cinzel text-sm font-bold text-slate-100">{activeDungeonRun.dungeonName}</h2>
-            <div className="text-[10px] text-[#d5ba89]">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
+            <div className="text-[11px] text-[#d5ba89]">Побед: {activeDungeonRun.kills || 0} · HP {activeDungeonRun.savedHp ?? combatStats.maxHp} · MP {activeDungeonRun.savedMp ?? combatStats.maxMp}</div>
           </div>
           <button
             onClick={() => { if (window.confirm('Покинуть подземелье? Прогресс этого захода будет потерян.')) exitDungeon(); }}
@@ -142,10 +128,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           >
             Покинуть
           </button>
-        </div>
+        </BestiaryPanel>
 
         {activeDungeonRun.lastEvent && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-200">{activeDungeonRun.lastEvent}</p>}
-        {activeDungeonRun.temporaryBlessing && <p className="rounded-xl border border-slate-700 p-3 text-xs text-cyan-200">✨ {activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}. Действует только в этом походе.</p>}
+        {activeDungeonRun.temporaryBlessing && <BestiaryPanel className="p-3 text-xs text-[#cdbb91]">{activeDungeonRun.temporaryBlessing.name}: +10% к физической и магической атаке и защите. Осталось побед: {activeDungeonRun.temporaryBlessing.remainingBattles}.</BestiaryPanel>}
 
         {/* Room Stepper */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -169,8 +155,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
         {/* Active Room Card */}
         {isCompleted ? (
-          <div className="ui-panel rounded-2xl border p-6 text-center space-y-4">
-            <Crown className="w-12 h-12 text-amber-400 mx-auto" />
+          <BestiaryPanel className="space-y-4 p-6 text-center">
+            <RpgIcon kind="crown" size={46} className="mx-auto text-[#c7a365]" />
             <h3 className="font-cinzel text-lg font-bold text-slate-100">
               Подземелье успешно зачищено!
             </h3>
@@ -180,7 +166,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             {activeDungeonRun.completionReward && <div className="rounded-xl border border-amber-500/30 bg-black/30 p-3 text-xs text-amber-200 space-y-1">
               <div className="font-bold">Награда за прохождение зачислена</div>
               <div>+{activeDungeonRun.completionReward.gold} золота · +{activeDungeonRun.completionReward.silver} серебра · +{activeDungeonRun.completionReward.exp} опыта</div>
-              <div className="text-[10px] text-slate-400">Дополнительно к добыче с босса. Повторное открытие итогов не выдаёт награду повторно.</div>
+              <div className="text-[11px] text-slate-400">Дополнительно к добыче с босса. Повторное открытие итогов не выдаёт награду повторно.</div>
             </div>}
             <button
               onClick={exitDungeon}
@@ -188,7 +174,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             >
               Вернуться в город
             </button>
-          </div>
+          </BestiaryPanel>
         ) : (
           <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0a0f1d]">
             <div className="relative h-40 w-full overflow-hidden">
@@ -199,16 +185,14 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent" />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-[#d5ba89] text-[10px] font-mono">
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 border border-slate-700 text-[#d5ba89] text-[11px] font-mono">
                 Комната {activeDungeonRun.currentRoomIndex + 1} из {activeDungeonRun.totalRooms}
               </div>
             </div>
 
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-xl">
-                  {currentRoom.type === 'boss' ? '👑' : currentRoom.type === 'treasure' ? '🎁' : currentRoom.type === 'shrine' ? '✨' : '⚔️'}
-                </span>
+                <RpgIcon kind={currentRoom.type === 'boss' ? 'crown' : currentRoom.type === 'treasure' ? 'gold' : currentRoom.type === 'shrine' ? 'skill' : 'attack'} size={21} />
                 <h3 className="font-cinzel text-base font-bold text-slate-100">
                   {currentRoom.title}
                 </h3>
@@ -226,7 +210,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     }}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <Skull className="w-4 h-4" />
+                    <RpgIcon kind="attack" size={17} />
                     <span>Сразиться с врагом</span>
                   </button>
                 ) : currentRoom.type === 'treasure' ? (
@@ -234,7 +218,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     onClick={() => proceedDungeonRoom('open')}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <Key className="w-4 h-4" />
+                    <RpgIcon kind="gold" size={17} />
                     <span>Открыть сундук · 25% пустой</span>
                   </button>
                 ) : (
@@ -242,7 +226,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     onClick={() => proceedDungeonRoom('pray')}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <RpgIcon kind="skill" size={17} />
                     <span>Получить благословение · шанс 70%</span>
                   </button>
                 )}
@@ -250,7 +234,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             </div>
           </div>
         )}
-      </div>
+      </FolioPage>
     );
   }
 
@@ -258,29 +242,34 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     const isCurrent = player.currentRegionId === reg.id;
     const isInspecting = selectedRegionId === reg.id;
     const isLocked = player.level < reg.minLevel;
+    const selectRegion = () => {
+      setSelectedRegionId(reg.id);
+      setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
+        ? player.activeRegionModId!
+        : reg.defaultModId);
+      sound.playClick();
+    };
 
     return (
       <div
         key={reg.id}
-        onClick={() => {
-          setSelectedRegionId(reg.id);
-          setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
-            ? player.activeRegionModId!
-            : reg.defaultModId);
-          sound.playClick();
-        }}
-        className={`p-3 rounded-xl border transition-all cursor-pointer ${
+        onClick={selectRegion}
+        className={`atlas-node bestiary-entry p-3 transition-all cursor-pointer ${
           isInspecting
-            ? 'border-cyan-400 bg-cyan-950/40 shadow-md '
+            ? 'is-selected shadow-md '
             : isLocked
-            ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
+            ? 'border-[#383638] bg-[#101214] opacity-75'
             : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
         }`}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isInspecting}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRegion(); } }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-              {reg.icon}
+            <span className="grid h-10 w-10 place-items-center rounded-lg border border-[#514633] bg-[#111416]">
+              <RpgIcon kind={isLocked ? 'bestiary' : 'map'} size={22} className={isLocked ? 'text-[#756d62]' : 'text-[#b99558]'} />
             </span>
             <div>
               <div className="flex items-center gap-2">
@@ -288,17 +277,17 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   {reg.name}
                 </span>
                 {reg.isStarter && (
-                  <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">
+                  <span className="rounded border border-[#465b46] bg-[#1b281b] px-1 py-0.5 text-[11px] font-bold text-[#a8bc9b]">
                     СТАРТ
                   </span>
                 )}
                 {isCurrent && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">
+                  <span className="rounded border border-[#665940] bg-[#2c2519] px-1.5 py-0.5 text-[11px] font-bold text-[#d1ad67]">
                     ВЫ ЗДЕСЬ
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
+              <div className="mt-0.5 text-xs text-slate-400">
                 {reg.levelRange} · {reg.monsters.length} видов монстров
               </div>
             </div>
@@ -306,11 +295,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
           <div className="text-right">
             {isLocked ? (
-              <span className="text-[10px] font-mono text-rose-400 font-bold">
+              <span className="text-[11px] font-mono text-rose-400 font-bold">
                 Треб. ур. {reg.minLevel}
               </span>
             ) : (
-              <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
+              <span aria-hidden="true" className={`text-2xl ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`}>›</span>
             )}
           </div>
         </div>
@@ -320,51 +309,41 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
-    <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      {/* Header Banner */}
-      <div className="ui-panel rounded-2xl border p-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-[#d5ba89]">
-            <Compass className="w-6 h-6" />
+    <FolioPage className="space-y-3 pt-3">
+      <BestiaryPanel className="relative isolate overflow-hidden rounded-xl">
+        <div className="absolute inset-0 opacity-70"><BattleBackdrop scene={getBattleScene(inspectingRegion.id, currentRegion.id)} /></div>
+        <div className="relative z-10 p-4">
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#8b744c]/60 bg-[#111416]/85 text-[#c7a365]"><RpgIcon kind="map" size={25} /></span>
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[.16em] text-[#d1ad67]">Атлас земель</div>
+              <h1 className="folio-title text-lg font-bold">Карта Аэтельгарда</h1>
+              <p className="mt-1 text-xs text-[#d8d1c4]">Выберите место для следующей охоты.</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-cinzel text-lg font-bold text-slate-100">
-              Карта Аэтельгарда
-            </h2>
-            <p className="text-xs text-slate-300">
-              Локации вашего уровня — на первом плане. Выберите место для охоты.
-            </p>
+          <OrnamentDivider className="my-3" />
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+            <span className="text-[#d8d1c4]">Вы здесь: <strong className="text-[#e5ddd0]">{currentRegion.name}</strong></span>
+            <span className="text-[#c5b393]">{levelEnvironment(player.level).name} · ур. {player.level}</span>
           </div>
+          {errorMessage && <div role="alert" className="mt-3 flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-950/80 p-2.5 text-xs text-rose-200 animate-shake"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-rose-400 font-bold">!</span><span>{errorMessage}</span></div>}
         </div>
-
-        <LevelEnvironment level={player.level} />
-        <p className="mt-2 text-[11px] text-slate-400">Вы находитесь: {currentRegion.name}</p>
-
-        {/* Error message */}
-        {errorMessage && (
-          <div className="mt-3 p-2.5 bg-rose-950/80 border border-rose-500/50 rounded-lg text-rose-200 text-xs flex items-center gap-2 animate-shake">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-      </div>
+      </BestiaryPanel>
 
       {/* Regions List with Starter Locations Badge */}
       <div className="space-y-2">
-        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">
-          Подходят вашему уровню:
-        </div>
+        <SectionTitle eyebrow="Отмечены на карте">Земли и рубежи</SectionTitle>
 
         <div className="space-y-2">
           {regionGroups.recommended.map(renderRegion)}
-          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">Выберите локацию в соседних этапах.</p>}
+          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">Нет земель для вашего уровня.</p>}
         </div>
         {([
           { key: 'earlier', title: 'Локации низких уровней' },
           { key: 'future', title: 'Локации будущих уровней' },
         ] as const).map(group => regionGroups[group.key].length > 0 && (
-          <details key={group.key} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-            <summary className="cursor-pointer text-xs text-slate-400">
+          <details key={group.key} className="leather-panel p-3">
+            <summary className="min-h-11 cursor-pointer py-2 text-xs text-slate-400">
               {group.title} · {regionGroups[group.key].length}
               {regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь'}
             </summary>
@@ -374,35 +353,32 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       </div>
 
       {/* Selected Region & Mode Control Card */}
-      <div className="rounded-2xl border border-indigo-500/30 bg-[#090d18] p-4 space-y-3">
+      <BestiaryPanel className="space-y-3 p-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800">
-              {inspectingRegion.icon}
-            </span>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#514633] bg-[#111416]"><RpgIcon kind="map" size={24} className="text-[#b99558]" /></span>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-cinzel text-sm font-bold text-slate-100">
                   {inspectingRegion.name}
                 </h3>
                 {inspectingRegion.isStarter && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[9px] font-mono font-bold">
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[11px] font-mono font-bold">
                     СТАРТОВАЯ
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
-                {inspectingRegion.levelRange} · {inspectingRegion.description}
-              </div>
+              <div className="mt-0.5 text-xs text-slate-400">{inspectingRegion.levelRange} · {inspectingRegion.monsters.length} видов монстров</div>
             </div>
           </div>
         </div>
+        <p title={inspectingRegion.description} className="line-clamp-2 text-xs text-[#aaa49a]">{inspectingRegion.description}</p>
 
         {/* Region Mode / Modifier Selector */}
-        <div className="pt-2 border-t border-slate-800/80">
-          <div className="flex items-center justify-between text-xs font-mono text-[#d5ba89] mb-2">
+        <div className="pt-1">
+          <div className="mb-2 flex items-center justify-between text-xs font-mono text-[#d5ba89]">
             <span>Режим охоты:</span>
-            <span className="text-[10px] text-amber-300">Расход: {activeMod.energyCost} ⚡</span>
+            <span className="text-xs text-amber-300">Расход: {activeMod.energyCost} энергии</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -421,20 +397,20 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
-                  className={`p-2 rounded-xl border text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
+                  className={`min-h-[74px] rounded-xl border p-2 text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
                     isSelected 
                       ? 'border-[#9d8459] bg-[#302c24]'
                       : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span>{mod.icon}</span>
-                    <span className="font-cinzel text-[11px] font-bold text-slate-200 truncate">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <RpgIcon kind={mod.id === 'mod_standard' ? 'attack' : 'skill'} size={17} className="shrink-0 text-[#b99558]" />
+                    <span className="truncate font-cinzel text-xs font-bold text-slate-200">
                       {mod.name}
                     </span>
                   </div>
-                  {modeLock && <p className="text-[9px] text-amber-300 mb-1">🔒 {modeLock}</p>}
-                  <div className="text-[9px] text-slate-400 leading-tight">
+                  {modeLock && <p className="mb-1 text-xs text-amber-300">Закрыто: {modeLock}</p>}
+                  <div className="text-[11px] leading-snug text-slate-400">
                     HP ×{mod.hpMultiplier||1} · Урон ×{mod.damageMultiplier}<br/>Защита ×{mod.defenseMultiplier||1} · Дроп: x{mod.rareDropMultiplier}
                   </div>
                 </button>
@@ -443,54 +419,52 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           </div>
 
           {/* Active Mode Description Box */}
-          <div className="mt-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
-            <span className="font-bold text-amber-300">{activeMod.name}: </span>
-            {activeMod.description}
-          </div>
+          <p title={activeMod.description} className="mt-2 line-clamp-2 rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-2 text-xs text-slate-300"><span className="font-bold text-amber-300">{activeMod.name}: </span>{activeMod.description}</p>
         </div>
 
         {/* Travel / Action Button */}
         <div className="pt-2">
           {player.currentRegionId === inspectingRegion.id ? (
-            <button
+            <RpgButton
               onClick={() => {
                 if (onEnterCombatTab) onEnterCombatTab();
               }}
-              className="ui-primary w-full py-2.5 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
+              variant="primary"
+              icon="attack"
+              className="w-full"
             >
-              <span>⚔️ Перейти к охоте на монстров</span>
-            </button>
+              Перейти к охоте
+            </RpgButton>
           ) : (
             <>
-              <button
+              <RpgButton
                 onClick={() => handleStartTravel(inspectingRegion.id)}
                 disabled={player.level < inspectingRegion.minLevel}
-                className="ui-primary w-full py-2.5 rounded-xl disabled:opacity-50 font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
+                variant="primary"
+                icon="map"
+                className="w-full disabled:opacity-50"
               >
-                <Footprints className="w-4 h-4" />
-                <span>Отправиться в путь (3 сек, {activeMod.energyCost} ⚡)</span>
-              </button>
+                Отправиться в путь · 3 сек · {activeMod.energyCost} энергии
+              </RpgButton>
               {player.level < inspectingRegion.minLevel && (
                 <p className="mt-2 text-center text-xs text-rose-300">Локация откроется на {inspectingRegion.minLevel}-м уровне. Сейчас её можно только посмотреть.</p>
               )}
             </>
           )}
         </div>
-      </div>
+      </BestiaryPanel>
 
       {/* Caves & Dungeons Section */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
-          <div className="text-xs font-mono text-purple-400 uppercase tracking-wider">
-            Древние пещеры и подземелья:
-          </div>
+          <SectionTitle eyebrow="Испытания">Пещеры и подземелья</SectionTitle>
           <span className="text-[11px] text-slate-400">
             {Object.keys(CAVES).length} локаций
           </span>
         </div>
 
-        <label className="block text-xs text-purple-200">Сложность похода
-          <select value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
+        <label className="block text-xs text-[#c5b393]">Сложность похода
+          <select value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 min-h-11 w-full rounded-lg border border-[#514633] bg-slate-950 p-2 text-sm text-[#d8d1c4]">
             <option value="normal">Обычная · награда ×1</option><option value="hard">Сложная · награда ×1,5</option><option value="nightmare">Кошмар · награда ×2</option><option value="hell">Ад · награда ×3</option>
           </select>
           <span className="mt-1 block text-slate-400">HP врагов ×{DUNGEON_DIFFICULTIES[difficulty].hp} · урон ×{DUNGEON_DIFFICULTIES[difficulty].damage} · защита ×{DUNGEON_DIFFICULTIES[difficulty].defense}. Множитель награды относится к завершению похода.</span>
@@ -507,7 +481,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   setSelectedCaveId(cave.id);
                   sound.playClick();
                 }}
-                className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                className={`bestiary-entry p-3 transition-all cursor-pointer ${
                   isSelected
                     ? 'border-purple-400 bg-purple-950/40 shadow-md '
                     : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
@@ -515,36 +489,35 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      {cave.icon}
-                    </span>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-900"><RpgIcon kind="bestiary" size={22} className="text-[#b99558]" /></span>
                     <div>
                       <span className="font-cinzel text-xs font-bold text-slate-100">
                         {cave.name}
                       </span>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        {cave.roomsCount} комнат · Рекомендуемый ур. {cave.minLevel} · Вход 15 ⚡
+                        {cave.roomsCount} комнат · уровень {cave.minLevel} · вход 15 энергии
                       </div>
                     </div>
                   </div>
 
-                  <button
+                  <RpgButton
                     disabled={!canEnter}
                     onClick={e => {
                       e.stopPropagation();
                       enterDungeon(cave.id, difficulty);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white active:scale-95 transition-transform"
+                    variant="secondary"
+                    className="min-h-11 px-3 disabled:opacity-40"
                   >
                     Войти
-                  </button>
+                  </RpgButton>
                 </div>
               </div>
             );
           })}
-          <p className="text-[10px] text-slate-400">Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.</p>
+          <p className="text-xs text-slate-400">Все подземелья открыты с начала игры. Вход: 15 энергии и завершённый бой.</p>
         </div>
       </div>
-    </div>
+    </FolioPage>
   );
 };

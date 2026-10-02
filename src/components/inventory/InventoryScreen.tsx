@@ -7,24 +7,11 @@ import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType, CharacterClassId } from '../../types/game';
 import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
-import {
-  Shield,
-  Sparkles,
-  Coins,
-  Hammer,
-  Plus,
-  CheckCircle,
-  X,
-  FlaskConical,
-  Pickaxe,
-  Gem,
-  Swords,
-  Crown
-} from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
 import { getEffectiveGearStats } from '../../utils/classEquipment';
+import { BestiaryPanel, CodexTabs, FolioPage, OrnamentDivider, RpgButton } from '../ui/BestiaryUI';
 
 interface InventoryScreenProps {
   onNavigateToBlacksmith?: () => void;
@@ -204,10 +191,10 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       <button
         key={item.id}
         onClick={() => setSelectedItem(item)}
-        className={`relative text-left p-2.5 rounded-xl border min-h-[88px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
+        className={`rarity-frame relative min-h-[104px] rounded-xl border p-2.5 text-left transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-[#b99558]' : 'hover:border-slate-500'}`}
       >
         {equipped && (
-          <span className="absolute top-1 left-1 text-[8px] font-bold px-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+          <span className="absolute left-1 top-1 rounded border border-[#665940] bg-[#201c17] px-1 text-[11px] font-bold text-[#d1ad67]">
             НАДЕТО
           </span>
         )}
@@ -215,13 +202,13 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           <ItemArtwork item={item} size={40} />
         </div>
         <div
-          className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[22px] max-h-[22px]"
+          className="mt-1 min-h-[28px] max-h-[28px] overflow-hidden break-words text-center text-[11px] leading-[14px] font-medium text-slate-100"
           style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
           title={item.name}
         >
           {item.name}
         </div>
-        <div className="text-[9px] text-slate-400 flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-1 text-[11px] text-slate-400">
           <span>Ур.{item.level}</span>
           <span className="text-amber-300 font-bold">{item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0'}</span>
         </div>
@@ -234,7 +221,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     <button
       key={item.id}
       onClick={() => setSelectedItem(item)}
-      className="w-full p-2.5 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center gap-3 text-left active:scale-[0.99]"
+      className="w-full rounded-xl border border-slate-800 bg-[#0a0f1d] p-2.5 flex min-h-[60px] items-center gap-3 text-left active:scale-[0.99]"
     >
       <div className="w-10 h-10 shrink-0 flex items-center justify-center">
         <ItemArtwork item={item} size={40} />
@@ -242,43 +229,44 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-100 truncate">{item.name}</span>
-          <span className={`text-[9px] font-bold ${RARITY_COLORS[item.rarity].text}`}>{RARITY_COLORS[item.rarity].label}</span>
+          <span className={`text-[11px] font-bold ${RARITY_COLORS[item.rarity].text}`}>{RARITY_COLORS[item.rarity].label}</span>
         </div>
-        <div className="text-[10px] text-cyan-300 mt-0.5">{getResourceUse(item)}</div>
+        <div className="text-[11px] text-cyan-300 mt-0.5">{getResourceUse(item)}</div>
       </div>
       <span className="text-sm font-mono font-bold text-slate-200">×{item.stackCount || 1}</span>
     </button>
   );
 
   return (
-    <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <div className="ui-panel rounded-2xl border p-3.5">
+    <FolioPage className="space-y-3 pt-3">
+      <BestiaryPanel className="p-3.5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <div className="font-cinzel text-sm font-bold text-cyan-300">Снаряжение</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Сравнение показывает разницу до экипировки</div>
+            <div className="text-[11px] uppercase tracking-[.15em] text-[#918c82]">Личный арсенал</div>
+            <h1 className="section-title text-lg">Инвентарь</h1>
+            <div className="text-[11px] text-slate-500 mt-0.5">Сравнение откроется при выборе предмета</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] text-slate-400">Боевая сила</div>
+            <div className="text-[11px] text-slate-400">Сила снаряжения</div>
             <div className="text-sm font-mono font-bold text-amber-300">
               {Math.round(combatStats.attack * 2 + combatStats.defense * 1.5 + combatStats.magicAttack)}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_92px_1fr] gap-2 items-center">
+        <div className="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] items-center gap-1.5">
           <div className="space-y-2">
             {(['helmet','weapon','gloves','pants','boots','cloak','pickaxe','alchemyTool'] as ItemType[]).map(type => {
               const item = player.equipped[type];
               return (
                 <button key={type} onClick={() => item && setSelectedItem(item)}
-                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
+                  className={`w-full min-h-[52px] rounded-lg border px-1.5 flex items-center gap-1.5 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-[#b99558]/20` : 'border-slate-800 bg-slate-950/60'}`}>
                   <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
+                    {item ? <ItemArtwork item={item} size={24} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[8px] text-slate-500 uppercase truncate">{TYPE_LABELS[type]}</div>
-                    <div className="text-[9px] leading-[10px] text-slate-200 break-words overflow-hidden max-h-[20px]" title={item?.name || 'Пусто'}>{item?.name || 'Пусто'}</div>
+                    <div className="truncate text-[11px] uppercase text-slate-500">{TYPE_LABELS[type]}</div>
+                    <div className="max-h-[28px] overflow-hidden break-words text-[11px] leading-[14px] text-slate-200" title={item?.name || 'Пусто'}>{item?.name || 'Пусто'}</div>
                   </div>
                 </button>
               );
@@ -286,10 +274,10 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           </div>
 
           <div className="relative flex flex-col items-center">
-            <div className="w-[88px] h-[150px] rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950">
+            <div className="h-[132px] w-[68px] overflow-hidden rounded-xl border border-[#665940] bg-slate-950">
               <img src={(player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter} alt={player.name} className="w-full h-full object-cover opacity-80" />
             </div>
-            <div className="absolute bottom-1 px-2 py-1 rounded bg-black/75 border border-cyan-500/30 text-[9px] font-bold text-cyan-200">
+            <div className="absolute bottom-1 max-w-[70px] truncate rounded border border-[#665940] bg-black/75 px-1.5 py-1 text-[11px] font-bold text-[#d1ad67]">
               {player.name}
             </div>
           </div>
@@ -299,25 +287,26 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
               const item = player.equipped[type];
               return (
                 <button key={type} onClick={() => item && setSelectedItem(item)}
-                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
+                  className={`w-full min-h-[52px] rounded-lg border px-1.5 flex items-center gap-1.5 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-[#b99558]/20` : 'border-slate-800 bg-slate-950/60'}`}>
                   <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
+                    {item ? <ItemArtwork item={item} size={24} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[8px] text-slate-500 uppercase truncate">{TYPE_LABELS[type]}</div>
-                    <div className="text-[9px] leading-[10px] text-slate-200 break-words overflow-hidden max-h-[20px]" title={item?.name || 'Пусто'}>{item?.name || 'Пусто'}</div>
+                    <div className="truncate text-[11px] uppercase text-slate-500">{TYPE_LABELS[type]}</div>
+                    <div className="max-h-[28px] overflow-hidden break-words text-[11px] leading-[14px] text-slate-200" title={item?.name || 'Пусто'}>{item?.name || 'Пусто'}</div>
                   </div>
                 </button>
               );
             })}
           </div>
         </div>
-      </div>
+      </BestiaryPanel>
+      <OrnamentDivider />
 
       <div className="flex items-center justify-between">
         <div>
-          <span className="font-cinzel text-xs font-bold text-slate-200">Сумка</span>
-          <span className="ml-1.5 text-xs font-mono text-cyan-400">
+          <span className="font-cinzel text-sm font-bold text-slate-200">Сумка</span>
+          <span className="ml-1.5 text-xs font-mono text-[#d1ad67]">
             {player.inventory.length}/{player.maxInventorySlots}
           </span>
         </div>
@@ -325,46 +314,35 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           onClick={handleInventoryExpansion}
           disabled={premium.loading || premiumBusy}
           title={premium.active ? `Расширить сумку на 5 слотов за ${(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота` : 'Подключить Premium и расширить инвентарь'}
-          className="text-[10px] px-2 py-1.5 rounded-lg border border-amber-700/60 bg-amber-950/30 text-amber-200 flex items-center gap-1 active:scale-95 disabled:opacity-60 disabled:cursor-wait"
+          className="min-h-11 rounded-lg border border-[#665940] bg-[#201c17] px-2 text-[11px] text-[#d1ad67] flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-wait"
         >
-          <Crown className="w-3.5 h-3.5 text-amber-300" />
-          {premiumBusy ? 'Открываю…' : premium.active ? `+5 слотов · ${(player.maxInventorySlots * 60).toLocaleString('ru-RU')} 🪙` : '+5 слотов · Только Premium'}
+          <RpgIcon kind="crown" size={15} />
+          {premiumBusy ? 'Открываю…' : premium.active ? `+5 слотов · ${(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота` : '+5 слотов · Только Premium'}
         </button>
       </div>
-      {premium.active && <p className="-mt-1 text-[10px] text-slate-400">Расширение стоит {(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота. У вас: {player.gold.toLocaleString('ru-RU')} 🪙. Купленные слоты остаются после окончания Premium.</p>}
+      {premium.active && <p className="-mt-1 text-[11px] text-slate-400">Расширение стоит {(player.maxInventorySlots * 60).toLocaleString('ru-RU')} золота. У вас: {player.gold.toLocaleString('ru-RU')}. Купленные слоты остаются после окончания Premium.</p>}
       {premiumFeedback && (
-        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[10px] leading-4 text-amber-200/80">
+        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-4 text-amber-200/80">
           {premiumFeedback}
         </div>
       )}
       {!premium.active && !premium.loading && (
-        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[10px] leading-4 text-amber-200/80">
-          👑 Расширение сумки доступно только с активным Premium. Базовые {player.maxInventorySlots} слотов остаются доступны всегда.
+        <div className="-mt-1 rounded-lg border border-amber-900/40 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-4 text-amber-200/80">
+          Расширение сумки доступно только с Premium. Базовые {player.maxInventorySlots} слотов остаются доступны всегда.
         </div>
       )}
 
       {!premium.active && <BulkInventoryActions />}
 
-      <div className="grid grid-cols-3 gap-1.5">
-        {([
-          ['equipment', 'Экипировка', EQUIPMENT_TYPES.filter(type => player.inventory.some(item => item.type === type)).length],
-          ['potions', 'Зелья', potions.length],
-          ['resources', 'Ресурсы', groupedResources.length]
-        ] as const).map(([id, label, count]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`py-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1 ${tab === id ? 'bg-cyan-950 border-cyan-500/50 text-cyan-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
-          >
-            {id === 'equipment' ? <Shield className="w-3.5 h-3.5" /> : id === 'potions' ? <FlaskConical className="w-3.5 h-3.5" /> : <Pickaxe className="w-3.5 h-3.5" />}
-            {label} <span className="opacity-70">({count})</span>
-          </button>
-        ))}
-      </div>
+      <CodexTabs tabs={[
+        { id: 'equipment', label: `Экипировка · ${EQUIPMENT_TYPES.filter(type => player.inventory.some(item => item.type === type)).length}` },
+        { id: 'potions', label: `Зелья · ${potions.length}` },
+        { id: 'resources', label: `Ресурсы · ${groupedResources.length}` },
+      ]} active={tab} onChange={id => setTab(id as InventoryTab)} />
 
       {tab === 'equipment' && (
         equipment.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">{equipment.map(renderItemCard)}</div>
+          <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3">{equipment.map(renderItemCard)}</div>
         ) : (
           <div className="rounded-xl border border-dashed border-slate-800 p-7 text-center text-xs text-slate-500">
             Здесь появится добытая экипировка.
@@ -386,7 +364,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-100 truncate">{item.name}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{item.description}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{item.description}</div>
                 </div>
                 <span className="font-mono text-sm text-emerald-300">×{item.stackCount || 1}</span>
               </button>
@@ -401,12 +379,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
       {tab === 'resources' && (
         <div className="space-y-3">
-          <button
-            onClick={onNavigateToCrafting}
-            className="w-full rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-left text-xs text-amber-200"
-          >
-            ⚒️ Открыть мастерскую снаряжения — рецепты, трофеи мобов и ресурсы шахты
-          </button>
+          <RpgButton variant="secondary" icon="forge" onClick={onNavigateToCrafting} className="w-full justify-start text-left text-xs text-[#d1ad67]">
+            Открыть мастерскую снаряжения · рецепты и ресурсы
+          </RpgButton>
 
           {groupedResources.length > 0 ? (
             <div className="space-y-1.5">{groupedResources.map(renderResource)}</div>
@@ -420,11 +395,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
       {currentSelected && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-2"
+          className="bottom-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center"
           onClick={() => setSelectedItem(null)}
         >
-          <div
-            className={`w-full max-w-lg rounded-2xl border p-3.5 bg-[#080c15]  ${RARITY_COLORS[currentSelected.rarity].border}`}
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="selected-item-title"
+            className={`dialog-frame max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl p-3.5 pb-safe sm:rounded-2xl ${RARITY_COLORS[currentSelected.rarity].border}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2">
@@ -434,22 +412,22 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-cinzel text-sm font-bold text-slate-100 truncate">
+                    <h3 id="selected-item-title" className="font-cinzel text-sm font-bold text-slate-100 truncate">
                       {currentSelected.name}
                     </h3>
                     <span className="text-amber-300 text-xs font-mono">+{currentSelected.upgradeLevel}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
+                  <div className="text-[11px] text-slate-400 mt-0.5">
                     {TYPE_LABELS[currentSelected.type]} · Ур. {currentSelected.level} · {RARITY_COLORS[currentSelected.rarity].label}
                   </div>
-                  {currentSelected.serverOwned && <div className="text-[10px] text-emerald-300 mt-0.5">✓ Серверный предмет{currentSelected.boundToClan ? ' · привязан к клану' : ''}</div>}
-                  {(currentSelected.armorClass || currentSelected.weaponClass) && <div className="text-[10px] text-cyan-300 mt-0.5">
+                  {currentSelected.serverOwned && <div className="text-[11px] text-emerald-300 mt-0.5">✓ Серверный предмет{currentSelected.boundToClan ? ' · привязан к клану' : ''}</div>}
+                  {(currentSelected.armorClass || currentSelected.weaponClass) && <div className="text-[11px] text-cyan-300 mt-0.5">
                     {({heavy:'Тяжёлая броня',medium:'Средняя броня',light:'Лёгкая броня',twoHanded:'Двуручное оружие',dagger:'Кинжал',staff:'Посох',shield:'Щит',bow:'Лук'} as Record<string,string>)[currentSelected.armorClass || currentSelected.weaponClass || '']}
                   </div>}
                 </div>
               </div>
-              <button onClick={() => setSelectedItem(null)} className="p-1 text-slate-500 hover:text-white">
-                <X className="w-5 h-5" />
+              <button onClick={() => setSelectedItem(null)} aria-label="Закрыть описание предмета" className="rpg-icon-button">
+                <span className="text-xl leading-none">×</span>
               </button>
             </div>
 
@@ -457,7 +435,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
               <div className="mt-3 space-y-2">
                 <ClassGearBonus item={currentSelected} characterClass={player.classId} />
                 <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-2.5">
-                  <div className="flex items-center justify-between text-[10px] font-mono mb-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono mb-2">
                     <span className="text-slate-500">СРАВНЕНИЕ С ТЕКУЩИМ</span>
                     <span className={scoreDelta > 0 ? 'text-emerald-300 font-bold' : scoreDelta < 0 ? 'text-rose-300 font-bold' : 'text-slate-400'}>
                       {currentEquipped ? `Сила ${scoreDelta >= 0 ? '+' : ''}${scoreDelta}` : 'Слот пуст'}
@@ -465,14 +443,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>
                   <div className="grid grid-cols-[1fr_1fr] gap-2 mb-2">
                     <div className="rounded-lg bg-slate-900 p-2">
-                      <div className="text-[9px] text-slate-500 mb-1">СЕЙЧАС</div>
-                      <div className="text-[10px] font-bold text-slate-200 truncate">{currentEquipped?.name || 'Слот пуст'}</div>
-                      <div className="text-[9px] text-slate-500 mt-0.5">{currentEquipped ? `Ур.${currentEquipped.level} +${currentEquipped.upgradeLevel}` : '—'}</div>
+                      <div className="text-[11px] text-slate-500 mb-1">СЕЙЧАС</div>
+                      <div className="text-[11px] font-bold text-slate-200 truncate">{currentEquipped?.name || 'Слот пуст'}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{currentEquipped ? `Ур.${currentEquipped.level} +${currentEquipped.upgradeLevel}` : '—'}</div>
                     </div>
                     <div className="rounded-lg bg-cyan-950/20 border border-cyan-500/20 p-2">
-                      <div className="text-[9px] text-cyan-400 mb-1">ВЫБРАНО</div>
-                      <div className="text-[10px] font-bold text-slate-100 truncate">{currentSelected.name}</div>
-                      <div className="text-[9px] text-slate-500 mt-0.5">Ур.{currentSelected.level} +{currentSelected.upgradeLevel}</div>
+                      <div className="text-[11px] text-cyan-400 mb-1">ВЫБРАНО</div>
+                      <div className="text-[11px] font-bold text-slate-100 truncate">{currentSelected.name}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Ур.{currentSelected.level} +{currentSelected.upgradeLevel}</div>
                     </div>
                   </div>
 
@@ -482,7 +460,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                       const currentValue = currentStats[stat] || 0;
                       const delta = selectedValue - currentValue;
                       return (
-                        <div key={stat} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center text-[10px]">
+                        <div key={stat} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center text-[11px]">
                           <span className="text-slate-400">{STAT_LABELS[stat] || stat}</span>
                           <span className="font-mono text-slate-500">{formatStat(stat, currentValue)}</span>
                           <span className={`font-mono font-bold min-w-[68px] text-right ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-rose-300' : 'text-slate-500'}`}>
@@ -494,20 +472,20 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>
                 </div>
 
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[11px] text-slate-500">
                   {(currentSelected.type === 'pickaxe' || currentSelected.type === 'alchemyTool') ? currentSelected.description : 'Сравнение считает базовые и дополнительные характеристики. Заточка отображается отдельно и тоже влияет на боевую силу.'}
                 </p>
               </div>
             ) : (
               <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-2">
-                <div className="text-[10px] text-cyan-400 font-mono uppercase">Назначение</div>
+                <div className="text-[11px] text-cyan-400 font-mono uppercase">Назначение</div>
                 <div className="text-xs text-slate-200">
                   {currentSelected.type === 'potion' ? currentSelected.description : getResourceUse(currentSelected)}
                 </div>
                 {Object.keys(getItemStats(currentSelected)).length > 0 && (
                   <div className="space-y-1 pt-1 border-t border-slate-800">
                     {Object.entries(getItemStats(currentSelected)).map(([stat, value]) => (
-                      <div key={stat} className="flex items-center justify-between text-[10px]">
+                      <div key={stat} className="flex items-center justify-between text-[11px]">
                         <span className="text-slate-500">{STAT_LABELS[stat] || stat}</span>
                         <span className="text-emerald-300 font-mono">+{formatStat(stat, value)}</span>
                       </div>
@@ -515,7 +493,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>
                 )}
                 {currentSelected.stackCount && currentSelected.stackCount > 1 && (
-                  <div className="text-[10px] text-slate-400">В стопке: {currentSelected.stackCount}</div>
+                  <div className="text-[11px] text-slate-400">В стопке: {currentSelected.stackCount}</div>
                 )}
               </div>
             )}
@@ -523,9 +501,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
                 onClick={() => toggleItemLock(currentSelected.id)}
-                className="py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-amber-200 text-xs font-bold"
+                className="rpg-button rpg-button-secondary min-h-11 text-xs"
               >
-                {currentSelected.isLocked ? '🔓 Отпереть' : '🔒 Запереть'}
+                {currentSelected.isLocked ? 'Разблокировать' : 'Защитить от продажи'}
               </button>
               {currentSelected.isEquipped ? (
                 <button
@@ -533,9 +511,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     unequipItem(currentSelected.type);
                     setSelectedItem(null);
                   }}
-                  className="py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="rpg-button rpg-button-secondary min-h-11 text-xs"
                 >
-                  <X className="w-4 h-4" /> Снять
+                  Снять
                 </button>
               ) : selectedIsEquipment ? (
                 <button
@@ -544,15 +522,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     setSelectedItem(null);
                   }}
                   disabled={currentSelected.level > player.level || currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) || currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel)}
-                  className="py-2.5 rounded-xl bg-cyan-600 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="rpg-button rpg-button-primary min-h-11 text-xs"
                 >
-                  <CheckCircle className="w-4 h-4" />
                   {currentSelected.level > player.level ? `Нужен уровень ${currentSelected.level}` : currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) ? 'Недостаточный уровень шахты' : currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel) ? 'Недостаточный уровень алхимии' : 'Экипировать'}
                 </button>
               ) : (
                 <button
                   disabled
-                  className="py-2.5 rounded-xl bg-slate-900 text-slate-600 text-xs font-bold"
+                  className="rpg-button rpg-button-secondary min-h-11 text-xs"
                 >
                   Только ресурс
                 </button>
@@ -564,9 +541,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     setSelectedItem(null);
                     onNavigateToBlacksmith();
                   }}
-                  className="py-2.5 rounded-xl bg-purple-950 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="rpg-button rpg-button-secondary min-h-11 border-[#59456e] text-[#b8a2cf]"
                 >
-                  <Hammer className="w-4 h-4 text-purple-400" /> В кузницу
+                  <RpgIcon kind="forge" size={17} /> В кузницу
                 </button>
               )}
 
@@ -576,9 +553,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     disassembleItem(currentSelected);
                     setSelectedItem(null);
                   }}
-                  className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="rpg-button rpg-button-secondary min-h-11 text-xs"
                 >
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <RpgIcon kind="skill" size={16} />
                   {currentSelected.name === 'Сырой самоцвет'
                     ? `Огранить → ${getDisassemblePreview(currentSelected)}`
                     : `Разобрать → ${getDisassemblePreview(currentSelected)}`}
@@ -591,20 +568,20 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     sellItem(currentSelected);
                     setSelectedItem(null);
                   }}
-                  className="py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="rpg-button rpg-button-secondary min-h-11 text-xs text-[#d1ad67]"
                 >
-                  <Coins className="w-4 h-4" /> Продать за {currentSelected.sellPrice || 0} 🪙
+                  <RpgIcon kind="gold" size={16} /> Продать за {currentSelected.sellPrice || 0} золота
                 </button>
               )}
             </div>
-          </div>
+          </section>
         </div>
       )}
 
       {premium.active && <BulkInventoryActions />}
-      <div className="text-[9px] text-slate-600 text-center">
+      <div className="text-[11px] text-slate-600 text-center">
         Руда из шахты теперь расходуется на заточку: чем выше +, тем более редкая руда нужна.
       </div>
-    </div>
+    </FolioPage>
   );
 };

@@ -44,10 +44,7 @@ export const ItemArtwork: React.FC<ItemArtworkProps> = ({
       style={{ width: size, height: size }}
       title={item.name}
     >
-      <span className="text-xl leading-none">{item.icon || '📦'}</span>
-      <span className="absolute -bottom-1 -right-1 rounded bg-slate-950 border border-slate-700 p-0.5">
-        <RpgIcon kind={getRpgIconKind(item)} size={Math.max(10, Math.round(size * 0.3))} className="text-slate-400" />
-      </span>
+      <RpgIcon kind={getRpgIconKind(item)} size={Math.round(size * 0.7)} className="text-[#b99558]" />
     </div>
   );
 };

@@ -1,192 +1,120 @@
-import { HeroStats } from './HeroStats';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CLASSES, ASSETS } from '../../data/gameData';
-import { CharacterAttributes } from '../../types/game';
-import { 
-  User, 
-  Shield, 
-  Swords, 
-  Zap, 
-  Sparkles, 
-  Heart, 
-  Check, 
-  Plus, 
-  ArrowLeft,
-  Dog
-} from 'lucide-react';
+import type { CharacterAttributes, ItemType } from '../../types/game';
 import { TalentTree } from './TalentTree';
-import { sound } from '../../utils/audio';
+import { HeroStats } from './HeroStats';
+import { RpgIcon } from '../ui/RpgIcon';
+import { BestiaryPanel, CodexTabs, FolioPage, ItemSlot, OrnamentDivider, ProgressBar, SectionTitle, StatRow } from '../ui/BestiaryUI';
 
 interface CharacterScreenProps {
   onClose?: () => void;
 }
 
+type CharacterTab = 'stats' | 'equipment' | 'talents' | 'pet';
+
+const attributes: Array<{ key: keyof CharacterAttributes; label: string; summary: string; icon: 'attack' | 'hunt' | 'skill' | 'defend' | 'gem' | 'hp' }> = [
+  { key: 'strength', label: 'Сила', summary: 'Физический урон', icon: 'attack' },
+  { key: 'agility', label: 'Ловкость', summary: 'Скорость и уклонение', icon: 'hunt' },
+  { key: 'intelligence', label: 'Интеллект', summary: 'Магия и запас маны', icon: 'skill' },
+  { key: 'vitality', label: 'Живучесть', summary: 'Здоровье и броня', icon: 'defend' },
+  { key: 'luck', label: 'Удача', summary: 'Редкая добыча и крит', icon: 'gem' },
+  { key: 'spirit', label: 'Дух', summary: 'Мана и сопротивление', icon: 'skill' },
+  { key: 'willpower', label: 'Воля', summary: 'Регенерация и стойкость', icon: 'hp' },
+];
+
+const equipmentSlots: Array<{ type: ItemType; label: string }> = [
+  { type: 'helmet', label: 'Шлем' }, { type: 'weapon', label: 'Оружие' }, { type: 'offhand', label: 'Вторая рука' },
+  { type: 'armor', label: 'Доспех' }, { type: 'gloves', label: 'Перчатки' }, { type: 'ring', label: 'Кольцо' },
+  { type: 'pants', label: 'Поножи' }, { type: 'amulet', label: 'Амулет' }, { type: 'belt', label: 'Пояс' },
+  { type: 'boots', label: 'Сапоги' }, { type: 'cloak', label: 'Плащ' }, { type: 'artifact', label: 'Артефакт' },
+];
+
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => {
   const { player, combatStats, allocateAttribute, premium } = useGame();
-  const [activeTab, setActiveTab] = useState<'stats' | 'talents' | 'pet'>('stats');
+  const [activeTab, setActiveTab] = useState<CharacterTab>('stats');
 
   if (!player) return null;
 
-  const classDef = CLASSES[player.classId];
-  const expPct = Math.min(100, Math.round((player.exp / player.nextExp) * 100));
+  const classDef = CLASSES[player.classId] || CLASSES.warrior;
+  const expPct = Math.min(100, Math.round((player.exp / Math.max(1, player.nextExp)) * 100));
+  const heroImage = classDef.image || ASSETS.heroHunter;
+  const tabs = [
+    { id: 'stats', label: 'Характеристики' },
+    { id: 'equipment', label: 'Снаряжение' },
+    { id: 'talents', label: 'Таланты' },
+    { id: 'pet', label: 'Спутник' },
+  ];
 
-  return (
-    <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="flex items-center gap-3"><button onClick={onClose} disabled={!onClose} aria-label="Закрыть профиль" className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400"><ArrowLeft className="w-4 h-4"/></button><h2 className="font-cinzel text-sm font-bold text-slate-200">Профиль героя</h2></div>
-
-      <section className="relative overflow-hidden rounded-2xl border border-cyan-800/40 bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-950 p-4 space-y-4">
-        <div className="flex items-center gap-4"><div className="relative shrink-0"><img src={classDef.image || ASSETS.heroHunter} alt={classDef.name} className="w-20 h-24 rounded-xl object-cover border border-amber-500/40 shadow-lg" referrerPolicy="no-referrer"/><span className="absolute -bottom-2 inset-x-1 rounded-lg border border-amber-700 bg-slate-950 py-1 text-center text-[10px] text-amber-200">Ранг {player.ascension?.rank || 'E'}</span></div><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-widest text-cyan-400">{classDef.role}</p><h3 className="mt-1 font-cinzel text-lg font-bold text-slate-100 break-words">{player.name}</h3><p className="text-xs text-slate-400 mt-1">{classDef.icon} {classDef.name} · Уровень {player.level}</p>{premium.active && <span className="inline-block mt-2 rounded border border-amber-600/40 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">👑 Premium</span>}</div></div>
-        <div className="pt-1 space-y-1.5"><div className="flex justify-between text-[10px] text-slate-400"><span>До уровня {player.level+1}</span><span className="font-mono text-cyan-200">{player.exp.toLocaleString()} / {player.nextExp.toLocaleString()} EXP</span></div><div role="progressbar" aria-label="Опыт героя" aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100} className="h-2 rounded-full bg-slate-950 overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-500 to-indigo-400" style={{width:`${expPct}%`}} /></div></div>
-        <div className="grid grid-cols-3 gap-2 text-center text-[10px]"><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-amber-200">{player.statPoints}</b><span className="text-slate-500">Очки атрибутов</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-purple-200">{player.talentPoints}</b><span className="text-slate-500">Очки талантов</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-emerald-200">{player.miningLevel} / {player.alchemyLevel}</b><span className="text-slate-500">Шахта / алхимия</span></div></div>
-        <details className="border-t border-slate-800 pt-2"><summary className="cursor-pointer py-1 text-xs text-amber-200">Класс и пассивка · {classDef.passive.name}</summary><p className="text-[11px] text-slate-400 mt-2">{classDef.description}</p><p className="mt-2 text-[11px] text-amber-100/80">{classDef.passive.description}</p></details>
-      </section>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-1 text-xs">
-        <button
-          onClick={() => setActiveTab('stats')}
-          className={`flex-1 py-2 text-center rounded-lg font-cinzel font-bold transition-colors ${
-            activeTab === 'stats'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Характеристики
-          {player.statPoints > 0 && (
-            <span className="ml-1.5 px-1 py-0.2 rounded-full bg-amber-500 text-slate-950 text-[10px] font-mono">
-              +{player.statPoints}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('talents')}
-          className={`flex-1 py-2 text-center rounded-lg font-cinzel font-bold transition-colors ${
-            activeTab === 'talents'
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Дерево талантов
-          {player.talentPoints > 0 && (
-            <span className="ml-1.5 px-1 py-0.2 rounded-full bg-purple-500 text-white text-[10px] font-mono">
-              +{player.talentPoints}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('pet')}
-          className={`flex-1 py-2 text-center rounded-lg font-cinzel font-bold transition-colors ${
-            activeTab === 'pet'
-              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          Питомец
-        </button>
-      </div>
-
-      {/* STATS TAB */}
-      {activeTab === 'stats' && (
-        <div className="space-y-3">
-          {/* Attributes Allocation */}
-          <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-3 space-y-2">
-            <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-1.5">
-              <span className="font-cinzel font-bold text-slate-200">
-                Базовые атрибуты:
-              </span>
-              <span className="font-mono text-amber-400">
-                Свободно очков: {player.statPoints}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { key: 'strength', label: 'Сила', desc: 'Физическая атака и защита', icon: '⚔️' },
-                { key: 'agility', label: 'Ловкость', desc: 'Скорость, уклонение, крит', icon: '🏹' },
-                { key: 'intelligence', label: 'Интеллект', desc: 'Маг. атака, запас маны', icon: '🔮' },
-                { key: 'vitality', label: 'Живучесть', desc: 'Здоровье, физ. защита', icon: '🛡️' },
-                { key: 'luck', label: 'Удача', desc: 'Дроп редких предметов, крит', icon: '🍀' },
-                { key: 'spirit', label: 'Дух', desc: 'Регенерация MP, маг. защита', icon: '✨' },
-                { key: 'willpower', label: 'Воля', desc: 'Регенерация HP, стойкость', icon: '🧠' },
-              ] as const).map(attr => (
-                <div
-                  key={attr.key}
-                  className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-900/60 text-xs font-mono"
-                >
-                  <div className="min-w-0">
-                    <span className="mr-1">{attr.icon}</span>
-                    <span className="text-slate-300">{attr.label}</span>
-                    <span className="block mt-1 text-[9px] text-slate-500">{attr.desc}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-100 font-bold">
-                      {player.attributes[attr.key as keyof CharacterAttributes]}
-                    </span>
-                    <button
-                        disabled={player.statPoints <= 0}
-                        aria-label={`Повысить: ${attr.label}`}
-                        onClick={() => allocateAttribute(attr.key as keyof CharacterAttributes)}
-                        className="w-5 h-5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        +
-                      </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <HeroStats stats={combatStats} />
-        </div>
-      )}
-
-      {/* TALENTS TAB */}
-      {activeTab === 'talents' && <TalentTree />}
-
-      {/* PET TAB */}
-      {activeTab === 'pet' && (
-        <div className="rounded-xl border border-teal-500/30 bg-[#0a121d] p-4 space-y-3">
-          {player.activePet ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl p-2 bg-slate-900 rounded-xl border border-slate-800">
-                  {player.activePet.icon}
-                </span>
-                <div>
-                  <h3 className="font-cinzel text-sm font-bold text-slate-100">
-                    {player.activePet.name}
-                  </h3>
-                  <span className="text-[10px] font-mono text-teal-400">
-                    Уровень {player.activePet.level} · Питомец героя
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-900 text-xs text-slate-300">
-                <span className="text-teal-300 font-bold block mb-0.5">Пассивный бонус:</span>
-                {player.activePet.passiveBonus}
-              </div>
-
-              {player.activePet.activeSkillName && (
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-900 text-xs text-slate-300">
-                  <span className="text-amber-300 font-bold block mb-0.5">
-                    Навык: {player.activePet.activeSkillName}
-                  </span>
-                  {player.activePet.activeSkillDesc}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-slate-400 text-center py-6">
-              У вас пока нет активного питомца.
-            </div>
-          )}
-        </div>
-      )}
+  return <FolioPage className="space-y-3 pt-3">
+    <div className="flex items-center justify-between gap-3 px-1">
+      <div><div className="text-[11px] uppercase tracking-[.16em] text-[#918c82]">Лист героя</div><h1 className="section-title text-lg">Кодекс персонажа</h1></div>
+      {onClose && <button onClick={onClose} aria-label="Закрыть лист персонажа" className="rpg-icon-button"><span className="text-lg">×</span></button>}
     </div>
-  );
+
+    <BestiaryPanel className="relative overflow-hidden">
+      <div className="relative grid min-h-[198px] grid-cols-[104px_minmax(0,1fr)] items-end overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_20%,#55462d66,transparent_55%),linear-gradient(140deg,#201c17,#101315_70%)]" />
+        <div className="relative z-10 h-[198px] w-[104px] self-end overflow-hidden border-r border-[#514633]">
+          <img src={heroImage} alt={classDef.name} className="h-full w-full object-cover object-top" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#090b0d] via-transparent to-transparent" />
+          <span className="absolute bottom-2 left-2 rounded border border-[#665940] bg-black/70 px-1.5 py-0.5 text-[11px] text-[#d8c28d]">Ранг {player.ascension?.rank || 'E'}</span>
+        </div>
+        <div className="relative z-10 min-w-0 p-3 pb-4">
+          <div className="text-[11px] uppercase tracking-[.13em] text-[#b6a47f]">{classDef.role}</div>
+          <h2 className="folio-title mt-1 break-words text-xl font-bold leading-tight">{player.name}</h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#b5aea2]">
+            <span>{classDef.name}</span><span>·</span><span>Уровень {player.level}</span>
+            {premium.active && <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]"><RpgIcon kind="crown" size={13} />Premium</span>}
+          </div>
+          <ProgressBar value={player.exp} max={player.nextExp} tone="energy" label={`До уровня ${player.level + 1}`} className="mt-4" />
+          <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
+            <div className="rounded border border-white/5 bg-black/25 px-1 py-1.5"><strong className="block text-sm text-[#d1ad67]">{player.statPoints}</strong><span className="text-[11px] text-[#918c82]">Атрибуты</span></div>
+            <div className="rounded border border-white/5 bg-black/25 px-1 py-1.5"><strong className="block text-sm text-[#ae9ac4]">{player.talentPoints}</strong><span className="text-[11px] text-[#918c82]">Таланты</span></div>
+            <div className="rounded border border-white/5 bg-black/25 px-1 py-1.5"><strong className="block text-sm text-[#c8c1b5]">{player.miningLevel}/{player.alchemyLevel}</strong><span className="text-[11px] text-[#918c82]">Профессии</span></div>
+          </div>
+        </div>
+      </div>
+      <div className="px-3 pb-3"><details><summary className="flex min-h-11 cursor-pointer items-center gap-2 border-t border-[#343638] pt-2 text-xs text-[#d1ad67]"><RpgIcon kind="character" size={16} />Класс и пассивка · {classDef.passive.name}</summary><p className="pt-2 text-xs text-[#aaa49a]">{classDef.description}</p><p className="pt-2 text-xs text-[#c5b393]">{classDef.passive.description}</p></details></div>
+    </BestiaryPanel>
+
+    <CodexTabs tabs={tabs} active={activeTab} onChange={id => setActiveTab(id as CharacterTab)} />
+
+    {activeTab === 'stats' && <div className="space-y-3">
+      <BestiaryPanel className="p-3">
+        <div className="mb-2 flex items-center justify-between gap-2"><SectionTitle>Основные атрибуты</SectionTitle><span className="text-[11px] font-mono text-[#d1ad67]">Свободно: {player.statPoints}</span></div>
+        <OrnamentDivider />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {attributes.map(attribute => <div key={attribute.key} className="flex min-h-[66px] items-center gap-2 rounded-lg border border-[#343638] bg-[#111416] px-2 py-1.5">
+            <RpgIcon kind={attribute.icon} size={19} className="text-[#a48b60]" />
+            <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-[#d8d1c4]">{attribute.label}</div><div className="mt-0.5 truncate text-[11px] text-[#918c82]">{attribute.summary}</div></div>
+            <strong className="font-mono text-sm text-[#e5ddd0]">{player.attributes[attribute.key]}</strong>
+            <button disabled={player.statPoints <= 0} aria-label={`Повысить: ${attribute.label}`} onClick={() => allocateAttribute(attribute.key)} className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[#71603e] bg-[#282218] text-lg font-bold text-[#d1ad67] disabled:opacity-35">+</button>
+          </div>)}
+        </div>
+      </BestiaryPanel>
+      <BestiaryPanel className="p-3"><SectionTitle eyebrow="Производные значения">Боевые показатели</SectionTitle><div className="mt-2"><HeroStats stats={combatStats} /></div></BestiaryPanel>
+    </div>}
+
+    {activeTab === 'equipment' && <BestiaryPanel className="space-y-3 p-3">
+      <SectionTitle eyebrow="Экипировка героя">Снаряжение</SectionTitle>
+      <div className="ornament-divider" />
+      <div className="grid grid-cols-3 gap-2">
+        {equipmentSlots.map(slot => <ItemSlot key={slot.type} label={slot.label} itemName={player.equipped[slot.type]?.name} icon={slot.type} className="min-h-[72px]" />)}
+      </div>
+      {player.equipped.pickaxe && <ItemSlot label="Шахтная кирка" itemName={player.equipped.pickaxe.name} icon="pickaxe" />}
+      {player.equipped.alchemyTool && <ItemSlot label="Алхимический инструмент" itemName={player.equipped.alchemyTool.name} icon="alchemyTool" />}
+    </BestiaryPanel>}
+
+    {activeTab === 'talents' && <BestiaryPanel className="p-2"><TalentTree /></BestiaryPanel>}
+
+    {activeTab === 'pet' && <BestiaryPanel className="space-y-3 p-4">
+      {player.activePet ? <>
+        <div className="flex items-center gap-3"><div className="grid h-16 w-16 place-items-center rounded-lg border border-[#514633] bg-[#101315]"><RpgIcon kind="pet" size={34} className="text-[#a48b60]" /></div><div><div className="text-[11px] uppercase tracking-[.15em] text-[#918c82]">Спутник героя</div><h2 className="folio-title text-lg font-bold">{player.activePet.name}</h2><div className="text-xs text-[#b4aea2]">Уровень {player.activePet.level}</div></div></div>
+        <OrnamentDivider />
+        <StatRow label="Пассивный эффект" value={player.activePet.passiveBonus} />
+        {player.activePet.activeSkillName && <div className="rounded-lg border border-[#343638] bg-[#111416] p-3"><div className="text-xs font-semibold text-[#d1ad67]">{player.activePet.activeSkillName}</div><p className="mt-1 text-xs text-[#aaa49a]">{player.activePet.activeSkillDesc}</p></div>}
+      </> : <div className="py-8 text-center"><RpgIcon kind="pet" size={40} className="mx-auto text-[#756344]" /><p className="mt-3 text-xs text-[#918c82]">Пока рядом нет спутника.</p></div>}
+    </BestiaryPanel>}
+  </FolioPage>;
 };
