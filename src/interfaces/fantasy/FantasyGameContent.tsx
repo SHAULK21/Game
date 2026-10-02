@@ -41,7 +41,7 @@ export const FantasyGameContent: React.FC = () => {
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full max-w-lg mx-auto">
+      <main className="shell-main flex-1 w-full mx-auto">
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
         {isCharacterSheetOpen ? (
           <CharacterScreen onClose={() => setIsCharacterSheetOpen(false)} />

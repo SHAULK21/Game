@@ -30,16 +30,10 @@
 html[data-interface="fantasy"] .font-cinzel { font-family: var(--font-sans); letter-spacing: normal; }
 html[data-interface="fantasy"] .font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 html[data-interface="fantasy"] .game-shell { background: var(--bg-primary); }
-html[data-interface="fantasy"] .game-header, html[data-interface="fantasy"] .game-nav { background: color-mix(in srgb, var(--bg-secondary) 94%, transparent); border-color: var(--border-metal); backdrop-filter: blur(16px); }
-html[data-interface="fantasy"] .game-header { border-bottom: 1px solid var(--border-metal); }
-html[data-interface="fantasy"] .game-nav { border-top: 1px solid var(--border-metal); }
 html[data-interface="fantasy"] .game-drawer { background: var(--surface-raised); border: 1px solid var(--border-metal); max-height: 85dvh; overflow-y: auto; }
 html[data-interface="fantasy"] .game-section { background: #1b1e22; color: #c4c0b7; border: 1px solid #35383c; }
 html[data-interface="fantasy"] .game-section:hover { background: #25282c; }
 html[data-interface="fantasy"] .game-section.is-active { color: var(--accent-gold-bright); border-color: var(--border-engraved); background: #27231d; }
-html[data-interface="fantasy"] .game-nav-item { color: #aaa69d; border-top: 2px solid transparent; transition: color 150ms, background 150ms; }
-html[data-interface="fantasy"] .game-nav-item:hover { color: var(--text-primary); background: #202328; }
-html[data-interface="fantasy"] .game-nav-item.is-active { color: var(--accent-gold-bright); border-top-color: var(--accent-gold); background: #211f1b; }
 html[data-interface="fantasy"] .nav-dot { width: 6px; height: 6px; background: var(--accent-gold-bright); border-radius: 50%; }
 html[data-interface="fantasy"] .nav-count { background: var(--accent-gold-bright); color: #17191c; border-radius: 5px; padding: 1px 4px; font-size: 10px; font-weight: 600; }
 html[data-interface="fantasy"] .ui-panel, html[data-interface="fantasy"] .glass-panel { background: var(--surface-raised); border: 1px solid var(--border-metal); }
@@ -125,29 +119,6 @@ html[data-interface="fantasy"] .game-shell {
     radial-gradient(ellipse at 0% 52%, rgb(30 41 41 / 18%), transparent 44%),
     linear-gradient(180deg, #100f0d, #090b0d 34%, #0b0c0d);
 }
-html[data-interface="fantasy"] .game-header {
-  position: sticky;
-  background: linear-gradient(180deg, rgb(24 21 17 / 97%), rgb(15 17 18 / 95%));
-  border-bottom-color: #66563a;
-  box-shadow: 0 5px 18px rgb(0 0 0 / 32%);
-}
-html[data-interface="fantasy"] .game-header::after {
-  position: absolute;
-  right: 11%;
-  bottom: -1px;
-  left: 11%;
-  height: 1px;
-  content: "";
-  background: linear-gradient(90deg, transparent, #b89558 20%, #69522f 50%, #b89558 80%, transparent);
-  opacity: .62;
-}
-html[data-interface="fantasy"] .game-nav {
-  background: linear-gradient(180deg, rgb(25 22 18 / 98%), rgb(10 11 12 / 99%));
-  border-top-color: #6a5637;
-  box-shadow: 0 -8px 26px rgb(0 0 0 / 38%);
-}
-html[data-interface="fantasy"] .game-nav-item { transition: color 160ms ease, background 160ms ease; }
-html[data-interface="fantasy"] .game-nav-item.is-active { background: linear-gradient(180deg, rgb(164 126 63 / 17%), rgb(113 76 35 / 7%)); }
 html[data-interface="fantasy"] .font-cinzel, html[data-interface="fantasy"] .folio-title, html[data-interface="fantasy"] .section-title { font-family: Georgia, "Times New Roman", serif; }
 html[data-interface="fantasy"] .bestiary-panel {
   border-color: #4d4639;
@@ -339,11 +310,7 @@ html[data-interface="fantasy"] .game-shell { background: radial-gradient(ellipse
 html[data-interface="fantasy"] .game-shell main { max-width: 1140px; min-width: 0; }
 html[data-interface="fantasy"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 html[data-interface="fantasy"] .hero-codex { max-width: 900px; }
-html[data-interface="fantasy"] .game-header { border-bottom: 3px double #9c7846; background: linear-gradient(#35271e, #1a1511); box-shadow: 0 3px 16px #0008; }
 html[data-interface="fantasy"] .header-content { max-width: 1100px; }
-html[data-interface="fantasy"] .game-nav { max-width: 900px; background: linear-gradient(#382a1e, #1a1511); border: 3px double #886c44; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 18px #0008; }
-html[data-interface="fantasy"] .game-nav-item { border-right: 1px solid #71553655; font-family: Georgia, serif; font-size: 13px; }
-html[data-interface="fantasy"] .game-nav-item.is-active { color: #f1ce7e; background: radial-gradient(ellipse at center, #98703555, #2c2417); box-shadow: inset 0 0 0 1px #b7914c; }
 html[data-interface="fantasy"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
 html[data-interface="fantasy"] .game-shell main .codex-paper h1, html[data-interface="fantasy"] .game-shell main .codex-paper h2, html[data-interface="fantasy"] .game-shell main .codex-paper h3 { color: #38271b; font-family: Georgia, 'Times New Roman', serif; }
 html[data-interface="fantasy"] .codex-paper [class*="text-[#"], html[data-interface="fantasy"] .codex-paper [class*="text-slate"], html[data-interface="fantasy"] .codex-paper .text-white { color: inherit; }
@@ -608,3 +575,62 @@ html[data-interface="fantasy"] .hero-close-art { width:39px; height:43px; }
 
 html[data-interface="fantasy"] .class-portrait-icon { border:0; border-radius:0; box-shadow:none; background:none; }
 html[data-interface="fantasy"] .registration-class-portrait { width:52px; height:52px; }
+
+/* Shared, author-approved shell. Geometry is identical for every fantasy section. */
+html[data-interface="fantasy"] { --shell-width: 900px; --shell-nav-height: 76px; --shell-frame-size: 20px; }
+html[data-interface="fantasy"] .fantasy-shell-header {
+  width:100%; max-width:var(--shell-width); margin-inline:auto; padding:12px 15px 17px;
+  border:0; border-radius:0; background:#171716 url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
+  background-size:360px; color:#dcc99d; box-shadow:0 4px 12px #0008; font-family:Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .shell-brand-row { position:relative; display:flex; align-items:center; justify-content:center; min-height:42px; padding-inline:40px; }
+html[data-interface="fantasy"] .shell-brand { color:#d5ba7d; font-size:clamp(21px,5.5vw,30px); line-height:1.1; white-space:nowrap; }
+html[data-interface="fantasy"] .shell-settings { position:absolute; right:0; top:0; z-index:2; }
+html[data-interface="fantasy"] .shell-settings summary { display:grid; place-items:center; width:44px; height:44px; cursor:pointer; list-style:none; }
+html[data-interface="fantasy"] .shell-settings summary::-webkit-details-marker { display:none; }
+html[data-interface="fantasy"] .shell-settings-content { position:absolute; right:0; top:44px; width:min(300px,calc(100vw - 32px)); padding:8px; border:1px solid #8b7148; background:#171716; box-shadow:0 4px 10px #0008; }
+html[data-interface="fantasy"] .shell-hud-content { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(112px,30%); gap:8px; min-height:68px; }
+html[data-interface="fantasy"] .shell-hero-button { display:flex; align-items:center; gap:8px; min-width:0; text-align:left; }
+html[data-interface="fantasy"] .shell-hero-portrait { position:relative; display:block; width:56px; height:64px; flex-shrink:0; overflow:hidden; border:2px solid #907347; background:#131616; }
+html[data-interface="fantasy"] .shell-hero-portrait > img { width:100%; height:100%; object-fit:cover; object-position:50% 20%; }
+html[data-interface="fantasy"] .shell-hud-resources { display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:0; }
+html[data-interface="fantasy"] .shell-energy { order:-1; justify-content:center; min-height:44px; width:100%; color:#e8cb85; }
+html[data-interface="fantasy"] .shell-energy::after { content:'+'; display:grid; place-items:center; width:18px; height:18px; margin-left:4px; border:1px solid #ae8746; border-radius:50%; font-size:16px; }
+html[data-interface="fantasy"] .shell-currencies { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+html[data-interface="fantasy"] .shell-currencies .resource-badge { justify-content:center; min-width:0; padding:3px; font-size:11px; gap:3px; }
+html[data-interface="fantasy"] .fantasy-shell-nav { max-width:var(--shell-width); border:0; border-radius:0; background:#121514; box-shadow:0 -4px 12px #0008; }
+html[data-interface="fantasy"] .shell-nav-grid { display:grid; height:var(--shell-nav-height); grid-template-columns:repeat(6,minmax(0,1fr)); padding:2px; gap:0; }
+html[data-interface="fantasy"] .game-nav-item { position:relative; isolation:isolate; color:#cabb9c; border:0; border-radius:0; min-width:0; font-family:Georgia,"Times New Roman",serif; font-size:12px; background:none; transition:color 150ms; }
+html[data-interface="fantasy"] .game-nav-item.is-active { color:#ffe1a0; background:none; box-shadow:none; }
+html[data-interface="fantasy"] .game-nav-item > :not(.shell-ornament) { position:relative; z-index:1; }
+html[data-interface="fantasy"] .game-nav-item > span:not(.shell-ornament):not(.nav-dot) { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-interface="fantasy"] .game-nav-item .shell-ornament { z-index:0; }
+html[data-interface="fantasy"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 16px); }
+html[data-interface="fantasy"] .shell-main .folio-page { padding-bottom:16px; }
+html[data-interface="fantasy"] .shell-ornament { position:absolute; inset:0; pointer-events:none; display:block; overflow:hidden; }
+html[data-interface="fantasy"] .shell-ornament svg { position:absolute; display:block; }
+html[data-interface="fantasy"] .shell-corner { width:20px; height:20px; }
+html[data-interface="fantasy"] .shell-top-left { top:0; left:0; }
+html[data-interface="fantasy"] .shell-top-right { top:0; right:0; }
+html[data-interface="fantasy"] .shell-bottom-left { bottom:0; left:0; }
+html[data-interface="fantasy"] .shell-bottom-right { bottom:0; right:0; }
+html[data-interface="fantasy"] .shell-top, html[data-interface="fantasy"] .shell-bottom { left:20px; right:20px; width:calc(100% - 40px); height:20px; }
+html[data-interface="fantasy"] .shell-top { top:0; }
+html[data-interface="fantasy"] .shell-bottom { bottom:0; }
+html[data-interface="fantasy"] .shell-left, html[data-interface="fantasy"] .shell-right { top:20px; bottom:20px; height:calc(100% - 40px); width:20px; }
+html[data-interface="fantasy"] .shell-left { left:0; }
+html[data-interface="fantasy"] .shell-right { right:0; }
+html[data-interface="fantasy"] .shell-accent { width:16.36px; height:20px; left:calc(50% - 8.18px); }
+html[data-interface="fantasy"] .shell-accent-top { top:0; }
+html[data-interface="fantasy"] .shell-accent-bottom { bottom:0; }
+html[data-interface="fantasy"] .shell-frame-fill { inset:10px; width:calc(100% - 20px); height:calc(100% - 20px); }
+html[data-interface="fantasy"] .shell-divider { display:block; height:14px; width:100px; margin:2px auto -10px; pointer-events:none; }
+html[data-interface="fantasy"] .shell-divider-art { display:block; width:100%; height:100%; }
+@media (max-width:360px) {
+  html[data-interface="fantasy"] .fantasy-shell-header { padding-inline:10px; }
+  html[data-interface="fantasy"] .shell-hud-content { grid-template-columns:minmax(0,1fr) 110px; gap:5px; }
+  html[data-interface="fantasy"] .shell-hero-portrait { width:44px; height:56px; }
+  html[data-interface="fantasy"] .game-nav-item { font-size:10px; }
+}
+
+html[data-interface="fantasy"] .shell-currencies .resource-badge > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

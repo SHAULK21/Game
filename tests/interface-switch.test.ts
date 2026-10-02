@@ -61,13 +61,14 @@ test('registration switches styles without losing input; both layouts share char
       await w.act(async () => button('Фэнтези').click()); await settle();
       assert.equal(activeTab(), label, 'fantasy keeps the selected section');
     }
+    await w.act(async () => button('Ещё').click());
     await w.act(async () => button('Герой').click()); await settle();
-    assert.equal(activeTab(), 'Герой');
+    assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Современный').click()); await settle();
     assert(w.document.querySelector('main').textContent.includes('Новый герой'), 'modern renders the fantasy hero tab');
     assert.equal([...w.document.querySelectorAll('button')].some((node: any) => node.textContent.includes('Начать охоту')), false);
     await w.act(async () => button('Фэнтези').click()); await settle();
-    assert.equal(activeTab(), 'Герой');
+    assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Охота').click()); await settle();
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'modern'); assert.equal(save().player.id, original.id); assert.equal(save().player.gold, original.gold);
@@ -167,6 +168,15 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
       input.dispatchEvent(new w.Event('input',{bubbles:true}));
     });
     await click('Начать путешествие');
+    assert.equal(w.document.querySelectorAll('header').length,1);
+    assert.equal(w.document.querySelectorAll('nav').length,1);
+    assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);
+    assert(w.document.querySelector('header [data-shell-frame="hud"]'));
+    assert.equal(w.document.querySelectorAll('nav [data-shell-frame="active"]').length,1);
+    assert(w.document.querySelector('.shell-hud-resources .is-silver'));
+    await click('Арена'); assert.match(w.document.querySelector('main').textContent,/Арен/);
+    await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
+    await click('Охота');
     const dossier=w.document.querySelector('.bestiary-dossier');
     const monsterName=dossier.querySelector('h2').textContent;
     const monster=w.catalog.find((m:any)=>m.name===monsterName);
@@ -187,7 +197,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     await w.act(async () => w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
     assert.equal(w.document.querySelector('[role="dialog"]'),null);
     assert.equal(w.document.body.style.overflow,''); assert(w.document.activeElement === settings, 'focus returns to settings button');
-    await click('Герой');
+    await w.act(async () => aria('Открыть лист персонажа').click()); await settle();
     const before=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
     await w.act(async () => aria('Повысить: Сила').click()); await settle();
     const after=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
@@ -195,15 +205,15 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     await click('Снаряжение');
     await w.act(async () => aria('Сменить: Оружие').click()); await settle();
     assert.equal(w.document.querySelector('nav button[aria-current="page"]').textContent.trim(),'Сумка');
-    await click('Герой');await click('Спутник');await click('Выбрать ›');
+    await w.act(async () => aria('Открыть лист персонажа').click()); await settle();await click('Спутник');await click('Выбрать ›');
     assert.match(w.document.querySelector('main').textContent,/Спутник|Питом|СПУТНИК/i);
-    for (const label of ['Арена','Кузница','Ремесло','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал']) {
+    for (const label of ['Кузница','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал']) {
       await click('Ещё');await click(label);
       assert(w.document.querySelector('main').textContent.trim().length>0,`${label} renders`);
       if (label === 'Арена') { await click('PvP — игроки'); assert.match(w.document.querySelector('main').textContent,/1000/); }
       assert.equal(w.document.querySelector('[aria-label="Другие разделы"]'),null);
     }
-    await click('Мир');await click('Герой');
+    await click('Мир');await w.act(async () => aria('Открыть лист персонажа').click()); await settle();
     assert(w.document.querySelector('[data-reference-region="frame"] image'));
     assert(w.document.querySelector('[data-reference-region="castle"] image'));
     assert(w.document.querySelector('[data-reference-region="strength"] image'));

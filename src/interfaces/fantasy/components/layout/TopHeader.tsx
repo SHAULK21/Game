@@ -5,14 +5,21 @@ import { useGame } from '../../../../context/GameContext';
 import { CLASSES } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
-import { ClassPortraitIcon } from '../ui/ClassPortraitIcon';
+import { ShellOrnament } from '../ui/ShellOrnament';
+import { getFantasyHeroArtwork } from '../../utils/heroArtwork';
 import { ResourceBadge, RpgButton, DialogFrame } from '../ui/BestiaryUI';
 
 interface TopHeaderProps {
   onOpenCharacterSheet: () => void;
 }
 
-const compactCount = (value: number) => value >= 10000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(intlLocale());
+const compactCount = (value: number) => {
+  const unit = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e4, 'k']].find(([threshold]) => value >= Number(threshold));
+  if (!unit) return value.toLocaleString(intlLocale());
+  const divisor = unit[1] === 'k' ? 1000 : Number(unit[0]);
+  const count = value / divisor;
+  return `${count.toFixed(count >= 100 ? 0 : 1)}${unit[1]}`;
+};
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
   useLocale();
@@ -37,11 +44,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   const energyPct = Math.min(100, Math.round((currentEnergy / Math.max(1, maxEnergy)) * 100));
 
   return <>
-    <header className="game-header sticky top-0 z-30 px-2.5 py-2">
-      <div className="header-content mx-auto flex items-center gap-2">
-        <button onClick={onOpenCharacterSheet} aria-label={localize("Открыть лист персонажа")} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-          <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[#62543b] bg-[#101315]">
-            <ClassPortraitIcon classId={player.classId} className="header-class-portrait" />
+    <header className="game-header fantasy-shell-header sticky top-0 z-30">
+      <ShellOrnament />
+      <div className="shell-brand-row">
+        <span className="shell-brand">Aethelgard RPG</span>
+        <details className="shell-settings">
+          <summary aria-label={localize("Стиль интерфейса")}><RpgIcon kind="settings" size={22} /></summary>
+          <div className="shell-settings-content"><InterfaceSwitcher compact /></div>
+        </details>
+      </div>
+      <div className="header-content shell-hud-content">
+        <button onClick={onOpenCharacterSheet} aria-label={localize("Открыть лист персонажа")} className="shell-hero-button">
+          <span className="shell-hero-portrait">
+            <img src={getFantasyHeroArtwork(player.classId)} alt="" draggable={false} />
             <span className="absolute bottom-0 inset-x-0 bg-black/80 text-center font-mono text-[11px] font-bold leading-4 text-[#e3c983]">{localize(player.level)}</span>
           </span>
           <span className="min-w-0 flex-1">
@@ -58,12 +73,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
           </span>
         </button>
 
-        <div className="header-resources flex shrink-0 items-center gap-1.5">
-          <ResourceBadge kind="gold" value={compactCount(player.gold)} title={localize("Золото")} />
-          <ResourceBadge kind="energy" value={`${currentEnergy}/${maxEnergy}`} onClick={() => setShowEnergyModal(true)} title={localize("Энергия. Открыть способы восстановления")} />
+        <div className="header-resources shell-hud-resources">
+          <span className="shell-currencies"><ResourceBadge kind="gold" value={compactCount(player.gold)} title={`${localize("Золото")}: ${player.gold.toLocaleString(intlLocale())}`} /><ResourceBadge kind="silver" value={compactCount(player.silver ?? 0)} title={`${localize("Серебро")}: ${(player.silver ?? 0).toLocaleString(intlLocale())}`} /></span>
+          <ResourceBadge kind="energy" value={`${currentEnergy}/${maxEnergy}`} onClick={() => setShowEnergyModal(true)} title={localize("Энергия. Открыть способы восстановления")} className="shell-energy" />
         </div>
       </div>
-    <InterfaceSwitcher compact />
+      <ShellOrnament variant="divider" />
       </header>
 
     <DialogFrame open={showEnergyModal} title={localize("Энергия охотника")} onClose={() => setShowEnergyModal(false)}>

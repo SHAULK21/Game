@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "awaiting-author-visual-approval",
+  "status": "author-approved",
   "image": "ornaments.webp",
   "width": 1254,
   "height": 1254,
@@ -35,6 +35,6 @@
     "No text, data, menu icons or click targets are baked into these assets.",
     "Retain alpha; preserve corners and ornaments without stretching.",
     "Bounds include six pixels of padding around alpha >128; exclude low-alpha atlas noise outside each region.",
-    "Generated geometry must be visually approved before use; regions are not yet a validated nine-slice specification."
+    "Author approved the artwork on 2026-10-02. Responsive consuming UI requires browser verification."
   ]
 }
