@@ -55,7 +55,7 @@ test('language selection is visible only at registration; its saved locale survi
     await w.act(async () => w.setLanguage('ru')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
     await click('Современный'); assert.equal(active(), 'Сумка');
     await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
-    await click('Фентезі'); await click('Герой'); await click('Сучасний');
+    await click('Фентезі'); await click('Ще'); await click('Герой'); await click('Сучасний');
     assert.match(w.document.querySelector('main').textContent, /Золото/);
     assert.equal(w.document.querySelector('main h3')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
     await click('Полювання');
