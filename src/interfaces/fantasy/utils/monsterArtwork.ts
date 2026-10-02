@@ -34,5 +34,7 @@ export const getMonsterArtworkPath = (id: string, savedAvatar?: string): string 
   if (artId) return `${MONSTER_ART_ROOT}/${artId}.webp`;
   if (isGeneratedMonsterImage(savedAvatar)) return savedAvatar!;
 
-  return `${MONSTER_ART_ROOT}/m_bandit.webp`;
+  // Uncatalogued enemies keep their actual saved art instead of appearing as a bandit.
+  if (savedAvatar && /^(?:\/(?!\/)|https?:\/\/)/i.test(savedAvatar)) return savedAvatar;
+  return '';
 };

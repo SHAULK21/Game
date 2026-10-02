@@ -333,3 +333,115 @@ html[data-interface="fantasy"] .combat-turn-status { border-color: #64553a; back
 
 html[data-interface="fantasy"] .registration-screen { background: radial-gradient(ellipse at top, #292317, #090b0d 65%); }
 html[data-interface="fantasy"] .registration-screen h1 { font-family: Georgia, serif; color: #d4b374; }
+
+/* Book pages follow the supplied references; gameplay values remain shared. */
+html[data-interface="fantasy"] .game-shell { background: radial-gradient(ellipse at top, #3c2c1c, #17120e 60%, #0b0b0b); }
+html[data-interface="fantasy"] .game-shell main { max-width: 1140px; min-width: 0; }
+html[data-interface="fantasy"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+html[data-interface="fantasy"] .hero-codex { max-width: 900px; }
+html[data-interface="fantasy"] .game-header { border-bottom: 3px double #9c7846; background: linear-gradient(#35271e, #1a1511); box-shadow: 0 3px 16px #0008; }
+html[data-interface="fantasy"] .header-content { max-width: 1100px; }
+html[data-interface="fantasy"] .game-nav { max-width: 900px; background: linear-gradient(#382a1e, #1a1511); border: 3px double #886c44; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 18px #0008; }
+html[data-interface="fantasy"] .game-nav-item { border-right: 1px solid #71553655; font-family: Georgia, serif; font-size: 13px; }
+html[data-interface="fantasy"] .game-nav-item.is-active { color: #f1ce7e; background: radial-gradient(ellipse at center, #98703555, #2c2417); box-shadow: inset 0 0 0 1px #b7914c; }
+html[data-interface="fantasy"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
+html[data-interface="fantasy"] .game-shell main .codex-paper h1, html[data-interface="fantasy"] .game-shell main .codex-paper h2, html[data-interface="fantasy"] .game-shell main .codex-paper h3 { color: #38271b; font-family: Georgia, 'Times New Roman', serif; }
+html[data-interface="fantasy"] .codex-paper [class*="text-[#"], html[data-interface="fantasy"] .codex-paper [class*="text-slate"], html[data-interface="fantasy"] .codex-paper .text-white { color: inherit; }
+html[data-interface="fantasy"] .codex-paper .section-title { font-size: 19px; }
+html[data-interface="fantasy"] .codex-eyebrow { color: #70502d; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+html[data-interface="fantasy"] .hero-sheet { padding: 13px; }
+html[data-interface="fantasy"] .hero-identity { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+html[data-interface="fantasy"] .hero-portrait { position: relative; min-height: 240px; border: 4px double #88643d; box-shadow: 2px 3px 9px #52381777; transform: rotate(-1deg); background: #282015; overflow: hidden; }
+html[data-interface="fantasy"] .hero-portrait > img, html[data-interface="fantasy"] .hero-portrait > .portrait-fallback { position: absolute; inset: 0; }
+html[data-interface="fantasy"] .hero-rank { position: absolute; bottom: 10px; left: 10px; padding: 5px 10px; border: 2px double #b4915c; background: #241e16; color: #efd6a6; font-family: Georgia, serif; font-size: 13px; }
+html[data-interface="fantasy"] .hero-biography { min-width: 0; padding-top: 8px; }
+html[data-interface="fantasy"] .hero-biography h2 { margin-top: 4px; font-size: clamp(20px, 3vw, 30px); line-height: 1.15; overflow-wrap: anywhere; }
+html[data-interface="fantasy"] .hero-biography p { margin-top: 5px; font-size: 12px; }
+html[data-interface="fantasy"] .hero-counters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+html[data-interface="fantasy"] .hero-counters button { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 9px 2px; min-height: 80px; color: #f2dfb9; border: 3px double #a48558; border-radius: 4px; background: linear-gradient(#3b2c21, #201811); box-shadow: inset 0 0 8px #0009; }
+html[data-interface="fantasy"] .hero-counters strong { font-family: Georgia, serif; font-size: 18px; }
+html[data-interface="fantasy"] .hero-counters span { font-size: 10px; }
+html[data-interface="fantasy"] .hero-passive { margin-top: 12px; }
+html[data-interface="fantasy"] .codex-detail { border: 1px solid #97754d88; border-radius: 5px; padding: 0 10px; margin-top: 7px; background: #bfa07718; }
+html[data-interface="fantasy"] .codex-detail summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-size: 12px; font-weight: 600; }
+html[data-interface="fantasy"] .codex-detail p { padding: 0 0 10px; font-size: 12px; }
+html[data-interface="fantasy"] .codex-tab { font-family: Georgia, serif; color: #ceb995; border: 2px double #735436; border-radius: 6px 6px 0 0; background: linear-gradient(#3e2b1e, #20160f); }
+html[data-interface="fantasy"] .codex-tab.is-active { color: #eddda5; background: linear-gradient(#46502a, #222d1a); }
+html[data-interface="fantasy"] .attribute-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+html[data-interface="fantasy"] .attribute-card { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 74px; padding: 8px; border: 2px double #a78558; border-radius: 5px; background: #e9d2a250; }
+html[data-interface="fantasy"] .attribute-card > div { min-width: 0; }
+html[data-interface="fantasy"] .attribute-card > div > div:first-child { font-family: Georgia, serif; font-size: 14px; }
+html[data-interface="fantasy"] .attribute-summary { margin-top: 3px; font-size: 11px; line-height: 1.35; color: #6b5036; }
+html[data-interface="fantasy"] .attribute-card button { width: 38px; height: 42px; min-width: 38px; }
+html[data-interface="fantasy"] .attribute-card button:disabled { opacity: .4; }
+html[data-interface="fantasy"] .codex-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 15px; margin-top: 10px; }
+html[data-interface="fantasy"] .codex-stat { display: flex; align-items: center; gap: 8px; justify-content: space-between; min-width: 0; padding: 10px 2px; border-bottom: 1px solid #8c6c4538; font-size: 12px; }
+html[data-interface="fantasy"] .codex-stat span { flex: 1; }
+html[data-interface="fantasy"] .codex-stat strong { font-variant-numeric: tabular-nums; }
+html[data-interface="fantasy"] .codex-link { flex-shrink: 0; min-height: 44px; padding: 0 10px; border: 2px double #927044; border-radius: 4px; background: #3a291c; color: #ead6af; font-family: Georgia, serif; font-size: 12px; }
+html[data-interface="fantasy"] .equipment-preview { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+html[data-interface="fantasy"] .equipment-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 74px; padding: 8px; border: 3px double #997447; border-radius: 5px; background: linear-gradient(135deg, #433526, #211b16); color: #e9d6b4; }
+html[data-interface="fantasy"] .equipment-tile span { font-size: 11px; }
+html[data-interface="fantasy"] .equipment-tile small { font-size: 10px; overflow-wrap: anywhere; }
+html[data-interface="fantasy"] .portrait-fallback { display: flex; align-items: center; justify-content: center; }
+html[data-interface="fantasy"] .bestiary-spread { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+html[data-interface="fantasy"] .atlas-sidebar { display: none; padding: 14px; }
+html[data-interface="fantasy"] .atlas-sidebar ul { margin: 12px 0; }
+html[data-interface="fantasy"] .atlas-sidebar li { display: flex; align-items: center; gap: 8px; padding: 12px 4px; font-size: 12px; border-bottom: 1px solid #98774766; }
+html[data-interface="fantasy"] .atlas-sidebar li[aria-current] { font-weight: bold; background: #f6e4b95c; }
+html[data-interface="fantasy"] .atlas-sidebar small { display: block; margin-top: 4px; font-size: 10px; font-weight: normal; }
+html[data-interface="fantasy"] .bestiary-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: none; overflow: visible; }
+html[data-interface="fantasy"] .bestiary-entry-row { flex-direction: column; align-items: stretch; padding: 7px; border: 2px double #9c784b; border-radius: 5px; background: #e9d5ae; color: #3b2c1d; min-width: 0; position: relative; }
+html[data-interface="fantasy"] .bestiary-entry-row.is-selected { border-color: #775529; background: #f7e6c0; box-shadow: 0 0 0 2px #bf9750, inset 0 0 14px #cead7638; }
+html[data-interface="fantasy"] .bestiary-entry-row.is-locked { opacity: .75; }
+html[data-interface="fantasy"] .bestiary-entry-row > .bestiary-entry-portrait { width: 100%; height: 105px; flex: auto; border: 0; background: radial-gradient(ellipse, #f5e4be, #d6b78a); box-shadow: none; }
+html[data-interface="fantasy"] .bestiary-entry-row .truncate { white-space: normal; overflow-wrap: anywhere; }
+html[data-interface="fantasy"] .bestiary-entry-row > span:nth-child(2) { min-height: 38px; }
+html[data-interface="fantasy"] .bestiary-entry-chevron { display: none; }
+html[data-interface="fantasy"] .bestiary-marker { align-self: flex-start; font-size: 10px; }
+html[data-interface="fantasy"] .bestiary-dossier-art { background: #dcc297; }
+html[data-interface="fantasy"] .bestiary-dossier-art > .portrait-fallback, html[data-interface="fantasy"] .bestiary-dossier-art > img { filter: sepia(.25) saturate(.7); padding: 10px 12px 55px; }
+html[data-interface="fantasy"] .bestiary-dossier-art-shade { background: linear-gradient(transparent 55%, #e2c79e); }
+html[data-interface="fantasy"] .bestiary-art-stamp { color: #eed8b1; }
+html[data-interface="fantasy"] .bestiary-dossier-paper { background: transparent; }
+html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row { border-bottom-color: #93704444; }
+html[data-interface="fantasy"] .dossier-loot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+html[data-interface="fantasy"] .loot-entry { display: flex; align-items: center; gap: 6px; font-size: 11px; min-width: 0; border: 1px solid #97744888; border-radius: 4px; padding: 6px; background: #f1deba55; }
+html[data-interface="fantasy"] .loot-entry img { flex-shrink: 0; }
+html[data-interface="fantasy"] .loot-entry span { overflow-wrap: anywhere; }
+html[data-interface="fantasy"] .loot-entry small { display: block; font-size: 10px; color: #715638; margin-top: 3px; }
+html[data-interface="fantasy"] .hunt-codex > .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
+html[data-interface="fantasy"] .dialog-frame { max-height: calc(100dvh - 24px - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+html[data-interface="fantasy"] .dialog-frame .rpg-button { white-space: normal; }
+html[data-interface="fantasy"] .game-drawer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+@media (min-width: 760px) {
+  html[data-interface="fantasy"] .bestiary-spread { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  html[data-interface="fantasy"] .hero-identity { grid-template-columns: 215px minmax(0, 1fr); }
+  html[data-interface="fantasy"] .hero-portrait { min-height: 270px; }
+  html[data-interface="fantasy"] .hero-counters button { min-height: 92px; }
+}
+@media (min-width: 1060px) {
+  html[data-interface="fantasy"] .bestiary-spread { grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1fr); }
+  html[data-interface="fantasy"] .atlas-sidebar { display: block; }
+}
+@media (max-width: 420px) {
+  html[data-interface="fantasy"] .attribute-grid { grid-template-columns: minmax(0, 1fr); }
+  html[data-interface="fantasy"] .hero-identity { grid-template-columns: 90px minmax(0, 1fr); gap: 9px; }
+  html[data-interface="fantasy"] .hero-sheet { padding: 9px; }
+  html[data-interface="fantasy"] .hero-portrait { min-height: 230px; }
+  html[data-interface="fantasy"] .hero-rank { left: 3px; bottom: 6px; padding: 4px; font-size: 11px; }
+  html[data-interface="fantasy"] .hero-counters { gap: 3px; }
+  html[data-interface="fantasy"] .hero-counters button { min-height: 76px; }
+  html[data-interface="fantasy"] .hero-counters span { font-size: 9px; }
+  html[data-interface="fantasy"] .header-content { flex-wrap: wrap; }
+  html[data-interface="fantasy"] .header-content > button { flex-basis: 100%; }
+  html[data-interface="fantasy"] .header-resources { width: 100%; justify-content: flex-end; }
+  html[data-interface="fantasy"] .codex-stat-grid { grid-template-columns: minmax(0, 1fr); }
+  html[data-interface="fantasy"] .dossier-loot { grid-template-columns: minmax(0, 1fr); }
+}
+
+html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper { background: url('/assets/sprites/generated/ui/parchment-grain.webp'), linear-gradient(130deg, #eddbb6, #c6a778); background-size: 420px, auto; background-blend-mode: soft-light, normal; }
+html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper.is-selected { border-color: #d6ae69; box-shadow: inset 0 0 0 1px #735330, 0 0 0 2px #b48e51; }
+html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="text-"] { color: inherit; }
+html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="bg-"] { color: #dfcaa7; }
+html[data-interface="fantasy"] .hero-codex > div:first-child h1 { font-family: Georgia, serif; color: #e4c895; }

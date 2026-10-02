@@ -1,9 +1,13 @@
 import React from 'react';
+import { useNavigation } from '../../../../context/NavigationContext';
+import { Portrait } from '../ui/Portrait';
+import { ItemArtwork } from '../ui/ItemArtwork';
+import { REGIONS } from '../../data/gameData';
 import type { AutoBattleSettings, Monster, PlayerCharacter, RegionModifier } from '../../../../types/game';
 import type { RegionDefinition } from '../../data/gameData';
 import type { RegionProgress } from '../../../../utils/regionalProgress';
 import { BattleBackdrop, getBattleScene } from '../../../../components/combat/BattleBackdrop';
-import { BestiaryEntry, BestiaryPanel, FolioPage, OrnamentDivider, RpgButton, RpgIconButton, SectionTitle, StatRow } from '../ui/BestiaryUI';
+import { BestiaryEntry, BestiaryPanel, FolioPage, OrnamentDivider, RpgButton, RpgIconButton, SectionTitle, StatRow, DialogFrame } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
@@ -31,7 +35,7 @@ interface HuntDashboardProps {
   onLeaveMine: () => void;
 }
 
-const damageTypeLabel = (type?: Monster['damageType']) => type === 'magic' ? 'Магический урон' : type === 'physical' ? 'Физический урон' : type ? `Урон: ${type}` : 'Тип урона неизвестен';
+const damageTypeLabel = (type?: Monster['damageType']) => ({ physical: 'Физический урон', magic: 'Магический урон', fire: 'Огонь', ice: 'Лёд', lightning: 'Молния', poison: 'Яд', dark: 'Тьма', holy: 'Свет', true: 'Чистый урон' })[type || 'physical'];
 
 export const HuntDashboard: React.FC<HuntDashboardProps> = ({
   player, currentRegion, regionMonsters, selectedMonster, activeMod, selectedLock, progress, energyError, combatEnergyCost,
@@ -39,13 +43,14 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
   onUpdateAutoBattle, onMeditate, onBuyElixir, onLeaveMine
 }) => {
   const scene = getBattleScene(currentRegion.id, currentRegion.id);
-  const loot = selectedMonster?.drops.filter(drop => drop.type === 'material').slice(0, 2) || [];
+  const loot = selectedMonster?.drops || [];
+  const { setCurrentTab } = useNavigation();
   const needsLevel = player.level < currentRegion.minLevel;
   const isMiningLocked = Boolean(player.miningExpedition && !premiumActive);
   const canStart = Boolean(selectedMonster) && !selectedLock && !needsLevel && !isMiningLocked;
 
-  return <FolioPage className="space-y-3 pt-3">
-    <BestiaryPanel className="relative isolate min-h-[150px] overflow-hidden">
+  return <FolioPage className="hunt-codex space-y-3 pt-3">
+    <BestiaryPanel className="region-banner relative isolate min-h-[150px] overflow-hidden">
       <div className="absolute inset-0 -z-10"><BattleBackdrop scene={scene} /><div className="absolute inset-0 bg-gradient-to-r from-[#090b0de8] via-[#090b0d91] to-[#090b0d3b]" /></div>
       <div className="relative flex min-h-[150px] flex-col justify-between p-4">
         <div className="flex items-start justify-between gap-2">
@@ -68,17 +73,35 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
     {selectedLock && <p className="px-1 text-center text-[11px] text-[#d1ad67]">{selectedLock}</p>}
     {needsLevel && <p className="px-1 text-center text-[11px] text-[#d1ad67]">Для этой области нужен уровень {currentRegion.minLevel}.</p>}
 
-    <BestiaryPanel className="p-3">
+    {isMiningLocked && <BestiaryPanel className="flex items-center justify-between gap-3 p-3">
+      <div className="flex items-center gap-2 text-xs text-[#d1ad67]"><RpgIcon kind="mine" size={19} /><span>Герой на шахтной экспедиции</span></div>
+      <button onClick={onLeaveMine} className="rpg-button rpg-button-secondary shrink-0 px-3 text-xs">Вернуться</button>
+    </BestiaryPanel>}
+
+    {energyError && <div role="status" aria-live="polite" className="bestiary-panel space-y-2 border-[#673b3b] bg-[#211719] p-3">
+      <div className="flex items-start gap-2 text-xs text-[#e1b7b3]"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#81504d] font-bold">!</span><span>{energyError}</span></div>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={onMeditate} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Медитация +10</button>
+        <button onClick={onBuyElixir} disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Эликсир +30 · {elixirPrice} серебра</button>
+      </div>
+    </div>}
+
+
+
+    <div className="bestiary-spread">
+    <aside className="codex-paper atlas-sidebar"><SectionTitle eyebrow="Атлас Аэтельгарда">Земли</SectionTitle><ul>{REGIONS.map(region => <li key={region.id} aria-current={region.id === currentRegion.id ? 'location' : undefined}><RpgIcon kind={player.level < region.minLevel ? 'bestiary' : 'map'} size={23}/><span>{region.name}<small>{region.levelRange}{player.level < region.minLevel && ' · Закрыто'}</small></span></li>)}</ul><RpgButton icon="map" onClick={() => setCurrentTab('world')}>Выбрать локацию</RpgButton></aside>
+    <BestiaryPanel className="codex-paper bestiary-catalog p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <SectionTitle eyebrow="Каталог существ">Бестиарий</SectionTitle>
+        <SectionTitle eyebrow="Обитатели локации">Бестиарий</SectionTitle>
         <RpgIconButton icon="settings" label="Настройки автобоя" onClick={onToggleSettings} />
       </div>
-      <div className="bestiary-list mt-2 max-h-[292px] space-y-1.5 overflow-y-auto pr-1">
+      <div className="bestiary-list mt-2">
         {regionMonsters.map(monster => {
           const locked = Boolean(getMonsterLock(monster));
           const marker = monster.isBoss ? 'Босс' : monster.isElite ? 'Элита' : undefined;
           return <BestiaryEntry key={monster.id} title={monster.name} subtitle={`Ур. ${monster.level}`} image={getMonsterArtworkPath(monster.id, monster.avatar)} selected={monster.id === selectedMonster?.id} locked={locked} marker={marker} onClick={() => onSelectMonster(monster.id)} />;
         })}
+        {!regionMonsters.length && <p role="status">В этой локации пока нет доступных противников.</p>}
       </div>
       <OrnamentDivider />
       <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
@@ -88,10 +111,10 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
       </div>
     </BestiaryPanel>
 
-    {selectedMonster && <BestiaryPanel className="bestiary-dossier overflow-hidden">
+    {selectedMonster && <BestiaryPanel className="codex-paper bestiary-dossier overflow-hidden">
       <div className="bestiary-dossier-art relative min-h-[248px] overflow-hidden">
-        <div className="absolute inset-0 bg-[#111615]"><BattleBackdrop scene={scene} /></div>
-        <img src={getMonsterArtworkPath(selectedMonster.id, selectedMonster.avatar)} alt={selectedMonster.name} className="absolute inset-0 h-full w-full object-contain object-center" referrerPolicy="no-referrer" />
+        <div className="dossier-etching" aria-hidden="true"/>
+        <Portrait src={getMonsterArtworkPath(selectedMonster.id, selectedMonster.avatar)} alt={selectedMonster.name} className="absolute inset-0 h-full w-full object-contain object-center"/>
         <div className="bestiary-dossier-art-shade absolute inset-0" />
         <div className="relative flex min-h-[248px] flex-col justify-between p-3.5">
           <div className="flex items-start justify-between gap-2">
@@ -112,36 +135,23 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
         <div className="grid grid-cols-2 gap-x-5 gap-y-0.5">
           <StatRow label="Здоровье" value={selectedMonster.maxHp.toLocaleString()} tone="hp" />
           <StatRow label="Атака" value={selectedMonster.attack.toLocaleString()} />
+          <StatRow label="Защита" value={selectedMonster.defense.toLocaleString()} />
+          <StatRow label="Маг. защита" value={selectedMonster.magicDefense.toLocaleString()} />
         </div>
         <div className="mt-3 border-t border-[#75634a]/35 pt-2.5">
           <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-[#65553e]">Находки</div>
-          <div className="flex min-h-5 flex-wrap gap-x-3 gap-y-1 text-xs text-[#332b23]">
-            {loot.length ? loot.map(drop => <span key={`${selectedMonster.id}-${drop.itemName}`}>{drop.itemName}</span>) : <span className="text-[#766958]">Следов добычи пока нет</span>}
+          <div className="dossier-loot">
+            {loot.length ? loot.map((drop, index) => <div key={`${selectedMonster.id}-${drop.itemName}-${index}`} className="loot-entry"><ItemArtwork item={{ name: drop.itemName, type: drop.type, rarity: drop.rarity, icon: '' }} size={35}/><span>{drop.itemName}<small>{drop.minQty === drop.maxQty ? drop.minQty : `${drop.minQty}–${drop.maxQty}`} шт. · базовый шанс {Math.round(drop.chance * 100)}%</small></span></div>) : <span className="text-[#766958]">Следов добычи пока нет</span>}
           </div>
         </div>
       </div>
     </BestiaryPanel>}
+    </div>
 
-    {isMiningLocked && <BestiaryPanel className="flex items-center justify-between gap-3 p-3">
-      <div className="flex items-center gap-2 text-xs text-[#d1ad67]"><RpgIcon kind="mine" size={19} /><span>Герой на шахтной экспедиции</span></div>
-      <button onClick={onLeaveMine} className="rpg-button rpg-button-secondary shrink-0 px-3 text-xs">Вернуться</button>
-    </BestiaryPanel>}
-
-    {energyError && <div role="status" aria-live="polite" className="bestiary-panel space-y-2 border-[#673b3b] bg-[#211719] p-3">
-      <div className="flex items-start gap-2 text-xs text-[#e1b7b3]"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#81504d] font-bold">!</span><span>{energyError}</span></div>
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={onMeditate} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Медитация +10</button>
-        <button onClick={onBuyElixir} disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">Эликсир +30 · {elixirPrice} серебра</button>
-      </div>
-    </div>}
-
-
-
-    {isSettingsOpen && <BestiaryPanel className="space-y-3 p-3">
-      <div className="flex items-center justify-between"><h3 className="section-title text-sm">Настройки автобоя</h3><button onClick={onToggleSettings} className="min-h-11 px-2 text-xs text-[#aaa49a]">Закрыть</button></div>
+    <DialogFrame open={isSettingsOpen} title="Настройки автобоя" onClose={onToggleSettings} className="space-y-3">
       <label className="flex min-h-11 items-center justify-between gap-3 text-xs text-[#c5c0b6]"><span>Использовать навыки</span><input type="checkbox" checked={autoBattle.useSkills} onChange={event => onUpdateAutoBattle({ useSkills: event.target.checked })} className="h-5 w-5 accent-[#b99558]" /></label>
       <label className="flex items-center justify-between text-xs text-[#c5c0b6]"><span>Автозелье при HP ниже</span><span className="font-mono text-[#d1ad67]">{autoBattle.healAtHpPercent}%</span></label>
       <input type="range" min="20" max="70" value={autoBattle.healAtHpPercent} onChange={event => onUpdateAutoBattle({ healAtHpPercent: Number(event.target.value) })} aria-label="Порог автозелья по здоровью" className="w-full accent-[#b99558]" />
-    </BestiaryPanel>}
+    </DialogFrame>
   </FolioPage>;
 };

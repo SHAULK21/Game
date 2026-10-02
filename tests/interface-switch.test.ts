@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
+import { getMonsterArtworkPath } from '../src/interfaces/fantasy/utils/monsterArtwork';
 
 async function setup(contents: string) {
   const bundle = await build({ stdin: { contents, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
@@ -109,4 +110,89 @@ test('fantasy artwork uses new sprites and recovers from image failures; modern 
     assert(w.document.querySelector('#icon svg'));
     assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
+});
+
+test('fantasy codex controls, complete loot, dialogs and every section work together', async () => {
+  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';import {MONSTERS} from './src/data/gameData';window.catalog=Object.values(MONSTERS);window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`);
+  w.localStorage.setItem('aethelgard_interface_style', 'fantasy');
+  w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], listings: [], players: [], messages: [], clans: [], clan: null, onlinePlayers: 0, profile: { enrolled: false, stance: 'balanced', rating: 1000, tickets: 5, wins: 0, losses: 0 }, opponents: [], leaders: [], history: [], resetAt: new Date().toISOString(), ok: true, totalGold: 0, isAdmin: false }) });
+  const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
+  const button = (label: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === label) as any;
+  const click = async (label: string) => { const node=button(label); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
+  const aria = (label: string) => w.document.querySelector(`[aria-label="${label}"]`);
+  try {
+    await w.act(async () => w.mount()); await settle();
+    await w.act(async () => {
+      const input=w.document.querySelector('input[type="text"]');
+      Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value')!.set!.call(input,'Герой кодекса');
+      input.dispatchEvent(new w.Event('input',{bubbles:true}));
+    });
+    await click('Начать путешествие');
+    const dossier=w.document.querySelector('.bestiary-dossier');
+    const monsterName=dossier.querySelector('h2').textContent;
+    const monster=w.catalog.find((m:any)=>m.name===monsterName);
+    assert(monster);
+    assert.equal(dossier.querySelectorAll('.loot-entry').length,monster.drops.length,'all drop types and entries are shown');
+    for (const drop of monster.drops) assert(dossier.textContent.includes(drop.itemName));
+    const energy=w.document.querySelector('button[title="Энергия. Открыть способы восстановления"]');
+    await w.act(async()=>energy.click());
+    assert.equal(button('Медитация · бесплатноЗапас полон')?.disabled,true);
+    await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    const settings=aria('Настройки автобоя');
+    await w.act(async () => { settings.focus(); settings.click(); });
+    assert.equal(w.document.querySelector('[role="dialog"]').getAttribute('aria-label'),'Настройки автобоя');
+    assert.equal(w.document.body.style.overflow,'hidden');
+    const slider=aria('Порог автозелья по здоровью');
+    await w.act(async () => { Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value')!.set!.call(slider,'35'); slider.dispatchEvent(new w.Event('input',{bubbles:true})); });
+    assert.match(w.document.querySelector('[role="dialog"]').textContent,/35%/);
+    await w.act(async () => w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    assert.equal(w.document.querySelector('[role="dialog"]'),null);
+    assert.equal(w.document.body.style.overflow,''); assert(w.document.activeElement === settings, 'focus returns to settings button');
+    await click('Герой');
+    const before=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
+    await w.act(async () => aria('Повысить: Сила').click()); await settle();
+    const after=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
+    assert.equal(after.attributes.strength,before.attributes.strength+1);assert.equal(after.statPoints,before.statPoints-1);
+    await click('Снаряжение');
+    await w.act(async () => aria('Сменить: Оружие').click()); await settle();
+    assert.equal(w.document.querySelector('nav button[aria-current="page"]').textContent.trim(),'Сумка');
+    await click('Герой');await click('Спутник');await click('Выбрать ›');
+    assert.match(w.document.querySelector('main').textContent,/Спутник|Питом|СПУТНИК/i);
+    for (const label of ['Арена','Кузница','Ремесло','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал']) {
+      await click('Ещё');await click(label);
+      assert(w.document.querySelector('main').textContent.trim().length>0,`${label} renders`);
+      if (label === 'Арена') { await click('PvP — игроки'); assert.match(w.document.querySelector('main').textContent,/1000/); }
+      assert.equal(w.document.querySelector('[aria-label="Другие разделы"]'),null);
+    }
+    await click('Мир');await click('Герой');
+    await click('Современный');
+    assert.equal(w.document.querySelector('.hero-codex'),null,'modern retains its own character layout');
+    assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.id,before.id);
+    await w.act(async()=>w.root.unmount());
+    const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    save.player.level=25;save.player.currentRegionId='reg_plains';
+    w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));
+    w.localStorage.setItem('aethelgard_interface_style','fantasy');
+    await w.act(async()=>w.mount());await settle();await click('Мир');
+    assert.match(w.document.querySelector('.atlas-node[aria-pressed="true"]').textContent,/ВЫ ЗДЕСЬ/,'world keeps actual location even above its recommended level');
+  } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
+});
+
+test('fantasy portraits recover when selecting a new source after a loading error', async () => {
+  const {dom,w}=await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {Portrait} from './src/interfaces/fantasy/components/ui/Portrait';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.show=src=>window.root.render(<Portrait src={src} alt="Волк"/>);window.show('/missing.webp');};`);
+  try {
+    await w.act(async()=>w.mount());
+    await w.act(async()=>w.document.querySelector('img').dispatchEvent(new w.Event('error')));
+    assert(w.document.querySelector('[role="img"][aria-label="Волк"]'));
+    await w.act(async()=>w.show('/wolf.webp'));
+    assert.equal(w.document.querySelector('img').getAttribute('src'),'/wolf.webp');
+  } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
+
+
+test('uncatalogued fantasy enemies retain their own portrait instead of using a bandit', () => {
+  assert.equal(getMonsterArtworkPath('custom_beast', '/assets/beast.webp'), '/assets/beast.webp');
+  assert.equal(getMonsterArtworkPath('custom_beast', '🐻'), '');
+  assert.equal(getMonsterArtworkPath('custom_beast', 'javascript:alert(1)'), '');
+  assert.equal(getMonsterArtworkPath('m_wolf', '/old-wolf.jpg'), '/assets/sprites/generated/monsters/m_wolf.webp');
 });

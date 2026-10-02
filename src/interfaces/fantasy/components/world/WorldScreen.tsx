@@ -33,7 +33,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   const [difficulty, setDifficulty] = useState<'normal' | 'hard' | 'nightmare' | 'hell'>('normal');
   const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
     const suitable = groupRegionsByLevel(REGIONS, player?.level || 1).recommended;
-    return suitable.find(region => region.id === player?.currentRegionId)?.id || suitable[0]?.id || 'reg_plains';
+    return REGIONS.find(region => region.id === player?.currentRegionId)?.id || suitable[0]?.id || 'reg_plains';
   });
   const [selectedModId, setSelectedModId] = useState<string>(() => {
     const selected = REGIONS.find(region => region.id === selectedRegionId)!;
@@ -115,7 +115,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     const isCompleted = activeDungeonRun.completed;
 
     return (
-      <FolioPage className="space-y-3 pt-3">
+      <FolioPage className="world-codex space-y-3 pt-3">
         <BestiaryPanel className="flex items-center justify-between rounded-xl p-3">
           <div>
             <div className="text-[11px] font-mono text-[#d5ba89] uppercase">Подземелье</div>
@@ -254,7 +254,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       <div
         key={reg.id}
         onClick={selectRegion}
-        className={`atlas-node bestiary-entry p-3 transition-all cursor-pointer ${
+        className={`atlas-node codex-paper bestiary-entry p-3 transition-all cursor-pointer ${
           isInspecting
             ? 'is-selected shadow-md '
             : isLocked
@@ -309,7 +309,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
-    <FolioPage className="space-y-3 pt-3">
+    <FolioPage className="world-codex space-y-3 pt-3">
       <BestiaryPanel className="relative isolate overflow-hidden rounded-xl">
         <div className="absolute inset-0 opacity-70"><BattleBackdrop scene={getBattleScene(inspectingRegion.id, currentRegion.id)} /></div>
         <div className="relative z-10 p-4">

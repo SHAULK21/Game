@@ -67,7 +67,7 @@ export const FantasyGameContent: React.FC = () => {
 
       {/* Bottom Thumb Navigation Bar */}
       <BottomNavigation
-        currentTab={currentTab}
+        currentTab={isCharacterSheetOpen ? 'character' : currentTab}
         onSelectTab={tab => {
           setIsCharacterSheetOpen(false);
           setCurrentTab(tab);

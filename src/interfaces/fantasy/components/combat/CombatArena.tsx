@@ -3,6 +3,7 @@ import type { BattleLogEntry, Monster, PlayerCharacter, StatusEffect } from '../
 import type { BattleScene } from '../../../../components/combat/BattleBackdrop';
 import { BattleBackdrop } from '../../../../components/combat/BattleBackdrop';
 import { BestiaryPanel, ProgressBar } from '../ui/BestiaryUI';
+import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
@@ -52,7 +53,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       </div>
 
       <div className="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[75%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[69%]">
-        <img src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom" referrerPolicy="no-referrer" />
+        <Portrait src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom"/>
       </div>
 
       <div className="combat-enemy-plaque relative z-10 mt-auto max-w-[88%] pb-1 sm:max-w-[76%]">
@@ -77,7 +78,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     <BestiaryPanel className="combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2">
       <div className={`relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] ${turnPhase === 'player' ? 'border-[#a98951]' : 'border-[#3b3d3d]'}`}>
-        <img src={heroImage} alt="" className="h-full w-full object-cover object-top" referrerPolicy="no-referrer" />
+        <Portrait src={heroImage} alt="" fallback="character" className="h-full w-full object-cover object-top"/>
       </div>
       <div className="min-w-0">
         <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {heroClassName}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">Ур. {player.level}</span></div>
