@@ -25,7 +25,7 @@ async function app(language = 'uk-UA', stored?: string) {
   return { dom, w, requests, settle };
 }
 
-test('Ukrainian registration and both layouts switch language without resetting input, navigation, character or combat', async () => {
+test('language selection is visible only at registration; its saved locale survives both layouts and combat', async () => {
   const { dom, w, requests, settle } = await app();
   const click = async (label: string) => { const target = button(w, label); assert(target, `missing button: ${label}`); await w.act(async () => target.click()); await settle(); };
   const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
@@ -48,12 +48,13 @@ test('Ukrainian registration and both layouts switch language without resetting 
     await click('Почати подорож');
     assert.equal(save().player.name, 'Золото');
     const original = JSON.stringify(save().player);
+    assert.equal(button(w, 'Русский'), undefined); assert.equal(button(w, 'Українська'), undefined);
     assert.match(w.document.body.textContent, /Бестіарій/);
     await click('Сумка');
     const active = () => w.document.querySelector('nav button[aria-current="page"]')?.textContent.trim();
-    await click('Русский'); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
+    await w.act(async () => w.setLanguage('ru')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
     await click('Современный'); assert.equal(active(), 'Сумка');
-    await click('Українська'); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
+    await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
     await click('Фентезі'); await click('Герой'); await click('Сучасний');
     assert.match(w.document.querySelector('main').textContent, /Золото/);
     assert.equal(w.document.querySelector('main h3')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
@@ -62,8 +63,8 @@ test('Ukrainian registration and both layouts switch language without resetting 
     assert(hunt); await w.act(async () => hunt.click()); await settle();
     assert(button(w, 'Атака')); assert(button(w, 'Захист (+25 MP)'));
     const inBattle = JSON.stringify(save().player);
-    await click('Русский'); assert(button(w, 'Защита (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
-    await click('Фэнтези'); await click('Українська'); assert(button(w, 'Захист (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
+    await w.act(async () => w.setLanguage('ru')); assert(button(w, 'Защита (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
+    await click('Фэнтези'); await w.act(async () => w.setLanguage('uk')); assert(button(w, 'Захист (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
     assert.match(w.document.body.textContent, /У бій вступає/);
     assert.equal(w.localStorage.getItem('aethelgard_language'), 'uk');
     assert.equal(w.document.documentElement.lang, 'uk');

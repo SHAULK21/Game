@@ -20,5 +20,5 @@ export const InterfaceSwitcher: React.FC<{ compact?: boolean }> = ({ compact = f
         </button>
       )}
     </div>
-  <LanguageSwitcher /></section>;
+  {!compact && <LanguageSwitcher />}</section>;
 };
