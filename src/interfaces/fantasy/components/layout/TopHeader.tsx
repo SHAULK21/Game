@@ -12,6 +12,7 @@ import { ResourceBadge, RpgButton, DialogFrame } from '../ui/BestiaryUI';
 interface TopHeaderProps {
   onOpenCharacterSheet: () => void;
   compact?: boolean;
+  hidden?: boolean;
 }
 
 const compactCount = (value: number) => {
@@ -22,7 +23,7 @@ const compactCount = (value: number) => {
   return `${count.toFixed(count >= 100 ? 0 : 1)}${unit[1]}`;
 };
 
-export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, compact = false }) => {
+export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, compact = false, hidden = false }) => {
   useLocale();
   const { player, meditateOrRefillEnergy, premium } = useGame();
   const [showEnergyModal, setShowEnergyModal] = useState(false);
@@ -45,7 +46,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, comp
   const energyPct = Math.min(100, Math.round((currentEnergy / Math.max(1, maxEnergy)) * 100));
 
   return <>
-    <header className={`game-header fantasy-shell-header z-30${compact ? ' is-compact sticky top-0' : ' relative'}`}>
+    <header hidden={hidden} className={`game-header fantasy-shell-header z-30${compact ? ' is-compact sticky top-0' : ' relative'}`}>
       <ShellOrnament />
       <div className="shell-brand-row">
         <span className="shell-brand">Aethelgard RPG</span>

@@ -46,6 +46,18 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const monsterArtwork = getMonsterArtworkPath(monster.id, monster.avatar);
 
   return <>
+    <BestiaryPanel className="combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2">
+      <div className={`relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] ${turnPhase === 'player' ? 'border-[#a98951]' : 'border-[#3b3d3d]'}`}>
+        <Portrait src={heroImage} alt="" fallback="character" className="h-full w-full object-cover object-top"/>
+      </div>
+      <div className="min-w-0">
+        <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {localize(heroClassName)}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">{localize("Ур. ")}{localize(player.level)}</span></div>
+        <ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
+        <ProgressBar value={playerMp} max={maxMp} tone="mana" />
+        {playerEffects.length > 0 && <div className="mt-1 truncate text-[11px] text-[#9aafb4]" title={localize(playerEffects.map(effect => localize(effect.name)).join(', '))}>{localize(playerEffects.map(effect => `${localize(effect.name)}${effect.stacks ? ` ×${effect.stacks}` : ''}`).join(' · '))}</div>}
+      </div>
+    </BestiaryPanel>
+
     <section className="combat-scene relative isolate flex min-h-[334px] flex-col overflow-hidden rounded-2xl border border-[#756344] bg-[#090b0d] p-3 sm:min-h-[390px]">
       <div className="absolute inset-0 -z-20"><BattleBackdrop scene={scene} dungeonId={dungeonId} /></div>
       <div className="combat-scene-shade absolute inset-0 -z-10" />
@@ -78,16 +90,6 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       </div>
     </section>
 
-    <BestiaryPanel className="combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2">
-      <div className={`relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] ${turnPhase === 'player' ? 'border-[#a98951]' : 'border-[#3b3d3d]'}`}>
-        <Portrait src={heroImage} alt="" fallback="character" className="h-full w-full object-cover object-top"/>
-      </div>
-      <div className="min-w-0">
-        <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {localize(heroClassName)}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">{localize("Ур. ")}{localize(player.level)}</span></div>
-        <ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
-        <ProgressBar value={playerMp} max={maxMp} tone="mana" />
-        {playerEffects.length > 0 && <div className="mt-1 truncate text-[11px] text-[#9aafb4]" title={localize(playerEffects.map(effect => localize(effect.name)).join(', '))}>{localize(playerEffects.map(effect => `${localize(effect.name)}${effect.stacks ? ` ×${effect.stacks}` : ''}`).join(' · '))}</div>}
-      </div>
-    </BestiaryPanel>
+
   </>;
 };
