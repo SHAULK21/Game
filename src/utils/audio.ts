@@ -3,10 +3,10 @@ import manifest from '../../public/assets/audio/manifest.json';
 type Cue = keyof typeof manifest;
 const LEVELS: Record<Cue, number> = {
   page: 0.3, slash: 0.38, shield: 0.6, heavy: 0.65, potion: 0.4, magic: 0.45,
-  coins: 0.4, step: 0.35, mine: 0.55, whoosh: 0.35, bell: 0.3, fail: 0.4, monster: 0.55
+  coins: 0.4, step: 0.35, mine: 0.55, whoosh: 0.35, bell: 0.3, fail: 0.4, monster: 0.55, fishCast: 0.6, fishBite: 0.75, fishReel: 0.55, fishCatch: 0.65
 };
 
-/** Recorded foley, shared by both interfaces. No queued sounds after a slow load. */
+/** Short foley, shared by both interfaces. No queued sounds after a slow load. */
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -41,7 +41,7 @@ export class SoundManager {
       if (!this.ctx) return false;
       if (this.ctx.state === 'suspended') await this.ctx.resume();
       if (this.ctx.state !== 'running') return false;
-      // Small bank (about 120 KB); decode once after the first user gesture.
+      // Small audio bank; decode once after the first user gesture.
       for (const clips of Object.values(manifest)) for (const clip of clips) void this.load(clip.file);
       return true;
     } catch { return false; }
@@ -118,6 +118,10 @@ export class SoundManager {
     })().catch(() => { /* Audio failure must never interrupt a game action. */ });
   }
 
+  public playFishingCast() { this.play('fishCast'); }
+  public playFishingBite() { this.play('fishBite'); }
+  public playFishingReel() { this.play('fishReel'); }
+  public playFishingCatch() { this.play('fishCatch'); }
   public playClick() { this.play('page'); }
   public playSlash() { this.play('slash'); }
   public playCriticalHit() { this.play('heavy'); this.play('shield', 0.85, 0.025); }

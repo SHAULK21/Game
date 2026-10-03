@@ -1,4 +1,7 @@
 export const STAT_LABELS: Record<string, string> = {
+  fireDamage: 'Урон огнём',
+  poisonDamage: 'Урон ядом',
+  iceDamage: 'Урон льдом',
   heal: 'Лечение HP',
   manaRestore: 'Восстановление MP',
   attackPercent: 'Усиление атаки, %',

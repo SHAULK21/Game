@@ -21,7 +21,7 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
   const ready = settings.useSkills ? player.skills.filter(s => player.level >= s.levelReq && (s.currentCooldown || 0) <= 0
     && talentManaCost(s.manaCost, player.talents) <= mp && (settings.useUltimate || !s.isUltimate)) : [];
   const missingHp = stats.maxHp - hp;
-  if (hpPercent <= settings.healAtHpPercent) {
+  if (missingHp > 0 && monster.id !== 'ascension_echo_control' && hpPercent <= settings.healAtHpPercent) {
     const healing = player.inventory.filter(i => i.type === 'potion' && (i.stats.healFull || i.stats.heal > 0))
       .sort((a, b) => Math.abs(missingHp - (a.stats.healFull ? stats.maxHp : a.stats.heal)) - Math.abs(missingHp - (b.stats.healFull ? stats.maxHp : b.stats.heal)))[0];
     if (healing) return { action: 'potion', id: healing.id };
@@ -78,7 +78,7 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
       && (settings.useUltimate || !s.isUltimate) && (s.currentCooldown || 0) <= 0
       && talentManaCost(s.manaCost, player.talents) > mp && talentManaCost(s.manaCost, player.talents) <= mp + 25 + stats.mpRegen);
     if (waiting) {
-      const mana = player.inventory.find(i => i.type === 'potion' && i.stats.manaRestore > 0);
+      const mana = monster.id === 'ascension_echo_control' ? undefined : player.inventory.find(i => i.type === 'potion' && i.stats.manaRestore > 0);
       if (mana) return { action: 'potion', id: mana.id };
       return { action: 'defend' };
     }

@@ -34,12 +34,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, latestEvent, monsterStriking
 }) => {
   useLocale();
-  const feedback = latestEvent?.type === 'crit' ? 'CRITICAL'
-    : latestEvent?.type === 'heal' ? 'RECOVERY'
-    : latestEvent?.type === 'death' ? 'DEFEATED'
-    : latestEvent?.type === 'monster-attack' ? 'INCOMING'
-    : latestEvent?.type === 'flee' ? 'ESCAPED'
-    : latestEvent?.type === 'player-attack' ? 'HIT'
+  const feedback = latestEvent?.type === 'crit' ? 'Критический удар'
+    : latestEvent?.type === 'heal' ? 'Восстановление'
+    : latestEvent?.type === 'death' ? 'Поражение'
+    : latestEvent?.type === 'monster-attack' ? 'Удар противника'
+    : latestEvent?.type === 'flee' ? 'Побег'
+    : latestEvent?.type === 'player-attack' ? 'Ваш удар'
     : undefined;
   const damageValue = latestEvent?.text.match(/[+-]\d[\d.,]*/)?.[0];
   const hpPercent = maxHp ? Math.max(0, Math.min(100, playerHp / maxHp * 100)) : 0;
@@ -53,7 +53,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       </div>
       <div className="min-w-0">
         <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {localize(heroClassName)}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">{localize("Ур. ")}{localize(player.level)}</span></div>
-        <span role="status" className={`combat-turn-label mb-1 block text-[11px] font-semibold ${turnPhase === 'monster' ? 'text-[#e3b9b2]' : 'text-[#d5ba89]'}`}>{localize(monsterStriking ? 'Противник атакует' : turnPhase === 'preparing' ? 'Вы готовите действие' : turnPhase === 'player' ? 'Ваш ход' : turnPhase === 'monster' ? 'Противник готовится атаковать' : 'Бой завершён')}</span>
+        <span role="status" className={`combat-turn-label mb-1 block text-[11px] font-semibold ${turnPhase === 'monster' ? 'text-[#e3b9b2]' : 'text-[#d5ba89]'}`}>{localize(turnPhase === 'player' ? (monsterStriking ? 'Враг нанёс удар. Ваш ход' : 'Ваш ход — выберите действие') : turnPhase === 'monster' ? 'Ход противника — ожидайте удар' : 'Бой завершён')}</span>
         <ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
         <ProgressBar value={playerMp} max={maxMp} tone="mana" />
         {playerEffects.length > 0 && <div className="mt-1 truncate text-[11px] text-[#9aafb4]" title={localize(playerEffects.map(effect => localize(effect.name)).join(', '))}>{localize(playerEffects.map(effect => `${localize(effect.name)}${effect.stacks ? ` ×${effect.stacks}` : ''}`).join(' · '))}</div>}

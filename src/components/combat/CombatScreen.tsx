@@ -1,3 +1,4 @@
+import { potionActionLabel } from '../../utils/combatPotions';
 import { monsterPreparation } from '../../utils/combatNarration';
 import { useMonsterStrike } from '../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../i18n/locale';
@@ -110,6 +111,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const selectedLock = selectedMonster ? huntLockReason(player, selectedMonster, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id) : null;
   const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
 
+  const lastAction = [...battleLog].reverse().find(entry => ['player-attack','monster-attack','crit','heal'].includes(entry.type));
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
   const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
@@ -479,9 +481,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 ? 'bg-red-950/90 border-red-500/80 text-red-300 shadow-sm  '
                 : 'bg-slate-800 border-slate-700 text-slate-300'
             }`}>
-              {monsterStriking ? <span>{localize("Противник атакует")}</span> : turnPhase === 'player' && <span>{localize("⚔️ ВАШ ХОД")}</span>}
-              {!monsterStriking && turnPhase === 'monster' && <span>{localize("Противник готовится атаковать")}</span>}
-              {turnPhase === 'preparing' && <span>{localize('Вы готовите действие')}</span>}
+              {turnPhase === 'player' && <span>{localize(monsterStriking ? "Враг нанёс удар. Ваш ход" : "Ваш ход — выберите действие")}</span>}
+              {turnPhase === 'monster' && <span>{localize("Ход противника — ожидайте удар")}</span>}
               {turnPhase === 'ended' && <span>{localize("ФИНИШ")}</span>}
             </div>
           </div>
@@ -658,8 +659,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 <span className="font-cinzel font-bold text-red-300">{localize("ХОД ПРОТИВНИКА")}</span>
                 <span className="text-[11px] text-slate-300 hidden sm:inline">— {localize(activeMonster.name)}{localize(" атакует...")}</span>
               </>
-            ) : turnPhase === 'preparing' ? (
-              <span className="font-semibold">{localize("Вы готовите действие")}</span>
             ) : (
               <span className="font-cinzel font-bold text-slate-200">{localize("БОЙ ЗАВЕРШЕН")}</span>
             )}
@@ -680,6 +679,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </button>
         </div>
 
+        {lastAction && <p className="rounded-xl border border-slate-700 bg-slate-950/60 text-slate-200 px-3 py-2 text-xs leading-relaxed"><strong>{localize("Последнее действие")}: </strong>{localize(lastAction.text.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim())}</p>}
         {combatNarration.length > 0 && <div role="status" className="rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-200">{combatNarration.map((line,i)=><p key={i}>{localize(line)}</p>)}</div>}
         {turnPhase === 'player' && activeMonster && !isCombatEnded && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5">
@@ -903,6 +903,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                   {combatPotions.map(potion => {
                     const stats = potion.stats || {};
                     const effects = [
+                      potionActionLabel(potion, player.classId),
                       stats.heal ? `+${stats.heal} HP` : '',
                       stats.manaRestore ? `+${stats.manaRestore} MP` : '',
                       stats.attackPercent ? `+${stats.attackPercent}% атаки` : '',

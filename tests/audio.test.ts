@@ -104,3 +104,13 @@ test('enemy physical attacks cycle through four distinct recordings and magic ha
     assert(!enemy.some(s=>s.buffer===e.starts.at(-1).buffer));
   } finally { e.restore(); }
 });
+
+
+test('fishing has distinct cached cues, variant recordings and respects mute',async()=>{
+ const e=environment();try{
+  const sound=new SoundManager();sound.playFishingCast();await settle();e.advance();sound.playFishingBite();await settle();e.advance();sound.playFishingReel();await settle();e.advance();sound.playFishingCatch();await settle();
+  assert.equal(e.starts.length,4);assert.equal(new Set(e.starts.map(s=>s.buffer)).size,4);assert(e.requests.some(url=>url.includes('fishBite')));
+  const downloads=e.requests.length;e.advance();sound.playFishingBite();await settle();assert.equal(e.requests.length,downloads);assert.equal(e.starts.length,5);
+  sound.toggleMute();e.advance();sound.playFishingCatch();await settle();assert.equal(e.starts.length,5);
+ }finally{e.restore();}
+});
