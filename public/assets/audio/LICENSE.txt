@@ -26,3 +26,5 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 	Follow on Twitter for updates:
 	@KenneyNL
 attack-soft-* mixes two listed CC0 sources, trimmed to 0.45 s, filtered below 4.2 kHz and faded for frequent attacks.
+
+monster-hit-* is filtered below 3 kHz, trimmed to 0.55 s and faded for distinct enemy impacts.

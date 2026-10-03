@@ -85,3 +85,22 @@ test('ordinary attacks use all eight recordings before repeating and throttle ra
     assert.notEqual(ids[7],ids[8],'bag boundary does not repeat');
   } finally { e.restore(); }
 });
+
+test('enemy physical attacks cycle through four distinct recordings and magic has a separate tone', async () => {
+  const e = environment();
+  try {
+    const sound = new SoundManager();
+    sound.playSlash(); await settle();
+    const playerBuffer = e.starts[0].buffer;
+    e.starts[0].onended();
+    for (let i=0;i<4;i++) {
+      e.advance(); sound.playMonsterAttack('physical'); await settle(); e.starts.at(-1).onended();
+    }
+    const enemy = e.starts.slice(1);
+    assert.equal(new Set(enemy.map(s=>s.buffer.id)).size,4);
+    assert(enemy.every(s=>s.buffer!==playerBuffer));
+    e.advance(); sound.playMonsterAttack('fire'); await settle();
+    assert(e.starts.at(-1).playbackRate.value < .57);
+    assert(!enemy.some(s=>s.buffer===e.starts.at(-1).buffer));
+  } finally { e.restore(); }
+});

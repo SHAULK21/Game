@@ -3,7 +3,7 @@ import manifest from '../../public/assets/audio/manifest.json';
 type Cue = keyof typeof manifest;
 const LEVELS: Record<Cue, number> = {
   page: 0.3, slash: 0.38, shield: 0.6, heavy: 0.65, potion: 0.4, magic: 0.45,
-  coins: 0.4, step: 0.35, mine: 0.55, whoosh: 0.35, bell: 0.3, fail: 0.4
+  coins: 0.4, step: 0.35, mine: 0.55, whoosh: 0.35, bell: 0.3, fail: 0.4, monster: 0.55
 };
 
 /** Recorded foley, shared by both interfaces. No queued sounds after a slow load. */
@@ -134,7 +134,10 @@ export class SoundManager {
   public playCoinDrop() { this.playCoin(); }
   public playEnergyRefill() { this.play('magic', 1.15); }
   public playMining() { this.play('mine'); }
-  public playMonsterAttack() { this.play('heavy', 0.9); }
+  public playMonsterAttack(damageType: string = 'physical') {
+    if (damageType === 'physical') this.play('monster', 0.8);
+    else this.play('magic', 0.55);
+  }
   public playDodge() { this.play('whoosh'); }
   public playDefeat() { this.play('fail', 0.75); this.play('bell', 0.65, 0.1); }
 }

@@ -2073,7 +2073,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               expReward: Math.round(baseMob.expReward * 1.5),
               goldReward: Math.round(baseMob.goldReward * 1.5)
             }, { chain: false, energyCost: 0, huntingModeId:selectedModId });
-          }, 1400);
+          }, 650);
         } else {
           sound.playVictory();
           triggerHaptic('success');
@@ -2879,7 +2879,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         talentFollowup.current = Math.max(talentFollowup.current, talents.blockFollowup || 0);
       }
       if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
-      if (attackRoll.evaded) sound.playDodge(); else if (blockedByShield > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack();
+      if (attackRoll.evaded) sound.playDodge(); else if (blockedByShield > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(monsterDamageType);
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
@@ -2903,7 +2903,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...newLogs]);
-    }, 650);
+    }, 1400);
     return () => clearTimeout(timer);
   }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun]);
 
@@ -2958,7 +2958,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else setPlayerEffects(prev => applyStatusEffect(prev, effect));
         logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
       }
-      if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack();
+      if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(skill.damageType);
       logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);
@@ -2983,7 +2983,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveMonster(prev => prev ? { ...prev, skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.max(0, prev.mp - skill.manaCost) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...logs]);
-    }, 700);
+    }, 1600);
     return () => clearTimeout(timer);
   }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, activeDungeonRun]);
 
