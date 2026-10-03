@@ -45,7 +45,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, comp
   const energyPct = Math.min(100, Math.round((currentEnergy / Math.max(1, maxEnergy)) * 100));
 
   return <>
-    <header className={`game-header fantasy-shell-header sticky top-0 z-30${compact ? ' is-compact' : ''}`}>
+    <header className={`game-header fantasy-shell-header z-30${compact ? ' is-compact sticky top-0' : ' relative'}`}>
       <ShellOrnament />
       <div className="shell-brand-row">
         <span className="shell-brand">Aethelgard RPG</span>
