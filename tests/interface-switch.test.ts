@@ -174,9 +174,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert(w.document.querySelector('header [data-shell-frame="hud"]'));
     assert.equal(w.document.querySelectorAll('nav [data-shell-frame="active"]').length,1);
     assert(w.document.querySelector('.shell-hud-resources .is-silver'));
-    await click('Арена'); assert.match(w.document.querySelector('main').textContent,/Арен/);
+    assert(!w.document.querySelector('header').classList.contains('is-compact'));
+    await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/Арен/);
     await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
     await click('Охота');
+    assert(!w.document.querySelector('header').classList.contains('is-compact'),'returning to Hunt restores full HUD');
     const dossier=w.document.querySelector('.bestiary-dossier');
     const monsterName=dossier.querySelector('h2').textContent;
     const monster=w.catalog.find((m:any)=>m.name===monsterName);
@@ -198,6 +200,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert.equal(w.document.querySelector('[role="dialog"]'),null);
     assert.equal(w.document.body.style.overflow,''); assert(w.document.activeElement === settings, 'focus returns to settings button');
     await w.act(async () => aria('Открыть лист персонажа').click()); await settle();
+    assert(w.document.querySelector('header').classList.contains('is-compact'),'hero sheet uses compact HUD');
+    const compactEnergy=w.document.querySelector('header button[title="Энергия. Открыть способы восстановления"]');
+    await w.act(async()=>compactEnergy.click());
+    assert(w.document.querySelector('[role="dialog"]'),'energy stays accessible in compact HUD');
+    await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
     const before=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
     await w.act(async () => aria('Повысить: Сила').click()); await settle();
     const after=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;

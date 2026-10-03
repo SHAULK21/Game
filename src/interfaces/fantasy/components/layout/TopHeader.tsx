@@ -11,6 +11,7 @@ import { ResourceBadge, RpgButton, DialogFrame } from '../ui/BestiaryUI';
 
 interface TopHeaderProps {
   onOpenCharacterSheet: () => void;
+  compact?: boolean;
 }
 
 const compactCount = (value: number) => {
@@ -21,7 +22,7 @@ const compactCount = (value: number) => {
   return `${count.toFixed(count >= 100 ? 0 : 1)}${unit[1]}`;
 };
 
-export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
+export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, compact = false }) => {
   useLocale();
   const { player, meditateOrRefillEnergy, premium } = useGame();
   const [showEnergyModal, setShowEnergyModal] = useState(false);
@@ -44,7 +45,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   const energyPct = Math.min(100, Math.round((currentEnergy / Math.max(1, maxEnergy)) * 100));
 
   return <>
-    <header className="game-header fantasy-shell-header sticky top-0 z-30">
+    <header className={`game-header fantasy-shell-header sticky top-0 z-30${compact ? ' is-compact' : ''}`}>
       <ShellOrnament />
       <div className="shell-brand-row">
         <span className="shell-brand">Aethelgard RPG</span>
@@ -65,8 +66,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               {premium.active && <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]" title="Premium"><RpgIcon kind="crown" size={12} className="text-[#c7a365]" /> VIP</span>}
               {player.statPoints > 0 && <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#c7a365] text-[11px] font-bold text-black">+</span>}
             </span>
-            <span className="mt-0.5 block truncate text-[11px] text-[#918c82]">{localize(heroClass.name)}{localize(" · Ур. ")}{localize(player.level)}</span>
-            <span className="mt-1 flex items-center gap-1.5">
+            <span className="shell-hero-class mt-0.5 block truncate text-[11px] text-[#918c82]">{localize(heroClass.name)}{localize(" · Ур. ")}{localize(player.level)}</span>
+            <span className="shell-hero-experience mt-1 flex items-center gap-1.5">
               <span className="progress-track h-1.5 flex-1"><span className="progress-fill is-energy block" style={{ width: `${expPct}%` }} /></span>
               <span className="w-8 text-right font-mono text-[11px] text-[#c7a365]">{localize(expPct)}%</span>
             </span>

@@ -38,7 +38,7 @@ export const FantasyGameContent: React.FC = () => {
   return (
     <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
-      <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
+      <TopHeader compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
