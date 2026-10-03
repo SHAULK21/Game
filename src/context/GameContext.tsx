@@ -2490,6 +2490,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (actionType === 'defend') {
+      sound.playDefend();
       setPlayerEffects(prev => applyStatusEffect(prev, {
         type: 'shield',
         name: 'Глухая оборона',
@@ -2540,6 +2541,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      sound.playPotion();
       if (healFull) setCombatPlayerHp(combatStats.maxHp);
       else if (heal) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
       if (mana) setCombatPlayerMp(prev => Math.min(combatStats.maxMp, prev + mana));
@@ -2665,6 +2667,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Shield, stealth and healing skills consume a turn without a phantom zero-damage hit.
     if (skillUsed && skillUsed.damageMultiplier === 0) {
+      sound.playMagic();
       const healAmount = skillUsed.healMultiplier ? Math.max(1, Math.round((skillUsed.id.startsWith('asc_') ? Math.max(100, combatStats.maxHp * 0.04) : 100) * skillUsed.healMultiplier * (1 + (talents.healPower || 0) / 100) * classHealingMultiplier(player.classId))) : 0;
       if (healAmount) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + healAmount));
       newLogs.push({
@@ -2708,6 +2711,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const landed = conflict ? Math.random() < 0.5 : alwaysHit || (!evade && Math.random() * 100 <= hitChance);
       if (conflict) newLogs.push({id:`contest_${Date.now()}_${strike}`,turn:currentTurn,text:`⚖️ Безошибочный удар и уход в пустоту: ${landed ? 'удар попал' : 'уклонение победило'}.`,type:'system'});
       if (!landed) {
+        sound.playDodge();
         newLogs.push({id:`evade_${Date.now()}_${strike}`,turn:currentTurn,text:`💨 ${activeMonster.name} уклонился от ${skillName} (${strike + 1}/${strikes}).`,type:'system'});
         continue;
       }
@@ -2732,7 +2736,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         newLogs.push({id:`execute_${Date.now()}`,turn:currentTurn,text:`☠️ ${skillName}: обычный враг повержен.`,type:'skill'});
       }
       if (isCrit) { sound.playCriticalHit(); triggerHaptic('heavy'); }
-      else { sound.playSlash(); triggerHaptic('light'); }
+      else { if (damageType === 'physical') sound.playSlash(); else sound.playMagic(); triggerHaptic('light'); }
       finalDmg = Math.min(finalDmg, nextMonsterHp);
       if (skillUsed?.armorBreak && strike === 0) setMonsterEffects(prev => applyStatusEffect(prev, { type: 'vulnerability', name: 'Разлом брони', duration: 3, value: skillUsed!.armorBreak! }));
       if (skillUsed?.inflicts && !['shield', 'fortify', 'fury', 'haste', 'invulnerable'].includes(skillUsed.inflicts.type)
@@ -2875,6 +2879,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         talentFollowup.current = Math.max(talentFollowup.current, talents.blockFollowup || 0);
       }
       if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
+      if (attackRoll.evaded) sound.playDodge(); else if (blockedByShield > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack();
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
@@ -2953,6 +2958,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else setPlayerEffects(prev => applyStatusEffect(prev, effect));
         logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
       }
+      if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack();
       logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);

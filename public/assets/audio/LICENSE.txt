@@ -1,0 +1,27 @@
+Audio by Kenney (https://kenney.nl), Creative Commons CC0 1.0.
+Sources: https://kenney.nl/assets/rpg-audio and https://kenney.nl/assets/impact-sounds
+Converted to mono MP3 at 24 kHz, trimmed to 1.1 seconds with gentle fades and peak limiting.
+The source filename for each clip is listed in manifest.json.
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+
+	
+
+	RPG Audio
+
+	by  Kenney Vleugels (Kenney.nl)
+
+			------------------------------
+
+	License (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	You may use these assets in personal and commercial projects.
+	Credit (Kenney or www.kenney.nl) would be nice but is not mandatory.
+
+			------------------------------
+
+	Donate:   http://support.kenney.nl
+	Request:  http://request.kenney.nl
+
+	Follow on Twitter for updates:
+	@KenneyNL
