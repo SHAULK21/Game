@@ -1,17 +1,16 @@
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
-import { talentManaCost } from '../../../../data/talents';
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { MONSTERS, REGIONS, CAVES, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
 import { getBattleScene } from '../../../../components/combat/BattleBackdrop';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
-import { skillTier } from '../../../../data/classEvolution';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
 import { HuntDashboard } from './HuntDashboard';
 import { CombatArena } from './CombatArena';
+import { CombatSkillList } from './CombatSkillList';
 import { RpgButton } from '../ui/BestiaryUI';
 
 export const getPredictedMonsterSkill = predictedMonsterSkill;
@@ -187,7 +186,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const battleScene = getBattleScene(activeMonster.regionId, currentRegion.id, battleDungeon?.id);
 
   return (
-    <div className="folio-page space-y-3 pt-3">
+    <div className="folio-page fantasy-combat-page space-y-3 pt-3">
       {localize(premiumModal)}
       <CombatArena
         player={player}
@@ -262,12 +261,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         )}
 
         {monsterIntent && turnPhase === 'monster' && (
-          <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3">
-            <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+          <div className="combat-ledger combat-warning p-3">
+            <div className="flex items-center gap-2 combat-ink text-xs font-bold">
               <RpgIcon kind="skill" size={17} />
               <span>{localize(activeMonster.name)}{localize(" применит «")}{localize(monsterIntent.name)}»</span>
             </div>
-            <div className="text-[11px] text-amber-100/70 mt-1">{localize(monsterIntent.description)}</div>
+            <div className="text-[11px] combat-ink mt-1">{localize(monsterIntent.description)}</div>
           </div>
         )}
 
@@ -291,57 +290,57 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             </div>
 
             {combatOutcome === 'defeat' && activeMonster?.regionId === 'arena' && lastCombatReward?.arenaRatingGain !== undefined && (
-              <div className="text-xs font-bold text-rose-300">{localize("Рейтинг арены: −")}{localize(Math.abs(lastCombatReward.arenaRatingGain))} PTS</div>
+              <div className="text-xs font-bold combat-ink">{localize("Рейтинг арены: −")}{localize(Math.abs(lastCombatReward.arenaRatingGain))} PTS</div>
             )}
             {combatOutcome === 'victory' && activeMonster?.regionId === 'ascension' && (
-              <p className="text-xs text-emerald-300">{localize("Победа сохранена. Вернитесь на арену, чтобы продолжить вознесение.")}{localize(Boolean(lastCombatReward?.silver) && ` Получено ${lastCombatReward?.silver} серебра.`)}</p>
+              <p className="text-xs combat-ink">{localize("Победа сохранена. Вернитесь на арену, чтобы продолжить вознесение.")}{localize(Boolean(lastCombatReward?.silver) && ` Получено ${lastCombatReward?.silver} серебра.`)}</p>
             )}
             {combatOutcome === 'victory' && activeMonster?.regionId !== 'ascension' && (!combatChain || combatChain.remaining === 0) && lastCombatReward && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-left">
-                <div className="text-[11px] font-bold text-emerald-300 mb-2">{localize(combatChain ? 'Награда за серию' : 'Получено за бой')}</div>
-                {Boolean(lastCombatReward.arenaRatingGain) && <div className="mb-2 text-xs font-bold text-yellow-300">{localize("Рейтинг арены: +")}{localize(lastCombatReward.arenaRatingGain)} PTS</div>}
+              <div className="combat-ledger combat-reward p-3 text-left">
+                <div className="text-[11px] font-bold combat-ink mb-2">{localize(combatChain ? 'Награда за серию' : 'Получено за бой')}</div>
+                {Boolean(lastCombatReward.arenaRatingGain) && <div className="mb-2 text-xs font-bold combat-ink">{localize("Рейтинг арены: +")}{localize(lastCombatReward.arenaRatingGain)} PTS</div>}
                 <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
-                    <div className="text-amber-300 font-bold">+{localize(lastCombatReward.gold)}</div>
-                    <div className="text-slate-500">{localize("золото")}</div>
+                  <div className="combat-reward-total p-2 text-center">
+                    <div className="combat-ink font-bold">+{localize(lastCombatReward.gold)}</div>
+                    <div className="combat-ink">{localize("золото")}</div>
                   </div>
-                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
-                    <div className="text-slate-200 font-bold">+{localize(lastCombatReward.silver)}</div>
-                    <div className="text-slate-500">{localize("серебро")}</div>
+                  <div className="combat-reward-total p-2 text-center">
+                    <div className="combat-ink font-bold">+{localize(lastCombatReward.silver)}</div>
+                    <div className="combat-ink">{localize("серебро")}</div>
                   </div>
-                  <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-2 text-center">
-                    <div className="text-cyan-300 font-bold">+{localize(lastCombatReward.exp)}</div>
-                    <div className="text-slate-500">EXP</div>
+                  <div className="combat-reward-total p-2 text-center">
+                    <div className="combat-ink font-bold">+{localize(lastCombatReward.exp)}</div>
+                    <div className="combat-ink">EXP</div>
                   </div>
                 </div>
                 {lastCombatReward.items.length > 0 ? (
                   <div className="mt-2 grid grid-cols-2 gap-1.5">
                     {lastCombatReward.items.map((item, index) => (
-                      <div key={item.id + index} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/60 p-2 flex items-center gap-2">
+                      <div key={item.id + index} className="combat-potion-entry min-w-0 p-2 flex items-center gap-2">
                         <ItemArtwork item={item} size={32} />
                         <div className="min-w-0">
-                          <div className="text-[11px] text-slate-100 leading-tight break-words">{localize(item.name)}</div>
-                          <div className="text-[11px] text-slate-500">×{localize(item.stackCount || 1)} · {localize(item.rarity)}</div>
+                          <div className="text-[11px] combat-ink leading-tight break-words">{localize(item.name)}</div>
+                          <div className="text-[11px] combat-ink">×{localize(item.stackCount || 1)} · {localize(item.rarity)}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-2 text-[11px] text-slate-500">{localize("Предметов не выпало.")}</div>
+                  <div className="mt-2 text-[11px] combat-ink">{localize("Предметов не выпало.")}</div>
                 )}
               </div>
             )}
 
             {combatChain && (
-              <div className="rounded-xl bg-black/20 border border-slate-800 p-2 text-left">
+              <div className="combat-ledger p-2 text-left">
                 <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400">{localize("Серия противников")}</span>
-                  <span className="text-cyan-300 font-bold">{localize(combatChain.defeated)}/{localize(combatChain.total)}</span>
+                  <span className="combat-ink">{localize("Серия противников")}</span>
+                  <span className="combat-ink font-bold">{localize(combatChain.defeated)}/{localize(combatChain.total)}</span>
                 </div>
-                <div className="mt-1.5 h-2 rounded-full bg-slate-950 overflow-hidden">
-                  <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${Math.min(100, (combatChain.defeated / combatChain.total) * 100)}%` }} />
+                <div className="progress-track mt-1.5 h-2 overflow-hidden">
+                  <div className="progress-fill is-energy h-full transition-all duration-300" style={{ width: `${Math.min(100, (combatChain.defeated / combatChain.total) * 100)}%` }} />
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">
+                <div className="mt-1 text-[11px] combat-ink">
                   {localize(combatChain.remaining > 0
                     ? `Осталось ${combatChain.remaining}. Награда за каждого врага сохраняется.`
                     : 'Все враги серии повержены. Для новой серии потребуется энергия.')}
@@ -399,6 +398,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <button
                 onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
+                aria-expanded={isSkillsOpen}
+                aria-controls="combat-skills"
                 className="combat-action combat-action-skill rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs"
               >
                 <RpgIcon kind="skill" size={20} className="text-[#a892bf]" />
@@ -417,8 +418,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Potion */}
               <button
-                onClick={() => setIsPotionsOpen(prev => !prev)}
+                onClick={() => { setIsPotionsOpen(prev => !prev); setIsSkillsOpen(false); }}
                 disabled={turnPhase !== 'player' || potionCount <= 0}
+                aria-expanded={isPotionsOpen}
+                aria-controls="combat-potions"
                 className={`combat-action combat-action-potion rpg-button min-h-[76px] flex-col text-xs ${
                   potionCount > 0
                     ? 'rpg-button-secondary'
@@ -432,10 +435,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <button onClick={() => performPlayerAction('flee')} disabled={turnPhase !== 'player'} className="rpg-button rpg-button-secondary min-h-11 w-full text-xs text-[#aaa49a]">{localize("Покинуть бой")}</button>
 
             {isPotionsOpen && (
-              <div className="bg-slate-900/95 border border-emerald-500/40 rounded-xl p-3 space-y-2 mt-2">
-                <div className="flex items-center justify-between text-xs text-emerald-300 font-cinzel font-bold border-b border-slate-800 pb-1">
+              <section id="combat-potions" aria-label={localize("Выберите зелье")} className="combat-ledger p-3 space-y-2 mt-2">
+                <div className="combat-ledger-heading">
                   <span>{localize("Выберите зелье")}</span>
-                  <button onClick={() => setIsPotionsOpen(false)} aria-label={localize("Закрыть выбор зелий")} className="min-h-11 min-w-11 text-xl text-slate-400 hover:text-white">×</button>
+                  <button onClick={() => setIsPotionsOpen(false)} aria-label={localize("Закрыть выбор зелий")} className="combat-ledger-close">×</button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
                   {combatPotions.map(potion => {
@@ -456,75 +459,34 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                           performPlayerAction('potion', potion.id);
                           setIsPotionsOpen(false);
                         }}
-                        className="p-2 rounded-lg border border-emerald-900/60 bg-slate-950 hover:border-emerald-400 flex items-center gap-2 text-left active:scale-[0.99]"
+                        className="combat-potion-entry flex items-center gap-2 text-left"
                       >
                         <ItemArtwork item={potion} size={38} />
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold text-slate-100 break-words">{localize(potion.name)}</div>
-                          <div className="text-[11px] text-emerald-300">{localize(effects || potion.description)}</div>
+                          <div className="text-xs font-bold combat-ink break-words">{localize(potion.name)}</div>
+                          <div className="text-[11px] combat-ink">{localize(effects || potion.description)}</div>
                         </div>
-                        <span className="text-xs font-mono text-slate-300">×{localize(potion.stackCount || 1)}</span>
+                        <span className="text-xs font-mono combat-ink">×{localize(potion.stackCount || 1)}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Skills Drawer */}
             {isSkillsOpen && (
-              <div className="bg-slate-900/95 border border-indigo-500/40 rounded-xl p-3 space-y-2 mt-2">
-                <div className="flex items-center justify-between text-xs text-indigo-300 font-cinzel font-bold border-b border-slate-800 pb-1">
+              <section id="combat-skills" aria-label={localize("Выберите заклинание или навык")} className="combat-ledger p-3 space-y-2 mt-2">
+                <div className="combat-ledger-heading">
                   <span>{localize("Выберите заклинание или навык")}</span>
-                  <button onClick={() => setIsSkillsOpen(false)} aria-label={localize("Закрыть список навыков")} className="min-h-11 min-w-11 text-xl text-slate-400 hover:text-white">×</button>
+                  <button onClick={() => setIsSkillsOpen(false)} aria-label={localize("Закрыть список навыков")} className="combat-ledger-close">×</button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-1.5">
-                  {player.skills.map(skill => {
-                    const manaCost = talentManaCost(skill.manaCost, player.talents);
-                    const hasMp = combatPlayerMp >= manaCost;
-                    const levelLocked = player.level < skill.levelReq;
-                    const onCooldown = (skill.currentCooldown || 0) > 0;
-                    const canUse = hasMp && !levelLocked && !onCooldown;
-                    return (
-                      <button
-                        key={skill.id}
-                        disabled={!canUse || turnPhase !== 'player'}
-                        onClick={() => {
-                          performPlayerAction('skill', skill.id);
-                          setIsSkillsOpen(false);
-                        }}
-                        className={`p-2 rounded-lg border flex items-start gap-2 justify-between text-left transition-all ${
-                          canUse
-                            ? comboReady.includes(skill.id) ? 'bg-cyan-950/40 border-cyan-400 hover:border-cyan-200 active:scale-98 cursor-pointer' : 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer'
-                            : 'bg-slate-950/40 border-slate-800 text-slate-500 cursor-not-allowed'
-                        }`}
-                      >
-                        <div>
-                          <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                            <RpgIcon kind="skill" size={16} className="text-[#a892bf]" />
-                            <span>{localize(skill.name)}</span>
-                            {comboReady.includes(skill.id) && <span className="text-[11px] text-cyan-300">{localize("Связка")}</span>}
-                            <span className="text-[11px] text-cyan-300">{localize(skill.id.startsWith('asc_') ? `Ранг ${skill.id.endsWith('_C') ? 'C' : player.ascension?.rank==='SSS' ? 'SSS' : 'S'}` : ['I', 'II', 'III', 'IV'][skillTier(player) - 1])}</span>
-                            {skill.isUltimate && (
-                              <span className="text-[11px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono">{localize("УЛЬТ")}</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-400">{localize(skill.description)}</div>
-                          {levelLocked && <div className="text-[11px] text-rose-400 font-mono">{localize("Доступно с уровня ")}{localize(skill.levelReq)}</div>}
-                          {onCooldown && <div className="text-[11px] text-amber-300 font-mono">{localize("Перезарядка: ")}{localize(skill.currentCooldown)}</div>}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className={`text-[11px] font-mono block ${hasMp ? 'text-indigo-300' : 'text-rose-400'}`}>
-                            {localize(manaCost)} MP
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {player.skills.every(s => !s.hidden) && <div className="col-span-full p-2 text-[11px] text-slate-500">{localize("Неизвестный классовый навык откроется при развитии героя.")}</div>}
-                </div>
-              </div>
+                <CombatSkillList player={player} mana={combatPlayerMp} comboReady={comboReady} playerTurn={turnPhase === 'player'} onUse={id => {
+                  performPlayerAction('skill', id);
+                  setIsSkillsOpen(false);
+                }} />
+              </section>
             )}
           </div>
         )}
@@ -538,17 +500,17 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         <div ref={logContainerRef} className="max-h-40 space-y-1 overflow-y-auto border-t border-[#343638] px-3 py-2 text-xs">
           {battleLog.map(entry => {
             const colorClass =
-              entry.type === 'crit' ? 'text-amber-300 font-bold bg-amber-950/20 px-1 rounded' :
+              entry.type === 'crit' ? 'combat-ink font-bold  px-1 rounded' :
               entry.type === 'player-attack' ? 'text-[#cdb681]' :
-              entry.type === 'monster-attack' ? 'text-rose-400 font-medium' :
-              entry.type === 'heal' ? 'text-emerald-300 font-medium' :
-              entry.type === 'death' ? 'text-yellow-300 font-bold bg-yellow-950/30 px-1 rounded' :
-              entry.type === 'status' ? 'text-purple-300' :
-              'text-slate-300';
+              entry.type === 'monster-attack' ? 'combat-ink font-medium' :
+              entry.type === 'heal' ? 'combat-ink font-medium' :
+              entry.type === 'death' ? 'combat-ink font-bold  px-1 rounded' :
+              entry.type === 'status' ? 'combat-ink' :
+              'combat-ink';
 
             return (
               <div key={entry.id} className="flex items-start gap-1.5 font-mono text-[11px] leading-snug">
-                <span className="text-slate-500 shrink-0">[{localize(entry.turn)}]</span>
+                <span className="combat-ink shrink-0">[{localize(entry.turn)}]</span>
                 <span className={colorClass}>{localize(entry.text)}</span>
               </div>
             );
