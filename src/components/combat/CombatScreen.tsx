@@ -1,3 +1,4 @@
+import { monsterPreparation } from '../../utils/combatNarration';
 import { useMonsterStrike } from '../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../utils/regionalProgress';
@@ -53,6 +54,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     playerEffects,
     monsterEffects,
     monsterIntent,
+    combatNarration,
     comboReady,
     autoBattle,
     combatStats,
@@ -479,6 +481,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             }`}>
               {monsterStriking ? <span>{localize("Противник атакует")}</span> : turnPhase === 'player' && <span>{localize("⚔️ ВАШ ХОД")}</span>}
               {!monsterStriking && turnPhase === 'monster' && <span>{localize("Противник готовится атаковать")}</span>}
+              {turnPhase === 'preparing' && <span>{localize('Вы готовите действие')}</span>}
               {turnPhase === 'ended' && <span>{localize("ФИНИШ")}</span>}
             </div>
           </div>
@@ -563,7 +566,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <span className={`text-[9px] font-mono font-bold block ${
                 turnPhase === 'player' ? 'text-cyan-300' : 'text-rose-400'
               }`}>
-                {localize(turnPhase === 'player' ? 'Вы' : 'Враг')}
+                {localize(turnPhase === 'monster' ? 'Враг' : 'Вы')}
               </span>
             </div>
           </div>
@@ -655,6 +658,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 <span className="font-cinzel font-bold text-red-300">{localize("ХОД ПРОТИВНИКА")}</span>
                 <span className="text-[11px] text-slate-300 hidden sm:inline">— {localize(activeMonster.name)}{localize(" атакует...")}</span>
               </>
+            ) : turnPhase === 'preparing' ? (
+              <span className="font-semibold">{localize("Вы готовите действие")}</span>
             ) : (
               <span className="font-cinzel font-bold text-slate-200">{localize("БОЙ ЗАВЕРШЕН")}</span>
             )}
@@ -675,6 +680,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </button>
         </div>
 
+        {combatNarration.length > 0 && <div role="status" className="rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-200">{combatNarration.map((line,i)=><p key={i}>{localize(line)}</p>)}</div>}
         {turnPhase === 'player' && activeMonster && !isCombatEnded && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5">
             <div className="flex items-center gap-2 text-amber-200 text-xs font-bold">
@@ -692,7 +698,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               )}
             </div>
             <div className="mt-1 text-[10px] text-slate-400">
-              {localize(nextMonsterSkill?.description || 'Моб нанесёт обычный физический удар, если у него нет доступного навыка.')}
+              {monsterPreparation(activeMonster, combatRound, nextMonsterSkill).map((line,i)=><p key={i}>{localize(line)}</p>)}
             </div>
           </div>
         )}
