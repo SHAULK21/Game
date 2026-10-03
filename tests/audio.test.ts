@@ -5,12 +5,12 @@ import { SoundManager } from '../src/utils/audio';
 const settle = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
 function environment() {
   const starts: any[] = [], stops: any[] = [], requests: string[] = [];
-  let now = 1000;
+  let now = 1000, decoded = 0;
   class Context {
     state = 'running'; currentTime = 0; destination = {};
     async resume() { this.state = 'running'; }
     createGain() { return {gain:{value:0},connect(){},disconnect(){}}; }
-    async decodeAudioData() { return {}; }
+    async decodeAudioData() { return {id:decoded++}; }
     createBufferSource() {
       const source = {buffer:null,playbackRate:{value:1},onended:null as any,connect(){},disconnect(){},start(){starts.push(source);},stop(){stops.push(source);source.onended?.();}};
       return source;
@@ -21,7 +21,7 @@ function environment() {
   (globalThis as any).localStorage = {getItem:()=>null,setItem:()=>{}};
   globalThis.fetch = (async (url: any) => { requests.push(String(url)); return {ok:true,arrayBuffer:async()=>new ArrayBuffer(8)}; }) as any;
   Date.now = () => now;
-  return {starts,stops,requests,advance:(n=100)=>{now+=n;},restore:()=>{(globalThis as any).window=original.window;globalThis.fetch=original.fetch;(globalThis as any).localStorage=original.storage;Date.now=original.now;}};
+  return {starts,stops,requests,advance:(n=200)=>{now+=n;},restore:()=>{(globalThis as any).window=original.window;globalThis.fetch=original.fetch;(globalThis as any).localStorage=original.storage;Date.now=original.now;}};
 }
 
 test('recorded audio is cached, repeated attack spam is limited, mute stops voices and can be reversed', async () => {
@@ -63,5 +63,25 @@ test('missing audio or unsupported Web Audio does not throw or block gameplay', 
     const sound = new SoundManager(); sound.playVictory(); await settle(); assert.equal(e.starts.length,0);
     (globalThis as any).window = {};
     const unsupported = new SoundManager(); unsupported.playCriticalHit(); await settle(); assert.equal(e.starts.length,0);
+  } finally { e.restore(); }
+});
+
+
+test('ordinary attacks use all eight recordings before repeating and throttle rapid clicks', async () => {
+  const e = environment();
+  try {
+    const sound = new SoundManager();
+    for (let i = 0; i < 16; i++) {
+      sound.playSlash(); await settle();
+      const count = e.starts.length;
+      e.advance(100); sound.playSlash(); await settle();
+      assert.equal(e.starts.length,count,'click within 180 ms is silent');
+      e.starts.at(-1).onended(); e.advance(100);
+    }
+    assert.equal(e.starts.length,16);
+    const ids = e.starts.map(s=>s.buffer.id);
+    assert.equal(new Set(ids.slice(0,8)).size,8);
+    assert.equal(new Set(ids.slice(8,16)).size,8);
+    assert.notEqual(ids[7],ids[8],'bag boundary does not repeat');
   } finally { e.restore(); }
 });
