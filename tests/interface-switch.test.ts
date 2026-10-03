@@ -79,6 +79,9 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
     assert(w.document.querySelector('header').hidden,'large fantasy HUD is hidden during battle');
+    assert.equal(w.document.querySelector('.combat-turn-status'),null,'turn has no separate panel');
+    assert(w.document.querySelector('.combat-hero-plaque [role="status"]'),'turn remains available in hero panel');
+    assert(w.document.querySelector('.combat-secondary-actions .combat-auto-toggle'),'autobattle is beside combat actions');
     assert(w.document.querySelector('.combat-hero-plaque').compareDocumentPosition(w.document.querySelector('.combat-scene')) & w.Node.DOCUMENT_POSITION_FOLLOWING,'live player HP and mana precede enemy scene');
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
