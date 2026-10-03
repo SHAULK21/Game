@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useEffect, useRef, useState } from 'react';
-import { Swords, Compass, Trophy, Backpack, Anvil, Hammer, FlaskConical, Pickaxe, ShieldCheck, MessageSquare, MoreHorizontal, Scroll, Dog, Store, Crown, X } from 'lucide-react';
+import { Swords, Compass, Trophy, Backpack, Anvil, Hammer, FlaskConical, Pickaxe, ShieldCheck, MessageSquare, MoreHorizontal, Scroll, Dog, Store, Crown, Fish, X } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { triggerHaptic } from '../../utils/telegram';
 
@@ -22,6 +22,7 @@ const primary = [
 const secondary = [
   { id: 'blacksmith', label: 'Кузница', icon: Anvil },
   { id: 'alchemy', label: 'Алхимия', icon: FlaskConical },
+  { id: 'fishing', label: 'Рыбалка', icon: Fish },
   { id: 'mine', label: 'Шахта', icon: Pickaxe },
   { id: 'clan', label: 'Клан', icon: ShieldCheck },
   { id: 'chat', label: 'Чат', icon: MessageSquare },

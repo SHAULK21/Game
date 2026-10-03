@@ -1,3 +1,4 @@
+import type { FishingState } from '../utils/fishing';
 import type {AscensionState} from '../data/ascension';
 export type ItemRarity = 
   | 'common' 
@@ -538,6 +539,7 @@ export interface PlayerCharacter {
   craftedPetIds?: string[];
 
   smithingXp?: number;
+  fishing?: FishingState;
   miningLevel: number;
   miningExp: number;
   alchemyLevel: number;

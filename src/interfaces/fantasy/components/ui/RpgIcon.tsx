@@ -7,7 +7,7 @@ export type RpgIconKind =
   | ItemType
   | 'attack' | 'defend' | 'skill' | 'map' | 'bestiary' | 'monster' | 'character'
   | 'inventory' | 'forge' | 'mine' | 'arena' | 'clan' | 'market' | 'quest'
-  | 'settings' | 'more' | 'hunt' | 'crown' | 'hp' | 'gold' | 'silver' | 'energy'
+  | 'fish' | 'settings' | 'more' | 'hunt' | 'crown' | 'hp' | 'gold' | 'silver' | 'energy'
   | 'stamina' | 'ore' | 'herb' | 'water' | 'toxin' | 'pollen' | 'fang' | 'gem'
   | 'shard' | 'alchemy' | 'refresh' | 'leave';
 
@@ -37,6 +37,7 @@ const SPRITES: Record<RpgIconKind, string> = {
   market: 'icons/market.webp',
   quest: 'icons/quest.webp',
   settings: 'icons/settings.webp',
+  fish: '/assets/fishing/perch.webp',
   more: 'icons/more.webp',
   refresh: 'icons/refresh.webp',
   leave: 'icons/leave.webp',
@@ -81,10 +82,10 @@ export const RpgIcon: React.FC<RpgIconProps> = ({
   title
 }) => {
   useLocale();
-  const src = `${SPRITE_ROOT}/${SPRITES[kind]}`;
+  const src = SPRITES[kind].startsWith('/') ? SPRITES[kind] : `${SPRITE_ROOT}/${SPRITES[kind]}`;
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  if (failed) return <VectorIcon kind={kind} size={size} className={className} title={localize(title)} />;
+  if (failed) return <VectorIcon kind={kind === 'fish' ? 'water' : kind} size={size} className={className} title={localize(title)} />;
   return (
   <span
     className={`inline-flex items-center justify-center shrink-0 ${className}`}

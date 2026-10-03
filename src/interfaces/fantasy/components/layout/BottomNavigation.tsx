@@ -27,6 +27,7 @@ const secondary: Array<{ id: TabId; label: string; icon: RpgIconKind }> = [
   { id: 'character', label: 'Герой', icon: 'character' },
   { id: 'blacksmith', label: 'Кузница', icon: 'forge' },
   { id: 'alchemy', label: 'Алхимия', icon: 'alchemy' },
+  { id: 'fishing', label: 'Рыбалка', icon: 'fish' },
   { id: 'mine', label: 'Шахта', icon: 'mine' },
   { id: 'market', label: 'Рынок', icon: 'market' },
   { id: 'clan', label: 'Клан', icon: 'clan' },

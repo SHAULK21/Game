@@ -67,3 +67,12 @@ button:disabled:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .monster-strike-motion { animation: none; }
 }
+
+@keyframes fishing-ripple { from { scale: .6; opacity: .9; } to { scale: 1.5; opacity: .25; } }
+.fishing-ripple-wait { animation: fishing-ripple 2s ease-in-out infinite alternate; }
+.fishing-ripple-bite { animation: fishing-ripple .5s ease-in-out infinite alternate; }
+.fishing-ripple-reel { animation: fishing-ripple .8s ease-in-out infinite alternate; }
+.fishing-water-forest { filter: saturate(.75) brightness(.9); }
+.fishing-water-ice { filter: saturate(.4) hue-rotate(155deg) brightness(1.1); }
+.fishing-water-ruins { filter: saturate(.6) brightness(.65); }
+@media (prefers-reduced-motion: reduce) { .fishing-ripple { animation: none; } }

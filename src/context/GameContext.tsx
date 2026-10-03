@@ -1,3 +1,4 @@
+import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult } from '../utils/fishing';
 import { monsterPreparation, playerPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
@@ -144,6 +145,7 @@ interface GameContextType {
   claimMiningExpedition: () => { success: boolean; message: string };
   leaveMiningExpedition: () => { success: boolean; message: string };
   craftAlchemy: (recipeId: string) => boolean;
+  fishingAction: (action: 'cast' | 'hook' | 'land' | 'cancel' | 'upgrade', id?: string) => FishingResult;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   refreshMarketIncome: () => Promise<void>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
@@ -1006,6 +1008,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.maxEnergy = parsed.player.maxEnergy ?? 60;
           parsed.player.stamina = parsed.player.stamina ?? 100;
           parsed.player.maxStamina = parsed.player.maxStamina ?? 100;
+          parsed.player.fishing = migrateFishing(parsed.player.fishing);
           parsed.player.alchemyLevel = parsed.player.alchemyLevel ?? 1;
           parsed.player.alchemyExp = parsed.player.alchemyExp ?? 0;
           parsed.player.alchemyEnergy = parsed.player.alchemyEnergy ?? 100;
@@ -1403,6 +1406,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       skills: classDef.startingSkills.map(s => ({ ...s })),
       activePet: PETS_LIST[0],
       craftedPetIds: ['pet_wolf'],
+      fishing: initialFishing(),
       miningLevel: 1,
       miningExp: 0,
       alchemyLevel: 1,
@@ -3596,6 +3600,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   },[player]);
 
   // Alchemy
+  const fishingPlayerRef = useRef(player);
+  fishingPlayerRef.current = player;
+  const fishingAction = useCallback((action: 'cast' | 'hook' | 'land' | 'cancel' | 'upgrade', id?: string): FishingResult => {
+    const current = fishingPlayerRef.current;
+    if (!current) return {success:false,message:'Сначала создайте персонажа.',player:current!};
+    if (isInCombat || travelState.isTraveling || activeDungeonRun) return {success:false,message:'Рыбалка доступна вне боя, путешествия и пещеры.',player:current};
+    const result = action === 'cast' ? castFishing(current,id || 'river') : action === 'hook' ? hookFishing(current,id || '')
+      : action === 'land' ? landFishing(current,id || '') : action === 'cancel' ? cancelFishing(current) : upgradeFishingRod(current);
+    if (result.success) {
+      fishingPlayerRef.current = result.player;
+      setPlayer(result.player);
+      if (action === 'land') { sound.playCoin(); triggerHaptic('success'); }
+      else if (action === 'hook') { sound.playDodge(); triggerHaptic('medium'); }
+      else sound.playClick();
+    } else triggerHaptic('error');
+    return result;
+  }, [isInCombat,travelState.isTraveling,activeDungeonRun]);
+
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     if (!player) return false;
 
@@ -3967,6 +3989,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       claimMiningExpedition,
       leaveMiningExpedition,
       craftAlchemy,
+      fishingAction,
       createClan,
       listMarketItem,
       refreshMarketIncome,
