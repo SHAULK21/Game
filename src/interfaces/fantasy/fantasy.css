@@ -576,7 +576,7 @@ html[data-interface="fantasy"] .hero-close-art { width:39px; height:43px; }
 html[data-interface="fantasy"] .class-portrait-icon { border:0; border-radius:0; box-shadow:none; background:none; }
 html[data-interface="fantasy"] .registration-class-portrait { width:52px; height:52px; }
 
-/* Shared, author-approved shell. Geometry is identical for every fantasy section. */
+/* Shared shell: full on Hunt, compact on secondary sections. */
 html[data-interface="fantasy"] { --shell-width: 900px; --shell-nav-height: 76px; --shell-frame-size: 20px; }
 html[data-interface="fantasy"] .fantasy-shell-header {
   width:100%; max-width:var(--shell-width); margin-inline:auto; padding:12px 15px 17px;
@@ -774,3 +774,17 @@ html[data-interface="fantasy"] .inventory-equipped-slot:enabled:hover { filter:b
   html[data-interface="fantasy"] .inventory-page-heading > div { width:82px; }
   html[data-interface="fantasy"] .inventory-page-heading strong { font-size:20px; }
 }
+
+/* Secondary pages retain the live HUD actions without the large title and XP row. */
+html[data-interface="fantasy"] .fantasy-shell-header.is-compact { padding:10px 12px; }
+html[data-interface="fantasy"] .is-compact .shell-brand-row { position:absolute; right:12px; top:10px; min-height:0; padding:0; }
+html[data-interface="fantasy"] .is-compact .shell-brand { display:none; }
+html[data-interface="fantasy"] .is-compact .shell-settings summary { width:40px; height:44px; }
+html[data-interface="fantasy"] .is-compact .shell-hud-content { grid-template-columns:minmax(0,1fr) 112px; min-height:0; padding-right:44px; gap:6px; }
+html[data-interface="fantasy"] .is-compact .shell-hero-button { gap:6px; min-height:44px; }
+html[data-interface="fantasy"] .is-compact .shell-hero-portrait { width:32px; height:44px; }
+html[data-interface="fantasy"] .is-compact .shell-hero-class,
+html[data-interface="fantasy"] .is-compact .shell-hero-experience,
+html[data-interface="fantasy"] .is-compact .shell-hero-button [title="Premium"],
+html[data-interface="fantasy"] .is-compact .shell-divider { display:none; }
+html[data-interface="fantasy"] .is-compact .shell-currencies .resource-badge { min-height:18px; padding-block:0; border:0; background:none; }
