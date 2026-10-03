@@ -1,3 +1,4 @@
+import { monsterPreparation, playerPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
 import { playerDamagePower } from '../utils/pveBalance';
@@ -83,10 +84,11 @@ interface GameContextType {
   combatOutcome: 'victory' | 'defeat' | 'flee' | null;
   combatPlayerHp: number;
   combatPlayerMp: number;
-  turnPhase: 'player' | 'monster' | 'ended';
+  turnPhase: 'player' | 'preparing' | 'monster' | 'ended';
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
   monsterIntent: MonsterSkill | null;
+  combatNarration: string[];
   comboReady: string[];
   autoBattle: AutoBattleSettings;
   activeDungeonRun: DungeonRun | null;
@@ -582,9 +584,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isCombatEnded, combatOutcome, activeMonster?.regionId, player?.arenaRating, combatRound]);
   const [combatPlayerHp, setCombatPlayerHp] = useState<number>(100);
   const [combatPlayerMp, setCombatPlayerMp] = useState<number>(50);
-  const [turnPhase, setTurnPhase] = useState<'player' | 'monster' | 'ended'>('player');
+  const [turnPhase, setTurnPhase] = useState<'player' | 'preparing' | 'monster' | 'ended'>('player');
   const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]);
   const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);
+  const [combatNarration, setCombatNarration] = useState<string[]>([]);
+  const playerActionLock = useRef(false);
+  const actionGeneration = useRef(0);
+  useEffect(() => {
+    actionGeneration.current++;
+    playerActionLock.current = false;
+    setCombatNarration([]);
+    return () => { actionGeneration.current++; };
+  }, [isInCombat, activeMonster?.id, player?.userId]);
   const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
   const [lastCast, setLastCast] = useState<{ id: string; turn: number } | null>(null);
   const [warriorMomentum, setWarriorMomentum] = useState(0);
@@ -2388,8 +2399,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTurnPhase('ended');
   }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, pendingChainRewards, combatPlayerHp, combatPlayerMp]);
 
-  const performPlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
-    if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
+  const resolvePlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
+    if (!isInCombat || !activeMonster || isCombatEnded || !player || !['player', 'preparing'].includes(turnPhase)) return;
 
     if(actionType==='potion' && activeMonster.id==='ascension_echo_control') {setBattleLog(prev=>[...prev,{id:'echo_potion_'+Date.now(),turn:combatRound,text:'В Эхе самообладания зелья недоступны.',type:'system'}]);return;}
     const currentTurn = combatRound;
@@ -2795,6 +2806,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastCast, warriorMomentum, rogueFocus, activeDungeonRun
   ]);
 
+  const actionResolver = useRef(resolvePlayerAction);
+  actionResolver.current = resolvePlayerAction;
+  const performPlayerAction = useCallback(async (actionType: PlayerAction, skillId?: string) => {
+    if (playerActionLock.current || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'player') return;
+    if (actionType === 'potion' && activeMonster.id === 'ascension_echo_control') { resolvePlayerAction(actionType, skillId); return; }
+    if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
+    const skill = actionType === 'skill' ? player.skills.find(s => s.id === skillId) : undefined;
+    if (actionType === 'skill' && (!skill || player.level < skill.levelReq || skill.currentCooldown > 0 || combatPlayerMp < talentManaCost(skill.manaCost, player.talents))) return;
+    playerActionLock.current = true;
+    const generation = actionGeneration.current;
+    const lines = playerPreparation(player, actionType, combatRound, skill?.name, getMonsterPlannedSkill(activeMonster));
+    setCombatNarration(lines);
+    setBattleLog(log => [...log, {id:'player_prepare_'+Date.now(),turn:combatRound,text:lines.join(' '),type:'system'}]);
+    setTurnPhase('preparing');
+    await new Promise(resolve => setTimeout(resolve, 750));
+    if (generation !== actionGeneration.current) return;
+    try {
+      setTurnPhase('player'); // Rejected requests release the preparation state.
+      actionResolver.current(actionType, skillId);
+    } finally { playerActionLock.current = false; }
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, combatPlayerMp, resolvePlayerAction]);
+
+  useEffect(() => {
+    if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster') return;
+    const lines = monsterPreparation(activeMonster, combatRound, getMonsterPlannedSkill(activeMonster));
+    if (playerEffects.some(effect => effect.type === 'shield' && effect.value > 0)) lines.push('Вы выставили щит и ждёте удара.');
+    setCombatNarration(lines);
+  }, [isInCombat, isCombatEnded, activeMonster?.id, turnPhase, combatRound]);
+
   // MONSTER TURN CONTROLLER — monsters telegraph skills before casting them.
   useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player || monsterIntent) return;
@@ -2880,6 +2920,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       if (attackRoll.evaded) sound.playDodge(); else if (blockedByShield > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(monsterDamageType);
+      const impactNarration = monsterImpact(activeMonster.name, monsterFinalDmg, blockedByShield, attackRoll.evaded, !!playerMods.invulnerable);
+      setCombatNarration(impactNarration);
+      newLogs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
@@ -2959,6 +3002,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
       }
       if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(skill.damageType);
+      const impactNarration = monsterImpact(activeMonster.name, damage, blocked, attackRoll.evaded, !!playerMods.invulnerable);
+      impactNarration.unshift(`Особый приём: «${skill.name}».`);
+      setCombatNarration(impactNarration);
+      logs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
       logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);
@@ -3872,6 +3919,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       playerEffects,
       monsterEffects,
       monsterIntent,
+      combatNarration,
       comboReady: lastCast && combatRound - lastCast.turn <= 3 ? player?.skills.filter(s => s.comboFrom === lastCast.id).map(s => s.id) || [] : [],
       autoBattle,
       activeDungeonRun,
