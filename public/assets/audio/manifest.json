@@ -1,0 +1,122 @@
+{
+  "page": [
+    {
+      "file": "page-1.mp3",
+      "source": "rpg-audio/Audio/bookFlip1.ogg"
+    },
+    {
+      "file": "page-2.mp3",
+      "source": "rpg-audio/Audio/bookFlip2.ogg"
+    }
+  ],
+  "slash": [
+    {
+      "file": "slash-1.mp3",
+      "source": "rpg-audio/Audio/knifeSlice.ogg"
+    },
+    {
+      "file": "slash-2.mp3",
+      "source": "rpg-audio/Audio/knifeSlice2.ogg"
+    }
+  ],
+  "shield": [
+    {
+      "file": "shield-1.mp3",
+      "source": "impact-sounds/Audio/impactMetal_medium_000.ogg"
+    },
+    {
+      "file": "shield-2.mp3",
+      "source": "impact-sounds/Audio/impactMetal_medium_001.ogg"
+    }
+  ],
+  "heavy": [
+    {
+      "file": "heavy-1.mp3",
+      "source": "impact-sounds/Audio/impactPunch_heavy_000.ogg"
+    },
+    {
+      "file": "heavy-2.mp3",
+      "source": "impact-sounds/Audio/impactPunch_heavy_001.ogg"
+    }
+  ],
+  "potion": [
+    {
+      "file": "potion-1.mp3",
+      "source": "impact-sounds/Audio/impactGlass_light_000.ogg"
+    },
+    {
+      "file": "potion-2.mp3",
+      "source": "impact-sounds/Audio/impactGlass_light_001.ogg"
+    }
+  ],
+  "magic": [
+    {
+      "file": "magic-1.mp3",
+      "source": "impact-sounds/Audio/impactGlass_medium_000.ogg"
+    },
+    {
+      "file": "magic-2.mp3",
+      "source": "impact-sounds/Audio/impactGlass_medium_001.ogg"
+    }
+  ],
+  "coins": [
+    {
+      "file": "coins-1.mp3",
+      "source": "rpg-audio/Audio/handleCoins.ogg"
+    },
+    {
+      "file": "coins-2.mp3",
+      "source": "rpg-audio/Audio/handleCoins2.ogg"
+    }
+  ],
+  "step": [
+    {
+      "file": "step-1.mp3",
+      "source": "impact-sounds/Audio/footstep_grass_000.ogg"
+    },
+    {
+      "file": "step-2.mp3",
+      "source": "impact-sounds/Audio/footstep_grass_001.ogg"
+    },
+    {
+      "file": "step-3.mp3",
+      "source": "impact-sounds/Audio/footstep_grass_002.ogg"
+    }
+  ],
+  "mine": [
+    {
+      "file": "mine-1.mp3",
+      "source": "impact-sounds/Audio/impactMining_000.ogg"
+    },
+    {
+      "file": "mine-2.mp3",
+      "source": "impact-sounds/Audio/impactMining_001.ogg"
+    },
+    {
+      "file": "mine-3.mp3",
+      "source": "impact-sounds/Audio/impactMining_002.ogg"
+    }
+  ],
+  "whoosh": [
+    {
+      "file": "whoosh-1.mp3",
+      "source": "rpg-audio/Audio/cloth1.ogg"
+    },
+    {
+      "file": "whoosh-2.mp3",
+      "source": "rpg-audio/Audio/cloth2.ogg"
+    }
+  ],
+  "bell": [
+    {
+      "file": "bell-1.mp3",
+      "source": "impact-sounds/Audio/impactBell_heavy_000.ogg"
+    }
+  ],
+  "fail": [
+    {
+      "file": "fail-1.mp3",
+      "source": "rpg-audio/Audio/dropLeather.ogg"
+    }
+  ]
+}
