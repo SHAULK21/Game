@@ -1,3 +1,4 @@
+import { useMonsterStrike } from '../../../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
@@ -50,6 +51,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     leaveMiningExpedition
   } = useGame();
 
+  const monsterStriking = useMonsterStrike(battleLog, isInCombat);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isPotionsOpen, setIsPotionsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -205,6 +207,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         maxMp={combatStats.maxMp}
         playerEffects={playerEffects}
         monsterEffects={monsterEffects}
+        monsterStriking={monsterStriking}
         latestEvent={battleLog.at(-1)}
       />
       {/* Combat status and actions */}

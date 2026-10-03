@@ -1,3 +1,4 @@
+import { useMonsterStrike } from '../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../utils/autoBattle';
@@ -70,6 +71,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     leaveMiningExpedition
   } = useGame();
 
+  const monsterStriking = useMonsterStrike(battleLog, isInCombat);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isPotionsOpen, setIsPotionsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -475,8 +477,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 ? 'bg-red-950/90 border-red-500/80 text-red-300 shadow-sm  '
                 : 'bg-slate-800 border-slate-700 text-slate-300'
             }`}>
-              {turnPhase === 'player' && <span>{localize("⚔️ ВАШ ХОД")}</span>}
-              {turnPhase === 'monster' && <span>{localize("⏳ ХОД ВРАГА")}</span>}
+              {monsterStriking ? <span>{localize("Противник атакует")}</span> : turnPhase === 'player' && <span>{localize("⚔️ ВАШ ХОД")}</span>}
+              {!monsterStriking && turnPhase === 'monster' && <span>{localize("Противник готовится атаковать")}</span>}
               {turnPhase === 'ended' && <span>{localize("ФИНИШ")}</span>}
             </div>
           </div>
@@ -567,7 +569,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </div>
 
           {/* Right: Monster Card (2 cols) */}
-          <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${
+          <div className={`col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ${monsterStriking ? 'monster-strike-motion' : ''} ${
             turnPhase === 'monster'
               ? 'ring-2 ring-red-500/80 bg-red-950/40   scale-[1.02]'
               : 'opacity-80 bg-slate-900/40'

@@ -142,5 +142,23 @@
       "file": "fail-1.mp3",
       "source": "rpg-audio/Audio/dropLeather.ogg"
     }
+  ],
+  "monster": [
+    {
+      "file": "monster-hit-1.mp3",
+      "source": "impact-sounds/Audio/impactPunch_medium_000.ogg"
+    },
+    {
+      "file": "monster-hit-2.mp3",
+      "source": "impact-sounds/Audio/impactPunch_medium_001.ogg"
+    },
+    {
+      "file": "monster-hit-3.mp3",
+      "source": "impact-sounds/Audio/impactPunch_medium_002.ogg"
+    },
+    {
+      "file": "monster-hit-4.mp3",
+      "source": "impact-sounds/Audio/impactPunch_medium_003.ogg"
+    }
   ]
 }
