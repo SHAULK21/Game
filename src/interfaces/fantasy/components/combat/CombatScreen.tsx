@@ -183,13 +183,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const battleDungeon = activeMonster.regionId !== 'arena' && activeDungeonRun ? CAVES[activeDungeonRun.dungeonId] : undefined;
   const battleRegion = REGIONS.find(region => region.id === activeMonster.regionId) || currentRegion;
   const battleLocationName = activeMonster.regionId === 'arena' ? 'Колизей Чемпионов' : battleDungeon?.name || battleRegion.name;
-  const displayedMonsterSkill = turnPhase === 'monster' ? monsterIntent : nextMonsterSkill;
   const battleScene = getBattleScene(activeMonster.regionId, currentRegion.id, battleDungeon?.id);
 
   return (
-    <div className="folio-page fantasy-combat-page">
+    <div className="folio-page fantasy-combat-page space-y-3 pt-3">
       {localize(premiumModal)}
-      <div className="combat-overview">
       <CombatArena
         player={player}
         monster={activeMonster}
@@ -209,9 +207,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         monsterEffects={monsterEffects}
         latestEvent={battleLog.at(-1)}
       />
-      </div>
       {/* Combat status and actions */}
-      <div className="combat-command-center">
+      <div className="combat-command-center space-y-2">
         <div className={`combat-turn-status flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
           turnPhase === 'player'
             ? 'bg-[#211f1a] border-[#69583a] text-[#d5ba89]'
@@ -252,16 +249,32 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </button>
         </div>
 
-        {!isCombatEnded && <details className="bestiary-panel combat-intent-disclosure">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">
-            <RpgIcon kind="skill" size={17} className="text-[#c7a365]" />
-            <span className="min-w-0 flex-1"><span className="mr-1 text-[11px] text-[#918c82]">{localize('Враг готовит:')}</span><strong className="text-[#d8d1c4]">{localize(displayedMonsterSkill?.name || 'Обычная атака')}</strong></span>
-            {displayedMonsterSkill && <span className="shrink-0 font-mono text-[11px] text-[#d28f89]">×{localize(Math.round(displayedMonsterSkill.damageMultiplier * 100))}%</span>}
-          </summary>
-          <p className="border-t border-[#343638] px-3 py-2 text-[11px] text-[#aaa49a]">{localize(displayedMonsterSkill?.description || 'Противник нанесёт обычный физический удар.')}</p>
-        </details>}
+        {turnPhase === 'player' && activeMonster && !isCombatEnded && (
+          <details className="bestiary-panel overflow-hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">
+              <RpgIcon kind={nextMonsterSkill ? 'skill' : 'attack'} size={17} className="text-[#c7a365]" />
+              <span className="min-w-0 flex-1"><span className="mr-1 text-[11px] text-[#918c82]">{localize("Враг готовит:")}</span><strong className="text-[#d8d1c4]">{localize(nextMonsterSkill ? nextMonsterSkill.name : 'Обычная атака')}</strong></span>
+              {nextMonsterSkill && <span className="shrink-0 font-mono text-[11px] text-[#d28f89]">×{localize(Math.round(nextMonsterSkill.damageMultiplier * 100))}%</span>}
+            </summary>
+            <p className="border-t border-[#343638] px-3 py-2 text-[11px] text-[#aaa49a]">{localize(nextMonsterSkill?.description || 'Противник нанесёт обычный физический удар.')}</p>
+          </details>
+        )}
 
-        <div className="combat-controls-scroll space-y-2" role="region" aria-label={localize('Выберите действие')} tabIndex={0}>
+        {monsterIntent && turnPhase === 'monster' && (
+          <div className="combat-ledger combat-warning p-3">
+            <div className="flex items-center gap-2 combat-ink text-xs font-bold">
+              <RpgIcon kind="skill" size={17} />
+              <span>{localize(activeMonster.name)}{localize(" применит «")}{localize(monsterIntent.name)}»</span>
+            </div>
+            <div className="text-[11px] combat-ink mt-1">{localize(monsterIntent.description)}</div>
+          </div>
+        )}
+
+        {combatChain && <div className="bestiary-panel flex min-h-8 items-center justify-between gap-3 px-3 py-1 text-[11px]">
+          <span className="flex items-center gap-1.5 font-bold text-[#d1ad67]"><RpgIcon kind="hunt" size={14} />{localize("Боевая серия")}</span>
+          <span className="font-mono text-[#c5c0b6]">{localize(combatChain.defeated)}/{localize(combatChain.total)}{localize(" · осталось ")}{localize(combatChain.remaining)}</span>
+        </div>}
+
         {/* COMBAT ACTIONS OR COMBAT RESULT */}
         {isCombatEnded ? (
           <div className="bestiary-panel space-y-3 p-3.5 text-center">
@@ -477,11 +490,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             )}
           </div>
         )}
-
-        {combatChain && <div className="bestiary-panel flex min-h-8 items-center justify-between gap-3 px-3 py-1 text-[11px]">
-          <span className="flex items-center gap-1.5 font-bold text-[#d1ad67]"><RpgIcon kind="hunt" size={14} />{localize("Боевая серия")}</span>
-          <span className="font-mono text-[#c5c0b6]">{localize(combatChain.defeated)}/{localize(combatChain.total)}{localize(" · осталось ")}{localize(combatChain.remaining)}</span>
-        </div>}
+      </div>
 
       <details className="bestiary-panel overflow-hidden">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 text-xs font-semibold text-[#cfc6b7]">
@@ -508,8 +517,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           })}
         </div>
       </details>
-        </div>
-      </div>
     </div>
   );
 };
