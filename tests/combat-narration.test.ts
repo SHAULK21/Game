@@ -21,22 +21,22 @@ test('narration matches creatures, varies by round and describes only real shiel
  assert(translateText(monsterImpact('Волк',0,20,false,false)[0],'uk').includes('повністю відбили'));
 });
 
-test('real combat delays player actions, rejects double clicks, reports blocks and cancels stale actions', async () => {
+test('real combat resolves player actions immediately, rejects double clicks and reports blocks', async () => {
  const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';function Probe(){window.game=useGame();return null;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true})});w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Защитник','knight'));w.Math.random=()=>.5;
   const target={id:'wolf_test',name:'Волк',regionId:'arena',level:1,hp:10000,maxHp:10000,mp:0,maxMp:0,attack:5,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:1,goldReward:1,drops:[]};
-  await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));const hp=w.game.activeMonster.hp;let pending:Promise<void>;
-  await w.act(async()=>{pending=w.game.performPlayerAction('attack');void w.game.performPlayerAction('attack');});
-  assert.equal(w.game.turnPhase,'preparing');assert.equal(w.game.activeMonster.hp,hp);assert.equal(w.game.battleLog.filter((e:any)=>e.id.startsWith('player_prepare_')).length,1);
-  await w.act(async()=>await pending);assert(w.game.activeMonster.hp<hp);assert.equal(w.game.turnPhase,'monster');
+  await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));const hp=w.game.activeMonster.hp;
+  await w.act(async()=>{w.game.performPlayerAction('attack');w.game.performPlayerAction('attack');});
+  assert(w.game.activeMonster.hp<hp);assert.equal(w.game.turnPhase,'monster');
+  assert.equal(w.game.battleLog.filter((e:any)=>e.id.startsWith('dmg_')).length,1);
   await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
   await w.act(async()=>w.game.performPlayerAction('defend'));assert(w.game.playerEffects.some((e:any)=>e.type==='shield'));
   for(let i=0;i<6&&w.game.turnPhase==='monster';i++)await w.act(async()=>await new Promise(r=>setTimeout(r,850)));
   assert.equal(w.game.turnPhase,'player');assert(w.game.combatNarration.some((s:string)=>s.includes('полностью отбили')));assert.equal(w.game.combatPlayerHp,w.game.combatStats.maxHp);
-  await w.act(async()=>{pending=w.game.performPlayerAction('attack');});await w.act(async()=>w.game.exitCombat());await w.act(async()=>await pending);
+  await w.act(async()=>{w.game.performPlayerAction('attack');});await w.act(async()=>w.game.exitCombat());
   assert.equal(w.game.isInCombat,false);assert.equal(w.game.activeMonster,null);assert.equal(w.game.battleLog.length,0);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

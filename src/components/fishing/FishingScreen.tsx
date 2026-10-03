@@ -17,7 +17,7 @@ export const FishingScreen: React.FC = () => {
  const fishing=migrateFishing(player?.fishing);const cast=fishing.cast;const phase=fishingPhase(cast,now);
  useEffect(()=>{if(cast)setSelectedSpot(cast.spotId);},[cast?.id]);
  useEffect(()=>{if(!cast)return;const timer=window.setInterval(()=>setNow(Date.now()),200);const refresh=()=>setNow(Date.now());document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh);};},[cast?.id]);
- useEffect(()=>{if(phase==='bite'&&cast&&announced.current!==cast.id){announced.current=cast.id;sound.playPotion();triggerHaptic('medium');}},[phase,cast?.id]);
+ useEffect(()=>{if(phase==='bite'&&cast&&announced.current!==cast.id){announced.current=cast.id;sound.playFishingBite();triggerHaptic('medium');}},[phase,cast?.id]);
  if(!player)return null;
  const fantasy=style==='fantasy';const panel=fantasy?'bestiary-panel':'ui-panel rounded-xl border border-slate-700';const button=fantasy?'rpg-button rpg-button-primary':'rounded-lg border border-amber-500/50 bg-amber-950/60 text-amber-100';
  const secondary=fantasy?'rpg-button rpg-button-secondary':'rounded-lg border border-slate-700 bg-slate-900 text-slate-200';

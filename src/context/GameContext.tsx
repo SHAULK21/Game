@@ -1,5 +1,6 @@
+import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult } from '../utils/fishing';
-import { monsterPreparation, playerPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
+import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
 import { playerDamagePower } from '../utils/pveBalance';
@@ -85,7 +86,7 @@ interface GameContextType {
   combatOutcome: 'victory' | 'defeat' | 'flee' | null;
   combatPlayerHp: number;
   combatPlayerMp: number;
-  turnPhase: 'player' | 'preparing' | 'monster' | 'ended';
+  turnPhase: 'player' | 'monster' | 'ended';
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
   monsterIntent: MonsterSkill | null;
@@ -586,17 +587,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isCombatEnded, combatOutcome, activeMonster?.regionId, player?.arenaRating, combatRound]);
   const [combatPlayerHp, setCombatPlayerHp] = useState<number>(100);
   const [combatPlayerMp, setCombatPlayerMp] = useState<number>(50);
-  const [turnPhase, setTurnPhase] = useState<'player' | 'preparing' | 'monster' | 'ended'>('player');
+  const [turnPhase, setTurnPhase] = useState<'player' | 'monster' | 'ended'>('player');
   const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]);
   const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);
   const [combatNarration, setCombatNarration] = useState<string[]>([]);
   const playerActionLock = useRef(false);
-  const actionGeneration = useRef(0);
   useEffect(() => {
-    actionGeneration.current++;
     playerActionLock.current = false;
     setCombatNarration([]);
-    return () => { actionGeneration.current++; };
   }, [isInCombat, activeMonster?.id, player?.userId]);
   const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
   const [lastCast, setLastCast] = useState<{ id: string; turn: number } | null>(null);
@@ -2404,7 +2402,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, pendingChainRewards, combatPlayerHp, combatPlayerMp]);
 
   const resolvePlayerAction = useCallback((actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => {
-    if (!isInCombat || !activeMonster || isCombatEnded || !player || !['player', 'preparing'].includes(turnPhase)) return;
+    if (!isInCombat || !activeMonster || isCombatEnded || !player || turnPhase !== 'player') return;
 
     if(actionType==='potion' && activeMonster.id==='ascension_echo_control') {setBattleLog(prev=>[...prev,{id:'echo_potion_'+Date.now(),turn:combatRound,text:'В Эхе самообладания зелья недоступны.',type:'system'}]);return;}
     const currentTurn = combatRound;
@@ -2414,6 +2412,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const activeMod = combatHuntingMode(activeMonster);
 
     if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
+
+    const selectedPotion = actionType === 'potion' ? player.inventory.find(i => i.type === 'potion' && (!skillId || i.id === skillId)) : undefined;
+    if (selectedPotion && isRestorationPotion(selectedPotion)) {
+      const hp = selectedPotion.stats.healFull ? combatStats.maxHp : selectedPotion.stats.heal || 0;
+      const mp = selectedPotion.stats.manaRestore || 0;
+      if (!restorationUseful(selectedPotion,combatPlayerHp,combatPlayerMp,combatStats.maxHp,combatStats.maxMp)) return;
+      setCombatPlayerHp(value => Math.min(combatStats.maxHp, value + hp));
+      setCombatPlayerMp(value => Math.min(combatStats.maxMp, value + mp));
+      setPlayer(previous => previous ? { ...previous, inventory: previous.inventory.map(i => i.id === selectedPotion.id ? {...i, stackCount: (i.stackCount || 1) - 1} : i).filter(i => i.id !== selectedPotion.id || (i.stackCount || 0) > 0) } : previous);
+      const s = selectedPotion.stats; const duration = Math.max(1,s.buffDuration || 3);
+      if(s.attackPercent) setPlayerEffects(e => applyStatusEffect(e,{type:'fury',name:selectedPotion.name,duration,value:s.attackPercent}));
+      if(s.defensePercent) setPlayerEffects(e => applyStatusEffect(e,{type:'fortify',name:selectedPotion.name,duration,value:s.defensePercent}));
+      if(s.critChance) setPlayerEffects(e => applyStatusEffect(e,{type:'focus',name:selectedPotion.name,duration,value:s.critChance}));
+      if(s.invulnerable) setPlayerEffects(e => applyStatusEffect(e,{type:'invulnerable',name:selectedPotion.name,duration:1,value:1}));
+      sound.playPotion();
+      const text = `Вы выпили «${selectedPotion.name}». Ход сохранён.`;
+      setCombatNarration([text]);
+      setBattleLog(log => [...log, {id:'pot_'+Date.now(),turn:currentTurn,text,type:'heal'}]);
+      return;
+    }
 
     // Invalid skill requests never consume a turn, heal or tick effects.
     if (actionType === 'skill') {
@@ -2533,6 +2551,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!pot) {
         newLogs.push({ id: 'no_pot_' + Date.now(), turn: currentTurn, text: '❌ У вас нет зелий в инвентаре!', type: 'system' });
         setBattleLog(prev => [...prev, ...newLogs]);
+        return;
+      }
+
+      if (potionDamage(pot)) {
+        const {power, damageType} = potionDamage(pot)!;
+        const damage = calculateTypedDamage({power: power * (player.classId === 'rogue' ? 1.25 : 1), multiplier: 1, damageType,
+          targetDefense: activeMonster.defense, targetMagicDefense: activeMonster.magicDefense,
+          armorPenetration: 0, targetResistances: activeMonster.resistances,
+          extraDamageMultiplier: getStatusModifiers(monsterEffects).damageTakenMultiplier});
+        setPlayer(previous => previous ? {...previous, inventory:previous.inventory.map(i=>i.id===pot.id?{...i,stackCount:(i.stackCount||1)-1}:i).filter(i=>i.id!==pot.id||(i.stackCount||0)>0)} : previous);
+        sound.playMagic();
+        const text = `Вы бросили «${pot.name}»: ${damage} урона.`;
+        newLogs.push({id:'throw_'+Date.now(),turn:currentTurn,text,type:'player-attack'});
+        setCombatNarration([text]);
+        const hp = Math.max(0, activeMonster.hp - damage);
+        setActiveMonster(previous => previous ? {...previous,hp} : previous);
+        if (hp <= 0) {
+          setIsCombatEnded(true); setCombatOutcome('victory'); setTurnPhase('ended');
+          completeCombatVictory(activeMonster,currentTurn,newLogs);
+        } else {setBattleLog(log=>[...log,...newLogs]);setTurnPhase('monster');}
         return;
       }
 
@@ -2810,27 +2848,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastCast, warriorMomentum, rogueFocus, activeDungeonRun
   ]);
 
-  const actionResolver = useRef(resolvePlayerAction);
-  actionResolver.current = resolvePlayerAction;
-  const performPlayerAction = useCallback(async (actionType: PlayerAction, skillId?: string) => {
+  // One action per render prevents double taps from consuming stale inventory.
+  useEffect(() => { playerActionLock.current = false; });
+  const performPlayerAction = useCallback((actionType: PlayerAction, skillId?: string) => {
     if (playerActionLock.current || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'player') return;
-    if (actionType === 'potion' && activeMonster.id === 'ascension_echo_control') { resolvePlayerAction(actionType, skillId); return; }
-    if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
+    const pot = actionType === 'potion' ? player.inventory.find(i => i.type === 'potion' && (!skillId || i.id === skillId)) : undefined;
+    if (actionType === 'potion' && (!pot || activeMonster.id === 'ascension_echo_control')) { resolvePlayerAction(actionType, skillId); return; }
+    if (pot && isRestorationPotion(pot) && !restorationUseful(pot,combatPlayerHp,combatPlayerMp,combatStats.maxHp,combatStats.maxMp)) return;
     const skill = actionType === 'skill' ? player.skills.find(s => s.id === skillId) : undefined;
     if (actionType === 'skill' && (!skill || player.level < skill.levelReq || skill.currentCooldown > 0 || combatPlayerMp < talentManaCost(skill.manaCost, player.talents))) return;
     playerActionLock.current = true;
-    const generation = actionGeneration.current;
-    const lines = playerPreparation(player, actionType, combatRound, skill?.name, getMonsterPlannedSkill(activeMonster));
-    setCombatNarration(lines);
-    setBattleLog(log => [...log, {id:'player_prepare_'+Date.now(),turn:combatRound,text:lines.join(' '),type:'system'}]);
-    setTurnPhase('preparing');
-    await new Promise(resolve => setTimeout(resolve, 750));
-    if (generation !== actionGeneration.current) return;
-    try {
-      setTurnPhase('player'); // Rejected requests release the preparation state.
-      actionResolver.current(actionType, skillId);
-    } finally { playerActionLock.current = false; }
-  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, combatPlayerMp, resolvePlayerAction]);
+    resolvePlayerAction(actionType, skillId);
+  }, [isInCombat,isCombatEnded,activeMonster,player,turnPhase,combatPlayerHp,combatPlayerMp,combatStats,resolvePlayerAction]);
 
   useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster') return;
@@ -2950,9 +2979,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...newLogs]);
-    }, 1400);
+    }, autoBattle.enabled ? 650 : 1000);
     return () => clearTimeout(timer);
-  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun]);
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
 
   // Delayed monster skill execution. The warning above is intentionally visible first.
   useEffect(() => {
@@ -3034,9 +3063,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveMonster(prev => prev ? { ...prev, skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.max(0, prev.mp - skill.manaCost) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...logs]);
-    }, 1600);
+    }, autoBattle.enabled ? 700 : 1000);
     return () => clearTimeout(timer);
-  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, activeDungeonRun]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
@@ -3611,9 +3640,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (result.success) {
       fishingPlayerRef.current = result.player;
       setPlayer(result.player);
-      if (action === 'land') { sound.playCoin(); triggerHaptic('success'); }
-      else if (action === 'hook') { sound.playDodge(); triggerHaptic('medium'); }
-      else sound.playClick();
+      if (action === 'land') { sound.playFishingCatch(); triggerHaptic('success'); }
+      else if (action === 'hook') { sound.playFishingReel(); triggerHaptic('medium'); }
+      else if (action === 'cast') sound.playFishingCast();
+      else if (action === 'cancel') sound.playFishingReel();
+      else sound.playUpgradeSuccess();
     } else triggerHaptic('error');
     return result;
   }, [isInCombat,travelState.isTraveling,activeDungeonRun]);

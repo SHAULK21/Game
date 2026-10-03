@@ -160,5 +160,61 @@
       "file": "monster-hit-4.mp3",
       "source": "impact-sounds/Audio/impactPunch_medium_003.ogg"
     }
+  ],
+  "fishCast": [
+    {
+      "file": "fishCast-1.mp3",
+      "source": "Original procedural water + CC0 rpg-audio/Audio/cloth1.ogg"
+    },
+    {
+      "file": "fishCast-2.mp3",
+      "source": "Original procedural water + CC0 rpg-audio/Audio/cloth2.ogg"
+    },
+    {
+      "file": "fishCast-3.mp3",
+      "source": "Original procedural water + CC0 rpg-audio/Audio/cloth3.ogg"
+    }
+  ],
+  "fishBite": [
+    {
+      "file": "fishBite-1.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishBite-2.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishBite-3.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    }
+  ],
+  "fishReel": [
+    {
+      "file": "fishReel-1.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishReel-2.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishReel-3.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    }
+  ],
+  "fishCatch": [
+    {
+      "file": "fishCatch-1.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishCatch-2.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    },
+    {
+      "file": "fishCatch-3.mp3",
+      "source": "Original procedural water / wooden reel foley"
+    }
   ]
 }

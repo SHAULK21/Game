@@ -1,3 +1,4 @@
+import { THROWING_RECIPES } from '../utils/combatPotions';
 import { FISHING_RECIPES } from '../utils/fishing';
 import { regionalEnemyStats } from '../utils/pveBalance';
 import { regionalSealName } from '../utils/regionalProgress';
@@ -228,7 +229,7 @@ export const CLASSES: Record<CharacterClassId, ClassDefinition> = {
     name: 'Разбойник',
     role: 'Скорость / Крит',
     description: 'Мастер кинжалов, скрытности и ядов. Высокий шанс критического удара и уклонения.',
-    passive: { name: 'Охотник за слабостями', description: '+8% уклонения и +10% критического урона; после критического удара следующий удар получает +12% урона.' },
+    passive: { name: 'Охотник за слабостями', description: '+8% уклонения и +10% критического урона; после критического удара следующий удар получает +12% урона. Бросаемые зелья наносят на 25% больше урона.' },
     icon: '🗡️',
     image: ASSETS.charRogue,
     baseAttributes: { strength: 11, agility: 18, intelligence: 7, vitality: 10, luck: 15, spirit: 6, willpower: 8 },
@@ -2257,3 +2258,5 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
 
 // Fishing ingredients extend the existing recipe book without reordering starter recipes.
 ALCHEMY_RECIPES.push(...FISHING_RECIPES);
+
+ALCHEMY_RECIPES.push(...THROWING_RECIPES);
