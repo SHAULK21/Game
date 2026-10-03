@@ -1,0 +1,904 @@
+{
+  "version": 1,
+  "authorization": "Author explicitly approved extracting separate illustrations, icons and decorative details on 2026-10-03.",
+  "sourceDimensions": [
+    578,
+    1280
+  ],
+  "method": "Lossless source preservation and SVG viewBox clipping; source JPEG pixels are not regenerated, retouched or resized.",
+  "regions": {
+    "class-warrior": {
+      "source": "registration-source.jpg",
+      "rect": [
+        51,
+        663,
+        83,
+        92
+      ],
+      "kind": "portrait"
+    },
+    "class-berserker": {
+      "source": "registration-source.jpg",
+      "rect": [
+        149,
+        663,
+        83,
+        92
+      ],
+      "kind": "portrait"
+    },
+    "class-knight": {
+      "source": "registration-source.jpg",
+      "rect": [
+        246,
+        663,
+        84,
+        92
+      ],
+      "kind": "portrait"
+    },
+    "class-rogue": {
+      "source": "registration-source.jpg",
+      "rect": [
+        345,
+        663,
+        83,
+        92
+      ],
+      "kind": "portrait"
+    },
+    "class-assassin": {
+      "source": "registration-source.jpg",
+      "rect": [
+        445,
+        663,
+        83,
+        92
+      ],
+      "kind": "portrait"
+    },
+    "class-archer": {
+      "source": "registration-source.jpg",
+      "rect": [
+        51,
+        799,
+        83,
+        99
+      ],
+      "kind": "portrait"
+    },
+    "class-mage": {
+      "source": "registration-source.jpg",
+      "rect": [
+        149,
+        799,
+        83,
+        99
+      ],
+      "kind": "portrait"
+    },
+    "class-necromancer": {
+      "source": "registration-source.jpg",
+      "rect": [
+        246,
+        799,
+        84,
+        99
+      ],
+      "kind": "portrait"
+    },
+    "class-paladin": {
+      "source": "registration-source.jpg",
+      "rect": [
+        345,
+        799,
+        83,
+        99
+      ],
+      "kind": "portrait"
+    },
+    "class-druid": {
+      "source": "registration-source.jpg",
+      "rect": [
+        445,
+        799,
+        83,
+        99
+      ],
+      "kind": "portrait"
+    },
+    "paladin-registration": {
+      "source": "registration-source.jpg",
+      "rect": [
+        43,
+        252,
+        266,
+        291
+      ],
+      "kind": "illustration"
+    },
+    "paladin-equipment": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        214,
+        369,
+        150,
+        417
+      ],
+      "kind": "illustration"
+    },
+    "m_wolf": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        613,
+        69,
+        56
+      ],
+      "kind": "portrait"
+    },
+    "m_goblin": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        685,
+        70,
+        56
+      ],
+      "kind": "portrait"
+    },
+    "m_boar": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        756,
+        70,
+        57
+      ],
+      "kind": "portrait"
+    },
+    "m_bandit": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        828,
+        70,
+        57
+      ],
+      "kind": "portrait"
+    },
+    "m_queen_bat": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        906,
+        70,
+        61
+      ],
+      "kind": "portrait"
+    },
+    "m_wolf_elite": {
+      "source": "hunt-source.jpg",
+      "rect": [
+        43,
+        981,
+        70,
+        59
+      ],
+      "kind": "portrait"
+    },
+    "menu-hunt": {
+      "source": "world-source.jpg",
+      "rect": [
+        32,
+        1085,
+        41,
+        38
+      ],
+      "kind": "icon"
+    },
+    "menu-world": {
+      "source": "world-source.jpg",
+      "rect": [
+        142,
+        1086,
+        32,
+        30
+      ],
+      "kind": "icon"
+    },
+    "menu-arena": {
+      "source": "world-source.jpg",
+      "rect": [
+        234,
+        1086,
+        32,
+        30
+      ],
+      "kind": "icon"
+    },
+    "menu-inventory": {
+      "source": "world-source.jpg",
+      "rect": [
+        328,
+        1086,
+        31,
+        30
+      ],
+      "kind": "icon"
+    },
+    "menu-crafting": {
+      "source": "world-source.jpg",
+      "rect": [
+        419,
+        1086,
+        33,
+        30
+      ],
+      "kind": "icon"
+    },
+    "menu-more": {
+      "source": "world-source.jpg",
+      "rect": [
+        501,
+        1087,
+        62,
+        20
+      ],
+      "kind": "icon"
+    },
+    "item-hammer": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        53,
+        960,
+        51,
+        41
+      ],
+      "kind": "icon"
+    },
+    "item-armor": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        140,
+        959,
+        45,
+        42
+      ],
+      "kind": "icon"
+    },
+    "item-health-potion": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        225,
+        960,
+        33,
+        42
+      ],
+      "kind": "icon"
+    },
+    "item-ore": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        312,
+        961,
+        44,
+        36
+      ],
+      "kind": "icon"
+    },
+    "item-herb": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        395,
+        961,
+        42,
+        40
+      ],
+      "kind": "icon"
+    },
+    "item-wood": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        479,
+        961,
+        44,
+        36
+      ],
+      "kind": "icon"
+    },
+    "slot-helmet": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        57,
+        365,
+        30,
+        28
+      ],
+      "kind": "icon"
+    },
+    "slot-gloves": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        57,
+        481,
+        31,
+        30
+      ],
+      "kind": "icon"
+    },
+    "slot-pants": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        58,
+        538,
+        31,
+        30
+      ],
+      "kind": "icon"
+    },
+    "slot-boots": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        58,
+        598,
+        31,
+        28
+      ],
+      "kind": "icon"
+    },
+    "slot-cloak": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        58,
+        655,
+        31,
+        28
+      ],
+      "kind": "icon"
+    },
+    "slot-pickaxe": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        56,
+        711,
+        34,
+        30
+      ],
+      "kind": "icon"
+    },
+    "slot-retort": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        57,
+        762,
+        31,
+        31
+      ],
+      "kind": "icon"
+    },
+    "slot-amulet": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        399,
+        364,
+        35,
+        31
+      ],
+      "kind": "icon"
+    },
+    "slot-offhand": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        399,
+        422,
+        35,
+        31
+      ],
+      "kind": "icon"
+    },
+    "slot-ring": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        399,
+        535,
+        35,
+        34
+      ],
+      "kind": "icon"
+    },
+    "slot-belt": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        399,
+        592,
+        35,
+        30
+      ],
+      "kind": "icon"
+    },
+    "slot-artifact": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        399,
+        649,
+        35,
+        30
+      ],
+      "kind": "icon"
+    },
+    "skill-paladin-light": {
+      "source": "registration-source.jpg",
+      "rect": [
+        338,
+        517,
+        43,
+        43
+      ],
+      "kind": "icon"
+    },
+    "skill-paladin-blessing": {
+      "source": "registration-source.jpg",
+      "rect": [
+        421,
+        517,
+        43,
+        43
+      ],
+      "kind": "icon"
+    },
+    "divider": {
+      "source": "registration-source.jpg",
+      "rect": [
+        387,
+        326,
+        115,
+        22
+      ],
+      "kind": "ornament"
+    },
+    "parchment": {
+      "source": "registration-source.jpg",
+      "rect": [
+        324,
+        588,
+        50,
+        14
+      ],
+      "kind": "tile"
+    },
+    "leather": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        315,
+        218,
+        20,
+        18
+      ],
+      "kind": "tile"
+    },
+    "hud-settings": {
+      "source": "inventory-source.jpg",
+      "rect": [
+        511,
+        145,
+        35,
+        32
+      ],
+      "kind": "icon"
+    },
+    "hud-gold": {
+      "source": "world-source.jpg",
+      "rect": [
+        365,
+        247,
+        23,
+        22
+      ],
+      "kind": "icon"
+    },
+    "hud-silver": {
+      "source": "world-source.jpg",
+      "rect": [
+        477,
+        247,
+        23,
+        22
+      ],
+      "kind": "icon"
+    }
+  },
+  "frames": {
+    "equipment": {
+      "source": "inventory-source.jpg",
+      "parts": {
+        "tl": [
+          41,
+          353,
+          7,
+          7
+        ],
+        "tr": [
+          187,
+          353,
+          7,
+          7
+        ],
+        "bl": [
+          41,
+          396,
+          7,
+          7
+        ],
+        "br": [
+          187,
+          396,
+          7,
+          7
+        ],
+        "top": [
+          48,
+          353,
+          139,
+          7
+        ],
+        "bottom": [
+          48,
+          396,
+          139,
+          7
+        ],
+        "left": [
+          41,
+          360,
+          7,
+          36
+        ],
+        "right": [
+          187,
+          360,
+          7,
+          36
+        ]
+      },
+      "corner": 7
+    },
+    "equipment-selected": {
+      "source": "inventory-source.jpg",
+      "parts": {
+        "tl": [
+          42,
+          411,
+          7,
+          7
+        ],
+        "tr": [
+          188,
+          411,
+          7,
+          7
+        ],
+        "bl": [
+          42,
+          456,
+          7,
+          7
+        ],
+        "br": [
+          188,
+          456,
+          7,
+          7
+        ],
+        "top": [
+          49,
+          411,
+          139,
+          7
+        ],
+        "bottom": [
+          49,
+          456,
+          139,
+          7
+        ],
+        "left": [
+          42,
+          418,
+          7,
+          38
+        ],
+        "right": [
+          188,
+          418,
+          7,
+          38
+        ]
+      },
+      "corner": 7
+    },
+    "navigation": {
+      "source": "world-source.jpg",
+      "parts": {
+        "tl": [
+          15,
+          1073,
+          9,
+          9
+        ],
+        "tr": [
+          97,
+          1073,
+          9,
+          9
+        ],
+        "bl": [
+          15,
+          1142,
+          9,
+          9
+        ],
+        "br": [
+          97,
+          1142,
+          9,
+          9
+        ],
+        "top": [
+          24,
+          1073,
+          73,
+          9
+        ],
+        "bottom": [
+          24,
+          1142,
+          73,
+          9
+        ],
+        "left": [
+          15,
+          1082,
+          9,
+          60
+        ],
+        "right": [
+          97,
+          1082,
+          9,
+          60
+        ]
+      },
+      "corner": 9
+    },
+    "navigation-selected": {
+      "source": "world-source.jpg",
+      "parts": {
+        "tl": [
+          109,
+          1073,
+          9,
+          9
+        ],
+        "tr": [
+          191,
+          1073,
+          9,
+          9
+        ],
+        "bl": [
+          109,
+          1142,
+          9,
+          9
+        ],
+        "br": [
+          191,
+          1142,
+          9,
+          9
+        ],
+        "top": [
+          118,
+          1073,
+          73,
+          9
+        ],
+        "bottom": [
+          118,
+          1142,
+          73,
+          9
+        ],
+        "left": [
+          109,
+          1082,
+          9,
+          60
+        ],
+        "right": [
+          191,
+          1082,
+          9,
+          60
+        ]
+      },
+      "corner": 9
+    },
+    "hud": {
+      "source": "inventory-source.jpg",
+      "parts": {
+        "tl": [
+          10,
+          195,
+          8,
+          8
+        ],
+        "tr": [
+          557,
+          195,
+          8,
+          8
+        ],
+        "bl": [
+          10,
+          274,
+          8,
+          8
+        ],
+        "br": [
+          557,
+          274,
+          8,
+          8
+        ],
+        "top": [
+          18,
+          195,
+          539,
+          8
+        ],
+        "bottom": [
+          18,
+          274,
+          539,
+          8
+        ],
+        "left": [
+          10,
+          203,
+          8,
+          71
+        ],
+        "right": [
+          557,
+          203,
+          8,
+          71
+        ]
+      },
+      "corner": 8
+    },
+    "title": {
+      "source": "inventory-source.jpg",
+      "parts": {
+        "tl": [
+          9,
+          126,
+          8,
+          8
+        ],
+        "tr": [
+          557,
+          126,
+          8,
+          8
+        ],
+        "bl": [
+          9,
+          191,
+          8,
+          8
+        ],
+        "br": [
+          557,
+          191,
+          8,
+          8
+        ],
+        "top": [
+          17,
+          126,
+          540,
+          8
+        ],
+        "bottom": [
+          17,
+          191,
+          540,
+          8
+        ],
+        "left": [
+          9,
+          134,
+          8,
+          57
+        ],
+        "right": [
+          557,
+          134,
+          8,
+          57
+        ]
+      },
+      "corner": 8
+    },
+    "action-red": {
+      "source": "world-source.jpg",
+      "parts": {
+        "tl": [
+          430,
+          872,
+          5,
+          5
+        ],
+        "tr": [
+          530,
+          872,
+          5,
+          5
+        ],
+        "bl": [
+          430,
+          905,
+          5,
+          5
+        ],
+        "br": [
+          530,
+          905,
+          5,
+          5
+        ],
+        "top": [
+          435,
+          872,
+          95,
+          5
+        ],
+        "bottom": [
+          435,
+          905,
+          95,
+          5
+        ],
+        "left": [
+          430,
+          877,
+          5,
+          28
+        ],
+        "right": [
+          530,
+          877,
+          5,
+          28
+        ]
+      },
+      "corner": 5
+    }
+  },
+  "constraints": [
+    "Never render a source screenshot as a full page or background.",
+    "Only render the declared individual crop regions; live text, numbers and interactive elements remain in React.",
+    "Frame centers are excluded because they contain baked labels and icons.",
+    "Regions preserve the original painted background; no fabricated alpha or hidden pixels are claimed.",
+    "Partial landscape artwork obscured by source UI cannot be recovered from these screenshots."
+  ],
+  "sha256": {
+    "world-source.jpg": "68d3663d7c5c1c3a95453fd9127082a3c96587e5037317a49483d21d90d8bec5",
+    "hunt-source.jpg": "85bd7f9f773175c78c7d8ae233939041a87b2f2ea0d7893a5cd02e18a705dd53",
+    "inventory-source.jpg": "a8f137b48c6b8cc85204f8a1ebadc8176efeeacee98ecc577f8cc64c9168119f",
+    "registration-source.jpg": "dc5ada71047fc19215acdf3e9ae1e2c03c76cc6f1d271bbbd6157a5fb2c201dc"
+  }
+}
