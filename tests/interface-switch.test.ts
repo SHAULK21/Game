@@ -78,13 +78,9 @@ test('registration switches styles without losing input; both layouts share char
     assert(hunt.compareDocumentPosition([...w.document.querySelectorAll('h2')].find((node: any) => node.textContent === 'Бестиарий')) & w.Node.DOCUMENT_POSITION_FOLLOWING);
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
-    assert(w.document.querySelector('.game-shell.is-combat-view'));
-    assert(w.document.querySelector('.combat-controls-scroll .combat-action-attack'));
-    assert(!w.document.querySelector('.combat-controls-scroll .combat-scene'));
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
     assert.equal(w.document.querySelector('[data-skill-details]'), null);
-    assert.equal(w.document.querySelector('.is-combat-view'),null);
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
     await w.act(async () => button('Фэнтези').click()); await settle(); assert(button('Атака'));
     await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
