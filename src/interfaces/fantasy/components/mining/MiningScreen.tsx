@@ -146,8 +146,8 @@ export const MiningScreen: React.FC = () => {
       </BestiaryPanel>
 
       {/* Manual extraction first */}
-      <div className="space-y-2">
-        <div className="px-1">
+      <section className="mining-manuscript quest-book">
+        <div className="mining-manuscript-heading">
           <SectionTitle eyebrow="Добыча">{localize("Ручная разработка")}</SectionTitle>
           <div className="text-xs text-slate-500">{localize("Кроме руды можно найти дополнительные материалы.")}</div>
         </div>
@@ -156,18 +156,18 @@ export const MiningScreen: React.FC = () => {
           const mining = isMining && activeMiningNodeId === node.id;
           const locked = player.miningLevel < node.levelReq;
           return (
-            <div key={node.id} className={`p-3 rounded-xl border ${locked ? 'border-slate-800/70 bg-slate-950/50 opacity-70' : 'border-slate-800 bg-[#0a0f1d]'}`}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="p-2 bg-slate-900 rounded-lg border border-slate-800">
+            <article key={node.id} data-mining-node={node.id} className={`mining-node${locked ? ' is-locked' : ''}`}>
+              <div className="mining-node-heading">
+                <div className="mining-node-copy">
+                  <span className="mining-ore-art">
                     <ItemArtwork item={{ name: node.oreYield, type: 'ore', rarity: 'common', icon: '⛏' }} size={28} />
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="font-cinzel text-xs font-bold text-slate-100">{localize(node.name)}</div>
-                      {locked && <span className="rounded border border-rose-500/30 bg-rose-950/30 px-1.5 py-0.5 text-[11px] font-bold text-rose-300">{localize("Закрыто · ур. ")}{localize(node.levelReq)}</span>}
+                    <div className="mining-node-title">
+                      <h3>{localize(node.name)}</h3>
+                      {locked && <span className="mining-lock">{localize("Закрыто · ур. ")}{localize(node.levelReq)}</span>}
                     </div>
-                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    <div className="mining-node-yield">
                       {localize(node.oreYield)} ×{localize(node.baseYieldMin)}–{localize(node.baseYieldMax)} ({localize(node.baseYieldMax)}{localize(" — крит) · ")}{localize(node.staminaCost)}{localize(" энергии · крит ")}{localize((miningCritChance(node.levelReq,player.equipped.pickaxe,player.attributes.luck,achievements.some(a=>a.id==='ach_4'&&a.claimed))*100).toFixed(2))}%
                     </div>
                   </div>
@@ -175,31 +175,31 @@ export const MiningScreen: React.FC = () => {
                 <button
                   onClick={() => handleMine(node.id)}
                   disabled={locked || isMining || player.stamina < node.staminaCost}
-                  className="rpg-button rpg-button-primary min-h-11 px-3 disabled:opacity-35"
+                  className="mining-extract quest-claim"
                 >
                   {localize(locked ? `С ${node.levelReq} ур.` : mining ? 'Добыча…' : player.stamina < node.staminaCost ? `Нужно ${node.staminaCost} энергии` : 'Добывать')}
                 </button>
               </div>
 
               {(NODE_MATERIALS[node.id] || []).length > 0 && (
-                <div className="mt-2 flex items-start gap-1.5">
-                  <RpgIcon kind="gem" size={16} className="mt-0.5 shrink-0 text-purple-300" />
+                <div className="mining-materials">
+                  <RpgIcon kind="gem" size={16} className="mt-0.5 shrink-0" />
                   <div className="flex flex-wrap gap-1">
                     {(NODE_MATERIALS[node.id] || []).map(material => (
-                      <span key={material} className="rounded border border-purple-500/20 bg-purple-950/20 px-1.5 py-1 text-xs text-purple-200">
+                      <span key={material} className="mining-material">
                         <ItemArtwork item={{ name: material, type: 'material', rarity: 'common', icon: '✦' }} size={18} className="inline-block mr-1 align-middle" />{localize(material)}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
-      </div>
+      </section>
 
       {miningLog.length > 0 && (
-        <div className="rounded-xl border border-slate-800 bg-[#070912] p-2.5 space-y-1 font-mono text-[11px]">
+        <div className="mining-log quest-book p-2.5 space-y-1 text-[11px]">
           {miningLog.map((log, index) => (
           <div key={index} className={log.startsWith('Ошибка') ? 'text-rose-300' : 'text-slate-300'}>{localize(log)}</div>
           ))}

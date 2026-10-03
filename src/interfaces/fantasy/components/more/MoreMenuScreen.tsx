@@ -133,86 +133,46 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         </section>
       )}
 
-      {/* ACHIEVEMENTS SECTION */}
+      {/* Permanent achievements in the same parchment journal. */}
       {activeSection === 'achievements' && (
-        <div className="space-y-2">
-          <div className="text-xs font-mono text-amber-300 px-1">{localize("Постоянные достижения:")}</div>
-
-          <div className="space-y-2">
-            {achievements.map(ach => (
-              <div
-                key={ach.id}
-                className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-lg border border-[#514633] bg-slate-900">
-                    <RpgIcon kind="quest" size={24} className="text-[#b99558]" />
-                  </span>
-                  <div>
-                    <span className="font-cinzel text-xs font-bold text-slate-100">
-                      {localize(ach.title)}
-                    </span>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {localize(ach.description)}
-                    </p>
-                    <div className="text-[11px] font-mono text-emerald-400 mt-1">
-                      {localize(ach.permanentBonusDesc)}
-                    </div>
-                  </div>
+        <section className="achievement-book quest-book" aria-label={localize("Постоянные достижения:")}>
+          <div className="quest-book-heading"><h1>{localize("Достижения")}</h1></div>
+          {achievements.map(ach => (
+            <article key={ach.id} data-achievement-id={ach.id} className={`quest-entry${ach.claimed ? ' is-claimed' : ach.completed ? ' is-ready' : ''}`}>
+              <div className="achievement-heading"><RpgIcon kind="quest" size={24} /><h2>{localize(ach.title)}</h2></div>
+              <p className="quest-description">{localize(ach.description)}</p>
+              <p className="achievement-bonus">{localize(ach.permanentBonusDesc)}</p>
+              {ach.claimed ? (
+                <span className="quest-claimed">{localize("Получено")}</span>
+              ) : ach.completed ? (
+                <button className="quest-claim" onClick={() => claimAchievementReward(ach.id)}>{localize("Забрать")}</button>
+              ) : (
+                <div className="quest-progress-row">
+                  <progress aria-label={localize(ach.title)} value={Math.max(0, Math.min(ach.progress, ach.maxProgress))} max={Math.max(1, ach.maxProgress)} />
+                  <span>{localize(ach.progress)}/{localize(ach.maxProgress)}</span>
                 </div>
-
-                <div className="text-right">
-                  {ach.completed && !ach.claimed ? (
-                    <button
-                      onClick={() => claimAchievementReward(ach.id)}
-                      className="text-[11px] font-mono text-amber-300 font-bold px-2 py-1 bg-amber-950/60 border border-amber-500/40 rounded"
-                    >{localize("Забрать")}</button>
-                  ) : ach.claimed ? (
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold px-2 py-1 bg-emerald-950/60 border border-emerald-500/40 rounded">{localize("Получено")}</span>
-                  ) : (
-                    <span className="text-[11px] font-mono text-slate-500">
-                      {localize(ach.progress)}/{localize(ach.maxProgress)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              )}
+            </article>
+          ))}
+        </section>
       )}
 
-      {/* STATS SECTION */}
       {activeSection === 'stats' && (
-        <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-4 space-y-3">
-          <span className="font-cinzel text-xs font-bold text-[#d5ba89] uppercase tracking-wider block border-b border-slate-800 pb-2">{localize("Статистика учетной записи:")}</span>
-
-          <div className="space-y-2 text-xs font-mono">
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Убито монстров:")}</span>
-              <span className="text-slate-100 font-bold">{localize(player.statsSummary.monstersKilled)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Побеждено боссов:")}</span>
-              <span className="text-amber-400 font-bold">{localize(player.statsSummary.bossesDefeated)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Побед в боях:")}</span>
-              <span className="text-emerald-400 font-bold">{localize(player.statsSummary.battlesWon)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Добыто руды в шахтах:")}</span>
-              <span className="text-[#d5ba89] font-bold">{localize(player.statsSummary.oresMined)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Сварено зелий:")}</span>
-              <span className="text-purple-400 font-bold">{localize(player.statsSummary.potionsCrafted)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-900">
-              <span className="text-slate-400">{localize("Макс. уровень заточки:")}</span>
-              <span className="text-yellow-400 font-bold">+{localize(player.statsSummary.maxUpgradeReached)}</span>
-            </div>
-          </div>
-        </div>
+        <section className="stats-book quest-book" aria-label={localize("Статистика учетной записи:")}>
+          <div className="quest-book-heading"><h1>{localize("Статистика учетной записи:")}</h1></div>
+          <dl className="stats-ledger">
+            {[
+              ['Убито монстров:', player.statsSummary.monstersKilled],
+              ['Побеждено боссов:', player.statsSummary.bossesDefeated],
+              ['Побед в боях:', player.statsSummary.battlesWon],
+              ['Добыто руды в шахтах:', player.statsSummary.oresMined],
+              ['Сварено зелий:', player.statsSummary.potionsCrafted],
+              ['Макс. уровень заточки:', `+${player.statsSummary.maxUpgradeReached}`]
+            ].map(([label, value]) => (
+              <div key={label}><dt>{localize(label)}</dt><dd>{localize(value)}</dd></div>
+            ))}
+          </dl>
+        </section>
       )}
 
       {/* LEADERBOARD SECTION */}
@@ -307,9 +267,9 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         <div className="pt-2">
         <button
           onClick={onOpenAdmin}
-          className="w-full py-2.5 px-3 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300 font-cinzel font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-900/60 active:scale-95 transition-all"
+          className="journal-admin min-h-11 w-full flex items-center justify-center gap-2"
         >
-          <RpgIcon kind="settings" size={17} className="text-purple-400" />
+          <RpgIcon kind="settings" size={17} />
           <span>{localize("Панель Администратора")}</span>
         </button>
         </div>
