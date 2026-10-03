@@ -2,7 +2,7 @@ import manifest from '../../public/assets/audio/manifest.json';
 
 type Cue = keyof typeof manifest;
 const LEVELS: Record<Cue, number> = {
-  page: 0.3, slash: 0.65, shield: 0.6, heavy: 0.65, potion: 0.4, magic: 0.45,
+  page: 0.3, slash: 0.38, shield: 0.6, heavy: 0.65, potion: 0.4, magic: 0.45,
   coins: 0.4, step: 0.35, mine: 0.55, whoosh: 0.35, bell: 0.3, fail: 0.4
 };
 
@@ -15,6 +15,7 @@ export class SoundManager {
   private voices = new Set<AudioBufferSourceNode>();
   private lastPlayed = new Map<Cue, number>();
   private lastVariant = new Map<Cue, number>();
+  private variantBags = new Map<Cue, number[]>();
   private epoch = 0;
 
   constructor() {
@@ -81,15 +82,25 @@ export class SoundManager {
   private play(cue: Cue, rate = 1, delay = 0) {
     if (this.muted || (typeof document !== 'undefined' && document.hidden)) return;
     const timestamp = Date.now();
-    if (timestamp - (this.lastPlayed.get(cue) ?? -Infinity) < 90) return;
+    if (timestamp - (this.lastPlayed.get(cue) ?? -Infinity) < (cue === 'slash' ? 180 : 90)) return;
     this.lastPlayed.set(cue, timestamp);
     const epoch = this.epoch;
     void (async () => {
       if (!await this.prepare() || !this.ctx || !this.master) return;
       const clips = manifest[cue];
       const previous = this.lastVariant.get(cue);
-      let index = Math.floor(Math.random() * clips.length);
-      if (clips.length > 1 && index === previous) index = (index + 1) % clips.length;
+      // Shuffle bags exhaust every recording before recycling, with no boundary repeat.
+      let bag = this.variantBags.get(cue);
+      if (!bag?.length) {
+        bag = clips.map((_, i) => i);
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [bag[i], bag[j]] = [bag[j], bag[i]];
+        }
+        if (bag.length > 1 && bag[bag.length - 1] === previous) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+        this.variantBags.set(cue, bag);
+      }
+      const index = bag.pop()!;
       this.lastVariant.set(cue, index);
       const buffer = await this.load(clips[index].file);
       if (!buffer || this.muted || epoch !== this.epoch || Date.now() - timestamp > 300 || this.ctx.state !== 'running' || (typeof document !== 'undefined' && document.hidden)) return;

@@ -11,12 +11,36 @@
   ],
   "slash": [
     {
-      "file": "slash-1.mp3",
-      "source": "rpg-audio/Audio/knifeSlice.ogg"
+      "file": "attack-soft-1.mp3",
+      "source": "rpg-audio/Audio/cloth1.ogg + impact-sounds/Audio/impactPunch_medium_000.ogg"
     },
     {
-      "file": "slash-2.mp3",
-      "source": "rpg-audio/Audio/knifeSlice2.ogg"
+      "file": "attack-soft-2.mp3",
+      "source": "rpg-audio/Audio/cloth2.ogg + impact-sounds/Audio/impactPunch_medium_001.ogg"
+    },
+    {
+      "file": "attack-soft-3.mp3",
+      "source": "rpg-audio/Audio/cloth3.ogg + impact-sounds/Audio/impactPunch_medium_002.ogg"
+    },
+    {
+      "file": "attack-soft-4.mp3",
+      "source": "rpg-audio/Audio/cloth4.ogg + impact-sounds/Audio/impactPunch_medium_003.ogg"
+    },
+    {
+      "file": "attack-soft-5.mp3",
+      "source": "rpg-audio/Audio/knifeSlice.ogg + impact-sounds/Audio/impactPunch_medium_004.ogg"
+    },
+    {
+      "file": "attack-soft-6.mp3",
+      "source": "rpg-audio/Audio/knifeSlice2.ogg + impact-sounds/Audio/impactPunch_medium_000.ogg"
+    },
+    {
+      "file": "attack-soft-7.mp3",
+      "source": "rpg-audio/Audio/drawKnife1.ogg + impact-sounds/Audio/impactPunch_medium_001.ogg"
+    },
+    {
+      "file": "attack-soft-8.mp3",
+      "source": "rpg-audio/Audio/drawKnife2.ogg + impact-sounds/Audio/impactPunch_medium_002.ogg"
     }
   ],
   "shield": [
