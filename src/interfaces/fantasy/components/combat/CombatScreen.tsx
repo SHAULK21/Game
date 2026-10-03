@@ -209,46 +209,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       />
       {/* Combat status and actions */}
       <div className="combat-command-center space-y-2">
-        <div className={`combat-turn-status flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
-          turnPhase === 'player'
-            ? 'bg-[#211f1a] border-[#69583a] text-[#d5ba89]'
-            : turnPhase === 'monster'
-            ? 'bg-[#2a191a] border-[#6a3b3b] text-[#e3b9b2]'
-            : 'bg-[#15191c] border-[#35383a] text-[#c2bdb3]'
-        }`}>
-          <div className="flex items-center gap-2">
-            {turnPhase === 'player' ? (
-              <>
-                <RpgIcon kind="attack" size={16} className="text-[#c7a365]" />
-                <span className="font-semibold">{localize("Ваш ход")}</span>
-                <span className="hidden text-[11px] text-[#aaa49a] sm:inline">{localize("Выберите действие")}</span>
-              </>
-            ) : turnPhase === 'monster' ? (
-              <>
-                <RpgIcon kind="bestiary" size={16} className="text-[#d38d87]" />
-                <span className="font-bold">{localize("Ход противника")}</span>
-                <span className="hidden max-w-36 truncate text-[11px] text-[#c1a8a3] sm:inline">{localize(activeMonster.name)}{localize(" атакует")}</span>
-              </>
-            ) : (
-              <span className="font-bold">{localize("Бой завершён")}</span>
-            )}
-          </div>
-
-          {/* Auto-Battle Toggle */}
-          <button
-            onClick={handleAutoBattleClick}
-            title={localize(premium.active ? 'Автобой' : 'Доступно с Aethelgard Premium')}
-            className={`inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-bold transition-colors ${
-              autoBattle.enabled
-                ? 'border-[#b99558] bg-[#b99558] text-[#14120f]'
-                : 'border-[#414345] bg-[#202428] text-[#c8c2b8] hover:text-white'
-            }`}
-          >
-            <RpgIcon kind={autoBattle.enabled ? 'skill' : 'settings'} size={15} />
-            <span>{localize(premium.active ? (autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ') : 'Автобой · PREMIUM')}</span>
-          </button>
-        </div>
-
         {turnPhase === 'player' && activeMonster && !isCombatEnded && (
           <details className="bestiary-panel overflow-hidden">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">
@@ -432,7 +392,21 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 <span>{localize("Зелье (")}{localize(potionCount)})</span>
               </button>
             </div>
-            <button onClick={() => performPlayerAction('flee')} disabled={turnPhase !== 'player'} className="rpg-button rpg-button-secondary min-h-11 w-full text-xs text-[#aaa49a]">{localize("Покинуть бой")}</button>
+            <div className="combat-secondary-actions flex gap-2">
+          <button
+            onClick={handleAutoBattleClick}
+            title={localize(premium.active ? 'Автобой' : 'Доступно с Aethelgard Premium')}
+            className={`combat-auto-toggle pointer-events-auto inline-flex min-h-11 flex-1 justify-center items-center gap-1.5 rounded-md border px-2.5 text-[10px] font-bold transition-colors ${
+              autoBattle.enabled
+                ? 'border-[#b99558] bg-[#b99558] text-[#14120f]'
+                : 'border-[#414345] bg-[#202428] text-[#c8c2b8] hover:text-white'
+            }`}
+          >
+            <RpgIcon kind={autoBattle.enabled ? 'skill' : 'settings'} size={15} />
+            <span>{localize(premium.active ? (autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ') : 'Автобой · PREMIUM')}</span>
+          </button>
+<button onClick={() => performPlayerAction('flee')} disabled={turnPhase !== 'player'} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs text-[#aaa49a]">{localize("Покинуть бой")}</button>
+            </div>
 
             {isPotionsOpen && (
               <section id="combat-potions" aria-label={localize("Выберите зелье")} className="combat-ledger p-3 space-y-2 mt-2">
