@@ -26,7 +26,7 @@ const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(m
 
 export const FantasyGameContent: React.FC = () => {
   useLocale();
-  const { player, quests } = useGame();
+  const { player, quests, isInCombat, activeMonster } = useGame();
   const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
   if (!player) {
@@ -38,7 +38,7 @@ export const FantasyGameContent: React.FC = () => {
   return (
     <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
-      <TopHeader compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
+      <TopHeader hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
