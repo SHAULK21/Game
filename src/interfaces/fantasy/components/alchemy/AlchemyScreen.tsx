@@ -11,6 +11,7 @@ import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '
 export const AlchemyScreen: React.FC = () => {
   useLocale();
   const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
+  const [recipeFilter, setRecipeFilter] = useState<'all' | 'fish'>('all');
   const [craftingRecipeId, setCraftingRecipeId] = useState<string | null>(null);
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
 
@@ -91,8 +92,10 @@ export const AlchemyScreen: React.FC = () => {
       <div className="space-y-2.5">
         <SectionTitle eyebrow="Рецептурник">{localize("Изученные рецепты")}</SectionTitle>
 
+        <div className="flex gap-2" role="group" aria-label={localize("Фильтр рецептов")}><button aria-pressed={recipeFilter==='all'} onClick={()=>setRecipeFilter('all')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Все рецепты")}</button><button aria-pressed={recipeFilter==='fish'} onClick={()=>setRecipeFilter('fish')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Из улова")}</button></div>
+
         <div className="space-y-2">
-          {ALCHEMY_RECIPES.map(rec => {
+          {ALCHEMY_RECIPES.filter(rec=>recipeFilter==='all'||rec.id.startsWith('alc_fish_')).map(rec => {
             const isCrafting = craftingRecipeId === rec.id;
             const energyCost = Math.max(4, Math.min(20, 4 + Math.floor(rec.levelReq / 5)));
             const hasEnergy = player.alchemyEnergy >= energyCost;

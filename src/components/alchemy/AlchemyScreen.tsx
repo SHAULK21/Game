@@ -10,6 +10,7 @@ import { ItemArtwork } from '../ui/ItemArtwork';
 export const AlchemyScreen: React.FC = () => {
   useLocale();
   const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
+  const [recipeFilter, setRecipeFilter] = useState<'all' | 'fish'>('all');
   const [craftingRecipeId, setCraftingRecipeId] = useState<string | null>(null);
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
 
@@ -92,8 +93,10 @@ export const AlchemyScreen: React.FC = () => {
       <div className="space-y-2.5">
         <div className="text-xs font-mono text-emerald-400 uppercase tracking-wider px-1">{localize("Изученные рецепты:")}</div>
 
+        <div className="flex gap-2" role="group" aria-label={localize("Фильтр рецептов")}><button aria-pressed={recipeFilter==='all'} onClick={()=>setRecipeFilter('all')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Все рецепты")}</button><button aria-pressed={recipeFilter==='fish'} onClick={()=>setRecipeFilter('fish')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Из улова")}</button></div>
+
         <div className="space-y-2">
-          {ALCHEMY_RECIPES.map(rec => {
+          {ALCHEMY_RECIPES.filter(rec=>recipeFilter==='all'||rec.id.startsWith('alc_fish_')).map(rec => {
             const isCrafting = craftingRecipeId === rec.id;
             const energyCost = Math.max(4, Math.min(20, 4 + Math.floor(rec.levelReq / 5)));
             const hasEnergy = player.alchemyEnergy >= energyCost;

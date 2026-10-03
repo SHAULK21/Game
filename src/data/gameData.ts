@@ -1,3 +1,4 @@
+import { FISHING_RECIPES } from '../utils/fishing';
 import { regionalEnemyStats } from '../utils/pveBalance';
 import { regionalSealName } from '../utils/regionalProgress';
 import { 
@@ -2253,3 +2254,6 @@ export const STARTER_ITEMS: Record<CharacterClassId, GameItem[]> = {
     }
   ]
 };
+
+// Fishing ingredients extend the existing recipe book without reordering starter recipes.
+ALCHEMY_RECIPES.push(...FISHING_RECIPES);

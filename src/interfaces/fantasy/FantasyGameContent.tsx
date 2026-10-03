@@ -8,6 +8,7 @@ import { CharacterCreationModal } from '../../components/dialogs/CharacterCreati
 import { OfflineReportModal } from './components/dialogs/OfflineReportModal';
 import { useNavigation } from '../../context/NavigationContext';
 
+const FishingScreen = lazy(() => import('../../components/fishing/FishingScreen').then(module => ({ default: module.FishingScreen })));
 const WorldScreen = lazy(() => import('./components/world/WorldScreen').then(module => ({ default: module.WorldScreen })));
 const ArenaScreen = lazy(() => import('./components/arena/ArenaScreen').then(module => ({ default: module.ArenaScreen })));
 const InventoryScreen = lazy(() => import('./components/inventory/InventoryScreen').then(module => ({ default: module.InventoryScreen })));
@@ -56,6 +57,7 @@ export const FantasyGameContent: React.FC = () => {
             {currentTab === 'crafting' && <CraftingScreen />}
             {currentTab === 'alchemy' && <AlchemyScreen />}
             {currentTab === 'mine' && <MiningScreen />}
+            {currentTab === 'fishing' && <FishingScreen />}
             {currentTab === 'clan' && <ClanScreen />}
             {currentTab === 'chat' && <ChatScreen />}
             {currentTab === 'market' && <MarketScreen />}

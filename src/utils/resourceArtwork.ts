@@ -1,3 +1,4 @@
+import { FISH } from './fishing';
 import { getResourceSprite } from './itemSprites';
 // Local vector artwork stays available offline and scales to inventory/detail sizes.
 // Names choose a silhouette; resource families use distinct mineral/magic palettes.
@@ -74,4 +75,4 @@ export const getResourceVectorArtwork = (name: string, type: 'ore' | 'material')
 };
 
 export const getResourceArtwork = (name: string, type: 'ore' | 'material'): string =>
-  getResourceSprite(name) || getResourceVectorArtwork(name, type);
+  (FISH.find(f=>f.name===name) ? '/assets/fishing/'+FISH.find(f=>f.name===name)!.id+'.webp' : getResourceSprite(name)) || getResourceVectorArtwork(name, type);
