@@ -26,17 +26,18 @@ const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(m
 
 export const FantasyGameContent: React.FC = () => {
   useLocale();
-  const { player, quests } = useGame();
+  const { player, quests, isInCombat, activeMonster } = useGame();
   const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
   if (!player) {
     return <CharacterCreationModal />;
   }
 
+  const combatView = currentTab === 'hunter' && !isCharacterSheetOpen && isInCombat && Boolean(activeMonster);
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
+    <div className={`game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip ${combatView ? 'is-combat-view' : ''}`}>
       {/* Top Header */}
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 

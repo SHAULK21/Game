@@ -678,7 +678,7 @@ html[data-interface="fantasy"] .combat-ledger-note { margin:10px 0 0; font-size:
 html[data-interface="fantasy"] .combat-potion-entry { min-height:60px; padding:8px 4px; border-bottom:1px solid #99734770; border-radius:0; background:transparent; color:var(--combat-ink); }
 html[data-interface="fantasy"] .combat-reward-total { border:1px solid #99734770; border-radius:2px; background:#8b704712; }
 html[data-interface="fantasy"] .combat-ledger .combat-ink { color:var(--combat-ink); }
-html[data-interface="fantasy"] .fantasy-combat-page > details .combat-ink { color:#c5b89d; }
+html[data-interface="fantasy"] .fantasy-combat-page .combat-controls-scroll > details .combat-ink { color:#c5b89d; }
 
 /* Inventory manuscript: shared parchment, original slot borders and live item data. */
 html[data-interface="fantasy"] .inventory-book {
@@ -773,4 +773,56 @@ html[data-interface="fantasy"] .inventory-equipped-slot:enabled:hover { filter:b
   html[data-interface="fantasy"] .game-shell main .inventory-page-heading h1 { font-size:22px; }
   html[data-interface="fantasy"] .inventory-page-heading > div { width:82px; }
   html[data-interface="fantasy"] .inventory-page-heading strong { font-size:20px; }
+}
+
+/* Keep the opponent and vital information visible while the command leaf scrolls. */
+html[data-interface="fantasy"] .game-shell.is-combat-view { height:100dvh; min-height:0; overflow:hidden; }
+html[data-interface="fantasy"] .is-combat-view .fantasy-shell-header { flex-shrink:0; }
+html[data-interface="fantasy"] .is-combat-view .shell-main { display:flex; flex-direction:column; min-height:0; padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 8px); }
+html[data-interface="fantasy"] .is-combat-view .fantasy-combat-page { display:flex; flex-direction:column; flex:1; min-height:0; width:100%; max-width:700px; margin:0 auto; padding:6px 8px 0; gap:6px; }
+html[data-interface="fantasy"] .combat-overview { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+html[data-interface="fantasy"] .is-combat-view .combat-scene { height:clamp(108px,19dvh,180px); min-height:0; padding:6px 8px; border-radius:6px; }
+html[data-interface="fantasy"] .is-combat-view .combat-scene-header { padding-bottom:3px; }
+html[data-interface="fantasy"] .is-combat-view .combat-scene-header > span { min-width:0; }
+html[data-interface="fantasy"] .is-combat-view .combat-scene-header > div { max-width:56%; min-width:0; }
+html[data-interface="fantasy"] .is-combat-view .combat-round { padding:1px 4px; white-space:nowrap; }
+html[data-interface="fantasy"] .is-combat-view .combat-monster-art { top:24px; bottom:0; height:auto; width:52%; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-plaque { width:50%; max-width:50%; padding:4px 6px; border-radius:3px; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-plaque h1 { font-size:15px; line-height:1.1; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-health { margin-top:3px; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-health > .flex > span:first-child { display:none; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-health > .flex { margin-bottom:2px; }
+html[data-interface="fantasy"] .is-combat-view .combat-enemy-plaque > .mt-2 { margin-top:3px; gap:6px; }
+html[data-interface="fantasy"] .is-combat-view .combat-hero-plaque { grid-template-columns:36px minmax(0,1fr); padding:5px 7px; gap:7px; }
+html[data-interface="fantasy"] .is-combat-view .combat-hero-plaque > div:first-child { width:36px; height:42px; }
+html[data-interface="fantasy"] .is-combat-view .combat-player-health-bars { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+html[data-interface="fantasy"] .is-combat-view .combat-player-health-bars > div { margin-bottom:0; }
+html[data-interface="fantasy"] .is-combat-view .combat-command-center { display:flex; flex-direction:column; flex:1; min-height:0; gap:6px; }
+html[data-interface="fantasy"] .is-combat-view .combat-command-center > * { margin-top:0; }
+html[data-interface="fantasy"] .is-combat-view .combat-turn-status { flex-shrink:0; padding:2px 8px; min-height:44px; }
+html[data-interface="fantasy"] .combat-intent-disclosure { flex-shrink:0; position:relative; }
+html[data-interface="fantasy"] .combat-intent-disclosure > p { position:absolute; top:100%; inset-inline:0; z-index:30; margin:0; max-height:22dvh; overflow-y:auto; background:#211e19; border:1px solid #66563c; box-shadow:0 5px 12px #0008; }
+html[data-interface="fantasy"] .combat-controls-scroll { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scrollbar-gutter:stable; padding:2px 2px 8px; scroll-padding-block:8px; }
+html[data-interface="fantasy"] .combat-controls-scroll:focus-visible { outline:1px solid #b99558; outline-offset:-1px; }
+html[data-interface="fantasy"] .is-combat-view .combat-action { min-height:56px; flex-direction:row; padding:8px; }
+
+html[data-interface="fantasy"] .is-combat-view .combat-hero-name { display:none; }
+html[data-interface="fantasy"] .is-combat-view .combat-turn-status { padding-block:1px; }
+@media(max-height:650px) {
+  html[data-interface="fantasy"] .is-combat-view .fantasy-combat-page,
+  html[data-interface="fantasy"] .is-combat-view .combat-overview,
+  html[data-interface="fantasy"] .is-combat-view .combat-command-center { gap:4px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-scene { height:112px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-enemy-plaque { padding:2px 4px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-enemy-plaque h1 { font-size:13px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-enemy-health .progress-track { height:6px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-action { min-height:52px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-hero-plaque { grid-template-columns:30px minmax(0,1fr); }
+  html[data-interface="fantasy"] .is-combat-view .combat-hero-plaque > div:first-child { width:30px; height:34px; }
+}
+@media(max-height:560px) and (min-width:600px) {
+  html[data-interface="fantasy"] .is-combat-view .fantasy-combat-page { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); padding-top:0; }
+  html[data-interface="fantasy"] .combat-overview { min-height:0; }
+  html[data-interface="fantasy"] .is-combat-view .combat-scene { flex:1; height:auto; min-height:90px; }
+  html[data-interface="fantasy"] .is-combat-view .combat-command-center { gap:0; }
 }

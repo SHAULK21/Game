@@ -50,22 +50,21 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       <div className="absolute inset-0 -z-20"><BattleBackdrop scene={scene} dungeonId={dungeonId} /></div>
       <div className="combat-scene-shade absolute inset-0 -z-10" />
       <div className="combat-scene-header relative z-10 flex items-center justify-between gap-2 pb-2 text-[11px]">
-        <span className="truncate font-semibold text-[#e0d2b7]">{localize(locationName)}</span>
-        <div className="flex shrink-0 items-center gap-2"><span className="truncate text-[#b4aea2]">{localize(modifierName)}</span><span className="combat-round">{localize("Раунд ")}{localize(round)}</span></div>
+        <span title={localize(locationName)} className="truncate font-semibold text-[#e0d2b7]">{localize(locationName)}</span>
+        <div className="flex shrink-0 items-center gap-2"><span title={localize(modifierName)} className="truncate text-[#b4aea2]">{localize(modifierName)}</span><span className="text-[#c2b9a8] shrink-0">{localize(monster.regionId === 'ascension' ? `Ранг ${monster.id.replace('ascension_', '')}` : `Ур. ${monster.level}`)}</span><span className="combat-round">{localize("Раунд ")}{localize(round)}</span></div>
       </div>
 
       <div className="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[75%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[69%]">
         <Portrait src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom"/>
       </div>
 
-      <div className="combat-enemy-plaque relative z-10 mt-auto max-w-[88%] pb-1 sm:max-w-[76%]">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="combat-enemy-tier absolute right-2 top-8 z-10 flex items-center gap-2">
           {monster.isBoss && <span className="rounded border border-[#824b47] bg-[#321b1b]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e0aaa3]">{localize("Босс")}</span>}
           {monster.isElite && <span className="rounded border border-[#695637] bg-[#2c251a]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]">{localize("Элита")}</span>}
-          <span className="text-[11px] uppercase tracking-[.12em] text-[#c2b9a8]">{localize(monster.regionId === 'ascension' ? `Ранг ${monster.id.replace('ascension_', '')}` : `Ур. ${monster.level}`)}</span>
         </div>
+      <div className="combat-enemy-plaque relative z-10 mt-auto max-w-[88%] pb-1 sm:max-w-[76%]">
         <h1 className="folio-title break-words text-xl font-bold leading-tight sm:text-2xl">{localize(monster.name)}</h1>
-        <ProgressBar value={monster.hp} max={monster.maxHp} tone="hp" label="Здоровье противника" className="mt-3 max-w-sm" />
+        <ProgressBar value={monster.hp} max={monster.maxHp} tone="hp" label="Здоровье противника" className="combat-enemy-health mt-3 max-w-sm" />
         <div className="mt-2 flex items-center gap-3 text-[11px] text-[#d0c8b9]">
           <span className="inline-flex items-center gap-1"><RpgIcon kind="attack" size={14} className="text-[#bd8d6e]" />{localize(monster.attack)}</span>
           <span className="inline-flex items-center gap-1"><RpgIcon kind="defend" size={14} className="text-[#a8a69d]" />{localize(monster.defense)}</span>
@@ -83,9 +82,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         <Portrait src={heroImage} alt="" fallback="character" className="h-full w-full object-cover object-top"/>
       </div>
       <div className="min-w-0">
-        <div className="mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {localize(heroClassName)}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">{localize("Ур. ")}{localize(player.level)}</span></div>
-        <ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
-        <ProgressBar value={playerMp} max={maxMp} tone="mana" />
+        <div className="combat-hero-name mb-1.5 flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold text-[#e1d5c0]">{player.name} · {localize(heroClassName)}</span><span className="shrink-0 font-mono text-[11px] text-[#d2b676]">{localize("Ур. ")}{localize(player.level)}</span></div>
+        <div className="combat-player-health-bars"><ProgressBar value={playerHp} max={maxHp} tone="hp" className="mb-1.5" />
+        <ProgressBar value={playerMp} max={maxMp} tone="mana" /></div>
         {playerEffects.length > 0 && <div className="mt-1 truncate text-[11px] text-[#9aafb4]" title={localize(playerEffects.map(effect => localize(effect.name)).join(', '))}>{localize(playerEffects.map(effect => `${localize(effect.name)}${effect.stacks ? ` ×${effect.stacks}` : ''}`).join(' · '))}</div>}
       </div>
     </BestiaryPanel>
