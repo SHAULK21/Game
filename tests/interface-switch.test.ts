@@ -300,3 +300,39 @@ test('fantasy pets show live active-first cards, exact reference artwork, ingred
     assert(w.document.querySelector('.pet-artwork'));
   } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
 });
+
+test('fantasy inventory manuscript retains equipment, locks, salvage, sale and resource navigation', async () => {
+  const {dom,w}=await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/interfaces/fantasy/components/inventory/InventoryScreen';window.act=act;window.workshop=0;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen onNavigateToCrafting={()=>window.workshop++}/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
+  w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true,totalGold:0,isAdmin:false})});
+  const settle=async()=>w.act(async()=>{await new Promise(r=>setTimeout(r,40));});
+  const button=(text:string)=>[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===text) as any;
+  const click=async(text:string)=>{assert(button(text),`missing: ${text}`);await w.act(async()=>button(text).click());await settle();};
+  const slot=()=>w.document.querySelector('[data-equipment-slot="weapon"]');
+  const selectBag=async(id:string)=>{const node=w.document.querySelector(`[data-inventory-item="${id}"]`);assert(node);await w.act(async()=>node.click());};
+  try {
+    await w.act(async()=>w.mount());await settle();await w.act(async()=>w.game.createCharacter('Арсенал','paladin'));await settle();
+    const weapon=w.game.player.equipped.weapon;
+    assert.equal(w.document.querySelectorAll('[data-equipment-slot]').length,14);
+    assert(w.document.querySelector('[data-reference-part="paladin-equipment"]'));
+    assert.equal(w.document.querySelectorAll('header,nav').length,0,'screen relies on the shared shell');
+    await w.act(async()=>slot().click());assert.equal(button('Продать за '+weapon.sellPrice+' золота'),undefined);
+    assert(![...w.document.querySelectorAll('button')].some((n:any)=>n.textContent.includes('Разобрать →')),'equipped item cannot be disposed');
+    await click('Снять');assert.equal(slot().disabled,true);assert(w.game.player.inventory.some((i:any)=>i.id===weapon.id));
+    await selectBag(weapon.id);await click('Защитить от продажи');assert(w.game.player.inventory.find((i:any)=>i.id===weapon.id).isLocked);
+    assert(![...w.document.querySelectorAll('button')].some((n:any)=>n.textContent.includes('Разобрать →')));
+    await click('Разблокировать');await click('Экипировать');assert.equal(w.game.player.equipped.weapon.id,weapon.id);
+    await w.act(async()=>slot().click());await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    assert.equal(w.document.querySelector('[role="dialog"]'),null);assert.equal(w.document.body.style.overflow,'');
+    await w.act(async()=>slot().click());await click('Снять');await selectBag(weapon.id);
+    const salvage=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.includes('Разобрать →')) as any;assert(salvage);assert.match(salvage.textContent,/Железная руда ×3/);
+    const silver=w.game.player.silver;await w.act(async()=>salvage.click());await settle();
+    assert(!w.game.player.inventory.some((i:any)=>i.id===weapon.id));assert.equal(w.game.player.silver,silver+2);
+    const potion=w.game.player.inventory.find((i:any)=>i.type==='potion');
+    const tab=(prefix:string)=>[...w.document.querySelectorAll('[role="tab"]')].find((n:any)=>n.textContent.startsWith(prefix)) as any;
+    await w.act(async()=>tab('Зелья').click());await selectBag(potion.id);
+    const sale=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.includes('Продать за')) as any;assert(sale);
+    const gold=w.game.player.gold;await w.act(async()=>sale.click());await settle();assert(w.game.player.gold>gold);
+    await w.act(async()=>tab('Ресурсы').click());assert(w.document.querySelector('[data-reference-part="item-ore"]'));
+    await click('Открыть мастерскую снаряжения · рецепты и ресурсы');assert.equal(w.workshop,1);
+  } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
