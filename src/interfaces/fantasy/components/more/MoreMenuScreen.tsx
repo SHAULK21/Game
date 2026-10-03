@@ -39,15 +39,15 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   if (!player) return null;
 
   return (
-    <FolioPage className="space-y-3 pt-3">
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#35383a] bg-[#111416] px-3 py-2">
+    <FolioPage className="fantasy-more-menu space-y-3 pt-3">
+      <div className="journal-sound flex items-center justify-between gap-3 rounded-xl border border-[#35383a] bg-[#111416] px-3 py-2">
         <div className="flex items-center gap-2 text-xs text-[#aaa49a]"><RpgIcon kind="settings" size={17} /><span>{localize("Настройки звука")}</span></div>
         <button className="rpg-button rpg-button-secondary min-h-10 px-3 text-xs" onClick={() => setIsMuted(sound.toggleMute())}>{localize(isMuted ? 'Звук выключен' : 'Звук включён')}</button>
       </div>
       {/* Navigation Sub-Tabs */}
-      <div className="grid grid-cols-3 gap-1.5 text-[11px] font-cinzel font-bold">
+      <div className="journal-tabs grid grid-cols-3 gap-1.5 text-[11px] font-cinzel font-bold">
         <button
-          onClick={() => setActiveSection('quests')}
+          aria-pressed={activeSection === 'quests'} onClick={() => setActiveSection('quests')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
             activeSection === 'quests'
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
@@ -56,7 +56,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >{localize("Квесты")}</button>
 
         <button
-          onClick={() => setActiveSection('achievements')}
+          aria-pressed={activeSection === 'achievements'} onClick={() => setActiveSection('achievements')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
             activeSection === 'achievements'
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
@@ -65,7 +65,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >{localize("Достижения")}</button>
 
         <button
-          onClick={() => setActiveSection('stats')}
+          aria-pressed={activeSection === 'stats'} onClick={() => setActiveSection('stats')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
             activeSection === 'stats'
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
@@ -74,7 +74,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >{localize("Статистика")}</button>
 
         <button
-          onClick={() => setActiveSection('leaderboard')}
+          aria-pressed={activeSection === 'leaderboard'} onClick={() => setActiveSection('leaderboard')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
             activeSection === 'leaderboard'
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
@@ -83,7 +83,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >{localize("Рейтинг")}</button>
 
         <button
-          onClick={() => setActiveSection('premium')}
+          aria-pressed={activeSection === 'premium'} onClick={() => setActiveSection('premium')}
           className={`py-2 px-1 text-center rounded-lg border transition-all ${
             activeSection === 'premium'
               ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50 shadow-sm'
@@ -92,73 +92,45 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         >
           Premium
         </button>
-        <button onClick={() => setActiveSection('notifications')} className={`min-h-11 flex items-center justify-center gap-1 py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}><RpgIcon kind="quest" size={15} />{localize("Оповещения")}</button>
+        <button aria-pressed={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} className={`min-h-11 flex items-center justify-center gap-1 py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}><RpgIcon kind="quest" size={15} />{localize("Оповещения")}</button>
       </div>
       {activeSection === 'notifications' && <NotificationsPanel />}
 
-      {/* QUESTS SECTION */}
+      {/* Quest manuscript uses the same reward actions and live quest data. */}
       {activeSection === 'quests' && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono text-amber-300 px-1">
-            <span>{localize("Журнал заданий:")}</span>
-            <span>{localize(quests.filter(q => q.completed && !q.claimed).length)}{localize(" готово к сдаче")}</span>
-          </div>
-
-          <div className="space-y-2">
-            {quests.map(q => {
-              const pct = Math.min(100, Math.round((q.currentCount / q.targetCount) * 100));
-              return (
-                <div
-                  key={q.id}
-                  className={`p-3 rounded-xl border transition-all ${
-                    q.completed && !q.claimed
-                      ? 'border-amber-400 bg-amber-950/30'
-                      : 'border-slate-800 bg-[#0a0f1d]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-cinzel text-xs font-bold text-slate-100">
-                          {localize(q.title)}
-                        </span>
-                        <span className="text-[11px] font-mono px-1 rounded bg-slate-900 text-slate-400 border border-slate-800">
-                          {localize(q.category)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {localize(q.description)}
-                      </p>
-                    </div>
-
-                    {q.completed ? (
-                      q.claimed ? (
-                        <span className="text-[11px] font-mono text-slate-500 font-bold px-2 py-1 bg-slate-900 rounded">{localize("Сдано")}</span>
-                      ) : (
-                        <button
-                          onClick={() => claimQuestReward(q.id)}
-                          className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs active:scale-95 transition-all shadow-md"
-                        >{localize("Забрать")}</button>
-                      )
-                    ) : (
-                      <span className="text-[11px] font-mono text-[#d5ba89]">
-                        {localize(q.currentCount)}/{localize(q.targetCount)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Rewards preview */}
-                  <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-800/60 text-[11px] font-mono text-slate-400">
-                    <span>{localize("Награда:")}</span>
-                    <ResourceBadge kind="gold" value={`+${q.rewardGold}`} />
-                    <ResourceBadge kind="silver" value={`+${q.rewardSilver || 0}`} />
-                    <span className="text-indigo-300 font-bold">+{localize(q.rewardExp)} EXP</span>
-                  </div>
+        <section className="quest-book" aria-label={localize("Журнал заданий:")}>
+          <header className="quest-book-heading">
+            <h1>{localize("Квесты")}</h1>
+            <span role="status">{localize(quests.filter(q => q.completed && !q.claimed).length)}{localize(" готово к сдаче")}</span>
+          </header>
+          {quests.map(q => {
+            const pct = q.targetCount > 0 ? Math.max(0, Math.min(100, Math.round((q.currentCount / q.targetCount) * 100))) : 0;
+            return (
+              <article key={q.id} data-quest-id={q.id} className={`quest-entry${q.claimed ? ' is-claimed' : q.completed ? ' is-ready' : ''}`}>
+                <div className="quest-entry-heading">
+                  <h2>{localize(q.title)}</h2>
+                  <span className="quest-category">{localize({ story: 'Сюжет', daily: 'Ежедневные', hunting: 'Охота', mining: 'Шахта', boss: 'Босс' }[q.category])}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <p className="quest-description">{localize(q.description)}</p>
+                <div className="quest-progress-row">
+                  <progress aria-label={localize(q.title)} value={pct} max={100} />
+                  <span>{localize(q.currentCount)}/{localize(q.targetCount)}</span>
+                </div>
+                <div className="quest-rewards">
+                  <span>{localize("Награда:")}</span>
+                  <ResourceBadge kind="gold" value={`+${q.rewardGold}`} />
+                  <ResourceBadge kind="silver" value={`+${q.rewardSilver || 0}`} />
+                  <strong>+{localize(q.rewardExp)} EXP</strong>
+                </div>
+                {q.claimed ? (
+                  <span className="quest-claimed">{localize("Сдано")}</span>
+                ) : q.completed && (
+                  <button className="quest-claim" onClick={() => claimQuestReward(q.id)}>{localize("Забрать")}</button>
+                )}
+              </article>
+            );
+          })}
+        </section>
       )}
 
       {/* ACHIEVEMENTS SECTION */}
