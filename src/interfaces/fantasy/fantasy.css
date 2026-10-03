@@ -859,3 +859,37 @@ html[data-interface="fantasy"] .mining-node.is-locked .mining-ore-art { filter:g
 html[data-interface="fantasy"] .mining-log > div { color:#39291b; }
 html[data-interface="fantasy"] .mining-log > div.text-rose-300 { color:#81372e; }
 html[data-interface="fantasy"] .journal-admin:focus-visible { outline:2px solid #80623d; outline-offset:3px; }
+
+/* Travel and hunting orders are parchment leaves, not modern status cards. */
+html[data-interface="fantasy"] .fantasy-travel-leaf { width:100%; max-width:390px; padding:24px; text-align:center; }
+html[data-interface="fantasy"] .travel-seal { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border:3px double #997347; background:#b89c6850; color:#72522c; }
+html[data-interface="fantasy"] .fantasy-travel-leaf h3 { margin:0; color:#39291b; font:700 24px/1.3 Georgia,serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .travel-message { min-height:42px; margin:12px 0 24px; color:#6b5338; font-size:13px; line-height:1.6; }
+html[data-interface="fantasy"] .travel-progress { height:10px; overflow:hidden; border:1px solid #997347; background:#ad9573; }
+html[data-interface="fantasy"] .travel-progress > span { display:block; height:100%; background:#4b5a32; transition:width 300ms; }
+html[data-interface="fantasy"] .travel-progress-caption { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; color:#6b5338; font-size:12px; font-variant-numeric:tabular-nums; }
+html[data-interface="fantasy"] .fantasy-travel-leaf.is-ambush { border-color:#81372e; }
+html[data-interface="fantasy"] .fantasy-travel-leaf.is-ambush h3,
+html[data-interface="fantasy"] .fantasy-travel-leaf.is-ambush .travel-seal { color:#81372e; }
+html[data-interface="fantasy"] .fantasy-travel-leaf.is-ambush .travel-progress > span { background:#81372e; }
+html[data-interface="fantasy"] .region-dispatch.quest-book { border:3px double #8c6941; border-radius:0; }
+html[data-interface="fantasy"] .region-dispatch-heading { padding-bottom:12px; border-bottom:3px double #997347; }
+html[data-interface="fantasy"] .region-map-seal { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; border:3px double #997347; color:#72522c; }
+html[data-interface="fantasy"] .game-shell main .region-dispatch-name { margin:0; color:#39291b; font:700 20px/1.3 Georgia,serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .region-dispatch-heading > div,
+html[data-interface="fantasy"] .region-dispatch-heading > div > div > div { flex-wrap:wrap; }
+html[data-interface="fantasy"] .region-dispatch-meta { margin-top:4px; color:#6b5338; font-size:12px; }
+html[data-interface="fantasy"] .region-starter-stamp { color:#4b5a32; border-bottom:1px solid #997347; font-size:11px; font-weight:700; }
+html[data-interface="fantasy"] .region-dispatch-description { color:#6b5338; font-size:13px; line-height:1.5; }
+html[data-interface="fantasy"] .hunting-mode-heading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; margin-bottom:10px; color:#57401f; font-size:12px; font-weight:700; }
+html[data-interface="fantasy"] .hunting-mode-entry { min-width:0; min-height:94px; padding:10px; text-align:left; border:3px double #997347; border-radius:2px; background:#8b704712; color:#39291b; }
+html[data-interface="fantasy"] .hunting-mode-entry[aria-pressed="true"] { border-color:#4b5a32; background:#4b5a3220; }
+html[data-interface="fantasy"] .hunting-mode-entry:disabled { color:#79694f; cursor:not-allowed; background:#8b704708; }
+html[data-interface="fantasy"] .hunting-mode-entry:focus-visible { outline:2px solid #4b5a32; outline-offset:2px; }
+html[data-interface="fantasy"] .hunting-mode-entry svg { color:#72522c; }
+html[data-interface="fantasy"] .hunting-mode-name { font:700 14px/1.3 Georgia,serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .hunting-mode-values { color:#6b5338; font-size:12px; line-height:1.5; }
+html[data-interface="fantasy"] .hunting-mode-lock { margin-bottom:4px; color:#81372e; font-size:11px; }
+html[data-interface="fantasy"] .hunting-mode-description { margin-top:12px; padding-top:10px; border-top:1px solid #99734780; color:#6b5338; font-size:13px; line-height:1.5; }
+html[data-interface="fantasy"] .hunting-mode-description > span { color:#39291b; }
+html[data-interface="fantasy"] .region-dispatch .rpg-button { border:3px double #8c6941; border-radius:2px; background:#34412b; color:#eddfb8; font:700 14px Georgia,serif; min-height:44px; }

@@ -63,50 +63,16 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   // 1. TRAVEL OVERLAY MODAL (Journey & Ambush)
   if (travelState.isTraveling) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-        <div className={`max-w-sm w-full rounded-2xl p-6 border text-center  transition-all ${
-          travelState.isAmbush
-            ? 'bg-rose-950/80 border-rose-500'
-            : 'bg-[#0b101c] border-cyan-500/40 '
-        }`}>
-          {/* Animated Journey Icon */}
-          <div className="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-            {travelState.isAmbush ? (
-              <div className="p-4 rounded-full bg-rose-900/60 border border-rose-500">
-                <RpgIcon kind="skill" size={40} className="text-[#d38d87]" />
-              </div>
-            ) : (
-              <div className="p-4 rounded-full bg-cyan-950/60 border border-cyan-400">
-                <RpgIcon kind="map" size={40} className="text-[#c7a365]" />
-              </div>
-            )}
+      <div className="fantasy-travel-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85">
+        <section role="dialog" aria-modal="true" aria-labelledby="fantasy-travel-title" className={`fantasy-travel-leaf quest-book${travelState.isAmbush ? ' is-ambush' : ''}`}>
+          <div className="travel-seal"><RpgIcon kind={travelState.isAmbush ? 'skill' : 'map'} size={40} /></div>
+          <h3 id="fantasy-travel-title">{travelState.isAmbush ? localize('ВНЕЗАПНАЯ ЗАСАДА!') : localize('Путь в: {0}').replace('{0}', localize(travelState.targetRegionName))}</h3>
+          <p className="travel-message" role="status">{localize(travelState.message)}</p>
+          <div className="travel-progress" role="progressbar" aria-label={localize("Прогресс перехода")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={travelState.progress}>
+            <span style={{ width: `${travelState.progress}%` }} />
           </div>
-
-          <h3 className="font-cinzel text-lg font-bold text-slate-100 mb-1">
-            {localize(travelState.isAmbush ? 'ВНЕЗАПНАЯ ЗАСАДА!' : `Путь в: ${travelState.targetRegionName}`)}
-          </h3>
-
-          <p className="text-xs text-slate-300 mb-5 leading-relaxed min-h-[36px]">
-            {localize(travelState.message)}
-          </p>
-
-          {/* Travel Progress Bar */}
-          <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 mb-3">
-            <div
-              className={`h-full transition-all duration-300 ${
-                travelState.isAmbush
-                  ? 'bg-gradient-to-r from-rose-600 to-amber-500'
-                  : 'bg-gradient-to-r from-cyan-500 to-indigo-500'
-              }`}
-              style={{ width: `${travelState.progress}%` }}
-            />
-          </div>
-
-          <div className="flex justify-between items-center text-[11px] font-mono text-slate-400">
-            <span>{localize("Прогресс перехода")}</span>
-            <span className="text-[#d5ba89] font-bold">{localize(travelState.progress)}%</span>
-          </div>
-        </div>
+          <div className="travel-progress-caption"><span>{localize("Прогресс перехода")}</span><strong>{localize(travelState.progress)}%</strong></div>
+        </section>
       </div>
     );
   }
@@ -340,30 +306,30 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       </div>
 
       {/* Selected Region & Mode Control Card */}
-      <BestiaryPanel className="space-y-3 p-3">
-        <div className="flex items-start justify-between">
+      <BestiaryPanel className="region-dispatch quest-book space-y-3 p-3">
+        <div className="region-dispatch-heading flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[#514633] bg-[#111416]"><RpgIcon kind="map" size={24} className="text-[#b99558]" /></span>
+            <span className="region-map-seal"><RpgIcon kind="map" size={24} /></span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-cinzel text-sm font-bold text-slate-100">
+                <h3 className="region-dispatch-name">
                   {localize(inspectingRegion.name)}
                 </h3>
                 {inspectingRegion.isStarter && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[11px] font-mono font-bold">{localize("СТАРТОВАЯ")}</span>
+                  <span className="region-starter-stamp">{localize("СТАРТОВАЯ")}</span>
                 )}
               </div>
-              <div className="mt-0.5 text-xs text-slate-400">{localize(inspectingRegion.levelRange)} · {localize(inspectingRegion.monsters.length)}{localize(" видов монстров")}</div>
+              <div className="region-dispatch-meta">{localize(inspectingRegion.levelRange)} · {localize(inspectingRegion.monsters.length)}{localize(" видов монстров")}</div>
             </div>
           </div>
         </div>
-        <p title={localize(inspectingRegion.description)} className="line-clamp-2 text-xs text-[#aaa49a]">{localize(inspectingRegion.description)}</p>
+        <p title={localize(inspectingRegion.description)} className="region-dispatch-description">{localize(inspectingRegion.description)}</p>
 
         {/* Region Mode / Modifier Selector */}
         <div className="pt-1">
-          <div className="mb-2 flex items-center justify-between text-xs font-mono text-[#d5ba89]">
+          <div className="hunting-mode-heading">
             <span>{localize("Режим охоты:")}</span>
-            <span className="text-xs text-amber-300">{localize("Расход: ")}{localize(activeMod.energyCost)}{localize(" энергии")}</span>
+            <span>{localize("Расход: ")}{localize(activeMod.energyCost)}{localize(" энергии")}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -382,20 +348,18 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
-                  className={`min-h-[74px] rounded-xl border p-2 text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
-                    isSelected
-                      ? 'border-[#9d8459] bg-[#302c24]'
-                      : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                  }`}
+                  aria-pressed={isSelected}
+                  data-hunting-mode={mod.id}
+                  className="hunting-mode-entry"
                 >
                   <div className="mb-1 flex items-center gap-1.5">
                     <RpgIcon kind={mod.id === 'mod_standard' ? 'attack' : 'skill'} size={17} className="shrink-0 text-[#b99558]" />
-                    <span className="truncate font-cinzel text-xs font-bold text-slate-200">
+                    <span className="hunting-mode-name">
                       {localize(mod.name)}
                     </span>
                   </div>
-                  {modeLock && <p className="mb-1 text-xs text-amber-300">{localize("Закрыто: ")}{localize(modeLock)}</p>}
-                  <div className="text-[11px] leading-snug text-slate-400">
+                  {modeLock && <p className="hunting-mode-lock">{localize("Закрыто: ")}{localize(modeLock)}</p>}
+                  <div className="hunting-mode-values">
                     HP ×{localize(mod.hpMultiplier||1)}{localize(" · Урон ×")}{localize(mod.damageMultiplier)}<br/>{localize("Защита ×")}{localize(mod.defenseMultiplier||1)}{localize(" · Дроп: x")}{localize(mod.rareDropMultiplier)}
                   </div>
                 </button>
@@ -404,7 +368,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           </div>
 
           {/* Active Mode Description Box */}
-          <p title={localize(activeMod.description)} className="mt-2 line-clamp-2 rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-2 text-xs text-slate-300"><span className="font-bold text-amber-300">{localize(activeMod.name)}: </span>{localize(activeMod.description)}</p>
+          <p title={localize(activeMod.description)} className="hunting-mode-description"><span className="font-bold">{localize(activeMod.name)}: </span>{localize(activeMod.description)}</p>
         </div>
 
         {/* Travel / Action Button */}
