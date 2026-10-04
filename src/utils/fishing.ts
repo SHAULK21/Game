@@ -1,7 +1,14 @@
 import type { AlchemyRecipe, GameItem, ItemRarity, PlayerCharacter } from '../types/game';
 
+export type FishingFightAction = 'pull' | 'slack' | 'brace';
+export type FishingAction = 'cast' | 'hook' | 'land' | 'cancel' | 'upgrade' | FishingFightAction;
+export interface FishingFight {
+ step: number; tension: number; progress: number; energy: number; readyAt: number;
+ lost?: 'break' | 'slack' | 'exhausted';
+ message?: string;
+}
 export interface FishingCast {
- id: string; spotId: string; fishId: string; grams: number; biteAt: number; expiresAt: number; hookedAt?: number;
+ id: string; spotId: string; fishId: string; grams: number; biteAt: number; expiresAt: number; hookedAt?: number; fight?: FishingFight;
 }
 export interface FishingState {
  level: number; exp: number; rod: number; catches: number; recordGrams: number;
@@ -51,12 +58,17 @@ export function migrateFishing(value?: Partial<FishingState>): FishingState {
  const collection: FishingState['collection']={};
  for(const fish of FISH){const entry=value.collection?.[fish.id];if(entry)collection[fish.id]={count:safe(entry.count,0),recordGrams:safe(entry.recordGrams,0)};}
  const c=value.cast;
- const cast=c&&typeof c.id==='string'&&FISHING_SPOTS.some(s=>s.id===c.spotId)&&FISH.some(f=>f.id===c.fishId)&&Number.isFinite(c.biteAt)&&Number.isFinite(c.expiresAt)&&c.expiresAt>=c.biteAt&&Number.isFinite(c.grams)&&c.grams>0&&(!c.hookedAt||Number.isFinite(c.hookedAt))?{...c}:undefined;
+ let cast: FishingCast | undefined=c&&typeof c.id==='string'&&FISHING_SPOTS.some(s=>s.id===c.spotId)&&FISH.some(f=>f.id===c.fishId)&&Number.isFinite(c.biteAt)&&Number.isFinite(c.expiresAt)&&c.expiresAt>=c.biteAt&&Number.isFinite(c.grams)&&c.grams>0&&(!c.hookedAt||Number.isFinite(c.hookedAt))?{...c}:undefined;
+ if(cast?.hookedAt!==undefined) {
+   const f=cast.fight;
+   const valid=f&&[f.step,f.tension,f.progress,f.energy,f.readyAt].every(Number.isFinite)&&(!f.lost||['break','slack','exhausted'].includes(f.lost));
+   cast={...cast,fight:valid?{step:Math.min(26,safe(f.step,0)),tension:Math.min(100,safe(f.tension,45)),progress:Math.min(100,safe(f.progress,0)),energy:Math.min(100,safe(f.energy,100)),readyAt:f.readyAt,lost:f.lost,message:typeof f.message==='string'?f.message:undefined}:initialFishingFight(cast.hookedAt)};
+ }
  return {...base,level,exp,rod:Math.min(2,safe(value.rod,0)),catches:safe(value.catches,0),recordGrams:safe(value.recordGrams,0),collection,cast};
 }
 export const fishingProgress=(state:FishingState)=>({current:state.exp%180,need:180,percent:state.level>=100?100:state.exp%180/180*100});
 export function fishingPhase(cast: FishingCast | undefined, now=Date.now()) {
- if(!cast)return 'idle';if(cast.hookedAt!==undefined)return now>=cast.hookedAt+1200?'land':'reel';
+ if(!cast)return 'idle';if(cast.hookedAt!==undefined){const fight=cast.fight;return fight?.lost?'lost':fight&&fight.progress>=100?'land':'reel';}
  return now>cast.expiresAt?'lost':now>=cast.biteAt?'bite':'wait';
 }
 export type FishingResult={success:boolean;message:string;player:PlayerCharacter;fish?:GameItem;grams?:number};
@@ -80,7 +92,7 @@ export function hookFishing(player:PlayerCharacter,castId:string,now=Date.now())
  const fishing=migrateFishing(player.fishing),cast=fishing.cast;
  if(!cast||cast.id!==castId)return fail(player,'Этот заброс уже завершён.');
  if(fishingPhase(cast,now)!=='bite')return fail(player,'Подсекайте только после поклёвки.');
- return {success:true,message:'Рыба на крючке. Осторожно подтяните её к берегу.',player:{...player,fishing:{...fishing,cast:{...cast,hookedAt:now}}}};
+ return {success:true,message:'Рыба на крючке. Осторожно подтяните её к берегу.',player:{...player,fishing:{...fishing,cast:{...cast,hookedAt:now,fight:initialFishingFight(now)}}}};
 }
 export function cancelFishing(player:PlayerCharacter):FishingResult {
  const fishing=migrateFishing(player.fishing);if(!fishing.cast)return fail(player,'Нет активного заброса.');
@@ -108,4 +120,38 @@ export function upgradeFishingRod(player:PlayerCharacter):FishingResult {
  if(player.silver<offer.silver||offer.ingredients.some(need=>player.inventory.reduce((n,i)=>n+(i.name===need.name?(i.stackCount||1):0),0)<need.count))return fail(player,'Не хватает серебра или руды для улучшения.');
  let inventory=player.inventory.map(i=>({...i}));for(const need of offer.ingredients){let left=need.count;inventory=inventory.map(i=>{if(i.name!==need.name||left<=0)return i;const take=Math.min(left,i.stackCount||1);left-=take;return {...i,stackCount:(i.stackCount||1)-take};}).filter(i=>i.stackCount!==0);}
  return {success:true,message:'Удочка улучшена: поклёвка быстрее, редкий улов чаще.',player:{...player,inventory,silver:player.silver-offer.silver,fishing:{...fishing,rod:offer.tier}}};
+}
+
+
+export function initialFishingFight(now:number):FishingFight {
+ return {step:0,tension:45,progress:0,energy:100,readyAt:now+450};
+}
+/** The fish telegraphs its next movement. It changes only after a valid decision. */
+export function fishingMovement(cast:FishingCast) {
+ const fish=FISH.find(f=>f.id===cast.fishId)!;
+ const aggressive=['pike','catfish','sturgeon','tench'].includes(fish.id);
+ let seed=2166136261;for(const c of cast.id+fish.id+':'+(cast.fight?.step||0))seed=Math.imul(seed^c.charCodeAt(0),16777619);
+ const roll=(seed>>>0)%100;
+ const mood=roll<(aggressive?43:30)?'rush':roll<70?'steady':'calm';
+ const difficulty=fish.rarity==='rare'?3:fish.rarity==='uncommon'?2:1;
+ const weight=(cast.grams-fish.min)/Math.max(1,fish.max-fish.min);
+ const force=8+difficulty*2+Math.round(weight*4)+(mood==='rush'?12:mood==='calm'?-6:0);
+ return {mood,force,difficulty,label:mood==='rush'?'Рыба рвётся в глубину':mood==='calm'?'Рыба устала и идёт к берегу':'Рыба тянет леску в сторону',hint:mood==='rush'?'Не тяните на рывке: отпустите леску или удержите удочку.':mood==='calm'?'Хороший момент для подтягивания. Проверьте натяжение.':'Подтягивайте осторожно, оставляя запас лески.'};
+}
+export function fightFishing(player:PlayerCharacter,castId:string,action:FishingFightAction,expectedStep:number,now=Date.now()):FishingResult {
+ const fishing=migrateFishing(player.fishing),cast=fishing.cast;
+ if(!cast||cast.id!==castId||fishingPhase(cast,now)!=='reel'||!cast.fight)return fail(player,'Сначала подсеките рыбу.');
+ const before=cast.fight;
+ if(before.step!==expectedStep)return fail(player,'Движение уже обработано.');
+ if(now<before.readyAt)return fail(player,'Дождитесь следующего движения рыбы.');
+ const move=fishingMovement(cast),rod=fishing.rod;
+ let {tension,progress,energy}=before;
+ if(action==='pull') {tension+=move.force-rod*3;progress+=move.mood==='calm'?23:move.mood==='rush'?6:16;energy-=4;}
+ else if(action==='slack') {tension-=move.mood==='rush'?17:24;progress-=move.mood==='rush'?1:5;energy=Math.min(100,energy+4);}
+ else {tension-=move.mood==='rush'?4:10;progress+=move.mood==='rush'?9:3;energy-=11-rod*2;}
+ const step=before.step+1;
+ const lost=tension>=100?'break':tension<=0?'slack':energy<=0||step>=26&&progress<100?'exhausted':undefined;
+ const message=lost==='break'?'Леска оборвалась: слишком сильное натяжение.':lost==='slack'?'Рыба сошла с крючка: леска слишком ослабла.':lost==='exhausted'?'Рыба вырвалась: вы слишком долго удерживали её.':progress>=100?'Рыба у берега! Теперь можно забрать улов.':action==='pull'?'Вы подтянули рыбу. Следите за натяжением.':action==='slack'?'Вы отпустили леску и погасили рывок.': 'Вы удержали удочку и утомили рыбу.';
+ const fight:FishingFight={step,tension:Math.max(0,Math.min(100,tension)),progress:Math.max(0,Math.min(100,progress)),energy:Math.max(0,energy),readyAt:now+450,lost,message};
+ return {success:true,message,player:{...player,fishing:{...fishing,cast:{...cast,fight}}}};
 }
