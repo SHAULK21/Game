@@ -211,6 +211,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         maxMp={combatStats.maxMp}
         playerEffects={playerEffects}
         monsterEffects={monsterEffects}
+        playerAttackId={[...battleLog].reverse().find(entry => entry.type === 'player-attack' || (entry.type === 'crit' && entry.id.startsWith('dmg_')))?.id}
         monsterStriking={monsterStriking}
         latestEvent={battleLog.at(-1)}
       />

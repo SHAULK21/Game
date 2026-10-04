@@ -44,7 +44,10 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => selectClass('Некромант').click());
     assert(w.document.querySelector('.skill-codex-card[data-skill-details="n_drain"]'));
     assert.match(w.document.querySelector('[data-skill-details="n_drain"]').textContent,/50% фактически нанесённого урона/);
-    assert.equal(w.document.querySelector('.registration-class-portrait image').getAttribute('href'),'/assets/sprites/reference/class-portraits.jpg');
+    assert.equal(w.document.querySelector('.registration-class-portrait img').getAttribute('src'),'/assets/sprites/generated/heroes/warrior.webp');
+    const portraits = [...w.document.querySelectorAll('.registration-class-portrait img')].map((img:any)=>img.getAttribute('src'));
+    assert.equal(new Set(portraits).size,10,'each class uses its own current portrait');
+    assert.equal(w.document.querySelector('.registration-hero-art img').getAttribute('src'),'/assets/sprites/generated/heroes/necromancer.webp');
     await w.act(async () => selectClass('Воин').click());
 
     await w.act(async () => button('Начать путешествие').click()); await settle();
@@ -78,6 +81,8 @@ test('registration switches styles without losing input; both layouts share char
     assert(hunt.compareDocumentPosition([...w.document.querySelectorAll('h2')].find((node: any) => node.textContent === 'Бестиарий')) & w.Node.DOCUMENT_POSITION_FOLLOWING);
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
+    assert.equal(w.document.querySelector('.combat-player-art img').getAttribute('src'),'/assets/sprites/generated/heroes/warrior-fullbody.webp');
+    assert(w.document.querySelector('.combat-player-breathe'),'hero has presentation-only idle motion');
     assert(w.document.querySelector('header').hidden,'large fantasy HUD is hidden during battle');
     assert.equal(w.document.querySelector('.combat-turn-status'),null,'turn has no separate panel');
     assert(w.document.querySelector('.combat-hero-plaque [role="status"]'),'turn remains available in hero panel');
@@ -150,9 +155,9 @@ test('fantasy artwork uses new sprites and recovers from image failures; modern 
     await w.act(async () => image('icon').dispatchEvent(new w.Event('error')));
     assert(w.document.querySelector('#icon svg'));
     assert.equal(image('modern').getAttribute('src'), '/saved-sword.png');
-    assert.equal(w.document.querySelector('#class svg').getAttribute('viewBox'),'504 23 100 100');
-    await w.act(async () => w.document.querySelector('#class image').dispatchEvent(new w.Event('error')));
-    assert.equal(w.document.querySelector('#class image'),null);
+    assert.equal(image('class').getAttribute('src'),'/assets/sprites/generated/heroes/mage.webp');
+    await w.act(async () => image('class').dispatchEvent(new w.Event('error')));
+    assert.equal(image('class'),null);
     assert(w.document.querySelector('#class svg'), 'portrait falls back to its class SVG');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
