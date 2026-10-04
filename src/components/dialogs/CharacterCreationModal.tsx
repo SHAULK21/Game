@@ -92,7 +92,7 @@ export const CharacterCreationModal: React.FC = () => {
                     setSelectedClass(c.id);
                     sound.playClick();
                   }}
-                  className={`p-2 rounded-xl border flex flex-col items-center justify-start transition-all ${
+                  className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all ${
                     isSelected
                       ? 'border-[#9d8459] bg-[#302c24] text-[#d5ba89]'
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
@@ -155,7 +155,7 @@ export const CharacterCreationModal: React.FC = () => {
         <button
           onClick={handleStart}
           disabled={!name.trim()}
-          className="ui-primary w-full py-3.5 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-start gap-2 border border-cyan-400/40"
+          className="ui-primary w-full py-3.5 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
         >
           <Swords className="w-4 h-4" />
           <span>{localize("Начать путешествие")}</span>
