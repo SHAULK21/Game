@@ -6,6 +6,7 @@ import { BattleBackdrop } from '../../../../components/combat/BattleBackdrop';
 import { BestiaryPanel, ProgressBar } from '../ui/BestiaryUI';
 import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
+import { getFantasyCombatArtwork } from '../../utils/heroArtwork';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
 interface CombatArenaProps {
@@ -72,7 +73,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       <div className={`combat-player-art ${monsterStriking ? 'combat-player-hit' : ''}`}>
         <div key={playerAttackId || 'idle'} className={playerAttackId ? 'combat-player-attack' : ''}>
           <div className="combat-player-breathe">
-            <Portrait src={heroImage} alt={player.name} fallback="character" className="h-full w-full object-cover object-top" />
+            <Portrait src={getFantasyCombatArtwork(player.classId)} alt={player.name} fallback="character" className="h-full w-full object-contain object-bottom" />
           </div>
         </div>
       </div>
