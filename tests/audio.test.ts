@@ -3,6 +3,31 @@ import assert from 'node:assert/strict';
 import { SoundManager } from '../src/utils/audio';
 
 const settle = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+test('Telegram Android uses reusable HTML audio even when Web Audio cannot start',async()=>{
+ const e=environment(),oldDocument=(globalThis as any).document;
+ const doc:any=new EventTarget();doc.hidden=false;(globalThis as any).document=doc;
+ let gesture=false;const played:string[]=[];const elements:Media[]=[];
+ class Media {
+  src='';preload='';volume=1;playbackRate=1;onended:any;onerror:any;unlocked=false;pauses=0;
+  constructor(){elements.push(this);}
+  play(){if(!gesture&&!this.unlocked)return Promise.reject(new Error('NotAllowedError'));this.unlocked=true;played.push(this.src);return Promise.resolve();}
+  pause(){this.pauses++;}
+ }
+ (globalThis as any).window={Telegram:{WebApp:{platform:'android'}},Audio:Media,AudioContext:class{constructor(){throw new Error('Web Audio unavailable');}}};
+ const sounds=()=>played.filter(x=>!x.endsWith('/unlock.wav'));
+ try{
+  const sound=new SoundManager();
+  gesture=true;doc.dispatchEvent(new Event('touchend'));gesture=false;await settle();
+  assert.equal(elements.length,5);
+  sound.playSlash();await settle();assert.equal(sounds().length,1);assert.match(sounds()[0],/attack-soft/);
+  sound.playSlash();await settle();assert.equal(sounds().length,1,'attack throttle is preserved');
+  elements.forEach(x=>x.onended?.());e.advance();sound.playMonsterAttack();await settle();assert.equal(sounds().length,2);
+  const before=sounds().length;doc.hidden=true;doc.dispatchEvent(new Event('visibilitychange'));e.advance();sound.playFishingBite();await settle();assert.equal(sounds().length,before);
+  doc.hidden=false;gesture=true;doc.dispatchEvent(new Event('touchend'));gesture=false;await settle();
+  sound.toggleMute();e.advance();sound.playFishingBite();await settle();assert.equal(sounds().length,before);
+  gesture=true;assert.equal(await sound.testSound(),true);gesture=false;assert.equal(sound.getIsMuted(),false);assert.match(sounds().at(-1)!,/bell/);
+ }finally{(globalThis as any).document=oldDocument;e.restore();}
+});
 test('mobile touchend retries a rejected first gesture and recovers interrupted/closed audio',async()=>{
  const original={document:(globalThis as any).document,window:(globalThis as any).window,fetch:globalThis.fetch,storage:(globalThis as any).localStorage};
  const documentTarget=new EventTarget();let hidden=false,gesture=false;

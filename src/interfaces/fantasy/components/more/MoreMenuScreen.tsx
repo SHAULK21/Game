@@ -1,5 +1,6 @@
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { SoundControls } from '../../../../components/ui/SoundControls';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { sound } from '../../../../utils/audio';
@@ -94,6 +95,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         </button>
         <button aria-pressed={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} className={`min-h-11 flex items-center justify-center gap-1 py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}><RpgIcon kind="quest" size={15} />{localize("Оповещения")}</button>
       </div>
+      <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
 
       {/* Quest manuscript uses the same reward actions and live quest data. */}
