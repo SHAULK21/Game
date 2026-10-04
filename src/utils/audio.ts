@@ -21,25 +21,50 @@ export class SoundManager {
   constructor() {
     try { this.muted = localStorage.getItem('aethelgard_sound_muted') === 'true'; } catch { /* Storage is optional. */ }
     if (typeof document !== 'undefined') {
-      const unlock = () => { if (!this.muted) void this.prepare(); };
-      document.addEventListener('pointerdown', unlock, { once: true });
-      document.addEventListener('keydown', unlock, { once: true });
-      document.addEventListener('visibilitychange', () => { if (document.hidden) this.stop(); });
+      const unlock = () => { if (!this.muted) void this.prepare(true); };
+      // Mobile WebViews may reject pointerdown; touchend/click must still retry.
+      // Keep listeners after unlocking so audio can recover after app switching.
+      for (const event of ['pointerdown','pointerup','touchend','click','keydown']) {
+        document.addEventListener(event, unlock, { capture: true, passive: true });
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this.stop();
+        else if (!this.muted) void this.prepare();
+      });
+      if (typeof window !== 'undefined') window.addEventListener?.('pageshow', () => { if (!this.muted) void this.prepare(); });
     }
   }
 
-  private async prepare() {
+  private async prepare(userGesture = false) {
     try {
+      if (this.ctx?.state === 'closed') {
+        this.stop(); this.ctx = null; this.master = null; this.buffers.clear();
+      }
+      let created = false;
       if (!this.ctx && typeof window !== 'undefined') {
         const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!Ctx) return false;
         this.ctx = new Ctx();
+        created = true;
         this.master = this.ctx.createGain();
         this.master.gain.value = 0.45;
         this.master.connect(this.ctx.destination);
       }
       if (!this.ctx) return false;
-      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      // WebKit also reports "interrupted" after backgrounding or a phone call.
+      // Start/resume synchronously inside the gesture, before any fetch/await.
+      const needsResume = this.ctx.state !== 'running';
+      const resumed = needsResume ? this.ctx.resume() : null;
+      if (userGesture && (created || needsResume)) {
+        try {
+          const wake = this.ctx.createBufferSource();
+          wake.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+          wake.connect(this.ctx.destination);
+          wake.onended = () => wake.disconnect();
+          wake.start(0);
+        } catch { /* Resume may still succeed without the silent unlock buffer. */ }
+      }
+      if (resumed) await resumed;
       if (this.ctx.state !== 'running') return false;
       // Small audio bank; decode once after the first user gesture.
       for (const clips of Object.values(manifest)) for (const clip of clips) void this.load(clip.file);
@@ -74,7 +99,7 @@ export class SoundManager {
     this.muted = !this.muted;
     if (this.muted) this.stop();
     try { localStorage.setItem('aethelgard_sound_muted', String(this.muted)); } catch { /* Storage is optional. */ }
-    if (!this.muted) void this.prepare();
+    if (!this.muted) void this.prepare(true);
     return this.muted;
   }
   public getIsMuted() { return this.muted; }
