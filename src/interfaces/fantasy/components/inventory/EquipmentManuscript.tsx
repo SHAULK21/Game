@@ -33,9 +33,9 @@ export function EquipmentManuscript({ player, labels, onSelect }: {
   });
   return <div className="inventory-paper-doll">
     <div className="inventory-slot-column">{slots(LEFT)}</div>
-    <figure className="inventory-hero-art">
+    <figure className={`inventory-hero-art ${player.classId === 'mage' ? 'is-full-body' : ''}`}>
       {player.classId==='paladin' ? <ReferencePart id="paladin-equipment" label={`${player.name} · ${t('Паладин')}`} />
-        : <Portrait src={getFantasyHeroArtwork(player.classId)} alt={player.name} fallback="character" className="inventory-class-art"/>}
+        : <Portrait src={player.classId === 'mage' ? '/assets/sprites/generated/heroes/mage-fullbody.webp' : getFantasyHeroArtwork(player.classId)} alt={player.name} fallback="character" className="inventory-class-art"/>}
       <figcaption>{player.name}</figcaption>
     </figure>
     <div className="inventory-slot-column">{slots(RIGHT)}</div>
