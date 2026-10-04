@@ -5,7 +5,7 @@ import {runNotificationBatch} from '../server/socialFeatures';
 
 test('notification delivery coalesces existing energy backlog and enforces a cooldown in PostgreSQL',async()=>{
  const db=new PGlite();
- const query=async(sql:string,args:any[]=[])=>{const r=await db.query(sql,args);return {...r,rowCount:r.affectedRows||r.rows.length};};
+ const query=async(sql:string,args:any[]=[])=>{const r=await db.query<Record<string,any>>(sql,args);return {...r,rowCount:r.affectedRows||r.rows.length};};
  const pool:any={connect:async()=>({query,release:()=>{}})};
  try {
   await db.exec(`CREATE TABLE players(telegram_id bigint PRIMARY KEY,notification_settings jsonb,bot_started boolean,preferred_language text);
