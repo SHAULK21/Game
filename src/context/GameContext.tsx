@@ -1969,7 +1969,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         turn: 1,
         text: `☠️ В этой вылазке ${chain.length} противников. После каждой победы можно продолжить без выхода из боя.`,
         type: 'system' as const
-      }] : [])
+      }] : []),
+      ...(petOpening.openingMessage ? [{id:'pet_opening_'+createOperationId(),turn:1,text:petOpening.openingMessage,type:'system' as const}] : [])
     ]);
     sound.playClick();
     triggerHaptic('medium');
@@ -1997,7 +1998,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       turn: 1,
       text: `⚔️ Следующий противник: ${nextMonster.name} (Ур. ${nextMonster.level}). После этого останется ${remaining}.`,
       type: 'system'
-    }]);
+    },...(petOpening.openingMessage ? [{id:'pet_opening_'+createOperationId(),turn:1,text:petOpening.openingMessage,type:'system' as const}] : [])]);
     sound.playClick();
     triggerHaptic('medium');
     return true;

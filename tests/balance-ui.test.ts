@@ -34,8 +34,17 @@ test('actual character applies gear attributes, rewards, full pet stats and hard
   const target={id:'dummy',name:'Цель',regionId:'reg_plains',level:1,hp:1,maxHp:1,mp:0,maxMp:0,attack:1,magicAttack:1,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:1,goldReward:1,drops:[]};
   w.Math.random=()=>0.5;
   await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
+  assert.equal(w.game.activeMonster.hp,w.game.activeMonster.maxHp,'golem companion does not reduce spawn HP');
   await w.act(async()=>w.game.performPlayerAction('attack'));
   assert.equal(w.game.combatOutcome,'victory');
   const events=posts.flatMap(p=>p.events).filter((e:any)=>e.kind==='battle');assert.equal(events.length,1);assert.equal(events[0].outcome,'victory');assert.ok(events[0].exp>=1);
+  await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.setActivePet('pet_wolf'));
+  await w.act(async()=>w.game.startBattleWithMonster({...target,hp:0},{chain:true,energyCost:0}));
+  assert.equal(w.game.activeMonster.hp,Math.max(1,w.game.activeMonster.maxHp-80));
+  assert.match(w.game.battleLog.at(-1).id,/^pet_opening_/);
+  await w.act(async()=>w.game.performPlayerAction('attack'));assert.equal(w.game.combatOutcome,'victory');
+  await w.act(async()=>w.game.startNextCombatBattle());
+  assert.equal(w.game.activeMonster.hp,Math.max(1,w.game.activeMonster.maxHp-80));
+  assert.match(w.game.battleLog.at(-1).id,/^pet_opening_/,'the next enemy also explains its opening HP loss');
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });
