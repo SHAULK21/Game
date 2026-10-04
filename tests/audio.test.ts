@@ -8,7 +8,7 @@ test('Telegram Android uses reusable HTML audio even when Web Audio cannot start
  const doc:any=new EventTarget();doc.hidden=false;(globalThis as any).document=doc;
  let gesture=false;const played:string[]=[];const elements:Media[]=[];
  class Media {
-  src='';preload='';volume=1;playbackRate=1;onended:any;onerror:any;unlocked=false;pauses=0;
+  src='';preload='';volume=1;playbackRate=1;preservesPitch=true;webkitPreservesPitch=true;onended:any;onerror:any;unlocked=false;pauses=0;
   constructor(){elements.push(this);}
   play(){if(!gesture&&!this.unlocked)return Promise.reject(new Error('NotAllowedError'));this.unlocked=true;played.push(this.src);return Promise.resolve();}
   pause(){this.pauses++;}
@@ -22,6 +22,10 @@ test('Telegram Android uses reusable HTML audio even when Web Audio cannot start
   sound.playSlash();await settle();assert.equal(sounds().length,1);assert.match(sounds()[0],/attack-soft/);
   sound.playSlash();await settle();assert.equal(sounds().length,1,'attack throttle is preserved');
   elements.forEach(x=>x.onended?.());e.advance();sound.playMonsterAttack();await settle();assert.equal(sounds().length,2);
+  const monsterAudio=elements.find(x=>x.src.includes('monster-hit'))!;
+  assert(monsterAudio);assert.equal(monsterAudio.preservesPitch,false);assert.equal(monsterAudio.webkitPreservesPitch,false);
+  assert.equal(monsterAudio.volume,.55*.45,'media gain matches the PC mixer');
+  assert(monsterAudio.playbackRate>=.8*.97&&monsterAudio.playbackRate<=.8*1.03,'natural rate variation matches Web Audio');
   const before=sounds().length;doc.hidden=true;doc.dispatchEvent(new Event('visibilitychange'));e.advance();sound.playFishingBite();await settle();assert.equal(sounds().length,before);
   doc.hidden=false;gesture=true;doc.dispatchEvent(new Event('touchend'));gesture=false;await settle();
   sound.toggleMute();e.advance();sound.playFishingBite();await settle();assert.equal(sounds().length,before);
