@@ -22,11 +22,20 @@ export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramAp
   if(!client)return;
     try {
       await client.query('BEGIN');
+      // Serialize delivery across server replicas, including deduplication checks.
+      const workerLock=await client.query('SELECT pg_try_advisory_xact_lock(74632820) AS acquired');
+      if(workerLock.rows[0]?.acquired===false){await client.query('COMMIT');return;}
       const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started,p.preferred_language FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
       for(const row of rows.rows) {
         if(!row.bot_started || row.notification_settings?.enabled!==true || row.notification_settings?.[row.category]===false) {
-          if(row.category==='announcements'){await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);continue;}
-          await client.query("UPDATE game_notifications SET next_attempt_at=NOW()+INTERVAL '1 hour' WHERE id=$1",[row.id]);continue;
+          await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;
+        }
+        if(['energy','mining','arena'].includes(row.category)) {
+          const obsolete=await client.query(`SELECT
+            EXISTS(SELECT 1 FROM game_notifications WHERE telegram_id=$1 AND category=$2 AND (due_at>$3 OR (due_at=$3 AND id>$4)))
+            OR $3::timestamptz<NOW()-INTERVAL '24 hours'
+            OR ($2='energy' AND EXISTS(SELECT 1 FROM game_notifications WHERE telegram_id=$1 AND category=$2 AND sent_at>NOW()-INTERVAL '30 minutes' AND read_at IS NULL)) AS suppress`,[row.telegram_id,row.category,row.due_at,row.id]);
+          if(obsolete.rows[0]?.suppress){await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;}
         }
         if(row.category==='premium' && String(row.event_key).startsWith('premium_expire_')) {
           const current=await client.query('SELECT premium_until>NOW() AS active FROM players WHERE telegram_id=$1',[row.telegram_id]);
@@ -108,7 +117,10 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     const id=req.authUser!.id,now=Date.now();
     const {energy,maxEnergy,regenAt,miningEndsAt}=req.body||{};
     if(!Number.isFinite(energy)||!Number.isFinite(maxEnergy)||energy<0||energy>maxEnergy||maxEnergy<1||maxEnergy>1000)return res.status(400).json({error:'Неверное состояние энергии.'});
-    const schedules=[{category:'energy',due:energy<maxEnergy?Math.max(now,Math.min(now,Number(regenAt)||now)+(maxEnergy-energy)*ENERGY_REGEN_MS):null,text:'⚡ Энергия полностью восстановилась. Можно продолжить приключение!'},
+    // Keep the actual deadline as the event identity, even when it is in the past.
+    // Clamping it to now generated a new event on every stale client sync.
+    const energyDue=Number.isFinite(regenAt)&&regenAt>0?Math.min(now,regenAt)+(maxEnergy-energy)*ENERGY_REGEN_MS:null;
+    const schedules=[{category:'energy',due:energy<maxEnergy?energyDue:null,text:'⚡ Энергия полностью восстановилась. Можно продолжить приключение!'},
       {category:'arena',due:nextArenaReset(),text:'🎟️ Настал новый день арены: доступно до 5 ежедневных билетов. Откройте игру, чтобы обновить их.'},
       {category:'mining',due:Number.isFinite(miningEndsAt)&&miningEndsAt>now&&miningEndsAt<now+86400000?miningEndsAt:null,text:'⛏️ Шахтёрская экспедиция завершена. Заберите добычу!'}];
     const client=await getPool().connect();

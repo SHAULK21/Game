@@ -45,7 +45,7 @@ test('notification subscription and category opt-outs are respected',async()=>{
  const {pool,writes}=harness(rows);let sent=0;
  await runNotificationBatch(()=>pool,async()=>{sent++;return {} as any;},url);
  assert.equal(sent,0);
- assert.equal(writes.filter(w=>w.sql.includes("INTERVAL '1 hour'")).length,3);
+ assert.equal(writes.filter(w=>w.sql.startsWith('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW()')).length,3);
 });
 
 test('failed Telegram deliveries are retried and blocked bots are recorded without marking delivery',async()=>{

@@ -12,6 +12,17 @@ function harness(query:(sql:string,args:any[])=>Promise<any>){
  };
 }
 const empty={rows:[],rowCount:0};
+test('stale energy sync keeps one event identity rather than using request time',async()=>{
+ const keys:string[]=[];
+ const call=harness(async(sql,args)=>{if(sql.startsWith('INSERT INTO game_notifications')&&args[2]==='energy')keys.push(args[1]);return empty;});
+ const body={energy:59,maxEnergy:60,regenAt:Date.now()-600000};
+ await call('POST','/api/notifications/schedule',body);
+ await new Promise(resolve=>setTimeout(resolve,1100));
+ await call('POST','/api/notifications/schedule',body);
+ assert.equal(keys.length,2);assert.equal(keys[0],keys[1]);
+ assert.equal((await call('POST','/api/notifications/schedule',{energy:59,maxEnergy:60})).status,200);
+ assert.equal(keys.length,2,'missing regeneration timestamp must not create moving deadlines');
+});
 test('admin self Premium is authenticated and retries do not extend it twice',async()=>{
  const old=process.env.ADMIN_TELEGRAM_ID;process.env.ADMIN_TELEGRAM_ID='1';let grant=false,updates=0;
  const call=harness(async(sql,args)=>{
