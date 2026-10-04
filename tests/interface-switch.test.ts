@@ -81,7 +81,7 @@ test('registration switches styles without losing input; both layouts share char
     assert(hunt.compareDocumentPosition([...w.document.querySelectorAll('h2')].find((node: any) => node.textContent === 'Бестиарий')) & w.Node.DOCUMENT_POSITION_FOLLOWING);
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
-    assert.equal(w.document.querySelector('.combat-player-art img').getAttribute('src'),'/assets/sprites/generated/heroes/warrior-fullbody.webp');
+    assert.equal(w.document.querySelector('.combat-player-art img').getAttribute('src'),'/assets/sprites/generated/heroes/warrior.webp');
     assert(w.document.querySelector('.combat-player-breathe'),'hero has presentation-only idle motion');
     assert(w.document.querySelector('header').hidden,'large fantasy HUD is hidden during battle');
     assert.equal(w.document.querySelector('.combat-turn-status'),null,'turn has no separate panel');
