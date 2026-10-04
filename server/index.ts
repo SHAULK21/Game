@@ -1,3 +1,4 @@
+import { recordTelegramWriteAccess } from './telegramWriteAccess';
 import { translateText } from '../src/i18n/translate';
 import { registerClanProjects } from './clanProjects';
 import { clanRaidHealth, clanRaidReward, clanRaidItem } from '../src/utils/clanProjects';
@@ -117,7 +118,7 @@ app.use(compression());
 app.use(express.json({ limit: '32kb' }));
 app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
 
-type AuthUser = { id: number; username?: string; displayName: string };
+type AuthUser = { id: number; username?: string; displayName: string; allowsWriteToPm?: boolean };
 declare global {
   namespace Express {
     interface Request { authUser?: AuthUser }
@@ -159,6 +160,7 @@ const validateTelegramInitData = (initData: string): AuthUser => {
   return {
     id: Number(user.id),
     username: user.username,
+    allowsWriteToPm: user.allows_write_to_pm === true,
     displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок',
   };
 };
@@ -842,6 +844,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
   }
 
   const message = update.message || update.edited_message;
+  if (await recordTelegramWriteAccess(pool, message)) return res.json({ok:true});
   if (message?.chat?.type === 'private' && message?.from?.id && String(message.text || '').startsWith('/start')) {
     const userId = Number(message.from.id);
     const profile=await pool.query(`INSERT INTO players (telegram_id, display_name, bot_started, preferred_language) VALUES ($1,$2,TRUE,$3) ON CONFLICT (telegram_id) DO UPDATE SET bot_started = TRUE, preferred_language = COALESCE(players.preferred_language,EXCLUDED.preferred_language) RETURNING preferred_language`,[userId,String(message.from.first_name || 'Игрок'),messageLanguage(null,message.from.language_code)]);

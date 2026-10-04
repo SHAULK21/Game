@@ -92,10 +92,14 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     res.json({language});
   });
   app.post('/api/notifications/settings',auth,async(req,res)=>{
-    const settings:Record<string,boolean>={enabled:req.body?.enabled===true};
+    const settings:Record<string,boolean>={enabled:req.body?.enabled===true,onboardingSeen:true};
     for(const key of NOTIFICATION_CATEGORIES)settings[key]=req.body?.[key]!==false;
-    await getPool().query('UPDATE players SET notification_settings=$1::jsonb WHERE telegram_id=$2',[JSON.stringify(settings),req.authUser!.id]);
+    await getPool().query('UPDATE players SET notification_settings=$1::jsonb,bot_started=CASE WHEN $3 THEN TRUE ELSE bot_started END WHERE telegram_id=$2',[JSON.stringify(settings),req.authUser!.id,settings.enabled && req.authUser!.allowsWriteToPm === true]);
     res.json({settings});
+  });
+  app.post('/api/notifications/onboarding',auth,async(req,res)=>{
+    await getPool().query(`UPDATE players SET notification_settings=notification_settings || '{"onboardingSeen":true}'::jsonb WHERE telegram_id=$1`,[req.authUser!.id]);
+    res.json({ok:true});
   });
   app.post('/api/notifications/read',auth,async(req,res)=>{
     await getPool().query('UPDATE game_notifications SET read_at=NOW() WHERE telegram_id=$1 AND read_at IS NULL AND due_at<=NOW()',[req.authUser!.id]);res.json({ok:true});

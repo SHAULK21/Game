@@ -1,4 +1,5 @@
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
+import { subscribeToNotifications } from '../../utils/notificationSubscription';
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../../utils/api';
 import { getTelegramWebApp } from '../../utils/telegram';
@@ -20,13 +21,10 @@ export const NotificationsPanel:React.FC=()=>{
     setBusy(true);try{await apiRequest('/api/notifications/settings',{method:'POST',body:JSON.stringify(next)});setSettings(next);}catch(e){setError(String(e));}finally{setBusy(false);}
   };
   const enable=async()=>{
-    const tg=getTelegramWebApp();
-    if(tg?.requestWriteAccess) {
-      const granted=await new Promise<boolean>(resolve=>tg.requestWriteAccess!(resolve));
-      if(!granted){setError('Для сообщений в Telegram разрешите боту писать вам.');return;}
-    }
-    await save({...settings,enabled:true});
-    if(!started && referral?.url){getTelegramWebApp()?.openTelegramLink?.(referral.url.replace(/\?start=.*/, '?start=notifications'));}
+    setBusy(true);setError('');
+    try { setSettings(await subscribeToNotifications(settings,started)); await load(); }
+    catch(e) { setError(e instanceof Error ? e.message : 'Не удалось включить уведомления. Попробуйте снова.'); }
+    finally { setBusy(false); }
   };
   return <section className="ui-panel rounded-xl border p-3 space-y-3">
     <h3 className="font-bold text-sm">{localize("🔔 Оповещения")}</h3>
