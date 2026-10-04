@@ -5,8 +5,8 @@ function harness(query:(sql:string,args:any[])=>Promise<any>){
  const routes=new Map<string,any[]>();const app:any={get:(p:string,...h:any[])=>routes.set('GET '+p,h),post:(p:string,...h:any[])=>routes.set('POST '+p,h)};
  const client={query:(sql:string,args:any[]=[])=>query(sql,args),release:()=>{}};
  const pool:any={...client,connect:async()=>client};registerSocialFeatures(app,()=>pool,(_req,_res,next)=>next(),async()=>({username:'game_bot'}) as any,'https://game.test');
- return async(method:string,path:string,body:any={},user=1)=>{
-  let status=200,response:any;const req:any={body,authUser:{id:user},headers:{},params:{}};const res:any={status:(code:number)=>{status=code;return res;},json:(value:any)=>{response=value;return res;}};
+ return async(method:string,path:string,body:any={},user=1,allowsWriteToPm=false)=>{
+  let status=200,response:any;const req:any={body,authUser:{id:user,allowsWriteToPm},headers:{},params:{}};const res:any={status:(code:number)=>{status=code;return res;},json:(value:any)=>{response=value;return res;}};
   for(const handler of routes.get(method+' '+path)!){let next=false;await handler(req,res,()=>{next=true;});if(!next)break;}
   return {status,body:response};
  };
@@ -84,4 +84,13 @@ test('clan management refuses promotion above officer rights and transfers owner
  assert.equal((await call('POST','/api/clan/manage',{action:'transfer',targetId:2})).status,400);
  role='owner';assert.equal((await call('POST','/api/clan/manage',{action:'transfer',targetId:2})).status,200);
  assert.ok(writes.some(s=>s.startsWith('UPDATE clan_members SET role=CASE')));assert.ok(writes.some(s=>s.startsWith('UPDATE clans SET owner_telegram_id')));
+});
+
+test('notification enablement trusts signed write access, not a client body claim',async()=>{
+ const grants:boolean[]=[];
+ const call=harness(async(sql,args)=>{if(sql.startsWith('UPDATE players SET notification_settings'))grants.push(args[2]);return empty;});
+ await call('POST','/api/notifications/settings',{enabled:true,allowsWriteToPm:true},1,false);
+ await call('POST','/api/notifications/settings',{enabled:true},1,true);
+ await call('POST','/api/notifications/settings',{enabled:false},1,true);
+ assert.deepEqual(grants,[false,true,false]);
 });

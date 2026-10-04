@@ -898,3 +898,7 @@ html[data-interface="fantasy"] .hunting-mode-lock { margin-bottom:4px; color:#81
 html[data-interface="fantasy"] .hunting-mode-description { margin-top:12px; padding-top:10px; border-top:1px solid #99734780; color:#6b5338; font-size:13px; line-height:1.5; }
 html[data-interface="fantasy"] .hunting-mode-description > span { color:#39291b; }
 html[data-interface="fantasy"] .region-dispatch .rpg-button { border:3px double #8c6941; border-radius:2px; background:#34412b; color:#eddfb8; font:700 14px Georgia,serif; min-height:44px; }
+
+html[data-interface="fantasy"] .notification-onboarding-dialog { color:#39291b; font-family:Georgia,serif; border:3px double #997347; border-radius:0; background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996); background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 28px #76522a44; }
+html[data-interface="fantasy"] .notification-onboarding-dialog .ui-primary { color:#eedbb5; background:#263f31; border:2px double #b99a5a; border-radius:2px; }
+html[data-interface="fantasy"] .notification-onboarding-dialog [role="alert"] { color:#8d2922; }

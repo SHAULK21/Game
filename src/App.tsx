@@ -1,4 +1,5 @@
 import { t as localize, useLocale } from './i18n/locale';
+import { NotificationOnboarding } from './components/notifications/NotificationOnboarding';
 import { LanguageSync } from './i18n/LanguageSync';
 import React, { lazy, Suspense, useEffect } from 'react';
 import { initTelegramApp } from './utils/telegram';
@@ -17,7 +18,7 @@ const InterfaceContent = () => {
   if (!player) return <><LanguageSync /><CharacterCreationModal /></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
     {style === 'fantasy' ? <FantasyGameContent /> : <ModernGameContent />}
-  </Suspense></>;
+  </Suspense><NotificationOnboarding /></>;
 };
 
 export default function App() {
