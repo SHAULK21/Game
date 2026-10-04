@@ -325,7 +325,7 @@ test('fantasy inventory manuscript retains equipment, locks, salvage, sale and r
     await w.act(async()=>w.mount());await settle();await w.act(async()=>w.game.createCharacter('Арсенал','paladin'));await settle();
     const weapon=w.game.player.equipped.weapon;
     assert.equal(w.document.querySelectorAll('[data-equipment-slot]').length,14);
-    assert(w.document.querySelector('[data-reference-part="paladin-equipment"]'));
+    assert.equal(w.document.querySelector('.inventory-hero-art img').getAttribute('src'), '/assets/sprites/generated/heroes/paladin-fullbody.webp');
     assert.equal(w.document.querySelectorAll('header,nav').length,0,'screen relies on the shared shell');
     await w.act(async()=>slot().click());assert.equal(button('Продать за '+weapon.sellPrice+' золота'),undefined);
     assert(![...w.document.querySelectorAll('button')].some((n:any)=>n.textContent.includes('Разобрать →')),'equipped item cannot be disposed');

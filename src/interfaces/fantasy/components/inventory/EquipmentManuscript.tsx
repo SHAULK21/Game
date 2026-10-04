@@ -1,9 +1,10 @@
+import type { CSSProperties } from 'react';
 import type { GameItem, ItemType, PlayerCharacter } from '../../../../types/game';
 import { t, useLocale } from '../../../../i18n/locale';
 import { ReferenceFrameParts, ReferencePart, type ReferencePartId } from '../ui/ReferencePart';
 import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
-import { getFantasyHeroArtwork } from '../../utils/heroArtwork';
+import { getFantasyEquipmentArtwork } from '../../utils/heroArtwork';
 import { InventoryArt } from './InventoryArt';
 
 const LEFT: ItemType[] = ['helmet','weapon','gloves','pants','boots','cloak','pickaxe','alchemyTool'];
@@ -17,6 +18,7 @@ export function EquipmentManuscript({ player, labels, onSelect }: {
   player:PlayerCharacter; labels:Partial<Record<ItemType,string>>; onSelect:(item:GameItem)=>void;
 }) {
   useLocale();
+  const artwork = getFantasyEquipmentArtwork(player.classId);
   const slots=(types:ItemType[])=>types.map(type=>{
     const item=player.equipped[type];
     const label=t(labels[type] || type);
@@ -33,9 +35,8 @@ export function EquipmentManuscript({ player, labels, onSelect }: {
   });
   return <div className="inventory-paper-doll">
     <div className="inventory-slot-column">{slots(LEFT)}</div>
-    <figure className={`inventory-hero-art ${player.classId === 'mage' ? 'is-full-body' : ''}`}>
-      {player.classId==='paladin' ? <ReferencePart id="paladin-equipment" label={`${player.name} · ${t('Паладин')}`} />
-        : <Portrait src={player.classId === 'mage' ? '/assets/sprites/generated/heroes/mage-fullbody.webp' : getFantasyHeroArtwork(player.classId)} alt={player.name} fallback="character" className="inventory-class-art"/>}
+    <figure className="inventory-hero-art is-full-body" style={{ '--equipment-art': `url("${artwork}")` } as CSSProperties}>
+      <Portrait src={artwork} alt={player.name} fallback="character" className="inventory-class-art"/>
       <figcaption>{player.name}</figcaption>
     </figure>
     <div className="inventory-slot-column">{slots(RIGHT)}</div>
