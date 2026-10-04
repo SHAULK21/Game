@@ -46,7 +46,7 @@ export const CharacterCreationModal: React.FC = () => {
           <p className="text-xs text-slate-400">{localize("Выберите класс и имя персонажа.")}</p>
         </div>
 
-        <InterfaceSwitcher />
+        <InterfaceSwitcher registration />
 
         {/* Hero Visual Card */}
         <div className="registration-hero-art relative shrink-0 rounded-2xl overflow-hidden border border-slate-700 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent">

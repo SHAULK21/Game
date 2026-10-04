@@ -904,8 +904,8 @@ html[data-interface="fantasy"] .notification-onboarding-dialog .ui-primary { col
 html[data-interface="fantasy"] .notification-onboarding-dialog [role="alert"] { color:#8d2922; }
 
 /* Current portraits fit registration; overflow starts at the top on short webviews. */
-html[data-interface="fantasy"] .registration-hero-art { height:232px; background:radial-gradient(ellipse at top,#37362e,#0a0f1d); }
-html[data-interface="fantasy"] .registration-hero-art > img { height:200px; object-fit:contain; object-position:center top; opacity:1; }
+html[data-interface="fantasy"] .registration-hero-art { width:100%; max-width:360px; height:auto; aspect-ratio:1; margin-inline:auto; background:#0a0f1d; }
+html[data-interface="fantasy"] .registration-hero-art > img { height:100%; object-fit:contain; object-position:center; opacity:1; }
 html[data-interface="fantasy"] .class-portrait-icon > img { display:block; }
 html[data-interface="fantasy"] .combat-player-art { position:absolute; left:8px; top:42px; width:43%; height:220px; z-index:1; pointer-events:none; filter:drop-shadow(0 8px 10px #0008); }
 html[data-interface="fantasy"] .combat-player-art > div,
