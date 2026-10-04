@@ -1,5 +1,6 @@
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { SoundControls } from '../ui/SoundControls';
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { 
@@ -98,6 +99,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         </button>
         <button onClick={() => setActiveSection('notifications')} className={`py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}>{localize("🔔 Оповещения")}</button>
       </div>
+      <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
 
       {/* QUESTS SECTION */}

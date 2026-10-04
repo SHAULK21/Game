@@ -17,11 +17,73 @@ export class SoundManager {
   private lastVariant = new Map<Cue, number>();
   private variantBags = new Map<Cue, number[]>();
   private epoch = 0;
+  private forceMedia = false;
+  private listeners=new Set<()=>void>();
+  public subscribe=(listener:()=>void)=>{this.listeners.add(listener);return ()=>{this.listeners.delete(listener);};};
+  private mediaSlots: Array<{audio:HTMLAudioElement;busy:boolean;primed:boolean;token:number}> = [];
+  private mediaWarmed=false;
+
+  private prefersMedia() {
+    if(typeof window==='undefined'||!window.Audio)return false;
+    const platform=(window as any).Telegram?.WebApp?.platform;
+    return this.forceMedia||['android','ios'].includes(platform)||/Android|iPhone|iPad|iPod/i.test(window.navigator?.userAgent||'');
+  }
+
+  private slots() {
+    if(!this.mediaSlots.length&&typeof window!=='undefined'&&window.Audio) {
+      for(let i=0;i<5;i++) {
+        const audio=new window.Audio();audio.preload='auto';
+        this.mediaSlots.push({audio,busy:false,primed:false,token:0});
+      }
+    }
+    return this.mediaSlots;
+  }
+
+  /** Unlock each reusable media element during a real gesture, using a silent local WAV. */
+  private primeMedia() {
+    if(!this.mediaWarmed){
+      this.mediaWarmed=true;
+      for(const clips of Object.values(manifest))for(const clip of clips)void fetch(`/assets/audio/${clip.file}`,{cache:'force-cache'}).then(r=>r.arrayBuffer()).catch(()=>{});
+    }
+    for(const slot of this.slots()) {
+      if(slot.primed||slot.busy)continue;
+      const token=++slot.token;slot.busy=true;
+      slot.audio.src='/assets/audio/unlock.wav';
+      try {
+        void Promise.resolve(slot.audio.play()).then(()=>{
+          if(slot.token===token){slot.primed=true;slot.audio.pause();slot.busy=false;}
+        }).catch(()=>{if(slot.token===token)slot.busy=false;});
+      }catch{slot.busy=false;}
+    }
+  }
+
+  private playMedia(file:string,cue:Cue,rate:number,delay:number,epoch:number,maxWait=300):Promise<boolean> {
+    const start=():Promise<boolean>=>{
+      if(this.muted||epoch!==this.epoch||(typeof document!=='undefined'&&document.hidden))return Promise.resolve(false);
+      const slots=this.slots();const slot=slots.find(s=>!s.busy)||slots.find(s=>!s.primed);
+      if(!slot)return Promise.resolve(false);
+      const token=++slot.token;slot.busy=true;
+      const finish=()=>{if(slot.token===token)slot.busy=false;};
+      try {
+        slot.audio.pause();slot.audio.src=`/assets/audio/${file}`;
+        slot.audio.volume=LEVELS[cue]*0.65;slot.audio.playbackRate=rate*(0.97+Math.random()*0.06);
+        slot.audio.onended=finish;slot.audio.onerror=finish;
+        // Do not await a fetch/decode before play(): this call must retain the gesture.
+        const playing=slot.audio.play();
+        return new Promise(resolve=>{
+          const timeout=setTimeout(()=>{if(slot.token===token){slot.audio.pause();slot.primed=false;finish();slot.token++;}resolve(false);},maxWait);
+          void Promise.resolve(playing).then(()=>{clearTimeout(timeout);if(slot.token!==token){resolve(false);return;}slot.primed=true;resolve(true);}).catch(()=>{clearTimeout(timeout);if(slot.token===token)slot.primed=false;finish();resolve(false);});
+        });
+      }catch{finish();return Promise.resolve(false);}
+    };
+    if(!delay)return start();
+    return new Promise(resolve=>setTimeout(()=>{void start().then(resolve);},delay*1000));
+  }
 
   constructor() {
     try { this.muted = localStorage.getItem('aethelgard_sound_muted') === 'true'; } catch { /* Storage is optional. */ }
     if (typeof document !== 'undefined') {
-      const unlock = () => { if (!this.muted) void this.prepare(true); };
+      const unlock = () => { if (!this.muted) {if(this.prefersMedia())this.primeMedia();else void this.prepare(true);} };
       // Mobile WebViews may reject pointerdown; touchend/click must still retry.
       // Keep listeners after unlocking so audio can recover after app switching.
       for (const event of ['pointerdown','pointerup','touchend','click','keydown']) {
@@ -29,9 +91,9 @@ export class SoundManager {
       }
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) this.stop();
-        else if (!this.muted) void this.prepare();
+        else if (!this.muted&&!this.prefersMedia()) void this.prepare();
       });
-      if (typeof window !== 'undefined') window.addEventListener?.('pageshow', () => { if (!this.muted) void this.prepare(); });
+      if (typeof window !== 'undefined') window.addEventListener?.('pageshow', () => { if (!this.muted&&!this.prefersMedia()) void this.prepare(); });
     }
   }
 
@@ -93,16 +155,24 @@ export class SoundManager {
     this.epoch++;
     for (const voice of this.voices) { try { voice.stop(); } catch { /* Already ended. */ } }
     this.voices.clear();
+    for(const slot of this.mediaSlots){slot.token++;slot.audio.pause();slot.busy=false;}
   }
 
   public toggleMute() {
     this.muted = !this.muted;
     if (this.muted) this.stop();
     try { localStorage.setItem('aethelgard_sound_muted', String(this.muted)); } catch { /* Storage is optional. */ }
-    if (!this.muted) void this.prepare(true);
+    if (!this.muted) {if(this.prefersMedia())this.primeMedia();else void this.prepare(true);}
+    this.listeners.forEach(listener=>listener());
     return this.muted;
   }
   public getIsMuted() { return this.muted; }
+  public testSound():Promise<boolean> {
+    this.stop();this.muted=false;this.forceMedia=true;
+    try{localStorage.setItem('aethelgard_sound_muted','false');}catch{/* Storage is optional. */}
+    this.listeners.forEach(listener=>listener());
+    return this.playMedia(manifest.bell[0].file,'bell',1,0,this.epoch,3000);
+  }
 
   private play(cue: Cue, rate = 1, delay = 0) {
     if (this.muted || (typeof document !== 'undefined' && document.hidden)) return;
@@ -110,8 +180,6 @@ export class SoundManager {
     if (timestamp - (this.lastPlayed.get(cue) ?? -Infinity) < (cue === 'slash' ? 180 : 90)) return;
     this.lastPlayed.set(cue, timestamp);
     const epoch = this.epoch;
-    void (async () => {
-      if (!await this.prepare() || !this.ctx || !this.master) return;
       const clips = manifest[cue];
       const previous = this.lastVariant.get(cue);
       // Shuffle bags exhaust every recording before recycling, with no boundary repeat.
@@ -127,7 +195,14 @@ export class SoundManager {
       }
       const index = bag.pop()!;
       this.lastVariant.set(cue, index);
+      if(this.prefersMedia()){void this.playMedia(clips[index].file,cue,rate,delay,epoch);return;}
+    void (async () => {
+      if (!await this.prepare() || !this.ctx || !this.master) {
+        if(typeof window!=='undefined'&&window.Audio)void this.playMedia(clips[index].file,cue,rate,delay,epoch);
+        return;
+      }
       const buffer = await this.load(clips[index].file);
+      if(!buffer){void this.playMedia(clips[index].file,cue,rate,delay,epoch);return;}
       if (!buffer || this.muted || epoch !== this.epoch || Date.now() - timestamp > 300 || this.ctx.state !== 'running' || (typeof document !== 'undefined' && document.hidden)) return;
       if (this.voices.size >= 5) return;
       const source = this.ctx.createBufferSource();

@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
@@ -15,12 +15,11 @@ interface TopHeaderProps {
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
   useLocale();
   const { player, combatStats, meditateOrRefillEnergy, premium } = useGame();
-  const [isMuted, setIsMuted] = useState(sound.getIsMuted());
+  const isMuted = useSyncExternalStore(sound.subscribe,()=>sound.getIsMuted(),()=>false);
   const [showEnergyModal, setShowEnergyModal] = useState(false);
 
   const handleToggleSound = () => {
-    const next = sound.toggleMute();
-    setIsMuted(next);
+    sound.toggleMute();
   };
 
   if (!player) return null;
