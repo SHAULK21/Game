@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { MONSTERS, REGIONS, CAVES, RARITY_COLORS, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
 import { BattleBackdrop, getBattleScene } from './BattleBackdrop';
+import { CombatCompanion } from './CombatCompanion';
 import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
@@ -497,6 +498,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               : 'opacity-80 bg-slate-900/40'
           }`}>
             {/* Hero Image */}
+            <div className="relative">
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md bg-slate-950">
               <img
                 src={playerHeroImg}
@@ -510,6 +512,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               {turnPhase === 'player' && (
                 <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm" />
               )}
+            </div>
+            <CombatCompanion pet={player.activePet} compact />
             </div>
 
             <div className="w-full mt-1.5 text-center">

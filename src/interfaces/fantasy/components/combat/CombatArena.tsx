@@ -8,6 +8,7 @@ import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getFantasyCombatArtwork } from '../../utils/heroArtwork';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
+import { CombatCompanion } from '../../../../components/combat/CombatCompanion';
 
 interface CombatArenaProps {
   player: PlayerCharacter;
@@ -76,13 +77,14 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             <Portrait src={getFantasyCombatArtwork(player.classId)} alt={player.name} fallback="character" className="h-full w-full object-contain object-bottom" />
           </div>
         </div>
+        <CombatCompanion pet={player.activePet} />
       </div>
 
       <div className={`combat-monster-art ${monsterStriking ? 'monster-strike-motion' : ''} pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]`}>
         <Portrait src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom"/>
       </div>
 
-      <div className="combat-enemy-plaque relative z-10 mt-auto max-w-[88%] pb-1 sm:max-w-[76%]">
+      <div className={`combat-enemy-plaque relative z-10 mt-auto pb-1 ${['pet_wolf', 'pet_golem'].includes(player.activePet?.id || '') ? 'ml-[25%] max-w-[75%]' : 'max-w-[88%] sm:max-w-[76%]'}`}>
         <div className="mb-1 flex items-center gap-2">
           {monster.isBoss && <span className="rounded border border-[#824b47] bg-[#321b1b]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#e0aaa3]">{localize("Босс")}</span>}
           {monster.isElite && <span className="rounded border border-[#695637] bg-[#2c251a]/85 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#d1ad67]">{localize("Элита")}</span>}
