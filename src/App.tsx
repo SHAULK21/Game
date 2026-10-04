@@ -1,3 +1,4 @@
+import { StartupReady } from './components/layout/StartupReady';
 import { t as localize, useLocale } from './i18n/locale';
 import { NotificationOnboarding } from './components/notifications/NotificationOnboarding';
 import { LanguageSync } from './i18n/LanguageSync';
@@ -11,13 +12,16 @@ import { ModernGameContent } from './interfaces/modern/ModernGameContent';
 import { NavigationProvider } from './context/NavigationContext';
 
 const FantasyGameContent = lazy(() => import('./interfaces/fantasy/FantasyGameContent').then(module => ({ default: module.FantasyGameContent })));
+const ReadyGameContent = () => {
+  const { style } = useInterface();
+  return <><StartupReady />{style === 'fantasy' ? <FantasyGameContent /> : <ModernGameContent />}</>;
+};
 const InterfaceContent = () => {
   useLocale();
-  const { style } = useInterface();
   const { player } = useGame();
-  if (!player) return <><LanguageSync /><CharacterCreationModal /></>;
+  if (!player) return <><LanguageSync /><StartupReady /><CharacterCreationModal /></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
-    {style === 'fantasy' ? <FantasyGameContent /> : <ModernGameContent />}
+    <ReadyGameContent />
   </Suspense><NotificationOnboarding /></>;
 };
 

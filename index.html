@@ -10,9 +10,42 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#15181c" />
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preload" as="image" href="/assets/splash/aethelgard-startup.webp" />
+    <style>
+      #startup-splash { position:fixed; inset:0; z-index:10000; background:#0d1113; color:#e5ce96; overflow:hidden; transition:opacity .28s ease; }
+      #startup-splash::before { content:""; position:absolute; inset:-24px; background:url('/assets/splash/aethelgard-startup.webp') center/cover; filter:blur(18px) brightness(.35); }
+      #startup-splash img { position:relative; width:100%; height:100%; object-fit:contain; }
+      #startup-splash .splash-status { position:absolute; inset:auto 0 0; display:flex; flex-direction:column; align-items:center; gap:12px; padding:60px 16px max(24px,env(safe-area-inset-bottom)); background:linear-gradient(transparent,#080b0ee8); font:15px Georgia,serif; text-align:center; }
+      #startup-splash .splash-spinner { width:24px; height:24px; border:2px solid #e5ce9640; border-top-color:#e5ce96; border-radius:50%; animation:splash-spin 1s linear infinite; }
+      #startup-splash button { padding:12px 24px; min-height:44px; border:1px solid #b49756; background:#171d22; color:#f2dfb5; font:inherit; cursor:pointer; }
+      #startup-splash [hidden] { display:none; }
+      #startup-splash.splash-leaving { opacity:0; pointer-events:none; }
+      @keyframes splash-spin { to { transform:rotate(360deg); } }
+      @media(prefers-reduced-motion:reduce) { #startup-splash { transition:none; } #startup-splash .splash-spinner { animation:none; } }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   </head>
   <body class="antialiased selection:bg-amber-500/30 selection:text-amber-100 overflow-x-hidden">
+    <div id="startup-splash" role="status" aria-live="polite" aria-label="Aethelgard RPG">
+      <img src="/assets/splash/aethelgard-startup.webp" alt="" fetchpriority="high" />
+      <div class="splash-status"><span class="splash-spinner" aria-hidden="true"></span><span id="splash-label">Загрузка игры…</span><button id="splash-retry" hidden>Повторить загрузку</button></div>
+    </div>
+    <script>
+      (() => {
+        let language;
+        try { language = localStorage.getItem('aethelgard_language'); } catch {}
+        const uk = language === 'uk' || (!language && /^uk/i.test(navigator.language));
+        document.getElementById('splash-label').textContent = uk ? 'Завантаження гри…' : 'Загрузка игры…';
+        const retry = document.getElementById('splash-retry');
+        retry.textContent = uk ? 'Повторити завантаження' : 'Повторить загрузку';
+        retry.addEventListener('click', () => location.reload());
+        setTimeout(() => {
+          if (!document.getElementById('startup-splash')) return;
+          document.getElementById('splash-label').textContent = uk ? 'Завантаження триває довше, ніж зазвичай…' : 'Загрузка занимает больше времени, чем обычно…';
+          retry.hidden = false;
+        }, 15000);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
