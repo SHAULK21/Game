@@ -6,6 +6,7 @@ import { BattleBackdrop } from '../../../../components/combat/BattleBackdrop';
 import { BestiaryPanel, ProgressBar } from '../ui/BestiaryUI';
 import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
+import { getFantasyEquipmentArtwork } from '../../utils/heroArtwork';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
 
 interface CombatArenaProps {
@@ -27,11 +28,12 @@ interface CombatArenaProps {
   monsterEffects: StatusEffect[];
   latestEvent?: BattleLogEntry;
   monsterStriking?: boolean;
+  playerAttackId?: string;
 }
 
 export const CombatArena: React.FC<CombatArenaProps> = ({
   player, monster, heroImage, heroClassName, locationName, modifierName, scene, dungeonId, round, turnPhase,
-  playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, latestEvent, monsterStriking
+  playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, latestEvent, monsterStriking, playerAttackId
 }) => {
   useLocale();
   const feedback = latestEvent?.type === 'crit' ? 'Критический удар'
@@ -68,7 +70,15 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         <div className="flex shrink-0 items-center gap-2"><span className="truncate text-[#b4aea2]">{localize(modifierName)}</span><span className="combat-round">{localize("Раунд ")}{localize(round)}</span></div>
       </div>
 
-      <div className={`combat-monster-art ${monsterStriking ? 'monster-strike-motion' : ''} pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[75%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[69%]`}>
+      <div className={`combat-player-art ${monsterStriking ? 'combat-player-hit' : ''}`}>
+        <div key={playerAttackId || 'idle'} className={playerAttackId ? 'combat-player-attack' : ''}>
+          <div className="combat-player-breathe">
+            <Portrait src={getFantasyEquipmentArtwork(player.classId)} alt={player.name} fallback="character" className="h-full w-full object-contain object-bottom" />
+          </div>
+        </div>
+      </div>
+
+      <div className={`combat-monster-art ${monsterStriking ? 'monster-strike-motion' : ''} pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]`}>
         <Portrait src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom"/>
       </div>
 
