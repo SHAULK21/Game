@@ -66,7 +66,10 @@ export class SoundManager {
       const finish=()=>{if(slot.token===token)slot.busy=false;};
       try {
         slot.audio.pause();slot.audio.src=`/assets/audio/${file}`;
-        slot.audio.volume=LEVELS[cue]*0.65;slot.audio.playbackRate=rate*(0.97+Math.random()*0.06);
+        // Match Web Audio's natural resampling; tempo-only stretching adds artifacts to short foley.
+        slot.audio.preservesPitch=false;
+        (slot.audio as HTMLAudioElement & {webkitPreservesPitch?:boolean}).webkitPreservesPitch=false;
+        slot.audio.volume=LEVELS[cue]*0.45;slot.audio.playbackRate=rate*(0.97+Math.random()*0.06);
         slot.audio.onended=finish;slot.audio.onerror=finish;
         // Do not await a fetch/decode before play(): this call must retain the gesture.
         const playing=slot.audio.play();

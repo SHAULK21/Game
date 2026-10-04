@@ -6,4 +6,6 @@ The pool is primed synchronously during touch/pointer/click gestures with `publi
 
 Both More screens provide shared mute controls and **Check sound**. The check enables sound, selects compatible playback and starts an existing bell recording directly from the click. Successful play() means playback started, not proof that the device speaker is audible. System media volume, browser settings and Telegram audio policies can still affect output. The desktop header subscribes to the same setting, preventing stale mute indicators.
 
+Media playback disables automatic pitch preservation (including the WebKit-prefixed setting) and uses the same cue gain × 0.45 as the desktop mixer. This matches Web Audio rate-based resampling rather than time-stretching short recordings. Source recordings, variation bags and desktop playback are unchanged. Tests verify both media pitch flags, gain and rate bounds; mobile Chromium verifies the flags on actual playing media elements.
+
 Validation: audio unit tests cover an Android Telegram platform with unusable Web Audio, gesture unlocking, reusable media elements, mute, hidden-page stop and retained throttling. Chromium mobile emulation with autoplay restrictions and AudioContext forced to throw verified actual bell/attack MP3 progress. Existing interface tests passed. Physical Android/iOS Telegram sessions were not available.
