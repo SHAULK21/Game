@@ -18,6 +18,9 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const { isInCombat, isCombatEnded } = useGame();
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent('aethelgard:screen',{detail:isCharacterSheetOpen?'character':currentTab}));
+  },[currentTab,isCharacterSheetOpen]);
+  useEffect(() => {
     if (isInCombat && !isCombatEnded) {
       setIsCharacterSheetOpen(false);
       setCurrentTab('hunter');
