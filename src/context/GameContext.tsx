@@ -1,5 +1,5 @@
 import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
-import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult } from '../utils/fishing';
+import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
@@ -146,7 +146,7 @@ interface GameContextType {
   claimMiningExpedition: () => { success: boolean; message: string };
   leaveMiningExpedition: () => { success: boolean; message: string };
   craftAlchemy: (recipeId: string) => boolean;
-  fishingAction: (action: 'cast' | 'hook' | 'land' | 'cancel' | 'upgrade', id?: string) => FishingResult;
+  fishingAction: (action: FishingAction, id?: string, step?: number) => FishingResult;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   refreshMarketIncome: () => Promise<void>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
@@ -3631,17 +3631,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Alchemy
   const fishingPlayerRef = useRef(player);
   fishingPlayerRef.current = player;
-  const fishingAction = useCallback((action: 'cast' | 'hook' | 'land' | 'cancel' | 'upgrade', id?: string): FishingResult => {
+  const fishingAction = useCallback((action: FishingAction, id?: string, step?: number): FishingResult => {
     const current = fishingPlayerRef.current;
     if (!current) return {success:false,message:'Сначала создайте персонажа.',player:current!};
     if (isInCombat || travelState.isTraveling || activeDungeonRun) return {success:false,message:'Рыбалка доступна вне боя, путешествия и пещеры.',player:current};
     const result = action === 'cast' ? castFishing(current,id || 'river') : action === 'hook' ? hookFishing(current,id || '')
-      : action === 'land' ? landFishing(current,id || '') : action === 'cancel' ? cancelFishing(current) : upgradeFishingRod(current);
+      : action === 'land' ? landFishing(current,id || '') : action === 'cancel' ? cancelFishing(current) : action === 'upgrade' ? upgradeFishingRod(current) : fightFishing(current,id || '',action,step ?? -1);
     if (result.success) {
       fishingPlayerRef.current = result.player;
       setPlayer(result.player);
       if (action === 'land') { sound.playFishingCatch(); triggerHaptic('success'); }
-      else if (action === 'hook') { sound.playFishingReel(); triggerHaptic('medium'); }
+      else if (action === 'hook' || action === 'pull' || action === 'slack' || action === 'brace') { sound.playFishingReel(); triggerHaptic(result.player.fishing?.cast?.fight?.lost ? 'error' : 'light'); }
       else if (action === 'cast') sound.playFishingCast();
       else if (action === 'cancel') sound.playFishingReel();
       else sound.playUpgradeSuccess();
