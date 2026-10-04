@@ -13,6 +13,11 @@ test('actual character applies gear attributes, rewards, full pet stats and hard
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Мастер','warrior'));
   const before=JSON.parse(JSON.stringify(w.game.combatStats));
+  w.dispatchEvent(new w.CustomEvent('aethelgard:screen',{detail:'fishing'}));
+  await w.act(async()=>{for(let i=0;i<10;i++)await Promise.resolve();});
+  const initialSessions=posts.flatMap(p=>p.events).filter((e:any)=>e.kind==='session');
+  assert(initialSessions.some((e:any)=>e.startLevel===1&&e.maxLevel===1));
+  assert(initialSessions.some((e:any)=>e.screen==='fishing'),'shared navigation is captured for both interfaces');
   const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
   seed.player.equipped.ring={id:'test_ring',name:'Кольцо',type:'ring',rarity:'rare',level:1,upgradeLevel:0,icon:'',stats:{strength:10,expBonus:20,goldBonus:25,dropBonus:30},sellPrice:0,disassembleYield:{}};
   seed.player.activePet=w.pets.find((p:any)=>p.id==='pet_golem');

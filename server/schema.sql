@@ -274,6 +274,18 @@ CREATE TABLE IF NOT EXISTS balance_battles (
 ALTER TABLE balance_battles ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'unknown';
 CREATE INDEX IF NOT EXISTS balance_battles_date ON balance_battles(created_at);
 CREATE INDEX IF NOT EXISTS balance_sessions_date ON balance_sessions(created_at);
+ALTER TABLE balance_sessions ADD COLUMN IF NOT EXISTS start_level INTEGER;
+ALTER TABLE balance_sessions ADD COLUMN IF NOT EXISTS max_level INTEGER;
+ALTER TABLE balance_sessions ADD COLUMN IF NOT EXISTS last_screen TEXT;
+ALTER TABLE balance_sessions ADD COLUMN IF NOT EXISTS last_state TEXT;
+ALTER TABLE balance_sessions ADD COLUMN IF NOT EXISTS energy INTEGER;
+CREATE INDEX IF NOT EXISTS balance_sessions_player_date ON balance_sessions(telegram_id,created_at);
+CREATE TABLE IF NOT EXISTS balance_progress (
+ telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+ session_id UUID NOT NULL, level INTEGER NOT NULL, active_ms BIGINT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(telegram_id,session_id,level)
+);
 
 CREATE TABLE IF NOT EXISTS balance_activity (
   telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,

@@ -8,7 +8,8 @@ export function useBalanceTelemetry(player: PlayerCharacter | null, monster: Mon
   ended: boolean, outcome: string | null, rounds: number, difficulty?: string) {
   const latest = useRef({player,monster,inCombat,ended,outcome,rounds,difficulty});
   latest.current={player,monster,inCombat,ended,outcome,rounds,difficulty};
-  const session=useRef<{id:string;user:string;activeMs:number;gold:number;silver:number;last:number;sequence:number;visible:boolean} | null>(null);
+  const session=useRef<{id:string;user:string;activeMs:number;gold:number;silver:number;last:number;sequence:number;visible:boolean;startLevel:number;maxLevel:number;hiddenAt?:number} | null>(null);
+  const screen=useRef('hunter');
   const fight=useRef<{id:string;monster:Monster;level:number;classId:string;activeMs:number;gold:number;silver:number;exp:number;difficulty:string} | null>(null);
   const pending=useRef<any[]>([]);
   const busy=useRef(false);
@@ -32,25 +33,40 @@ export function useBalanceTelemetry(player: PlayerCharacter | null, monster: Mon
   };
   const snapshot=()=>{
     const s=session.current,p=latest.current.player;if(!s||!p)return;
-    tick();enqueue({kind:'session',id:s.id,sequence:++s.sequence,level:p.level,durationMs:Math.round(s.activeMs),
+    s.maxLevel=Math.max(s.maxLevel,p.level);
+    tick();enqueue({kind:'session',id:s.id,sequence:++s.sequence,level:p.level,durationMs:Math.round(s.activeMs),startLevel:s.startLevel,maxLevel:s.maxLevel,screen:screen.current,
+      state:latest.current.inCombat?(latest.current.ended?latest.current.outcome||'idle':'combat'):'idle',energy:Math.round(p.energy),
       netGold:Math.round(p.gold-s.gold),netSilver:Math.round(p.silver-s.silver)});
   };
   useEffect(()=>{
     if(!player?.userId)return;
     queueKey.current='balance_telemetry_'+player.userId;
     try{const old=JSON.parse(localStorage.getItem(queueKey.current)||'[]');pending.current=Array.isArray(old)?old.slice(-200):[];}catch{pending.current=[];}
-    session.current={id:createOperationId(),user:player.userId,activeMs:0,gold:player.gold,silver:player.silver,last:Date.now(),sequence:0,visible:document.visibilityState==='visible'};
+    const beginSession=()=>{
+      const p=latest.current.player;if(!p)return;
+      session.current={id:createOperationId(),user:p.userId,activeMs:0,gold:p.gold,silver:p.silver,last:Date.now(),sequence:0,visible:document.visibilityState==='visible',startLevel:p.level,maxLevel:p.level};
+    };
+    beginSession();
     snapshot();void flush();
     const timer=window.setInterval(tick,10000);
-    const heartbeat=window.setInterval(()=>{snapshot();void flush();},60000);
-    const visibility=()=>{snapshot();void flush();};
+    const heartbeat=window.setInterval(()=>{if(document.visibilityState==='visible'){snapshot();void flush();}},20000);
+    const visibility=()=>{
+      const s=session.current;
+      if(document.visibilityState==='visible'&&s?.hiddenAt&&Date.now()-s.hiddenAt>=1800000&&!latest.current.inCombat)beginSession();
+      snapshot();
+      if(session.current)session.current.hiddenAt=document.visibilityState==='hidden'?Date.now():undefined;
+      void flush();
+    };
+    const navigation=(event:Event)=>{screen.current=(event as CustomEvent<string>).detail;snapshot();void flush();};
+    window.addEventListener('aethelgard:screen',navigation);
     document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',visibility);
-    return ()=>{snapshot();void flush();window.clearInterval(timer);window.clearInterval(heartbeat);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',visibility);session.current=null;fight.current=null;};
+    return ()=>{snapshot();void flush();window.clearInterval(timer);window.clearInterval(heartbeat);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',visibility);window.removeEventListener('aethelgard:screen',navigation);session.current=null;fight.current=null;};
   },[player?.userId]);
+  useEffect(()=>{if(session.current){snapshot();void flush();}},[player?.level]);
   useEffect(()=>{
     if(!inCombat) {fight.current=null;return;}
     if(!player||!monster||!session.current)return;
-    if(!ended && !fight.current){tick();fight.current={id:createOperationId(),monster,level:player.level,classId:player.classId,activeMs:0,gold:0,silver:0,exp:0,difficulty:difficulty||monster.huntingModeId||'standard'};}
+    if(!ended && !fight.current){tick();fight.current={id:createOperationId(),monster,level:player.level,classId:player.classId,activeMs:0,gold:0,silver:0,exp:0,difficulty:difficulty||monster.huntingModeId||'standard'};snapshot();void flush();}
     if(ended && outcome && fight.current){
       tick();const f=fight.current;fight.current=null;
       enqueue({kind:'battle',id:f.id,sessionId:session.current.id,level:f.level,classId:f.classId,region:f.monster.regionId,

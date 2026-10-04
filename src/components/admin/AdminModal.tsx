@@ -1,5 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import { BalanceReport } from './BalanceReport';
+import { PlayerAnalytics } from './PlayerAnalytics';
 import { AdminPlayerReset } from './AdminPlayerReset';
 import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
@@ -126,6 +127,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
+        <PlayerAnalytics />
         <BalanceReport />
         <AdminPlayerReset />
 
