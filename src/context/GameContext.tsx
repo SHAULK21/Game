@@ -1481,6 +1481,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (firstJourney) {
       setIsInCombat(false);setIsCombatEnded(false);setCombatOutcome(null);setActiveMonster(null);
+      setActiveDungeonRun(null);
+      setTravelState({isTraveling:false,targetRegionId:'',targetRegionName:'',progress:0,isAmbush:false,message:''});
       setAutoBattle(prev => ({...prev,enabled:false}));
     }
     setPlayer(migrateAscension(reconcileSkills(newPlayer, classDef.startingSkills)));
