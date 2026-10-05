@@ -21,7 +21,7 @@ export function applyAccountReset(userId: string | number, version: number): boo
     }
   } catch { /* A corrupt save cannot acknowledge a reset. */ }
   localStorage.removeItem(GAME_SAVE_KEY);
-  for (const prefix of ['aethelgard_market_income_', 'aethelgard_market_pending_', 'aethelgard_clan_creation_pending_', 'aethelgard_bulk_pending_', 'aethelgard_pvp_pending_', 'aethelgard_clan_project_pending_']) {
+  for (const prefix of ['aethelgard_market_income_', 'aethelgard_market_pending_', 'aethelgard_residents_pending_', 'aethelgard_clan_creation_pending_', 'aethelgard_bulk_pending_', 'aethelgard_pvp_pending_', 'aethelgard_clan_project_pending_']) {
     localStorage.removeItem(prefix + userId);
   }
   localStorage.setItem(resetVersionKey(userId), String(version));

@@ -515,6 +515,7 @@ export interface PlayerCharacter {
   ascension?: AscensionState;
   regionProgress?: Record<string, { kills: number; eliteWins: number; bossWins: number }>;
   lastMarketListingOperation?: string;
+  lastResidentSaleOperation?: string;
   reservedClanCreationOperation?: string;
   lastClanCreationOperation?: string;
 

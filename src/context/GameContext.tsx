@@ -112,6 +112,7 @@ interface GameContextType {
   equipItem: (item: GameItem) => void;
   unequipItem: (type: ItemType) => void;
   sellItem: (item: GameItem) => void;
+  sellToResidents: (item: GameItem, quantity: number) => Promise<{success: boolean; message: string}>;
   disassembleItem: (item: GameItem) => void;
   bulkDisposeItems: (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => Promise<{success: boolean; message: string}>;
   toggleItemLock: (itemId: string) => void;
@@ -825,6 +826,42 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (pending) {try {void createClan(JSON.parse(pending)).catch(()=>{});} catch {}}
   },[player?.userId]);
 
+  const sellToResidents = useCallback(async (item: GameItem, quantity: number) => {
+    if (!player) return { success: false, message: 'Персонаж не создан.' };
+    if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
+    const key = 'aethelgard_residents_pending_' + player.userId;
+    let operation: {operationId:string;item:GameItem;quantity:number} | null = null;
+    try { operation = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
+    if (operation?.operationId === player.lastResidentSaleOperation) {localStorage.removeItem(key);operation=null;}
+    if (!operation) {
+      const current = player.inventory.find(i => i.id === item.id);
+      if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
+      if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
+      operation={operationId:createOperationId(),item:current,quantity};localStorage.setItem(key,JSON.stringify(operation));
+    }
+    marketBusy.current=true;serverInventoryVersion.current+=1;
+    const pending=operation;
+    const startingResetVersion=readResetVersion(player.userId);
+    try {
+      const receipt = await apiRequest<{gold:number}>('/api/market/residents',{method:'POST',body:JSON.stringify({operationId:pending.operationId,item:pending.item,itemId:pending.item.serverOwned?pending.item.id:undefined,quantity:pending.quantity})});
+      setPlayer(prev => {
+        if(!prev || prev.userId!==player.userId || readResetVersion(player.userId)!==startingResetVersion || prev.lastResidentSaleOperation===pending.operationId)return prev;
+        const inventory=prev.inventory.flatMap(i=>{
+          if(i.id!==pending.item.id)return [i];
+          const left=(i.stackCount||1)-pending.quantity;
+          return left>0?[{...i,stackCount:left}]:[];
+        });
+        return {...prev,inventory,gold:prev.gold+receipt.gold,lastResidentSaleOperation:pending.operationId};
+      });
+      return {success:true,message:'Продано местным жителям.'};
+    }catch(error){
+      const message=error instanceof Error?error.message:'Не удалось продать предмет.';
+      if (/HTTP 400|HTTP 403|HTTP 409/.test(message))localStorage.removeItem(key);
+      return {success:false,message};
+    }finally{marketBusy.current=false;}
+  }, [player]);
+
   const listMarketItem = useCallback(async (item: GameItem, quantity: number, priceGold: number) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
     if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
@@ -863,6 +900,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(()=>{
     if(!player || !localStorage.getItem('aethelgard_market_pending_'+player.userId))return;
     try{const operation=JSON.parse(localStorage.getItem('aethelgard_market_pending_'+player.userId)!);void listMarketItem(operation.item,operation.quantity,operation.priceGold);}catch{localStorage.removeItem('aethelgard_market_pending_'+player.userId);}
+  },[player?.userId]);
+  useEffect(()=>{
+    if(!player || !localStorage.getItem('aethelgard_residents_pending_'+player.userId))return;
+    try{const operation=JSON.parse(localStorage.getItem('aethelgard_residents_pending_'+player.userId)!);void sellToResidents(operation.item,operation.quantity);}catch{localStorage.removeItem('aethelgard_residents_pending_'+player.userId);}
   },[player?.userId]);
 
   const refreshMarketIncome = useCallback(async () => {
@@ -1109,6 +1150,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
     const clanPendingKey='aethelgard_clan_creation_pending_'+player.userId;
     try {const pending=JSON.parse(localStorage.getItem(clanPendingKey)||'null');if(pending?.operationId===player.lastClanCreationOperation)localStorage.removeItem(clanPendingKey);}catch{localStorage.removeItem(clanPendingKey);}
+    const residentKey='aethelgard_residents_pending_'+player.userId;
+    try {if(JSON.parse(localStorage.getItem(residentKey)||'null')?.operationId===player.lastResidentSaleOperation)localStorage.removeItem(residentKey);}catch{localStorage.removeItem(residentKey);}
     const marketPendingKey='aethelgard_market_pending_'+player.userId;
     try {const operation=JSON.parse(localStorage.getItem(marketPendingKey)||'null');if(operation?.operationId===player.lastMarketListingOperation)localStorage.removeItem(marketPendingKey);}catch{localStorage.removeItem(marketPendingKey);}
     // Remove the retry record only after the awarded state has been persisted.
@@ -3993,6 +4036,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       equipItem,
       unequipItem,
       sellItem,
+      sellToResidents,
       disassembleItem,
       bulkDisposeItems,
       toggleItemLock,

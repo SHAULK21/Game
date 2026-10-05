@@ -10,6 +10,7 @@ async function setup(contents: string) {
   const w: any = dom.window;
   w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };
   w.IS_REACT_ACT_ENVIRONMENT = true; w.Headers = Headers; w.AbortSignal = AbortSignal;
+  w.localStorage.setItem('aethelgard_story_intro_v1_749219401','done');
   w.eval(bundle.outputFiles[0].text);
   return { dom, w };
 }
@@ -351,5 +352,20 @@ test('fantasy inventory manuscript retains equipment, locks, salvage, sale and r
     const gold=w.game.player.gold;await w.act(async()=>sale.click());await settle();assert(w.game.player.gold>gold);
     await w.act(async()=>tab('Ресурсы').click());assert(w.document.querySelector('[data-reference-part="item-ore"]'));
     await click('Открыть мастерскую снаряжения · рецепты и ресурсы');assert.equal(w.workshop,1);
+  } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
+
+
+test('intro offers five bilingual scenes, back and skip, then remembers completion for this account', async () => {
+  const {dom,w}=await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import{StoryRegistration}from'./src/components/dialogs/StoryIntro';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<StoryRegistration><p>REGISTRATION</p></StoryRegistration>);};`);
+  w.localStorage.removeItem('aethelgard_story_intro_v1_749219401');
+  const click=async(text:string)=>w.act(async()=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text).click());
+  try {
+    await w.act(async()=>w.mount());assert.match(w.document.body.textContent,/Врата Аэтельгарда/);
+    await click('Далее');assert.match(w.document.body.textContent,/Под защитой замка/);await click('Назад');
+    const select=w.document.querySelector('select');await w.act(async()=>{select.value='uk';select.dispatchEvent(new w.Event('change',{bubbles:true}));});assert.match(w.document.body.textContent,/Брама Аетельгарда/);
+    for(let i=0;i<4;i++)await click('Далі');assert.match(w.document.body.textContent,/Перше доручення/);await click('Створити героя');assert.match(w.document.body.textContent,/REGISTRATION/);
+    await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.match(w.document.body.textContent,/REGISTRATION/);
+    await w.act(async()=>w.root.unmount());w.localStorage.removeItem('aethelgard_story_intro_v1_749219401');await w.act(async()=>w.mount());await click('Пропустити');assert.match(w.document.body.textContent,/REGISTRATION/);
   } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
 });
