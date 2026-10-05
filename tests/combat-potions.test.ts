@@ -34,6 +34,16 @@ test('real provider: free restoration preserves effects and cooldowns; throws us
   seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.classId='warrior';seed.player.inventory.push(pot('bomb',{fireDamage:90}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>w.game.startBattleWithMonster({...target,resistances:{fire:50}},{chain:false,energyCost:0}));const resistantHp=w.game.activeMonster.hp;await w.act(async()=>w.game.performPlayerAction('potion','bomb'));assert.equal(resistantHp-w.game.activeMonster.hp,45);
   await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
+  await w.act(async()=>w.game.exitCombat());
+  seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.inventory.push(pot('venom',{poisonDamage:220}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
+  const venomStartHp=w.game.activeMonster.hp;
+  await w.act(async()=>w.game.performPlayerAction('potion','venom'));
+  assert.equal(w.game.monsterEffects.find((e:any)=>e.type==='poison').value,33);
+  assert.equal(w.game.battleLog.find((e:any)=>e.id.startsWith('throw_')&&e.impact)?.impact.amount,220);
+  await w.act(async()=>await new Promise(r=>setTimeout(r,1100)));
+  const dot=w.game.battleLog.find((e:any)=>e.impact?.periodic==='poison');assert(dot);assert.equal(dot.impact.amount,33);assert.equal(dot.impact.target,'monster');assert.equal(w.game.activeMonster.hp,venomStartHp-253);
+  await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
   const timers:number[]=[];const native=w.setTimeout.bind(w);w.setTimeout=(fn:any,ms:number,...args:any[])=>{timers.push(ms);return native(fn,ms,...args);};
   await w.act(async()=>w.game.updateAutoBattleSettings({enabled:true,useSkills:false,healAtHpPercent:0}));await w.act(async()=>await new Promise(r=>setTimeout(r,650)));assert.equal(w.game.turnPhase,'monster');assert(timers.includes(600));assert(timers.includes(650));assert(!timers.includes(750));
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}

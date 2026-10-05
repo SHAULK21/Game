@@ -91,7 +91,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const selectedLock = selectedMonster ? huntLockReason(player, selectedMonster, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id) : null;
   const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
 
-  const lastAction = [...battleLog].reverse().find(entry => ['player-attack','monster-attack','crit','heal'].includes(entry.type));
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
   const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
@@ -213,11 +212,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
         monsterEffects={monsterEffects}
         playerAttackId={[...battleLog].reverse().find(entry => entry.type === 'player-attack' || (entry.type === 'crit' && entry.id.startsWith('dmg_')))?.id}
         monsterStriking={monsterStriking}
-        latestEvent={battleLog.at(-1)}
+        battleLog={battleLog}
       />
       {/* Combat status and actions */}
       <div className="combat-command-center space-y-2">
-        {lastAction && <p className="bestiary-panel text-[#d8d1c4] px-3 py-2 text-xs leading-relaxed"><strong>{localize("Последнее действие")}: </strong>{localize(lastAction.text.replace(/[\p{Extended_Pictographic}\uFE0F]/gu,'').trim())}</p>}
         {battleLog.at(-1)?.id.startsWith('pet_opening_') && <p role="status" className="bestiary-panel px-3 py-2 text-xs leading-relaxed text-[#d8d1c4]">{localize(battleLog.at(-1)!.text)}</p>}
         {combatNarration.length > 0 && <div role="status" className="bestiary-panel px-3 py-2 text-xs leading-relaxed text-[#d8d1c4]">{combatNarration.map((line, i) => <p key={i}>{localize(line)}</p>)}</div>}
         {turnPhase === 'player' && activeMonster && !isCombatEnded && (

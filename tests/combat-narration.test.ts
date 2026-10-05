@@ -36,7 +36,19 @@ test('real combat resolves player actions immediately, rejects double clicks and
   await w.act(async()=>w.game.performPlayerAction('defend'));assert(w.game.playerEffects.some((e:any)=>e.type==='shield'));
   for(let i=0;i<6&&w.game.turnPhase==='monster';i++)await w.act(async()=>await new Promise(r=>setTimeout(r,850)));
   assert.equal(w.game.turnPhase,'player');assert(w.game.combatNarration.some((s:string)=>s.includes('полностью отбили')));assert.equal(w.game.combatPlayerHp,w.game.combatStats.maxHp);
-  await w.act(async()=>{w.game.performPlayerAction('attack');});await w.act(async()=>w.game.exitCombat());
+  const ordinaryImpact=w.game.battleLog.find((e:any)=>e.impact?.target==='player');assert(ordinaryImpact.impact.blocked>0);assert.equal(ordinaryImpact.impact.amount,0);
+  await w.act(async()=>w.game.exitCombat());
+  const powerful={...target,mp:100,maxMp:100,skills:[{id:'test_slam',name:'Сокрушительный удар',damageType:'physical',damageMultiplier:2,manaCost:0,cooldown:3,currentCooldown:0}]};
+  await w.act(async()=>w.game.startBattleWithMonster(powerful,{chain:false,energyCost:0}));await w.act(async()=>w.game.performPlayerAction('defend'));
+  for(let i=0;i<8&&w.game.turnPhase==='monster';i++)await w.act(async()=>await new Promise(r=>setTimeout(r,850)));
+  const powerfulImpact=w.game.battleLog.find((e:any)=>e.id.startsWith('monster_skill_damage_'));assert(powerfulImpact);assert.equal(powerfulImpact.impact.empowered,true);assert(powerfulImpact.impact.blocked>0);assert.equal(powerfulImpact.impact.target,'player');
+  await w.act(async()=>w.game.exitCombat());
+  // The berserker's real starting skill inflicts bleeding at this deterministic roll.
+  await w.act(async()=>w.game.createCharacter('Кровотечение','berserker'));
+  await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));await w.act(async()=>w.game.performPlayerAction('skill',w.game.player.skills[0].id));
+  const beforeTick=w.game.activeMonster.hp;await w.act(async()=>await new Promise(r=>setTimeout(r,1000)));
+  const bleed=w.game.battleLog.find((e:any)=>e.impact?.periodic==='bleed');assert(bleed);assert.equal(bleed.impact.amount,30);assert.equal(w.game.activeMonster.hp,beforeTick-30);
+  await w.act(async()=>w.game.exitCombat());
   assert.equal(w.game.isInCombat,false);assert.equal(w.game.activeMonster,null);assert.equal(w.game.battleLog.length,0);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

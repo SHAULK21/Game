@@ -87,3 +87,21 @@ button:disabled:active { transform: none; }
 @keyframes companion-breathe { 50% { transform:translateY(-1px); } }
 @keyframes companion-hover { 50% { transform:translateY(-3px) rotate(2deg); } }
 @media(prefers-reduced-motion:reduce) { .combat-companion { animation:none!important; } }
+
+/* Combat numbers expire independently of the next action. */
+.combat-damage-layer { position:absolute;inset:0;z-index:25;pointer-events:none; }
+.combat-damage-stack { position:absolute;top:24%;width:46%;display:flex;flex-direction:column;align-items:center;gap:4px; }
+.combat-damage-player { left:2%; } .combat-damage-monster { right:2%; }
+.combat-damage-pop { max-width:100%;padding:5px 8px;border:1px solid #ae7659;border-radius:7px;background:#160e0ae8;color:#ffe3bc;text-align:center;box-shadow:0 2px 10px #000a;animation:combat-damage-rise 1.6s ease-out both; }
+.combat-damage-pop strong { display:block;font-size:25px;line-height:1.1;text-shadow:0 2px 3px #000;font-variant-numeric:tabular-nums; }
+.combat-damage-caption { display:block;font-size:10px;font-weight:800;line-height:1.2; }
+.combat-damage-pop small { display:block;font-size:10px; }
+.combat-damage-pop.is-critical { color:#ffe781;border:2px solid #eac051; }
+.combat-damage-pop.is-super { color:#ffb29c;border:2px solid #ef6648;box-shadow:0 0 14px #e9433755; }
+.combat-damage-pop.is-shield,.combat-damage-pop.is-shield-super { color:#aff4ff;border-color:#59bccc;background:#0d2530ed; }
+.combat-damage-pop.is-shield-super { border:2px double #a0ecff;box-shadow:0 0 16px #55cfff66; }
+.combat-damage-pop.is-bleed { color:#ffaaaa;border-color:#c74854; }
+.combat-damage-pop.is-poison { color:#beee87;border-color:#83b94d;background:#17220ded; }
+.combat-damage-pop.is-burn { color:#ffc180;border-color:#e78f3b; }
+@keyframes combat-damage-rise { 0% {opacity:0;transform:translateY(12px) scale(.9)} 12%,65% {opacity:1;transform:translateY(0) scale(1)} 100% {opacity:0;transform:translateY(-22px)} }
+@media (prefers-reduced-motion:reduce) { .combat-damage-pop { animation:none; } }
