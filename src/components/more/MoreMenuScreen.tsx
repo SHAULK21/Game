@@ -1,3 +1,4 @@
+import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { SoundControls } from '../ui/SoundControls';
@@ -250,13 +251,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       )}
 
       {/* LEADERBOARD SECTION */}
-      {activeSection === 'leaderboard' && (
-        <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-5 text-center">
-          <Trophy className="w-8 h-8 mx-auto text-amber-400 mb-2" />
-          <div className="font-cinzel text-sm font-bold text-slate-200">{localize("Рейтинг игроков")}</div>
-          <p className="text-[10px] text-slate-500 mt-1">{localize("Глобальный рейтинг будет показываться только из серверной базы. Тестовые персонажи больше не используются.")}</p>
-        </div>
-      )}
+      {activeSection === 'leaderboard' && <LeaderboardScreen embedded />}
 
       {activeSection === 'premium' && (
         <div className="space-y-3">

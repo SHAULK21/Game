@@ -293,7 +293,8 @@ app.get('/api/community/stats', auth, async (_req, res) => {
 
 app.get('/api/leaderboard', auth, async (_req, res) => {
   const result = await pool.query(
-    `SELECT telegram_id, COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS character_name, level, arena_rating
+    `SELECT telegram_id, COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS character_name, level, arena_rating,
+            updated_at >= NOW() - INTERVAL '5 minutes' AS is_online
      FROM players
      ORDER BY level DESC, arena_rating DESC, updated_at ASC
      LIMIT 100`

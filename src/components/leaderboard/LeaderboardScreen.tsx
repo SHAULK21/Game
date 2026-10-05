@@ -1,40 +1,62 @@
 import { t as localize, useLocale } from '../../i18n/locale';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Crown, Trophy, RefreshCw } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { apiRequest } from '../../utils/api';
 
-type Row = { telegram_id: number; character_name?: string; level: number; arena_rating: number };
+type Row = { telegram_id: number; character_name?: string; level: number; arena_rating: number; is_online?: boolean };
 
-export const LeaderboardScreen: React.FC = () => {
+export const LeaderboardScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   useLocale();
   const { player } = useGame();
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState('');
+  const requestInFlight = useRef(false);
+  const mounted = useRef(false);
+  const characterName = player?.name;
+  const level = player?.level;
+  const arenaRating = player?.arenaRating;
 
-  const load = async () => {
-    setError('');
+  const load = useCallback(async () => {
+    if (requestInFlight.current || !mounted.current) return;
+    requestInFlight.current = true;
     try {
-      if (player) await apiRequest('/api/profile/sync', {
+      if (characterName !== undefined) await apiRequest('/api/profile/sync', {
         method: 'POST',
-        body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
+        body: JSON.stringify({ characterName, level, arenaRating })
       });
       const r = await apiRequest<{ players: Row[] }>('/api/leaderboard');
-      setRows(r.players || []);
+      if (mounted.current) {
+        setRows(r.players || []);
+        setError('');
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить рейтинг.');
+      if (mounted.current) setError(e instanceof Error ? e.message : 'Не удалось загрузить рейтинг.');
+    } finally {
+      requestInFlight.current = false;
     }
-  };
+  }, [characterName, level, arenaRating]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    mounted.current = true;
+    const refresh = () => { if (!document.hidden) void load(); };
+    refresh();
+    const timer = window.setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      mounted.current = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [load]);
 
-  const me = player ? { telegram_id: Number(player.userId), character_name: player.name, level: player.level, arena_rating: player.arenaRating } : null;
+  const me: Row | null = player ? { telegram_id: Number(player.userId), character_name: player.name, level: player.level, arena_rating: player.arenaRating, is_online: true } : null;
   const merged = rows.map(row => me && String(row.telegram_id) === String(me.telegram_id) ? me : row);
   if (me && !merged.some(r => String(r.telegram_id) === String(me.telegram_id))) merged.push(me);
   merged.sort((a,b) => b.level - a.level || b.arena_rating - a.arena_rating);
 
   return (
-    <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+    <div className={`space-y-4 max-w-lg mx-auto ${embedded ? '' : 'p-3 pb-24'}`}>
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-3">
           <Crown className="w-8 h-8 text-yellow-300" />
@@ -49,7 +71,13 @@ export const LeaderboardScreen: React.FC = () => {
           return <div key={String(row.telegram_id)} className={`rounded-xl border p-3 flex items-center gap-3 ${isMe ? 'border-cyan-400/50 bg-cyan-950/20' : 'border-slate-800 bg-[#0a0f1d]'}`}>
             <div className="w-8 text-center font-bold text-slate-500">{localize(i + 1)}</div>
             <Trophy className={`w-5 h-5 ${i === 0 ? 'text-yellow-300' : 'text-slate-600'}`} />
-            <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.character_name || localize('Игрок')}</div><div className="text-[9px] text-slate-500">{localize("Уровень ")}{localize(row.level)}{localize(" · Арена ")}{localize(row.arena_rating)}</div></div>
+            <div className="flex-1 min-w-0">
+              <div className="h-2 mb-1 flex items-center">
+                {row.is_online && <span role="img" aria-label={localize('Онлайн')} title={localize('Онлайн')} className="block h-2 w-2 rounded-full bg-emerald-400" />}
+              </div>
+              <div className="text-xs font-bold truncate">{row.character_name || localize('Игрок')}</div>
+              <div className="text-[9px] text-slate-500">{localize("Уровень ")}{localize(row.level)}{localize(" · Арена ")}{localize(row.arena_rating)}</div>
+            </div>
             {isMe && <span className="text-[9px] text-[#d5ba89] font-bold">{localize("ВЫ")}</span>}
           </div>;
         })}
