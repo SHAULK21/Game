@@ -509,6 +509,7 @@ export interface PlayerCharacter {
   level: number;
   exp: number;
   nextExp: number;
+  firstJourney?: 'battle' | 'codex' | 'done';
   statPoints: number;
   talentPoints: number;
   lastBulkDisposalId?: string;

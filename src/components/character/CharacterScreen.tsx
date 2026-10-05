@@ -1,3 +1,4 @@
+import { FirstJourneyHint } from './FirstJourneyHint';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { HeroStats } from './HeroStats';
 import React, { useState } from 'react';
@@ -35,6 +36,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      <FirstJourneyHint />
       <div className="flex items-center gap-3"><button onClick={onClose} disabled={!onClose} aria-label={localize("Закрыть профиль")} className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400"><ArrowLeft className="w-4 h-4"/></button><h2 className="font-cinzel text-sm font-bold text-slate-200">{localize("Профиль героя")}</h2></div>
 
       <section className="relative overflow-hidden rounded-2xl border border-cyan-800/40 bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-950 p-4 space-y-4">

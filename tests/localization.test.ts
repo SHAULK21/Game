@@ -48,6 +48,9 @@ test('language selection is visible only at registration; its saved locale survi
     const fantasy = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.startsWith('Фентезі')) as any;
     assert(fantasy); await w.act(async () => fantasy.click()); await settle();
     await click('Почати подорож');
+    w.Math.random=()=>0;await click('Покинути бій');
+    assert.match(w.document.body.textContent,/Перший бій позаду/);
+    await w.act(async()=>w.document.querySelector('[aria-label="Закрити лист персонажа"]').click());await settle();
     assert.equal(save().player.name, 'Золото');
     const original = JSON.stringify(save().player);
     assert.equal(button(w, 'Русский'), undefined); assert.equal(button(w, 'Українська'), undefined);
