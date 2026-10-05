@@ -1,3 +1,4 @@
+import { FirstJourneyHint } from '../../../../components/character/FirstJourneyHint';
 import { HeroReferenceArt } from '../ui/HeroReferenceArt';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
@@ -54,6 +55,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
   ];
 
   return <FolioPage className="hero-codex hero-reference-codex space-y-3 pt-3">
+    <FirstJourneyHint />
     <HeroReferenceArt region="frame" stretch className="hero-reference-backdrop"/>
     <div className="hero-reference-clean-page" aria-hidden="true"><HeroReferenceArt region="paper" stretch/></div>
 

@@ -58,6 +58,10 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => selectClass('Воин').click());
 
     await w.act(async () => button('Начать путешествие').click()); await settle();
+    assert(button('Атака'), 'registration starts the first fight');
+    w.Math.random=()=>0;await w.act(async()=>button('Покинуть бой').click());await settle();
+    assert.match(w.document.body.textContent,/Первый бой позади/);
+    await w.act(async()=>w.document.querySelector('[aria-label="Закрыть лист персонажа"]').click());await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
     assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
@@ -185,6 +189,9 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
       input.dispatchEvent(new w.Event('input',{bubbles:true}));
     });
     await click('Начать путешествие');
+    w.Math.random=()=>0;await click('Покинуть бой');
+    assert.match(w.document.body.textContent,/Первый бой позади/);
+    await w.act(async()=>aria('Закрыть лист персонажа').click());await settle();
     assert.equal(w.document.querySelectorAll('header').length,1);
     assert.equal(w.document.querySelectorAll('nav').length,1);
     assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);

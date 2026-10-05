@@ -29,7 +29,7 @@ export const CharacterCreationModal: React.FC = () => {
 
   const handleStart = () => {
     if (!name.trim()) return;
-    createCharacter(name, selectedClass);
+    createCharacter(name, selectedClass, true);
   };
 
   const { style } = useInterface();

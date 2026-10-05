@@ -104,7 +104,8 @@ interface GameContextType {
   premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean; invoiceLink?: string | null };
   
   // Actions
-  createCharacter: (name: string, classId: CharacterClassId) => void;
+  createCharacter: (name: string, classId: CharacterClassId, firstJourney?: boolean) => void;
+  acknowledgeFirstJourney: () => void;
   resetCharacter: () => void;
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
@@ -1327,7 +1328,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing]);
 
   // Character Creation
-  const createCharacter = useCallback((name: string, classId: CharacterClassId) => {
+  const createCharacter = useCallback((name: string, classId: CharacterClassId, firstJourney = false) => {
     const classDef = CLASSES[classId];
     const starterGear = STARTER_ITEMS[classId] || [];
     const equipped: Partial<Record<ItemType, GameItem>> = {};
@@ -1428,6 +1429,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       level: 1,
       exp: 0,
       nextExp: getNextExperience(1),
+      firstJourney: firstJourney ? 'battle' : undefined,
       statPoints: 5,
       talentPoints: 1,
       regionProgress: {},
@@ -1477,6 +1479,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeRegionModId: 'mod_standard'
     };
 
+    if (firstJourney) {
+      setIsInCombat(false);setIsCombatEnded(false);setCombatOutcome(null);setActiveMonster(null);
+      setAutoBattle(prev => ({...prev,enabled:false}));
+    }
     setPlayer(migrateAscension(reconcileSkills(newPlayer, classDef.startingSkills)));
     sound.playLevelUp();
     triggerHaptic('success');
@@ -3163,6 +3169,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBattleLog([]);
   }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
 
+  const acknowledgeFirstJourney = useCallback(() => {
+    setPlayer(prev => prev?.firstJourney === 'codex' ? {...prev,firstJourney:'done'} : prev);
+  }, []);
+
+  useEffect(() => {
+    if (player?.firstJourney !== 'battle') return;
+    if (isCombatEnded) {
+      setPlayer(prev => prev?.firstJourney === 'battle' ? {...prev,firstJourney:'codex'} : prev);
+    } else if (!isInCombat) {
+      startBattleWithMonster(getRegionMonster(MONSTERS.m_wolf, REGIONS[0]), {chain:false,energyCost:0,huntingModeId:'mod_standard'});
+    }
+  }, [player?.firstJourney, isInCombat, isCombatEnded, startBattleWithMonster]);
+
   // Exploration & Regions
   const setCurrentRegion = useCallback((regionId: string) => {
     const region = REGIONS.find(r => r.id === regionId);
@@ -4029,6 +4048,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       travelState,
       premium,
       createCharacter,
+      acknowledgeFirstJourney,
       resetCharacter,
       allocateAttribute,
       unlockTalent,
