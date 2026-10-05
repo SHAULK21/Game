@@ -7,15 +7,17 @@ import { gameMessagePayload, gameMenuButton, messageLanguage } from '../server/t
 import { runNotificationBatch, registerSocialFeatures } from '../server/socialFeatures';
 
 const button = (w: any, label: string) => [...w.document.querySelectorAll('button')].find((el: any) => el.textContent.trim() === label) as any;
-async function completeFirstDeparture(w:any, plusLabel:string, departLabel:string) {
+async function completeFirstDeparture(w:any, plusLabel:string) {
+  w.Math.random=()=>.5; // Exercise the ordinary successful route, without an ambush.
   while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
-  const departure=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===departLabel) as any;
-  assert(departure,'the tutorial offers only the first location');
-  await w.act(async()=>departure.click());
-  await w.act(async()=>await new Promise(r=>setTimeout(r,3300)));
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,55);
+  assert(![...w.document.querySelectorAll('button')].some((n:any)=>/Отправиться на Зелёные|Вирушити на Зелені/.test(n.textContent)));
+  await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
+  const hunt=[...w.document.querySelectorAll('nav button')].find((n:any)=>n.textContent.trim()===(plusLabel.startsWith('Під')?'Полювання':'Охота')) as any;
+  await w.act(async()=>hunt.click());
 }
 
 async function app(language = 'uk-UA', stored?: string) {
@@ -61,7 +63,7 @@ test('language selection is visible only at registration; its saved locale survi
     await click('Почати подорож');
     w.Math.random=()=>0;await click('Покинути бій');
     assert.match(w.document.body.textContent,/Перший бій позаду/);
-    await completeFirstDeparture(w,'Підвищити: Сила','Вирушити на Зелені рівнини');await settle();
+    await completeFirstDeparture(w,'Підвищити: Сила');await settle();
     assert.equal(save().player.name, 'Золото');
     const original = JSON.stringify(save().player);
     assert.equal(button(w, 'Русский'), undefined); assert.equal(button(w, 'Українська'), undefined);

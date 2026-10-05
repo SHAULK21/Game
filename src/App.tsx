@@ -10,8 +10,7 @@ import { CharacterCreationModal } from './components/dialogs/CharacterCreationMo
 import { InterfaceProvider, useInterface } from './context/InterfaceContext';
 import { AccountSessionGate } from './components/layout/AccountSessionGate';
 import { ModernGameContent } from './interfaces/modern/ModernGameContent';
-import { FirstJourneyDeparture } from './components/dialogs/FirstJourneyDeparture';
-import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { NavigationProvider } from './context/NavigationContext';
 
 const FantasyGameContent = lazy(() => import('./interfaces/fantasy/FantasyGameContent').then(module => ({ default: module.FantasyGameContent })));
 const ReadyGameContent = () => {
@@ -21,10 +20,8 @@ const ReadyGameContent = () => {
 const InterfaceContent = () => {
   useLocale();
   const { player } = useGame();
-  const {isCharacterSheetOpen} = useNavigation();
   useEffect(() => { if (player) markStoryIntroSeen(); }, [Boolean(player)]);
   if (!player) return <><LanguageSync /><StartupReady /><StoryRegistration><CharacterCreationModal /></StoryRegistration></>;
-  if (player.firstJourney === 'done' && player.firstJourneyDeparture && !isCharacterSheetOpen) return <><LanguageSync /><StartupReady /><FirstJourneyDeparture /></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
     <ReadyGameContent />
   </Suspense><NotificationOnboarding /></>;

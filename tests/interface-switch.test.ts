@@ -4,15 +4,17 @@ import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 import { getMonsterArtworkPath } from '../src/interfaces/fantasy/utils/monsterArtwork';
 
-async function completeFirstDeparture(w:any, plusLabel:string, departLabel:string) {
+async function completeFirstDeparture(w:any, plusLabel:string) {
+  w.Math.random=()=>.5; // Exercise the ordinary successful route, without an ambush.
   while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
-  const departure=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===departLabel) as any;
-  assert(departure,'the tutorial offers only the first location');
-  await w.act(async()=>departure.click());
-  await w.act(async()=>await new Promise(r=>setTimeout(r,3300)));
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,55);
+  assert(![...w.document.querySelectorAll('button')].some((n:any)=>/Отправиться на Зелёные|Вирушити на Зелені/.test(n.textContent)));
+  await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
+  const hunt=[...w.document.querySelectorAll('nav button')].find((n:any)=>n.textContent.trim()===(plusLabel.startsWith('Під')?'Полювання':'Охота')) as any;
+  await w.act(async()=>hunt.click());
 }
 
 async function setup(contents: string) {
@@ -72,7 +74,7 @@ test('registration switches styles without losing input; both layouts share char
     assert(button('Атака'), 'registration starts the first fight');
     w.Math.random=()=>0;await w.act(async()=>button('Покинуть бой').click());await settle();
     assert.match(w.document.body.textContent,/Первый бой позади/);
-    await completeFirstDeparture(w,'Повысить: Сила','Отправиться на Зелёные равнины');await settle();
+    await completeFirstDeparture(w,'Повысить: Сила');await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
     assert.equal(button('Русский'), undefined); assert.equal(button('Українська'), undefined);
@@ -202,8 +204,8 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     await click('Начать путешествие');
     w.Math.random=()=>0;await click('Покинуть бой');
     assert.match(w.document.body.textContent,/Первый бой позади/);
-    await completeFirstDeparture(w,'Повысить: Сила','Отправиться на Зелёные равнины');await settle();
-    const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));later.player.statPoints=2;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
+    await completeFirstDeparture(w,'Повысить: Сила');await settle();
+    const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
     assert.equal(w.document.querySelectorAll('header').length,1);
     assert.equal(w.document.querySelectorAll('nav').length,1);
     assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);

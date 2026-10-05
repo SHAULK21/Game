@@ -16,7 +16,7 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
   const [currentTab, setCurrentTab] = useState<GameTabId>('hunter');
   const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const { player, isInCombat, isCombatEnded, exitCombat, acknowledgeFirstJourney } = useGame();
+  const { player, isInCombat, isCombatEnded, exitCombat, acknowledgeFirstJourney, travelState } = useGame();
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('aethelgard:screen',{detail:isCharacterSheetOpen?'character':currentTab}));
   },[currentTab,isCharacterSheetOpen]);
@@ -34,11 +34,11 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
     setIsCharacterSheetOpen(true);
   }, [player?.firstJourney, exitCombat, acknowledgeFirstJourney]);
   useEffect(() => {
-    if (player?.firstJourney === 'done' && player.firstJourneyDeparture && player.statPoints === 0) {
+    if (travelState.isTraveling || player?.firstJourney === 'done' && player.firstJourneyDeparture && player.statPoints === 0) {
       setIsCharacterSheetOpen(false);
-      setCurrentTab('hunter');
+      setCurrentTab('world');
     }
-  }, [player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints]);
+  }, [player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints,travelState.isTraveling]);
   return <NavigationContext.Provider value={{ currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen }}>{children}</NavigationContext.Provider>;
 };
 
