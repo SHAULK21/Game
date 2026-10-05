@@ -33,6 +33,12 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
     setCurrentTab('hunter');
     setIsCharacterSheetOpen(true);
   }, [player?.firstJourney, exitCombat, acknowledgeFirstJourney]);
+  useEffect(() => {
+    if (player?.firstJourney === 'done' && player.firstJourneyDeparture && player.statPoints === 0) {
+      setIsCharacterSheetOpen(false);
+      setCurrentTab('hunter');
+    }
+  }, [player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints]);
   return <NavigationContext.Provider value={{ currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen }}>{children}</NavigationContext.Provider>;
 };
 

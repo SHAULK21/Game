@@ -24,6 +24,18 @@ test('new heroes start one free fight, open the codex after victory or flee, spe
    }else{await w.act(async()=>w.game.performPlayerAction('flee'));await settle();}
    assert.equal(w.game.player.firstJourney,'done',cls);assert.equal(w.nav.isCharacterSheetOpen,true,cls);assert.equal(w.game.isInCombat,false);assert.equal(w.game.activeMonster,null);
    const points=w.game.player.statPoints,strength=w.game.player.attributes.strength;await w.act(async()=>w.game.allocateAttribute('strength'));assert.equal(w.game.player.statPoints,points-1);assert.equal(w.game.player.attributes.strength,strength+1);
+   if(cls==='warrior') {
+    while(w.game.player.statPoints>0) await w.act(async()=>w.game.allocateAttribute('strength'));
+    assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.game.player.firstJourneyDeparture,true);assert.equal(w.game.travelState.isTraveling,false);
+    await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();
+    assert.equal(w.game.player.firstJourneyDeparture,true);assert.equal(w.game.player.statPoints,0);assert.equal(w.game.isInCombat,false);
+    const energy=w.game.player.energy;
+    await w.act(async()=>w.game.startFirstJourneyDeparture());const started=w.game.player.firstJourneyDepartureStartedAt;
+    await w.act(async()=>w.game.startFirstJourneyDeparture());assert.equal(w.game.player.firstJourneyDepartureStartedAt,started);assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.player.energy,energy);
+    await w.act(async()=>w.root.unmount());const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.firstJourneyDepartureStartedAt=Date.now()-3500;w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));
+    await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.currentRegionId,'reg_plains');assert.equal(w.game.player.energy,energy);assert.equal(w.game.isInCombat,false);
+    await w.act(async()=>w.game.startFirstJourneyDeparture());assert.equal(w.game.player.firstJourneyDepartureStartedAt,undefined);
+   }
    await w.act(async()=>w.nav.setIsCharacterSheetOpen(false));await settle();assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.game.isInCombat,false);
   }
   const last=w.game.player.id;await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.id,last);assert.equal(w.game.player.firstJourney,'done');assert.equal(w.game.isInCombat,false);assert.equal(w.nav.isCharacterSheetOpen,false);
