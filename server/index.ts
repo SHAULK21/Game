@@ -1,3 +1,4 @@
+import { sellToResidents } from './localMarket';
 import { recordTelegramWriteAccess } from './telegramWriteAccess';
 import { translateText } from '../src/i18n/translate';
 import { registerClanProjects } from './clanProjects';
@@ -725,6 +726,11 @@ app.get('/api/market/listings', auth, async (req, res) => {
      ORDER BY l.created_at DESC LIMIT 100`, params
   );
   res.json({ listings: result.rows });
+});
+
+app.post('/api/market/residents', auth, async (req, res) => {
+  try { res.json(await sellToResidents(pool, req.authUser!.id, Number(req.get('X-Game-Reset-Version') || 0), req.body)); }
+  catch (error) { res.status(400).json({error: error instanceof Error ? error.message : 'Не удалось продать предмет.'}); }
 });
 
 app.post('/api/market/list', auth, async (req, res) => {

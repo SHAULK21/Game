@@ -1,3 +1,4 @@
+import { StoryRegistration, markStoryIntroSeen } from './components/dialogs/StoryIntro';
 import { StartupReady } from './components/layout/StartupReady';
 import { t as localize, useLocale } from './i18n/locale';
 import { NotificationOnboarding } from './components/notifications/NotificationOnboarding';
@@ -19,7 +20,8 @@ const ReadyGameContent = () => {
 const InterfaceContent = () => {
   useLocale();
   const { player } = useGame();
-  if (!player) return <><LanguageSync /><StartupReady /><CharacterCreationModal /></>;
+  useEffect(() => { if (player) markStoryIntroSeen(); }, [Boolean(player)]);
+  if (!player) return <><LanguageSync /><StartupReady /><StoryRegistration><CharacterCreationModal /></StoryRegistration></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
     <ReadyGameContent />
   </Suspense><NotificationOnboarding /></>;

@@ -32,6 +32,8 @@ test('language selection is visible only at registration; its saved locale survi
   try {
     await w.act(async () => w.mount()); await settle();
     assert.equal(w.document.documentElement.lang, 'uk');
+    assert.match(w.document.body.textContent, /Брама Аетельгарда/);
+    await click('Пропустити');
     assert.match(w.document.body.textContent, /Виберіть клас та ім'я персонажа/);
     assert.equal(w.document.querySelector('input[type="text"]').placeholder, "Введіть ім'я героя...");
     const input = w.document.querySelector('input[type="text"]');
