@@ -412,6 +412,7 @@ export interface Quest {
   currentCount: number;
   completed: boolean;
   claimed: boolean;
+  objective?: 'combat' | 'travel';
   targetMonsterId?: string;
   targetMonsterName?: string;
   targetRegionId?: string;
@@ -520,7 +521,8 @@ export interface PlayerCharacter {
   level: number;
   exp: number;
   nextExp: number;
-  firstJourney?: 'battle' | 'codex' | 'done';
+  firstJourney?: 'battle' | 'briefing' | 'codex' | 'done';
+  royalBriefingStep?: number;
   firstJourneyDeparture?: boolean;
   statPoints: number;
   talentPoints: number;

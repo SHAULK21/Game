@@ -1657,6 +1657,12 @@ export const BASIC_CRAFT_RECIPES: BasicCraftRecipe[] = RAW_BASIC_CRAFT_RECIPES.m
 
 export const INITIAL_QUESTS: Quest[] = [
   {
+    id:'q_royal_first_journey', title:'Первое поручение короля', category:'story', objective:'travel',
+    description:'Подготовьтесь в Кодексе персонажа, выберите способ похода и доберитесь до Зелёных равнин. После прибытия заберите награду в квестах.',
+    targetCount:1,currentCount:0,completed:false,claimed:false,targetRegionId:'reg_plains',targetRegionName:'Зеленые равнины',
+    rewardGold:120,rewardSilver:80,rewardExp:75
+  },
+  {
     id: 'q_plains_wolves',
     title: 'Охота на лесных волков',
     category: 'hunting',

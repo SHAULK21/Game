@@ -78,6 +78,7 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert(button('Атака'), 'registration starts the first fight');
     w.Math.random=()=>0;await w.act(async()=>button('Покинуть бой').click());await settle();
+    for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
     await completeFirstDeparture(w,'Повысить: Сила');await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
@@ -197,7 +198,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], listings: [], players: [], messages: [], clans: [], clan: null, onlinePlayers: 0, profile: { enrolled: false, stance: 'balanced', rating: 1000, tickets: 5, wins: 0, losses: 0 }, opponents: [], leaders: [], history: [], resetAt: new Date().toISOString(), ok: true, totalGold: 0, isAdmin: false }) });
   const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
   const button = (label: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === label) as any;
-  const click = async (label: string) => { const node=button(label); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
+  const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.game-section')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
   const aria = (label: string) => w.document.querySelector(`[aria-label="${label}"]`);
   try {
     await w.act(async () => w.mount()); await settle();
@@ -208,6 +209,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     });
     await click('Начать путешествие');
     w.Math.random=()=>0;await click('Покинуть бой');
+    for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
     await completeFirstDeparture(w,'Повысить: Сила');await settle();
     const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
