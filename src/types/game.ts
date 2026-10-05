@@ -513,6 +513,21 @@ export interface PlayerStatsSummary {
   dungeonsCleared: number;
 }
 
+export type AdventureChapterId = 'first-boss' | 'royal-return';
+export interface BattleStartOptions {
+  chain?: boolean;
+  energyCost?: number;
+  huntingModeId?: string;
+}
+export interface AdventureJournalState {
+  unlocked: AdventureChapterId[];
+  pending?: {
+    chapter: AdventureChapterId;
+    step: number;
+    encounter?: { monster: Monster; options: BattleStartOptions };
+  };
+}
+
 export interface PlayerCharacter {
   id: string;
   userId: string;
@@ -524,6 +539,7 @@ export interface PlayerCharacter {
   firstJourney?: 'battle' | 'briefing' | 'codex' | 'done';
   royalBriefingStep?: number;
   firstJourneyDeparture?: boolean;
+  adventureJournal?: AdventureJournalState;
   statPoints: number;
   talentPoints: number;
   lastBulkDisposalId?: string;

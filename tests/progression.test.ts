@@ -94,7 +94,7 @@ test('actual hunts unlock elite then boss, award seals and first-boss fragment o
   const elite=enemy('elite_reg_plains'),boss=enemy('m_queen_bat');
   const starts=async(m:any)=>{let result=false;await w.act(async()=>{result=w.game.startBattleWithMonster(m,{chain:false,energyCost:0});});return result;};
   assert.equal(await starts(elite),false);assert.equal(await starts(boss),false);
-  const win=async(m:any,skill?:string)=>{assert.equal(await starts(m),true);await w.act(async()=>w.game.performPlayerAction(skill?'skill':'attack',skill));assert.equal(w.game.combatOutcome,'victory');await w.act(async()=>w.game.exitCombat());};
+  const win=async(m:any,skill?:string)=>{assert.equal(await starts(m),true);if(w.game.player.adventureJournal?.pending)await w.act(async()=>assert.equal(w.game.finishAdventureStory(),true));await w.act(async()=>w.game.performPlayerAction(skill?'skill':'attack',skill));assert.equal(w.game.combatOutcome,'victory');await w.act(async()=>w.game.exitCombat());};
   // The knight's holy weapon skill uses Strength/weapon power, not low Intelligence.
   await win(enemy('m_wolf'),'k_smite');
   for(let i=0;i<5;i++)await win(enemy('m_wolf'));

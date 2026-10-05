@@ -22,8 +22,11 @@ import { refreshGameTimers, utcDay } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { beginAdventureChapter, migrateAdventureJournal } from '../utils/adventureJournal';
+import { STORY_CHAPTERS } from '../data/storyScenes';
 import { 
   PlayerCharacter, 
+  BattleStartOptions,
   GameItem, 
   ItemType, 
   ItemRarity,
@@ -108,6 +111,9 @@ interface GameContextType {
   createCharacter: (name: string, classId: CharacterClassId, firstJourney?: boolean) => void;
   acknowledgeFirstJourney: () => void;
   advanceRoyalBriefing: () => void;
+  setAdventureStoryStep: (step: number) => void;
+  finishAdventureStory: () => boolean;
+  dismissAdventureStory: () => void;
   resetCharacter: () => void;
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
@@ -128,7 +134,7 @@ interface GameContextType {
   craftPet: (petId: string) => { success: boolean; message: string };
   
   // Combat
-  startBattleWithMonster: (monster: Monster, options?: { chain?: boolean; energyCost?: number; huntingModeId?: string }) => boolean;
+  startBattleWithMonster: (monster: Monster, options?: BattleStartOptions) => boolean;
   startNextCombatBattle: () => boolean;
   performPlayerAction: (actionType: 'attack' | 'skill' | 'defend' | 'potion' | 'flee', skillId?: string) => void;
   toggleAutoBattle: () => void;
@@ -1072,6 +1078,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player = addExperience(parsed.player, 0).player;
 
           parsed.player = migrateTalents(parsed.player);
+          parsed.player = migrateAdventureJournal(parsed.player, parsed.quests || INITIAL_QUESTS);
           setPlayer(migrateAscension(CLASSES[parsed.player.classId as CharacterClassId]
             ? reconcileSkills(parsed.player, CLASSES[parsed.player.classId as CharacterClassId].startingSkills)
             : parsed.player));
@@ -1434,6 +1441,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       firstJourney: firstJourney ? 'battle' : undefined,
       royalBriefingStep:firstJourney?0:undefined,
       firstJourneyDeparture: firstJourney || undefined,
+      adventureJournal: { unlocked: [] },
       statPoints: 5,
       talentPoints: 1,
       regionProgress: {},
@@ -1962,7 +1970,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [premium.active]);
 
   // START BATTLE with Energy Check
-  const startBattleWithMonster = useCallback((monster: Monster, options?: { chain?: boolean; energyCost?: number; huntingModeId?: string }): boolean => {
+  const startBattleWithMonster = useCallback((monster: Monster, options?: BattleStartOptions): boolean => {
     const activeModId = options?.huntingModeId || player?.activeRegionModId || 'mod_standard';
     const activeMod = REGION_MODIFIERS[activeModId] || REGION_MODIFIERS.mod_standard;
     const energyCost = options?.energyCost ?? ENERGY_COSTS.combat;
@@ -1983,6 +1991,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const huntingRegion = REGIONS.find(region=>region.id===monster.regionId);
     if (huntingRegion && player && !activeDungeonRun && player.level<huntingRegion.minLevel) return false;
     if (huntingRegion && player && !activeDungeonRun && (huntLockReason(player, monster, huntingRegion) || huntingModeLockReason(player, huntingRegion, activeModId))) return false;
+    // Save the encounter before charging energy or starting any combat timers.
+    if (player && monster.isBoss && monster.id === 'm_queen_bat'
+      && !player.adventureJournal?.unlocked.includes('first-boss')) {
+      if (player.adventureJournal?.pending) return false;
+      setPlayer(prev => prev ? beginAdventureChapter(prev, 'first-boss', {
+        monster, options: { ...options, huntingModeId: activeModId }
+      }) : prev);
+      return true;
+    }
     const huntMode = !activeDungeonRun && huntingRegion ? activeMod : undefined;
     const chain = useChain && player ? buildCombatChain(monster, player, combatStats, monster.regionId || player.currentRegionId,huntMode) : [applyHuntingMode(prepareMonsterForCombat(monster),huntMode)];
 
@@ -2032,6 +2049,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     triggerHaptic('medium');
     return true;
   }, [player, premium.active, combatStats.maxHp, combatStats, isInCombat, isCombatEnded, activeDungeonRun]);
+
+  const setAdventureStoryStep = useCallback((step: number) => {
+    setPlayer(prev => {
+      const pending = prev?.adventureJournal?.pending;
+      const chapter = STORY_CHAPTERS.find(chapter => chapter.id === pending?.chapter);
+      if (!prev || !pending || !chapter || !Number.isInteger(step) || step < 0 || step >= chapter.scenes.length) return prev;
+      return { ...prev, adventureJournal: { ...prev.adventureJournal!, pending: { ...pending, step } } };
+    });
+  }, []);
+
+  const storyFinishLock = useRef(false);
+  const dismissAdventureStory = useCallback(() => {
+    setPlayer(prev => prev?.adventureJournal?.pending
+      ? { ...prev, adventureJournal: { ...prev.adventureJournal, pending: undefined } } : prev);
+  }, []);
+  useEffect(() => { storyFinishLock.current = false; }, [player?.id, player?.adventureJournal?.pending?.chapter]);
+  const finishAdventureStory = useCallback(() => {
+    const pending = player?.adventureJournal?.pending;
+    if (!pending || storyFinishLock.current) return true;
+    storyFinishLock.current = true;
+    if (pending.encounter && !startBattleWithMonster(pending.encounter.monster, pending.encounter.options)) {
+      storyFinishLock.current = false;
+      return false;
+    }
+    setPlayer(prev => prev?.adventureJournal?.pending?.chapter === pending.chapter
+      ? { ...prev, adventureJournal: { ...prev.adventureJournal, pending: undefined } } : prev);
+    return true;
+  }, [player?.adventureJournal?.pending, startBattleWithMonster]);
 
   const startNextCombatBattle = useCallback((): boolean => {
     if (!player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
@@ -3138,10 +3183,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
-    if (!autoBattle.enabled || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return;
+    if (player?.adventureJournal?.pending || !autoBattle.enabled || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return;
     const timer = setTimeout(() => { startNextCombatBattle(); }, 700);
     return () => clearTimeout(timer);
-  }, [autoBattle.enabled, isInCombat, isCombatEnded, combatOutcome, combatChain, startNextCombatBattle]);
+  }, [player?.adventureJournal?.pending, autoBattle.enabled, isInCombat, isCombatEnded, combatOutcome, combatChain, startNextCombatBattle]);
 
   // Auto-battle loop (operates only on player's turn)
   useEffect(() => {
@@ -3943,12 +3988,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           rewardInventory = addOrStackInventoryItem(rewardInventory, reward, xpResult.player.maxInventorySlots).inventory;
         });
-        return {
+        const rewarded = {
           ...xpResult.player,
           inventory: rewardInventory,
           gold: xpResult.player.gold + q.rewardGold,
           silver: xpResult.player.silver + (q.rewardSilver || 0),
         };
+        return q.id === 'q_royal_first_journey' ? beginAdventureChapter(rewarded, 'royal-return') : rewarded;
       });
   }, [player?.id,quests]);
 
@@ -4079,6 +4125,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createCharacter,
       acknowledgeFirstJourney,
       advanceRoyalBriefing,
+      setAdventureStoryStep,
+      finishAdventureStory,
+      dismissAdventureStory,
       resetCharacter,
       allocateAttribute,
       unlockTalent,

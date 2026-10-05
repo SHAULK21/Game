@@ -1,3 +1,4 @@
+import { AdventureJournal } from './AdventureJournal';
 import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
@@ -23,12 +24,12 @@ interface MoreMenuScreenProps {
 }
 
 export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) => {
-  useLocale();
+  const { locale } = useLocale();
   const { player, quests, achievements, premium, preparePremiumInvoice, purchasePremium, claimQuestReward, claimAchievementReward } = useGame();
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications'>('quests');
+  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications' | 'journal'>('quests');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -99,7 +100,12 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
           Premium
         </button>
         <button onClick={() => setActiveSection('notifications')} className={`py-2 px-1 rounded-lg border ${activeSection==='notifications'?'bg-cyan-950 text-cyan-200':'bg-slate-900 text-slate-400'}`}>{localize("🔔 Оповещения")}</button>
+        <button aria-pressed={activeSection === 'journal'} onClick={() => setActiveSection('journal')}
+          className={`col-span-3 min-h-11 rounded-lg border px-3 py-2 ${activeSection === 'journal' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-300'}`}>
+          {locale === 'uk' ? 'Журнал пригод' : 'Журнал приключений'}
+        </button>
       </div>
+      {activeSection === 'journal' && <AdventureJournal />}
       <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
 

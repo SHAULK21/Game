@@ -1,4 +1,5 @@
 import { RoyalBriefing } from './components/dialogs/RoyalBriefing';
+import { AdventureStory } from './components/dialogs/AdventureStory';
 import { StoryRegistration, markStoryIntroSeen } from './components/dialogs/StoryIntro';
 import { StartupReady } from './components/layout/StartupReady';
 import { t as localize, useLocale } from './i18n/locale';
@@ -20,10 +21,12 @@ const ReadyGameContent = () => {
 };
 const InterfaceContent = () => {
   useLocale();
-  const { player } = useGame();
+  const { player, isInCombat, isCombatEnded, travelState } = useGame();
   useEffect(() => { if (player) markStoryIntroSeen(); }, [Boolean(player)]);
   if (!player) return <><LanguageSync /><StartupReady /><StoryRegistration><CharacterCreationModal /></StoryRegistration></>;
   if (player.firstJourney === 'briefing') return <><LanguageSync /><StartupReady /><RoyalBriefing /></>;
+  if (player.adventureJournal?.pending && (!isInCombat || isCombatEnded) && !travelState.isTraveling)
+    return <><LanguageSync /><StartupReady /><AdventureStory /></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
     <ReadyGameContent />
   </Suspense><NotificationOnboarding /></>;
