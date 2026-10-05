@@ -2499,7 +2499,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (playerTick.damage > 0) {
       let statusDamage = 0;
       for (const [type, amount] of Object.entries(playerTick.damageByType)) {
-        statusDamage += calculateTypedDamage({
+        const tickDamage = calculateTypedDamage({
           power: amount || 0,
           multiplier: 1,
           damageType: type as import('../types/game').DamageType,
@@ -2509,17 +2509,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           targetResistances: combatStats.resistances,
           extraDamageMultiplier: playerTick.damageTakenMultiplier
         });
+        statusDamage += tickDamage;
+        newLogs.push({
+            id: 'player_dot_' + Date.now() + '_' + type, turn: currentTurn,
+            text: `${type === 'poison' ? 'Отравление' : type === 'fire' ? 'Ожог' : 'Кровотечение'}: вы получаете ${tickDamage} урона.`, type:'status',
+            impact:{target:'player',amount:tickDamage,periodic:type === 'poison' ? 'poison' : type === 'fire' ? 'burn' : 'bleed'}
+          });
       }
       const nextHp = Math.max(0, combatPlayerHp - statusDamage);
       setCombatPlayerHp(nextHp);
-      if (statusDamage > 0) {
-        newLogs.push({
-          id: 'player_dot_' + Date.now(),
-          turn: currentTurn,
-          text: `☠️ [Статус] Вы получили ${statusDamage} периодического урона.`,
-          type: 'status'
-        });
-      }
       if (nextHp <= 0) {
         newLogs.push({
           id: 'player_dot_death_' + Date.now(),
@@ -2615,7 +2613,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPlayer(previous => previous ? {...previous, inventory:previous.inventory.map(i=>i.id===pot.id?{...i,stackCount:(i.stackCount||1)-1}:i).filter(i=>i.id!==pot.id||(i.stackCount||0)>0)} : previous);
         sound.playMagic();
         const text = `Вы бросили «${pot.name}»: ${damage} урона.`;
-        newLogs.push({id:'throw_'+Date.now(),turn:currentTurn,text,type:'player-attack'});
+        newLogs.push({id:'throw_'+Date.now(),turn:currentTurn,text,type:'player-attack',impact:{target:'monster',amount:damage}});
+        if (damageType === 'poison') {
+          const poisonPower = Math.max(1, Math.round(power * (player.classId === 'rogue' ? 1.25 : 1) * 0.15));
+          setMonsterEffects(effects => applyStatusEffect(effects, {type:'poison',name:'Отравление',duration:3,value:poisonPower}));
+          newLogs.push({id:'throw_poison_'+Date.now(),turn:currentTurn,text:'Ядовитая склянка: отравление на 3 хода.',type:'status'});
+        }
         setCombatNarration([text]);
         const hp = Math.max(0, activeMonster.hp - damage);
         setActiveMonster(previous => previous ? {...previous,hp} : previous);
@@ -2857,7 +2860,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMonsterEffects(effects => applyStatusEffect(effects, { type: classTalentStatus(player.classId) || 'poison', name: 'Смертельная западня', duration: 2 + (talents.trapPower ? 1 : 0), value: Math.max(1, Math.round(attackPower * 0.08 * (1 + (talents.dotPower || 0) / 100) * (1 + (talents.trapPower || 0) / 100))) }));
       }
       if (skillUsed && talents.skillLeech && finalDmg > 0) setCombatPlayerHp(hp => Math.min(combatStats.maxHp, hp + Math.round(finalDmg * talents.skillLeech / 100 * (1 + (talents.healPower || 0) / 100) * classHealingMultiplier(player.classId))));
-      newLogs.push({id:`dmg_${Date.now()}_${strike}`,turn:currentTurn,text:`${isCrit ? '💥' : '⚔️'} [${skillName}] удар ${strike + 1}/${strikes}: ${finalDmg} ${damageType.toUpperCase()} урона.`,type:isCrit?'crit':'player-attack'});
+      newLogs.push({id:`dmg_${Date.now()}_${strike}`,turn:currentTurn,text:`${isCrit ? '💥' : '⚔️'} [${skillName}] удар ${strike + 1}/${strikes}: ${finalDmg} ${damageType.toUpperCase()} урона.`,type:isCrit?'crit':'player-attack',impact:{target:'monster',amount:finalDmg,critical:isCrit,empowered:multiplier > 1.5}});
       if (skillUsed?.healMultiplier && finalDmg > 0) {
         const heal = Math.max(1, Math.round(finalDmg * skillUsed.healMultiplier * (1 + (talents.healPower || 0) / 100) * classHealingMultiplier(player.classId)));
         setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
@@ -2935,15 +2938,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (monsterTick.damage > 0) {
         let statusDamage = 0;
         for (const [type, amount] of Object.entries(monsterTick.damageByType)) {
-          statusDamage += calculateTypedDamage({
+          const tickDamage = calculateTypedDamage({
             power: amount || 0, multiplier: 1, damageType: type as import('../types/game').DamageType,
             targetDefense: activeMonster.defense, targetMagicDefense: activeMonster.magicDefense,
             armorPenetration: 0, targetResistances: activeMonster.resistances,
             extraDamageMultiplier: monsterTick.damageTakenMultiplier
           });
+          statusDamage += tickDamage;
+          if (tickDamage > 0) newLogs.push({
+            id: 'monster_dot_' + Date.now() + '_' + type, turn: currentTurn,
+            text: `${type === 'poison' ? 'Отравление' : type === 'fire' ? 'Ожог' : 'Кровотечение'}: ${activeMonster.name} получает ${tickDamage} урона.`, type:'status',
+            impact:{target:'monster',amount:tickDamage,periodic:type === 'poison' ? 'poison' : type === 'fire' ? 'burn' : 'bleed'}
+          });
         }
         workingHp = Math.max(0, workingHp - statusDamage);
-        if (statusDamage > 0) newLogs.push({ id: 'monster_dot_' + Date.now(), turn: currentTurn, text: `☠️ [Статус] ${activeMonster.name} получает ${statusDamage} периодического урона.`, type: 'status' });
       }
       if (workingHp <= 0) {
         completeCombatVictory(activeMonster, currentTurn, newLogs);
@@ -3008,7 +3016,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const impactNarration = monsterImpact(activeMonster.name, monsterFinalDmg, blockedByShield, attackRoll.evaded, !!playerMods.invulnerable);
       setCombatNarration(impactNarration);
       newLogs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
-      newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack' });
+      newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack', impact:{target:'player',amount:monsterFinalDmg,critical:attackRoll.critical,blocked:blockedByShield,evaded:attackRoll.evaded} });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - monsterFinalDmg);
         if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
@@ -3091,7 +3099,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       impactNarration.unshift(`Особый приём: «${skill.name}».`);
       setCombatNarration(impactNarration);
       logs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
-      logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack' });
+      logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack',impact:{target:'player',amount:damage,critical:attackRoll.critical,empowered:skill.damageMultiplier > 1,blocked,evaded:attackRoll.evaded} });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);
         if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {

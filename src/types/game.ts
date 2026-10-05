@@ -275,11 +275,22 @@ export interface Monster {
   skills?: MonsterSkill[];
 }
 
+export interface CombatImpact {
+  target: 'player' | 'monster';
+  amount: number;
+  critical?: boolean;
+  empowered?: boolean;
+  blocked?: number;
+  evaded?: boolean;
+  periodic?: 'bleed' | 'poison' | 'burn';
+}
+
 export interface BattleLogEntry {
   id: string;
   turn: number;
   text: string;
   type: 'player-attack' | 'monster-attack' | 'crit' | 'skill' | 'heal' | 'status' | 'death' | 'flee' | 'system';
+  impact?: CombatImpact;
 }
 
 export interface AutoBattleSettings {

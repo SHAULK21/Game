@@ -8,6 +8,7 @@ import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getFantasyCombatArtwork } from '../../utils/heroArtwork';
 import { getMonsterArtworkPath } from '../../utils/monsterArtwork';
+import { CombatDamageFeedback } from '../../../../components/combat/CombatDamageFeedback';
 import { CombatCompanion } from '../../../../components/combat/CombatCompanion';
 
 interface CombatArenaProps {
@@ -27,24 +28,16 @@ interface CombatArenaProps {
   maxMp: number;
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
-  latestEvent?: BattleLogEntry;
+  battleLog: BattleLogEntry[];
   monsterStriking?: boolean;
   playerAttackId?: string;
 }
 
 export const CombatArena: React.FC<CombatArenaProps> = ({
   player, monster, heroImage, heroClassName, locationName, modifierName, scene, dungeonId, round, turnPhase,
-  playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, latestEvent, monsterStriking, playerAttackId
+  playerHp, playerMp, maxHp, maxMp, playerEffects, monsterEffects, battleLog, monsterStriking, playerAttackId
 }) => {
   useLocale();
-  const feedback = latestEvent?.type === 'crit' ? 'Критический удар'
-    : latestEvent?.type === 'heal' ? 'Восстановление'
-    : latestEvent?.type === 'death' ? 'Поражение'
-    : latestEvent?.type === 'monster-attack' ? 'Удар противника'
-    : latestEvent?.type === 'flee' ? 'Побег'
-    : latestEvent?.type === 'player-attack' ? 'Ваш удар'
-    : undefined;
-  const damageValue = latestEvent?.text.match(/[+-]\d[\d.,]*/)?.[0];
   const hpPercent = maxHp ? Math.max(0, Math.min(100, playerHp / maxHp * 100)) : 0;
   const monsterHpPercent = monster.maxHp ? Math.max(0, Math.min(100, monster.hp / monster.maxHp * 100)) : 0;
   const monsterArtwork = getMonsterArtworkPath(monster.id, monster.avatar);
@@ -99,9 +92,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         </div>
       </div>
 
-      <div className={`absolute left-1/2 top-[45%] z-20 -translate-x-1/2 -translate-y-1/2 text-center ${turnPhase === 'monster' ? 'text-[#e1aaa5]' : 'text-[#d9c58e]'}`} aria-live="polite">
-        {feedback && <div key={latestEvent?.id} className="combat-feedback-pop rounded-md border border-white/15 bg-black/70 px-2 py-1 text-[11px] font-bold tracking-[.15em] shadow-xl">{damageValue && <span className="mr-1 text-sm">{localize(damageValue)}</span>}{localize(feedback)}</div>}
-      </div>
+      <CombatDamageFeedback battleLog={battleLog} />
     </section>
 
 
