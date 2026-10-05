@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
+const StoryReplayContext = createContext<(() => void) | null>(null);
+export const useStoryReplay = () => useContext(StoryReplayContext);
 import { useLocale } from '../../i18n/locale';
 import { getTelegramUser } from '../../utils/telegram';
 const completionKey = () => 'aethelgard_story_intro_v1_' + getTelegramUser().id;
@@ -32,5 +34,8 @@ export function StoryIntro({onFinish}: {onFinish:()=>void}) {
 }
 export function StoryRegistration({children}: {children: React.ReactNode}) {
   const [seen,setSeen] = useState(hasSeenStoryIntro);
-  return seen ? children : <StoryIntro onFinish={()=>setSeen(true)}/>;
+  return <StoryReplayContext.Provider value={()=>setSeen(false)}>
+    <div hidden={!seen}>{children}</div>
+    {!seen && <StoryIntro onFinish={()=>setSeen(true)}/>}
+  </StoryReplayContext.Provider>;
 }

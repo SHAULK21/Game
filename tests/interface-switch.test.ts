@@ -36,6 +36,12 @@ test('registration switches styles without losing input; both layouts share char
       Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value')!.set!.call(input, 'Новый герой');
       input.dispatchEvent(new w.Event('input', { bubbles: true }));
     });
+    await w.act(async()=>button('Посмотреть вступление').click());
+    assert(w.document.querySelector('.story-intro'));
+    assert.equal(w.document.querySelector('.registration-screen').parentElement.hidden,true);
+    await w.act(async()=>button('Пропустить').click());
+    assert.equal(w.document.querySelector('input[type=text]'),input);
+    assert.equal(input.value,'Новый герой');
     const fantasy = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.startsWith('Фэнтези')) as any;
     await w.act(async () => fantasy.click());
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy'); assert.equal(input.value, 'Новый герой');
