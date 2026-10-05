@@ -7,6 +7,17 @@ import { gameMessagePayload, gameMenuButton, messageLanguage } from '../server/t
 import { runNotificationBatch, registerSocialFeatures } from '../server/socialFeatures';
 
 const button = (w: any, label: string) => [...w.document.querySelectorAll('button')].find((el: any) => el.textContent.trim() === label) as any;
+async function completeFirstDeparture(w:any, plusLabel:string, departLabel:string) {
+  while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
+    await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
+  }
+  const departure=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===departLabel) as any;
+  assert(departure,'the tutorial offers only the first location');
+  await w.act(async()=>departure.click());
+  await w.act(async()=>await new Promise(r=>setTimeout(r,3300)));
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
+}
+
 async function app(language = 'uk-UA', stored?: string) {
   const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';import {readLanguage,setLanguage,getLanguage} from './src/i18n/locale';import {localizeDuelLog} from './src/i18n/duelLog';window.act=act;window.readLanguage=readLanguage;window.setLanguage=setLanguage;window.getLanguage=getLanguage;window.duelLog=localizeDuelLog;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
   const dom = new JSDOM('<html><body><div id="root"></div></body></html>', { url: 'http://localhost', runScripts: 'outside-only' });
@@ -50,7 +61,7 @@ test('language selection is visible only at registration; its saved locale survi
     await click('Почати подорож');
     w.Math.random=()=>0;await click('Покинути бій');
     assert.match(w.document.body.textContent,/Перший бій позаду/);
-    await w.act(async()=>w.document.querySelector('[aria-label="Закрити лист персонажа"]').click());await settle();
+    await completeFirstDeparture(w,'Підвищити: Сила','Вирушити на Зелені рівнини');await settle();
     assert.equal(save().player.name, 'Золото');
     const original = JSON.stringify(save().player);
     assert.equal(button(w, 'Русский'), undefined); assert.equal(button(w, 'Українська'), undefined);
