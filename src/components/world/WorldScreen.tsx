@@ -60,8 +60,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
   if (!player) return null;
 
+  const isFirstDeparture = Boolean(player.firstJourneyDeparture && player.firstJourney === 'done' && player.statPoints === 0);
   const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
-  const inspectingRegion = REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
+  const inspectingRegion = isFirstDeparture ? REGIONS[0] : REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
   const regionGroups = groupRegionsByLevel(REGIONS, player.level);
   const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
 
@@ -308,6 +309,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      {!isFirstDeparture && <>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center gap-2.5">
@@ -354,7 +356,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         ))}
       </div>
 
+      </>}
+
       {/* Selected Region & Mode Control Card */}
+      {isFirstDeparture && errorMessage && <p role="alert" className="text-sm text-rose-300">{localize(errorMessage)}</p>}
       <div className="rounded-2xl border border-indigo-500/30 bg-[#090d18] p-4 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -400,6 +405,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                     if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
+                  aria-pressed={isSelected}
+                  data-hunting-mode={mod.id}
                   className={`p-2 rounded-xl border text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
                     isSelected 
                       ? 'border-[#9d8459] bg-[#302c24]'
@@ -430,7 +437,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
         {/* Travel / Action Button */}
         <div className="pt-2">
-          {player.currentRegionId === inspectingRegion.id ? (
+          {player.currentRegionId === inspectingRegion.id && !isFirstDeparture ? (
             <button
               onClick={() => {
                 if (onEnterCombatTab) onEnterCombatTab();
@@ -457,6 +464,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         </div>
       </div>
 
+      {!isFirstDeparture && <>
       {/* Caves & Dungeons Section */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
@@ -517,6 +525,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <p className="text-[10px] text-slate-400">{localize("Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.")}</p>
         </div>
       </div>
+      </>}
     </div>
   );
 };

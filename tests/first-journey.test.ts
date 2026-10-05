@@ -28,14 +28,19 @@ test('new heroes start one free fight, open the codex after victory or flee, spe
     w.Math.random=()=>cls==='warrior'?.5:0;
     const energy=w.game.player.energy;
     while(w.game.player.statPoints>0) await w.act(async()=>w.game.allocateAttribute('strength'));
-    assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.nav.currentTab,'world');assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.travelState.targetRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-5);
+    assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.nav.currentTab,'world');assert.equal(w.game.player.firstJourneyDeparture,true);assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.energy,energy);
+    const locked=w.game.startTravel('reg_plains','mod_dense_fog');assert.equal(locked.success,false);assert.equal(w.game.player.energy,energy);assert.equal(w.game.player.firstJourneyDeparture,true);
+    const cost=cls==='warrior'?4:5,mode=cls==='warrior'?'mod_sanctuary':'mod_standard';
+    await w.act(async()=>assert.equal(w.game.startTravel('reg_plains',mode).success,true));
+    assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.travelState.targetRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-cost);
+    assert.equal(w.game.startTravel('reg_plains',mode).success,false,'repeated departure does not consume more energy');
     await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
-    assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.currentRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-5);
+    assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.currentRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-cost);
     if(cls==='berserker') {
      assert.equal(w.game.isInCombat,true,'ordinary ambush starts combat');assert(w.game.activeMonster.name.includes('[Засада!]'));assert.equal(w.nav.currentTab,'hunter');assert.equal(w.game.player.firstJourney,'done');
      await w.act(async()=>w.game.performPlayerAction('flee'));await settle();assert.equal(w.nav.isCharacterSheetOpen,false,'an ambush does not restart codex onboarding');
     }
-    await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.energy,energy-5);assert.equal(w.game.isInCombat,false);
+    await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.energy,energy-cost);assert.equal(w.game.isInCombat,false);
     w.Math.random=()=>0;
    }
    await w.act(async()=>w.nav.setIsCharacterSheetOpen(false));await settle();assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.game.isInCombat,false);

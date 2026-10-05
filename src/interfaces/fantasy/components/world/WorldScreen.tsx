@@ -46,8 +46,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
   if (!player) return null;
 
+  const isFirstDeparture = Boolean(player.firstJourneyDeparture && player.firstJourney === 'done' && player.statPoints === 0);
   const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
-  const inspectingRegion = REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
+  const inspectingRegion = isFirstDeparture ? REGIONS[0] : REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
   const regionGroups = groupRegionsByLevel(REGIONS, player.level);
   const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
 
@@ -263,6 +264,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
     <FolioPage className="world-codex space-y-3 pt-3">
+      {!isFirstDeparture && <>
       <BestiaryPanel className="relative isolate overflow-hidden rounded-xl">
         <div className="absolute inset-0 opacity-70"><BattleBackdrop scene={getBattleScene(inspectingRegion.id, currentRegion.id)} /></div>
         <div className="relative z-10 p-4">
@@ -305,8 +307,11 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         ))}
       </div>
 
+      </>}
+
       {/* Selected Region & Mode Control Card */}
       <BestiaryPanel className="region-dispatch quest-book space-y-3 p-3">
+        {isFirstDeparture && errorMessage && <p role="alert" className="text-sm text-red-800">{localize(errorMessage)}</p>}
         <div className="region-dispatch-heading flex items-start justify-between">
           <div className="flex items-center gap-3">
             <span className="region-map-seal"><RpgIcon kind="map" size={24} /></span>
@@ -373,7 +378,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
         {/* Travel / Action Button */}
         <div className="pt-2">
-          {player.currentRegionId === inspectingRegion.id ? (
+          {player.currentRegionId === inspectingRegion.id && !isFirstDeparture ? (
             <RpgButton
               onClick={() => {
                 if (onEnterCombatTab) onEnterCombatTab();
@@ -399,6 +404,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         </div>
       </BestiaryPanel>
 
+      {!isFirstDeparture && <>
       {/* Caves & Dungeons Section */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
@@ -458,6 +464,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <p className="text-xs text-slate-400">{localize("Все подземелья открыты с начала игры. Вход: 15 энергии и завершённый бой.")}</p>
         </div>
       </div>
+      </>}
     </FolioPage>
   );
 };
