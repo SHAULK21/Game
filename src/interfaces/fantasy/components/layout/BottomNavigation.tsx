@@ -4,8 +4,6 @@ import { sound } from '../../../../utils/audio';
 import { triggerHaptic } from '../../../../utils/telegram';
 import { RpgIcon, RpgIconKind } from '../ui/RpgIcon';
 
-import { ShellOrnament } from '../ui/ShellOrnament';
-
 import type { GameTabId } from '../../../../types/navigation';
 export type TabId = GameTabId;
 interface BottomNavigationProps {
@@ -20,11 +18,11 @@ const primary: Array<{ id: TabId; label: string; icon: RpgIconKind }> = [
   { id: 'world', label: 'Мир', icon: 'map' },
   { id: 'arena', label: 'Арена', icon: 'arena' },
   { id: 'inventory', label: 'Сумка', icon: 'inventory' },
-  { id: 'crafting', label: 'Создание', icon: 'forge' },
 ];
 
 const secondary: Array<{ id: TabId; label: string; icon: RpgIconKind }> = [
   { id: 'character', label: 'Герой', icon: 'character' },
+  { id: 'crafting', label: 'Создание', icon: 'forge' },
   { id: 'blacksmith', label: 'Кузница', icon: 'forge' },
   { id: 'alchemy', label: 'Алхимия', icon: 'alchemy' },
   { id: 'fishing', label: 'Рыбалка', icon: 'fish' },
@@ -94,10 +92,18 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
     </div>}
     <nav aria-label={localize("Основные разделы")} className="game-nav fantasy-shell-nav fixed bottom-0 left-0 right-0 z-40 mx-auto pb-safe">
       <div className="shell-nav-grid">
-        {primary.map(({ id, label, icon }) => <button key={id} title={localize(label)} aria-current={currentTab === id ? 'page' : undefined} className={`game-nav-item flex min-w-0 flex-col items-center justify-center gap-1 text-[11px] ${currentTab === id ? 'is-active' : ''}`} onClick={() => select(id)}><ShellOrnament variant={currentTab === id ? 'active' : 'inactive'} /><RpgIcon kind={icon} size={21} /><span>{localize(label)}</span></button>)}
-        <button ref={moreRef} aria-expanded={open} aria-haspopup="dialog" onClick={() => { sound.playClick(); triggerHaptic('light'); setOpen(value => !value); }} aria-current={secondary.some(tab => tab.id === currentTab) ? 'page' : undefined} className={`game-nav-item relative flex flex-col items-center justify-center gap-1 text-[11px] ${open || secondary.some(tab => tab.id === currentTab) ? 'is-active' : ''}`}>
-          <ShellOrnament variant={open || secondary.some(tab => tab.id === currentTab) ? 'active' : 'inactive'} />
-          <RpgIcon kind="more" size={21} /><span>{localize("Ещё")}</span>
+        {primary.map(({ id, label, icon }) => {
+          const isCurrent = currentTab === id;
+          const active = isCurrent && !open;
+          const iconSize = id === 'arena' ? 28 : id === 'world' || id === 'inventory' ? 26 : 24;
+          return <button key={id} title={localize(label)} aria-label={localize(label)} aria-current={isCurrent ? 'page' : undefined} className={`game-nav-item ${active ? 'is-active' : ''}`} onClick={() => select(id)}>
+            <RpgIcon kind={icon} size={iconSize} />
+            <span className="game-nav-label" aria-hidden={!active}>{localize(label)}</span>
+          </button>;
+        })}
+        <button ref={moreRef} title={localize("Ещё")} aria-label={localize("Ещё")} aria-expanded={open} aria-haspopup="dialog" onClick={() => { sound.playClick(); triggerHaptic('light'); setOpen(value => !value); }} aria-current={secondary.some(tab => tab.id === currentTab) ? 'page' : undefined} className={`game-nav-item ${open || secondary.some(tab => tab.id === currentTab) ? 'is-active' : ''}`}>
+          <span className="nav-more-icon" aria-hidden="true">⋯</span>
+          <span className="game-nav-label" aria-hidden={!(open || secondary.some(tab => tab.id === currentTab))}>{localize("Ещё")}</span>
           {hasUnread && <span className="nav-dot absolute right-3 top-3" aria-label={localize("Есть новые события")} />}
         </button>
       </div>
