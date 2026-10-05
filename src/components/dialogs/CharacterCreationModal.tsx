@@ -1,3 +1,4 @@
+import { useStoryReplay } from './StoryIntro';
 import { ClassPortraitIcon } from '../../interfaces/fantasy/components/ui/ClassPortraitIcon';
 import { SkillCodexCard } from '../../interfaces/fantasy/components/ui/SkillCodexCard';
 import { t as localize, useLocale } from '../../i18n/locale';
@@ -18,7 +19,8 @@ import { CLASS_EQUIPMENT } from '../../utils/classEquipment';
 import { ClassGearBonus } from '../ui/ClassGearBonus';
 
 export const CharacterCreationModal: React.FC = () => {
-  useLocale();
+  const replayStory = useStoryReplay();
+  const { locale } = useLocale();
   const { createCharacter } = useGame();
   const tgUser = getTelegramUser();
 
@@ -46,6 +48,7 @@ export const CharacterCreationModal: React.FC = () => {
           <p className="text-xs text-slate-400">{localize("Выберите класс и имя персонажа.")}</p>
         </div>
 
+        {replayStory && <button type="button" onClick={replayStory} className="mx-auto block min-h-11 px-3 text-xs text-[#b9a57e] underline underline-offset-4">{(locale === 'uk' ? 'Переглянути вступ' : 'Посмотреть вступление')}</button>}
         <InterfaceSwitcher registration />
 
         {/* Hero Visual Card */}
