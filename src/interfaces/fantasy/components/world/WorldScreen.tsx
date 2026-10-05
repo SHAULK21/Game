@@ -337,6 +337,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <span>{localize("Расход: ")}{localize(activeMod.energyCost)}{localize(" энергии")}</span>
           </div>
 
+          <p data-ambush-chance={Math.round(activeMod.ambushChance * 100)} className="hunting-mode-description">{localize("Шанс засады: ")}{localize(Math.round(activeMod.ambushChance * 100))}%</p>
+
           <div className="grid grid-cols-2 gap-2">
             {(inspectingRegion.availableMods || ['mod_standard']).map(mId => {
               const mod = REGION_MODIFIERS[mId];
@@ -365,7 +367,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   </div>
                   {modeLock && <p className="hunting-mode-lock">{localize("Закрыто: ")}{localize(modeLock)}</p>}
                   <div className="hunting-mode-values">
-                    HP ×{localize(mod.hpMultiplier||1)}{localize(" · Урон ×")}{localize(mod.damageMultiplier)}<br/>{localize("Защита ×")}{localize(mod.defenseMultiplier||1)}{localize(" · Дроп: x")}{localize(mod.rareDropMultiplier)}
+                    HP ×{localize(mod.hpMultiplier||1)}{localize(" · Урон ×")}{localize(mod.damageMultiplier)}<br/>{localize("Защита ×")}{localize(mod.defenseMultiplier||1)}{localize(" · Дроп: x")}{localize(mod.rareDropMultiplier)}<br/>{localize("Засада: ")}{localize(Math.round(mod.ambushChance * 100))}%
                   </div>
                 </button>
               );
