@@ -522,7 +522,6 @@ export interface PlayerCharacter {
   nextExp: number;
   firstJourney?: 'battle' | 'codex' | 'done';
   firstJourneyDeparture?: boolean;
-  firstJourneyDepartureStartedAt?: number;
   statPoints: number;
   talentPoints: number;
   lastBulkDisposalId?: string;

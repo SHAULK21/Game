@@ -106,7 +106,6 @@ interface GameContextType {
   // Actions
   createCharacter: (name: string, classId: CharacterClassId, firstJourney?: boolean) => void;
   acknowledgeFirstJourney: () => void;
-  startFirstJourneyDeparture: () => void;
   resetCharacter: () => void;
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
@@ -3181,34 +3180,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBattleLog([]);
   }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
 
-  const startFirstJourneyDeparture = useCallback(() => {
-    setPlayer(prev => prev?.firstJourneyDeparture && prev.firstJourney === 'done' && prev.statPoints === 0 && !prev.firstJourneyDepartureStartedAt
-      ? {...prev,firstJourneyDepartureStartedAt:Date.now()} : prev);
-  }, []);
-
-  // The introductory route is fixed, free, and resumes after a reload.
+  const automaticDepartureId = useRef<string | null>(null);
   useEffect(() => {
-    if (!player?.firstJourneyDeparture || !player.firstJourneyDepartureStartedAt) return;
-    const startedAt = player.firstJourneyDepartureStartedAt;
-    const playerId = player.id;
-    let previousStep = -1;
-    const update = () => {
-      const progress = Math.min(100, Math.round((Date.now() - startedAt) / 3000 * 100));
-      if (progress >= 100) {
-        setTravelState(prev => ({...prev,isTraveling:false,progress:100,isAmbush:false}));
-        setPlayer(prev => prev?.id === playerId && prev.firstJourneyDepartureStartedAt === startedAt
-          ? {...prev,firstJourneyDeparture:false,firstJourneyDepartureStartedAt:undefined,currentRegionId:REGIONS[0].id,activeRegionModId:REGIONS[0].defaultModId} : prev);
-        return;
-      }
-      const step = Math.floor(progress / 25);
-      if (previousStep !== step) {sound.playTravelStep();previousStep=step;}
-      setTravelState({isTraveling:true,targetRegionId:REGIONS[0].id,targetRegionName:REGIONS[0].name,progress,isAmbush:false,
-        message:progress < 50 ? 'Вы выходите за ворота замка.' : 'Впереди открываются Зелёные равнины.'});
-    };
-    update();
-    const timer = setInterval(update, 150);
-    return () => clearInterval(timer);
-  }, [player?.id,player?.firstJourneyDeparture,player?.firstJourneyDepartureStartedAt]);
+    if (!player?.firstJourneyDeparture || player.firstJourney !== 'done' || player.statPoints > 0 ||
+        travelState.isTraveling || automaticDepartureId.current === player.id) return;
+    // Use the ordinary route, with its normal energy cost and ambush roll.
+    // Mark the request synchronously so StrictMode cannot start it twice.
+    automaticDepartureId.current = player.id;
+    const result = startTravel(REGIONS[0].id, REGIONS[0].defaultModId);
+    if (result.success) {
+      setPlayer(prev => prev?.id === player.id ? {...prev,firstJourneyDeparture:false} : prev);
+    } else {
+      automaticDepartureId.current = null;
+    }
+  }, [player?.id,player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints,travelState.isTraveling,startTravel]);
 
   const acknowledgeFirstJourney = useCallback(() => {
     setPlayer(prev => prev?.firstJourney === 'codex' ? {...prev,firstJourney:'done'} : prev);
@@ -4090,7 +4075,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       premium,
       createCharacter,
       acknowledgeFirstJourney,
-      startFirstJourneyDeparture,
       resetCharacter,
       allocateAttribute,
       unlockTalent,
