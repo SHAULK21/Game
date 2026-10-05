@@ -12,8 +12,13 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
   while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,60);
+  assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
+  assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
+  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться в путь|Вирушити в дорогу/.test(n.textContent)) as any;
+  assert(travel,'first destination is preselected but travel mode remains selectable');
+  await w.act(async()=>travel.click());
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,55);
-  assert(![...w.document.querySelectorAll('button')].some((n:any)=>/Отправиться на Зелёные|Вирушити на Зелені/.test(n.textContent)));
   await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
   const hunt=[...w.document.querySelectorAll('nav button')].find((n:any)=>n.textContent.trim()===(plusLabel.startsWith('Під')?'Полювання':'Охота')) as any;

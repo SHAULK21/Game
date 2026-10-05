@@ -2081,7 +2081,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Deduct travel energy
-    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - energyCost) } : prev);
+    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - energyCost),
+      firstJourneyDeparture: prev.firstJourney === 'done' && prev.firstJourneyDeparture && targetRegionId === REGIONS[0].id ? false : prev.firstJourneyDeparture
+    } : prev);
 
     setTravelState({
       isTraveling: true,
@@ -3179,21 +3181,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setBattleLog([]);
   }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
-
-  const automaticDepartureId = useRef<string | null>(null);
-  useEffect(() => {
-    if (!player?.firstJourneyDeparture || player.firstJourney !== 'done' || player.statPoints > 0 ||
-        travelState.isTraveling || automaticDepartureId.current === player.id) return;
-    // Use the ordinary route, with its normal energy cost and ambush roll.
-    // Mark the request synchronously so StrictMode cannot start it twice.
-    automaticDepartureId.current = player.id;
-    const result = startTravel(REGIONS[0].id, REGIONS[0].defaultModId);
-    if (result.success) {
-      setPlayer(prev => prev?.id === player.id ? {...prev,firstJourneyDeparture:false} : prev);
-    } else {
-      automaticDepartureId.current = null;
-    }
-  }, [player?.id,player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints,travelState.isTraveling,startTravel]);
 
   const acknowledgeFirstJourney = useCallback(() => {
     setPlayer(prev => prev?.firstJourney === 'codex' ? {...prev,firstJourney:'done'} : prev);
