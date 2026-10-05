@@ -1,3 +1,4 @@
+import { completeTravelQuests } from '../utils/travelQuests';
 import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
@@ -106,6 +107,7 @@ interface GameContextType {
   // Actions
   createCharacter: (name: string, classId: CharacterClassId, firstJourney?: boolean) => void;
   acknowledgeFirstJourney: () => void;
+  advanceRoyalBriefing: () => void;
   resetCharacter: () => void;
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
@@ -1430,6 +1432,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       exp: 0,
       nextExp: getNextExperience(1),
       firstJourney: firstJourney ? 'battle' : undefined,
+      royalBriefingStep:firstJourney?0:undefined,
       firstJourneyDeparture: firstJourney || undefined,
       statPoints: 5,
       talentPoints: 1,
@@ -1486,6 +1489,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTravelState({isTraveling:false,targetRegionId:'',targetRegionName:'',progress:0,isAmbush:false,message:''});
       setAutoBattle(prev => ({...prev,enabled:false}));
     }
+    setQuests(previous => [ {...INITIAL_QUESTS.find(q=>q.id==='q_royal_first_journey')!}, ...previous.filter(q=>q.id!=='q_royal_first_journey') ]);
     setPlayer(migrateAscension(reconcileSkills(newPlayer, classDef.startingSkills)));
     sound.playLevelUp();
     triggerHaptic('success');
@@ -2125,6 +2129,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setTimeout(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
+            setQuests(previous=>completeTravelQuests(previous,targetRegionId));
             const ordinary = targetReg.monsters.filter(id => !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
             const monsterId = ordinary[Math.floor(Math.random() * ordinary.length)];
             const baseMob = getRegionMonster(MONSTERS[monsterId] || MONSTERS['m_wolf'], targetReg);
@@ -2153,6 +2158,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setTimeout(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
+            setQuests(previous=>completeTravelQuests(previous,targetRegionId));
             setPlayer(prev => prev ? {
               ...prev,
               currentRegionId: targetRegionId,
@@ -2376,7 +2382,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setQuests(qList => qList.map(q => {
-        if (q.completed) return q;
+        if (q.completed || q.objective === 'travel') return q;
         if (q.targetMonsterId && q.targetMonsterId !== monster.id) return q;
         if (q.targetRegionId && q.targetRegionId !== monster.regionId && q.targetRegionId !== prev.currentRegionId) return q;
         if (q.category === 'boss' && !monster.isBoss) return q;
@@ -3182,6 +3188,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBattleLog([]);
   }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
 
+  const advanceRoyalBriefing = useCallback(() => {
+    setPlayer(previous => {
+      if (previous?.firstJourney !== 'briefing') return previous;
+      const step = Math.min(2,previous.royalBriefingStep || 0);
+      return step < 2 ? {...previous,royalBriefingStep:step+1} : {...previous,firstJourney:'codex'};
+    });
+  }, []);
+
   const acknowledgeFirstJourney = useCallback(() => {
     setPlayer(prev => prev?.firstJourney === 'codex' ? {...prev,firstJourney:'done'} : prev);
   }, []);
@@ -3189,7 +3203,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (player?.firstJourney !== 'battle') return;
     if (isCombatEnded) {
-      setPlayer(prev => prev?.firstJourney === 'battle' ? {...prev,firstJourney:'codex'} : prev);
+      setPlayer(prev => prev?.firstJourney === 'battle' ? {...prev,firstJourney:'briefing',royalBriefingStep:0} : prev);
     } else if (!isInCombat) {
       startBattleWithMonster(getRegionMonster(MONSTERS.m_wolf, REGIONS[0]), {chain:false,energyCost:0,huntingModeId:'mod_standard'});
     }
@@ -3898,11 +3912,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, activeDungeonRun, startBattleWithMonster]);
 
   // Quests & Achievements Claims
+  const questClaims = useRef(new Set<string>());
   const claimQuestReward = useCallback((questId: string) => {
-    setQuests(prev => prev.map(q => {
-      if (q.id !== questId || !q.completed || q.claimed) return q;
-      sound.playVictory();
-      triggerHaptic('success');
+    const q=quests.find(entry=>entry.id===questId);
+    if (!player || !q?.completed || q.claimed) return;
+    const claimKey=player.id+':'+questId;
+    if (questClaims.current.has(claimKey)) return;
+    questClaims.current.add(claimKey);
+    sound.playVictory();triggerHaptic('success');
+    setQuests(previous=>previous.map(entry=>entry.id===questId?{...entry,claimed:true}:entry));
       setPlayer(p => {
         if (!p) return p;
         const xpResult = addExperience(p, q.rewardExp);
@@ -3932,9 +3950,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           silver: xpResult.player.silver + (q.rewardSilver || 0),
         };
       });
-      return { ...q, claimed: true };
-    }));
-  }, []);
+  }, [player?.id,quests]);
 
   const claimAchievementReward = useCallback((achievementId: string) => {
     setAchievements(prev => prev.map(a => {
@@ -4062,6 +4078,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       premium,
       createCharacter,
       acknowledgeFirstJourney,
+      advanceRoyalBriefing,
       resetCharacter,
       allocateAttribute,
       unlockTalent,

@@ -27,6 +27,9 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
     }
   }, [isInCombat, isCombatEnded]);
   useEffect(() => {
+    if (player?.firstJourney === 'briefing') {
+      exitCombat();setIsCharacterSheetOpen(false);setCurrentTab('hunter');return;
+    }
     if (player?.firstJourney !== 'codex') return;
     exitCombat();
     acknowledgeFirstJourney();

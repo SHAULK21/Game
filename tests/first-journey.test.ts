@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
-test('new heroes start one free fight, open the codex after victory or flee, spend points and never repeat on reload',async()=>{
+test('new heroes start one free fight, show three royal scenes before the codex after victory or flee, spend points and never repeat on reload',async()=>{
  const bundle=await build({stdin:{contents:`import React,{act}from'react';import{createRoot}from'react-dom/client';import{GameProvider,useGame}from'./src/context/GameContext';import{NavigationProvider,useNavigation}from'./src/context/NavigationContext';function Probe(){window.game=useGame();window.nav=useNavigation();return null;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><NavigationProvider><Probe/></NavigationProvider></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}],bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'}});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  const nativeTimer=w.setTimeout.bind(w);w.setTimeout=(fn:any,ms:number,...args:any[])=>nativeTimer(fn,Math.min(ms||0,5),...args);
@@ -16,12 +16,16 @@ test('new heroes start one free fight, open the codex after victory or flee, spe
    assert.equal(w.game.isInCombat,true,cls);assert.equal(w.game.player.firstJourney,'battle');assert.equal(w.game.combatChain,null);assert.equal(w.game.player.energy,60);assert.equal(w.nav.isCharacterSheetOpen,false);
    if(cls==='warrior'){
     const id=w.game.player.id;await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.id,id);assert.equal(w.game.isInCombat,true);assert.equal(w.game.player.energy,60);
-    for(let n=0;n<100&&w.game.player.firstJourney!=='done';n++){
+    for(let n=0;n<100&&w.game.player.firstJourney!=='briefing';n++){
      if(w.game.turnPhase==='player')await w.act(async()=>w.game.performPlayerAction('attack'));
      await settle();
     }
     assert.equal(w.game.player.statsSummary.battlesWon,1);assert(w.game.lastCombatReward?.exp>0);
    }else{await w.act(async()=>w.game.performPlayerAction('flee'));await settle();}
+   assert.equal(w.game.player.firstJourney,'briefing',cls);assert.equal(w.nav.isCharacterSheetOpen,false);assert.equal(w.game.quests.find((q:any)=>q.id==='q_royal_first_journey').completed,false);
+   await w.act(async()=>w.game.advanceRoyalBriefing());assert.equal(w.game.player.royalBriefingStep,1);
+   if(cls==='warrior'){await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.firstJourney,'briefing');assert.equal(w.game.player.royalBriefingStep,1);assert.equal(w.game.isInCombat,false);}
+   await w.act(async()=>w.game.advanceRoyalBriefing());assert.equal(w.game.player.royalBriefingStep,2);await w.act(async()=>w.game.advanceRoyalBriefing());await settle();
    assert.equal(w.game.player.firstJourney,'done',cls);assert.equal(w.nav.isCharacterSheetOpen,true,cls);assert.equal(w.game.isInCombat,false);assert.equal(w.game.activeMonster,null);
    const points=w.game.player.statPoints,strength=w.game.player.attributes.strength;await w.act(async()=>w.game.allocateAttribute('strength'));assert.equal(w.game.player.statPoints,points-1);assert.equal(w.game.player.attributes.strength,strength+1);
    if(cls==='warrior' || cls==='berserker') {
@@ -36,6 +40,11 @@ test('new heroes start one free fight, open the codex after victory or flee, spe
     assert.equal(w.game.startTravel('reg_plains',mode).success,false,'repeated departure does not consume more energy');
     await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
     assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.currentRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-cost);
+    const royal=w.game.quests.find((q:any)=>q.id==='q_royal_first_journey');assert.equal(royal.completed,true);assert.equal(royal.claimed,false);
+    const gold=w.game.player.gold,silver=w.game.player.silver;
+    await w.act(async()=>{w.game.claimQuestReward(royal.id);w.game.claimQuestReward(royal.id);});
+    assert.equal(w.game.player.gold,gold+120);assert.equal(w.game.player.silver,silver+80);assert.equal(w.game.quests.find((q:any)=>q.id===royal.id).claimed,true);
+    await w.act(async()=>w.game.claimQuestReward(royal.id));assert.equal(w.game.player.gold,gold+120);
     if(cls==='berserker') {
      assert.equal(w.game.isInCombat,true,'ordinary ambush starts combat');assert(w.game.activeMonster.name.includes('[Засада!]'));assert.equal(w.nav.currentTab,'hunter');assert.equal(w.game.player.firstJourney,'done');
      await w.act(async()=>w.game.performPlayerAction('flee'));await settle();assert.equal(w.nav.isCharacterSheetOpen,false,'an ambush does not restart codex onboarding');

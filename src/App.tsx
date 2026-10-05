@@ -1,3 +1,4 @@
+import { RoyalBriefing } from './components/dialogs/RoyalBriefing';
 import { StoryRegistration, markStoryIntroSeen } from './components/dialogs/StoryIntro';
 import { StartupReady } from './components/layout/StartupReady';
 import { t as localize, useLocale } from './i18n/locale';
@@ -22,6 +23,7 @@ const InterfaceContent = () => {
   const { player } = useGame();
   useEffect(() => { if (player) markStoryIntroSeen(); }, [Boolean(player)]);
   if (!player) return <><LanguageSync /><StartupReady /><StoryRegistration><CharacterCreationModal /></StoryRegistration></>;
+  if (player.firstJourney === 'briefing') return <><LanguageSync /><StartupReady /><RoyalBriefing /></>;
   return <><LanguageSync /><Suspense fallback={<div role="status" className="p-6 text-center">{localize("Загрузка интерфейса…")}</div>}>
     <ReadyGameContent />
   </Suspense><NotificationOnboarding /></>;
