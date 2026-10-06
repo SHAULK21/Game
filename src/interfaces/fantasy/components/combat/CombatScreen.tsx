@@ -1,3 +1,5 @@
+import { useInterface } from '../../../../context/InterfaceContext';
+import { BetaHuntDashboard } from './BetaHuntDashboard';
 import { potionActionLabel } from '../../../../utils/combatPotions';
 import { useMonsterStrike } from '../../../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../../../i18n/locale';
@@ -19,6 +21,8 @@ export const getPredictedMonsterSkill = predictedMonsterSkill;
 
 export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnToArena?: () => void }> = ({ onContinueDungeon, onReturnToArena }) => {
   useLocale();
+  const { style } = useInterface();
+  const Dashboard = style === 'fantasy-beta' ? BetaHuntDashboard : HuntDashboard;
   const {
     player,
     activeMonster,
@@ -153,7 +157,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     return (
       <>
         {localize(premiumModal)}
-        <HuntDashboard
+        <Dashboard
           player={player}
           currentRegion={currentRegion}
           regionMonsters={regionMonsters}

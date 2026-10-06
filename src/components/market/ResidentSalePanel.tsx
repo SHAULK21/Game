@@ -21,7 +21,7 @@ export function ResidentSalePanel() {
   const count = Number(quantity);
   const valid = !!item && Number.isInteger(count) && count > 0 && count <= Math.min(999,item.stackCount || 1);
   const gold = item && valid ? localBuyoutGold(item.sellPrice,count) : 0;
-  const fantasy = style === 'fantasy';
+  const fantasy = style !== 'modern';
   return <section className={`${fantasy ? 'bestiary-panel' : 'ui-panel'} rounded-xl border p-4 space-y-3`}>
     <h3 className="text-base font-bold text-amber-200">{t('Местные жители')}</h3>
     <p className="text-xs leading-relaxed text-slate-300">{t('Жители покупают сразу за 30% обычной стоимости вещи. Минимум — 1 золото за вещь с ненулевой ценой. Выберите количество и подтвердите продажу. Налога и ожидания нет.')}</p>

@@ -8,7 +8,7 @@ async function setup() {
     import React,{act} from 'react';
     import {createRoot} from 'react-dom/client';
     import {GameProvider} from './src/context/GameContext';
-    import {HuntDashboard} from './src/interfaces/fantasy/components/combat/HuntDashboard';
+    import {BetaHuntDashboard as HuntDashboard} from './src/interfaces/fantasy/components/combat/BetaHuntDashboard';
     import {MONSTERS,REGIONS} from './src/data/gameData';
     import {setLanguage} from './src/i18n/locale';
     window.act=act;window.setLanguage=setLanguage;

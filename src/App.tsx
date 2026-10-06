@@ -17,7 +17,7 @@ import { NavigationProvider } from './context/NavigationContext';
 const FantasyGameContent = lazy(() => import('./interfaces/fantasy/FantasyGameContent').then(module => ({ default: module.FantasyGameContent })));
 const ReadyGameContent = () => {
   const { style } = useInterface();
-  return <><StartupReady />{style === 'fantasy' ? <FantasyGameContent /> : <ModernGameContent />}</>;
+  return <><StartupReady />{style !== 'modern' ? <FantasyGameContent /> : <ModernGameContent />}</>;
 };
 const InterfaceContent = () => {
   useLocale();

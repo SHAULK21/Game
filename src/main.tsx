@@ -5,6 +5,7 @@ import App from './App.tsx';
 import './index.css';
 import './interfaces/modern/modern.css';
 import './interfaces/fantasy/fantasy.css';
+import './interfaces/fantasy/fantasy-beta.css';
 
 document.documentElement.lang = getLanguage();
 

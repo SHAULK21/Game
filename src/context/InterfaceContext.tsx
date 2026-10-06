@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useLayoutEffect, useState } from 'react';
 
-export type InterfaceStyle = 'modern' | 'fantasy';
+export type InterfaceStyle = 'modern' | 'fantasy' | 'fantasy-beta';
 export const INTERFACE_KEY = 'aethelgard_interface_style';
 export const readInterfaceStyle = (): InterfaceStyle => {
-  try { return localStorage.getItem(INTERFACE_KEY) === 'fantasy' ? 'fantasy' : 'modern'; }
+  try {
+    const saved = localStorage.getItem(INTERFACE_KEY);
+    return saved === 'fantasy' || saved === 'fantasy-beta' ? saved : 'modern';
+  }
   catch { return 'modern'; }
 };
 const InterfaceContext = createContext<{ style: InterfaceStyle; setStyle: (style: InterfaceStyle) => void }>({ style: 'modern', setStyle: () => {} });

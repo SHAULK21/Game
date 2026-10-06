@@ -1,3 +1,6 @@
+import { useInterface } from '../../context/InterfaceContext';
+import { BetaTopHeader } from './components/layout/BetaTopHeader';
+import { BetaBottomNavigation } from './components/layout/BetaBottomNavigation';
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { lazy, Suspense } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -27,6 +30,9 @@ const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(m
 
 export const FantasyGameContent: React.FC = () => {
   useLocale();
+  const { style } = useInterface();
+  const Header = style === 'fantasy-beta' ? BetaTopHeader : TopHeader;
+  const Navigation = style === 'fantasy-beta' ? BetaBottomNavigation : BottomNavigation;
   const { player, quests, isInCombat, activeMonster } = useGame();
   const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
@@ -39,7 +45,7 @@ export const FantasyGameContent: React.FC = () => {
   return (
     <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
-      <TopHeader hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
+      <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
@@ -70,7 +76,7 @@ export const FantasyGameContent: React.FC = () => {
       </main>
 
       {/* Bottom Thumb Navigation Bar */}
-      <BottomNavigation
+      <Navigation
         currentTab={isCharacterSheetOpen ? 'character' : currentTab}
         onSelectTab={tab => {
           setIsCharacterSheetOpen(false);
