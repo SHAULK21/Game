@@ -1,3 +1,5 @@
+import { ItemSelector } from '../../../../components/ui/ItemSelector';
+import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../../../utils/sharpening';
 import React, { useState } from 'react';
@@ -12,6 +14,7 @@ import { RpgIcon } from '../ui/RpgIcon';
 
 export const BlacksmithScreen: React.FC = () => {
   useLocale();
+  const { style } = useInterface();
   const { player, achievements, upgradeItem } = useGame();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [useProtection, setUseProtection] = useState<boolean>(false);
@@ -72,7 +75,7 @@ export const BlacksmithScreen: React.FC = () => {
       {/* Item Selection Carousel / Selector */}
       <div className="space-y-2">
         <SectionTitle eyebrow="Оружие и доспехи" action={<span className="text-xs text-slate-400">{localize(upgradeableItems.length)}{localize(" доступно")}</span>}>{localize("Выберите предмет")}</SectionTitle>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {style === 'fantasy' ? <ItemSelector label="Выберите предмет" items={upgradeableItems} value={currentItem?.id || ''} disabled={isUpgrading} onSelect={id => { setSelectedItemId(id); setUpgradeResultMsg(null); sound.playClick(); }} /> : <div className="flex gap-2 overflow-x-auto pb-1">
           {upgradeableItems.map(item => {
             const isSelected = currentItem?.id === item.id;
             const rarityStyle = RARITY_COLORS[item.rarity];
@@ -102,7 +105,7 @@ export const BlacksmithScreen: React.FC = () => {
               </button>
             );
           })}
-        </div>
+        </div>}
       </div>
 
       {/* Main Upgrade Anvil Display */}

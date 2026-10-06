@@ -195,7 +195,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const battleScene = getBattleScene(activeMonster.regionId, currentRegion.id, battleDungeon?.id);
 
   return (
-    <div className="folio-page fantasy-combat-page space-y-3 pt-3">
+    <div className="folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3">
       {localize(premiumModal)}
       <CombatArena
         player={player}

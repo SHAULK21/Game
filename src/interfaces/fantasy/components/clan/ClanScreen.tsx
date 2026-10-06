@@ -1,3 +1,4 @@
+import { SelectionField } from '../../../../components/ui/SelectionField';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { CLAN_PROJECTS, clanProjectCost, clanRaidReward, type ClanProject } from '../../../../utils/clanProjects';
 import { createOperationId } from '../../../../utils/operationId';
@@ -311,7 +312,7 @@ export const ClanScreen: React.FC = () => {
                   <span className="flex-1 truncate">{localize(item.item_json.name)} ×{localize(item.quantity)} · {localize(item.item_json.rarity)}</span>
                   {canUseVault(clan.role || '') && <div className="flex flex-wrap gap-2 text-[11px]">
                     <button disabled={action} onClick={() => moveItem(item, 'withdraw')} className="min-h-11 px-1 text-[#d5ba89]">{localize("Забрать")}</button>
-                    <select aria-label={localize(`Получатель ${item.item_json.name}`)} value={recipients[item.id]||''} disabled={action} onChange={e=>setRecipients(prev=>({...prev,[item.id]:e.target.value}))} className="min-h-11 w-20 rounded bg-slate-950"><option value="">{localize("Кому?")}</option>{members.map(m=><option key={m.telegram_id} value={m.telegram_id}>{m.display_name}</option>)}</select>
+                    <SelectionField aria-label={localize(`Получатель ${item.item_json.name}`)} value={recipients[item.id]||''} disabled={action} onChange={e=>setRecipients(prev=>({...prev,[item.id]:e.target.value}))} className="min-h-11 w-20 rounded bg-slate-950"><option value="">{localize("Кому?")}</option>{members.map(m=><option key={m.telegram_id} value={m.telegram_id}>{m.display_name}</option>)}</SelectionField>
                     <button disabled={action||!recipients[item.id]} onClick={()=>run(()=>apiRequest(`/api/clan/storage/${item.id}/give`,{method:'POST',body:JSON.stringify({targetId:recipients[item.id]})}))} className="min-h-11 px-1 text-emerald-300 disabled:opacity-40">{localize("Выдать")}</button>
                     <button disabled={action} onClick={() => disposeStored('sell', item.id)} className="min-h-11 px-1 text-amber-300">{localize("Продать")}</button>
                     <button disabled={action} onClick={() => disposeStored('disassemble', item.id)} className="min-h-11 px-1 text-violet-300">{localize("Разобрать")}</button>
@@ -322,9 +323,9 @@ export const ClanScreen: React.FC = () => {
             </div>
             {canUseVault(clan.role || '') && storedItems.length > 0 && <div className="flex flex-wrap gap-2 items-center text-[11px]">
               <span className="text-slate-400">{localize("До редкости:")}</span>
-              <select value={bulkRarity} onChange={e => setBulkRarity(e.target.value)} className="bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
+              <SelectionField value={bulkRarity} onChange={e => setBulkRarity(e.target.value)} className="bg-slate-950 border border-slate-700 rounded p-1 text-slate-200">
                 {['common','uncommon','rare','epic','legendary','mythic','ancient','divine'].map(r => <option key={r} value={r}>{localize(r)}</option>)}
-              </select>
+              </SelectionField>
               <button disabled={action} onClick={() => disposeStored('sell', undefined, bulkRarity)} className="text-amber-300">{localize("Продать пачкой")}</button>
               <button disabled={action} onClick={() => disposeStored('disassemble', undefined, bulkRarity)} className="text-violet-300">{localize("Разобрать пачкой")}</button>
             </div>}

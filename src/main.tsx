@@ -7,6 +7,8 @@ import './interfaces/modern/modern.css';
 import './interfaces/fantasy/fantasy.css';
 import './interfaces/fantasy/fantasy-beta.css';
 import './styles/mobile.css';
+import './interfaces/fantasy/fantasy-chapters.css';
+import './interfaces/fantasy/fantasy-combat-shared.css';
 
 document.documentElement.lang = getLanguage();
 

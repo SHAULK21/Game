@@ -1,0 +1,170 @@
+/* Stable fantasy combat appearance reused by beta; no game logic fork. */
+html[data-interface="fantasy-beta"] .classic-fantasy-surface { --text-primary:#d8d1c4; --text-muted:#918c82; --border-metal:#3b3a35; --accent-gold:#b99558; --accent-gold-bright:#c7a365; }
+
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .animate-hit-shake { animation: screen-shake 0.25s ease-in-out; }
+
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .folio-page { color: var(--text-primary); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .bestiary-panel { background: linear-gradient(145deg, #191d20, #121518 70%); border: 1px solid var(--border-metal); border-radius: 14px; box-shadow: inset 0 1px rgb(255 255 255 / 2%); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .leather-panel { background: linear-gradient(145deg, #28221a, #191713 72%); border: 1px solid #554832; border-radius: 12px; box-shadow: inset 0 1px rgb(255 255 255 / 3%); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 9px; border-radius: 10px; padding: 0 16px; font-weight: 700; transition: background 150ms, border-color 150ms, transform 150ms; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button:active:not(:disabled), html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-icon-button:active:not(:disabled) { transform: translateY(1px); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-primary { color: #171613; border: 1px solid #d1b577; background: linear-gradient(180deg, #c7a365, #a98245); box-shadow: inset 0 1px rgb(255 255 255 / 18%), 0 4px 16px rgb(0 0 0 / 24%); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-primary:hover:not(:disabled) { background: linear-gradient(180deg, #d4b374, #b9914d); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-secondary { color: var(--text-primary); border: 1px solid var(--border-metal); background: #191d20; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-danger { color: #f0c7c4; border: 1px solid #673b3b; background: #2a1718; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button:disabled { cursor: not-allowed; opacity: .48; filter: saturate(.5); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-icon-button { display: inline-flex; width: 44px; min-width: 44px; height: 44px; align-items: center; justify-content: center; border: 1px solid var(--border-metal); border-radius: 10px; background: #15191c; color: #c9c1b2; transition: background 150ms, transform 150ms; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-track { overflow: hidden; border: 1px solid #343638; border-radius: 999px; background: #090b0d; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-fill { height: 100%; border-radius: inherit; transition: width 240ms ease; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-fill.is-hp { background: linear-gradient(90deg, #77383b, #a95352); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-fill.is-mana { background: linear-gradient(90deg, #3f5f88, #638db9); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-fill.is-energy { background: linear-gradient(90deg, #95713a, #d0aa59); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-feedback-pop { animation: combat-feedback-pop 420ms cubic-bezier(.18,.75,.25,1) both; }
+
+@media (max-width: 380px) {
+  html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button { padding-inline: 12px; }
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .bestiary-panel {
+  border-color: #4d4639;
+  background:
+    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    linear-gradient(145deg, rgb(34 31 26 / 97%), rgb(17 19 20 / 99%) 70%),
+    #141619;
+  background-size: 360px 360px, 100% 100%, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, normal, normal;
+  border-radius: 12px;
+  box-shadow: inset 0 1px rgb(255 244 213 / 3%), 0 8px 22px rgb(0 0 0 / 17%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .leather-panel {
+  background:
+    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    linear-gradient(145deg, #292319, #181714 72%);
+  background-size: 360px 360px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  background-blend-mode: soft-light, normal;
+  border-color: #685638;
+  box-shadow: inset 0 1px rgb(255 244 213 / 5%), 0 8px 20px rgb(0 0 0 / 22%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button { border-radius: 9px; font-family: Georgia, "Times New Roman", serif; letter-spacing: .025em; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-primary {
+  color: #f0dcb4;
+  border-color: #c39a56;
+  background: linear-gradient(180deg, #702d28, #401917 62%, #291411);
+  box-shadow: inset 0 1px rgb(255 235 190 / 13%), inset 0 0 0 1px rgb(42 19 13 / 55%), 0 5px 16px rgb(0 0 0 / 25%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-primary:hover:not(:disabled) { background: linear-gradient(180deg, #843832, #501d19 62%, #321713); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-button-secondary { background: linear-gradient(180deg, #25231e, #151719); border-color: #66563c; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .rpg-icon-button { border-color: #66563c; background: linear-gradient(145deg, #25221d, #131516); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .progress-track { border-color: #514b40; box-shadow: inset 0 1px 2px rgb(0 0 0 / 55%); }
+
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-scene {
+  border-color: #766344;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgb(213 178 114 / 15%), 0 8px 24px rgb(0 0 0 / 38%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-scene-shade {
+  background: linear-gradient(180deg, rgb(5 8 8 / 48%) 0%, rgb(7 9 9 / 2%) 28%, rgb(7 8 8 / 24%) 59%, rgb(5 6 6 / 93%) 100%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-scene-header { border-bottom: 1px solid rgb(225 204 165 / 22%); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-round {
+  padding: 3px 7px;
+  border: 1px solid rgb(192 154 87 / 47%);
+  border-radius: 4px;
+  background: rgb(9 10 10 / 66%);
+  color: #e2c782;
+  font-family: var(--font-mono);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-monster-art { filter: drop-shadow(0 12px 16px rgb(0 0 0 / 52%)); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-enemy-plaque {
+  padding: 8px 10px 5px;
+  border: 1px solid rgb(190 157 98 / 54%);
+  border-radius: 8px;
+  background: linear-gradient(100deg, rgb(10 12 12 / 92%), rgb(16 17 16 / 72%));
+  box-shadow: inset 0 1px rgb(255 240 207 / 7%), 0 3px 10px rgb(0 0 0 / 24%);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-hero-plaque { border-color: #66563c; background: linear-gradient(110deg, #211e19, #121516 72%); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-hero-plaque .progress-track { height: 7px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-grid { gap: 8px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action {
+  min-height: 76px;
+  border-radius: 9px;
+  gap: 5px;
+  border-width: 1px;
+  box-shadow: inset 0 1px rgb(255 245 216 / 7%), 0 5px 12px rgb(0 0 0 / 25%);
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-attack { border-color: #a56b49; background: linear-gradient(145deg, #61251f, #2b1513); color: #ecd6b4; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-attack:hover:not(:disabled) { background: linear-gradient(145deg, #793129, #391815); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-skill { border-color: #8b7047; background: linear-gradient(145deg, #303a26, #172016); color: #e4d2ad; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-defend { border-color: #786a4d; background: linear-gradient(145deg, #282822, #151819); color: #ded6c3; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action-potion { border-color: #71443e; background: linear-gradient(145deg, #321b1a, #171516); color: #e0b5a5; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-action:disabled { filter: saturate(.45); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-turn-status { border-color: #64553a; background: linear-gradient(110deg, #282217, #17191a); }
+
+@media (max-width: 380px) {
+  html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-scene { min-height: 316px; }
+  html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-monster-art { height: 220px; width: 73%; }
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .folio-page { max-width: 1140px; padding-bottom: calc(96px + var(--app-safe-bottom)); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .hunt-codex > .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .dialog-frame .rpg-button { white-space: normal; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .shell-main .folio-page { padding-bottom:16px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface.fantasy-combat-page {
+  --combat-ink:#39291b; --combat-muted:#6b5338; --combat-rule:#997347; --combat-alert:#81372e;
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger {
+  color:var(--combat-ink); border:3px double var(--combat-rule); border-radius:3px;
+  background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac);
+  background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 18px #86552933;
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger-heading {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  border-bottom:1px solid var(--combat-rule); font:700 16px/1.3 Georgia,serif;
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger-close {
+  min-width:44px; min-height:44px; flex-shrink:0; font-size:24px; color:var(--combat-ink);
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-ledger { display:flex; flex-direction:column; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-entry {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px; width:100%; min-height:64px;
+  padding:12px 4px; text-align:left; color:var(--combat-ink); border-bottom:1px solid #99734770;
+  border-left:3px solid transparent; background:transparent; border-radius:0;
+}
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-entry:enabled:hover,
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-potion-entry:enabled:hover { background:#8b70471c; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-entry:focus-visible,
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-potion-entry:focus-visible,
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger-close:focus-visible { outline:2px solid #4d5b34; outline-offset:2px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-entry.is-combo { border-left-color:#4d5b34; padding-left:8px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-entry:disabled { cursor:not-allowed; color:var(--combat-muted); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-copy { display:block; min-width:0; flex:1; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-heading { display:flex; flex-wrap:wrap; align-items:center; gap:5px 8px; font:700 15px/1.3 Georgia,serif; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-heading strong { overflow-wrap:anywhere; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ink-tag { font:700 11px/1.3 Georgia,serif; border-bottom:1px solid var(--combat-rule); color:#4d5b34; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-description,
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-unavailable { display:block; margin-top:4px; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-skill-description { color:var(--combat-muted); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-unavailable { color:var(--combat-alert); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-mana-cost { flex-shrink:0; font-size:12px; font-weight:700; white-space:nowrap; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-mana-cost.combat-unavailable { margin-top:0; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger-note { margin:10px 0 0; font-size:11px; color:var(--combat-muted); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-potion-entry { min-height:60px; padding:8px 4px; border-bottom:1px solid #99734770; border-radius:0; background:transparent; color:var(--combat-ink); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-reward-total { border:1px solid #99734770; border-radius:2px; background:#8b704712; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-ledger .combat-ink { color:var(--combat-ink); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface.fantasy-combat-page > details .combat-ink { color:#c5b89d; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .region-dispatch .rpg-button { border:3px double #8c6941; border-radius:2px; background:#34412b; color:#eddfb8; font:700 14px Georgia,serif; min-height:44px; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art { position:absolute; left:0; top:36px; width:58%; height:256px; z-index:1; pointer-events:none; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art::before { content:""; position:absolute; left:18%; right:18%; bottom:0; height:12px; border-radius:50%; background:#03060580; filter:blur(4px); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art > div,
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-breathe { width:100%; height:100%; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art img { display:block; object-position:center bottom; filter:drop-shadow(2px 4px 3px #0006); }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-breathe { transform-origin:center bottom; animation:combat-player-breathe 4s ease-in-out infinite; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-attack { animation:combat-player-attack .3s ease-out; }
+html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-hit { animation:combat-player-hit .3s ease-out; }
+
+@media(min-width:640px) { html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art { height:306px; } }
+@media(max-width:380px) { html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-art { left:0; top:34px; height:236px; } html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-monster-art { width:55%; } }
+@media(prefers-reduced-motion:reduce) { html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-breathe,html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-attack,html[data-interface="fantasy-beta"] .classic-fantasy-surface .combat-player-hit { animation:none; } }

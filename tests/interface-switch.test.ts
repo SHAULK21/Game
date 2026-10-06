@@ -38,7 +38,7 @@ test('registration switches styles without losing input; both layouts share char
   const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`);
   let serverVersion = 0;
   const preferences:any[]=[];
-  w.fetch = async (url: string,options:any) => {if(url==='/api/preferences/language')preferences.push(JSON.parse(options.body));return { ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], ok: true, totalGold: 0, isAdmin: false }) };};
+  w.fetch = async (url: string,options:any) => {if(url==='/api/preferences/language')preferences.push(JSON.parse(options.body));return { ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], clan: null, clans: [], messages: [], players: [], listings: [], opponents: [], members: [], ok: true, totalGold: 0, isAdmin: false }) };};
   const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 40)); });
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === text) as any;
   const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
@@ -124,8 +124,16 @@ test('registration switches styles without losing input; both layouts share char
         await w.act(async()=>w.document.querySelector('[aria-label="Закрыть описание предмета"]').click());
       }
       assert.equal(save().player.energy,before,'book navigation never charges energy');
-      await w.act(async()=>w.document.querySelector('.beta-page-turn > div').dispatchEvent(new w.Event('animationend',{bubbles:true})));
+      await w.act(async()=>w.document.querySelector('.beta-page-turn > div')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
       assert(!w.document.querySelector('.beta-page-turn'), 'page turn is removed after its animation');
+    }
+    for (const [label,page] of [['Герой','character'],['Создание','crafting'],['Кузница','blacksmith'],['Алхимия','alchemy'],['Рыбалка','fishing'],['Шахта','mine'],['Рынок','market'],['Клан','clan'],['Спутники','pets'],['Чат','chat'],['Рейтинг','leaderboard'],['Журнал','more']]) {
+      await w.act(async()=>button('Ещё').click());
+      const link = [...w.document.querySelectorAll('.game-drawer .game-section')].find((node:any)=>node.textContent.trim().startsWith(label)) as any;
+      assert(link, `${label} is reachable from navigation`);
+      await w.act(async()=>link.click()); await settle();
+      assert(w.document.querySelector(`main [data-beta-book-page="${page}"]`), `${label} uses a functional book chapter`);
+      await w.act(async()=>w.document.querySelector('.beta-page-turn > div')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
     }
     await w.act(async()=>button('Охота').click()); await settle();
     assert(w.document.querySelector('.beta-page-turn.is-backwards'), 'returning to the first tab turns backwards');

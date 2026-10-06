@@ -15,7 +15,7 @@ function choicesFrom(children:React.ReactNode, group?:string, groupDisabled=fals
  return choices;
 }
 type Props = React.SelectHTMLAttributes<HTMLSelectElement> & {renderChoice?:(value:string)=>React.ReactNode};
-/** Modern searchable dialog, with a native select retained for forms and the fantasy theme. */
+/** Searchable themed dialog; the hidden native select retains form and change-event semantics. */
 export function SelectionField({renderChoice,...props}:Props) {
  useLocale();
  const {style}=useInterface();
@@ -26,7 +26,7 @@ export function SelectionField({renderChoice,...props}:Props) {
  const selected=choices.find(c=>c.value===String(props.value??props.defaultValue??''));
  const title=props['aria-label']||t('Выберите вариант');
  const visible=choices.filter(c=>(c.value!==''||!c.disabled)&&c.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
- useEffect(()=>{if(props.disabled||style==='fantasy')setOpen(false);},[props.disabled,style]);
+ useEffect(()=>{setOpen(false);},[props.disabled,style]);
  useEffect(()=>{
   if(!open)return;
   const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
@@ -55,7 +55,7 @@ export function SelectionField({renderChoice,...props}:Props) {
   select.current.dispatchEvent(new Event('change', {bubbles:true}));
   setOpen(false);
  };
- if(style==='fantasy'||props.multiple)return <select {...props}/>;
+ if(props.multiple)return <select {...props}/>;
  return <>
   <select {...props} ref={select} hidden aria-hidden="true" tabIndex={-1}/>
   <button type="button" ref={trigger} className={`selection-trigger ${props.className||''}`} disabled={props.disabled} aria-label={props['aria-label']} aria-haspopup="dialog" aria-expanded={open} aria-controls={open?id:undefined} onClick={()=>{setQuery('');setOpen(true);}}>
