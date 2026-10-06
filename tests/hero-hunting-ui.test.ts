@@ -30,6 +30,6 @@ test('hero groups preserve stats; hunting modes scale and freeze each enemy whil
    await w.act(async()=>w.game.exitCombat());
   }
   for(const regionId of ['ascension','arena','dungeon_test']){const special={...monster,regionId};assert.equal(w.applyMode(special,w.modes.mod_abyss_curse),special);assert.equal(w.modeFor(special).id,'mod_standard');}
-  await w.act(async()=>w.game.challengeAscension());assert.equal(w.game.activeMonster.maxHp,ASCENSION_STAGES[0].hp);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
+  await w.act(async()=>w.game.challengeAscension());assert.equal(w.game.activeMonster.maxHp,ASCENSION_STAGES[0].hp);const penalized={...baseline,attack:85,magicAttack:23,defense:54,magicDefense:18};assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),penalized,'forced exits apply a penalty independent of hunting mode');
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

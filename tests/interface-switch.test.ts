@@ -80,6 +80,9 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => button('Начать путешествие').click()); await settle();
     assert(button('Атака'), 'registration starts the first fight');
     w.Math.random=()=>0;await w.act(async()=>button('Покинуть бой').click());await settle();
+    assert.match(w.document.body.textContent,/В королевстве трусы не в почёте/);
+    assert(w.document.querySelector('img[src="/assets/story/royal-order.webp"]'));
+    await w.act(async()=>button('Продолжить приключение').click());await settle();
     for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
     await completeFirstDeparture(w,'Повысить: Сила');await settle();
@@ -292,6 +295,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     });
     await click('Начать путешествие');
     w.Math.random=()=>0;await click('Покинуть бой');
+    await click('Продолжить приключение');
     for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
     await completeFirstDeparture(w,'Повысить: Сила');await settle();

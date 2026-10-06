@@ -67,6 +67,8 @@ test('language selection is visible only at registration; its saved locale survi
     assert(fantasy); await w.act(async () => fantasy.click()); await settle();
     await click('Почати подорож');
     w.Math.random=()=>0;await click('Покинути бій');
+    assert.match(w.document.body.textContent,/У королівстві боягузи не в пошані/);
+    await click('Продовжити пригоду');
     for(const label of ["Далі", "Далі", "Відкрити Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Перший бій позаду/);
     await completeFirstDeparture(w,'Підвищити: Сила');await settle();

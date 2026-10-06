@@ -1,8 +1,9 @@
+import { recordFlight, completePenalizedBattle, flightBattlesLeft, FLIGHT_PENALTY_PERCENT } from '../utils/flightPenalty';
 import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat, availableMonsterSkills, advanceMonsterCooldowns } from '../utils/monsterAI';
 import { forecastMonsterAction, monsterReadingAccuracy, type MonsterForecast } from '../utils/monsterForecast';
 import { huntSeriesPool } from '../utils/huntEncounters';
 import { completeTravelQuests } from '../utils/travelQuests';
-import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
+import { potionDamage, isRestorationPotion, restorationUseful, potionKinds, potionUsedThisTurn } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
@@ -87,6 +88,8 @@ interface GameContextType {
   combatChain: { total: number; defeated: number; remaining: number } | null;
   battleLog: BattleLogEntry[];
   combatRound: number;
+  usedPotionKinds: string[];
+  dismissFlightWarning: () => void;
   lastCombatReward: { gold: number; silver: number; exp: number; items: GameItem[]; arenaRatingGain?: number } | null;
   isInCombat: boolean;
   isCombatEnded: boolean;
@@ -526,13 +529,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [combatRound, setCombatRound] = useState<number>(1);
+  const [usedPotionKinds, setUsedPotionKinds] = useState<string[]>([]);
+  const usedPotionsRef = useRef<string[]>([]);
+  const flightHandled = useRef(false);
+  const combatActiveRef = useRef(false);
+  const resetPotionTurn = () => { usedPotionsRef.current = []; setUsedPotionKinds([]); };
+  useEffect(resetPotionTurn, [combatRound]);
+  const markPotionUsed = (item: GameItem) => {
+    usedPotionsRef.current = [...new Set([...usedPotionsRef.current, ...potionKinds(item)])];
+    setUsedPotionKinds(usedPotionsRef.current);
+  };
+  const dismissFlightWarning = useCallback(() => {
+    setPlayer(prev => prev?.flightPenalty ? { ...prev, flightPenalty: { ...prev.flightPenalty, warningPending: false } } : prev);
+  }, []);
   const [lastCombatReward, setLastCombatReward] = useState<{ gold: number; silver: number; exp: number; items: GameItem[]; arenaRatingGain?: number } | null>(null);
   const [pendingChainRewards, setPendingChainRewards] = useState({gold:0,silver:0,exp:0});
   const [pendingChainItems, setPendingChainItems] = useState<GameItem[]>([]);
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
+  useEffect(() => { combatActiveRef.current = isInCombat && !isCombatEnded; }, [isInCombat, isCombatEnded]);
   const arenaDefeatHandled = useRef(false);
+  useEffect(() => {
+    if (!isInCombat || !isCombatEnded || flightHandled.current) return;
+    flightHandled.current = true;
+    if (combatOutcome === 'victory' || combatOutcome === 'defeat') setPlayer(prev => prev ? completePenalizedBattle(prev) : prev);
+  }, [isInCombat, isCombatEnded, combatOutcome]);
   const talentFollowup = useRef(0);
   const bulkInventoryBusy = useRef(false);
   const serverInventoryVersion = useRef(0);
@@ -1160,6 +1182,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, []);
 
+  const activeFlightPenalty = isInCombat && !isCombatEnded && flightBattlesLeft(player) > 0;
+
   // Compute Total Combat Stats
   const combatStats: CombatStats = useMemo(() => {
     if (!player) {
@@ -1287,6 +1311,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       magicDefense *= 1.1;
     }
 
+    if (activeFlightPenalty) {
+      attack *= 1 - FLIGHT_PENALTY_PERCENT / 100;
+      magicAttack *= 1 - FLIGHT_PENALTY_PERCENT / 100;
+      defense *= 1 - FLIGHT_PENALTY_PERCENT / 100;
+      magicDefense *= 1 - FLIGHT_PENALTY_PERCENT / 100;
+    }
     return {
       hp: maxHp,
       maxHp: Math.round(maxHp),
@@ -1314,7 +1344,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expBonus: Math.round(expBonus),
       resistances
     };
-  }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing]);
+  }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing, activeFlightPenalty]);
 
   // Character Creation
   const createCharacter = useCallback((name: string, classId: CharacterClassId, firstJourney = false) => {
@@ -2007,6 +2037,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMonsterIntent(null);
     setPlayerEffects(petOpening.playerEffects);
     setMonsterEffects(petOpening.monsterEffects);
+    resetPotionTurn();
+    flightHandled.current = false;
+    combatActiveRef.current = true;
     setCombatRound(1);
     talentFollowup.current = 0;
     setLastCast(null);
@@ -2070,6 +2103,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveMonster(petOpening.enemy);
     setMonsterEffects(petOpening.monsterEffects);
     for (const effect of petOpening.playerEffects) setPlayerEffects(prev => applyStatusEffect(prev, effect));
+    resetPotionTurn();
+    flightHandled.current = false;
+    combatActiveRef.current = true;
     setCombatRound(1);
     setLastCombatReward(null);
     setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev));
@@ -2222,7 +2258,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setLastCombatReward({gold:0,silver:echoReward?3000:0,exp:0,items:[]});
       setBattleLog(prev=>[...prev,...baseLogs,{id:'asc_win_'+Date.now(),turn:currentTurn,text:monster.id.startsWith('ascension_echo_') ? `🏆 ${monster.name} повержен! +3000 серебра и сезонная победа. Награда доступна один раз за неделю для каждого эха.` : `🏆 ${monster.name} повержен! Испытание ${stage?.rank||''} пройдено. Вернитесь на арену и нажмите «Вознестись».`,type:'system'}]);
-      setIsCombatEnded(true);setCombatOutcome('victory');setTurnPhase('ended');return;
+      combatActiveRef.current = false; setIsCombatEnded(true);setCombatOutcome('victory');setTurnPhase('ended');return;
     }
     const killRecovery = (talentBonuses(player?.talents || []).killRecovery || 0) + (player?.classId === 'necromancer' ? 12 : 0);
     const recoveredHp = Math.min(combatStats.maxHp, combatPlayerHp + Math.round(combatStats.maxHp * killRecovery / 100));
@@ -2500,7 +2536,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : (combatChain ? `🏁 Вся серия из ${combatChain.total} противников уничтожена.` : '🏁 Бой завершён.'),
       type: 'system'
     }]);
-    setIsCombatEnded(true);
+    combatActiveRef.current = false; setIsCombatEnded(true);
     setCombatOutcome('victory');
     setTurnPhase('ended');
   }, [player, combatStats, activeDungeonRun, combatChain, pendingChainItems, pendingChainRewards, combatPlayerHp, combatPlayerMp]);
@@ -2518,10 +2554,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (actionType === 'potion' && !player.inventory.some(item => item.type === 'potion' && (!skillId || item.id === skillId))) return;
 
     const selectedPotion = actionType === 'potion' ? player.inventory.find(i => i.type === 'potion' && (!skillId || i.id === skillId)) : undefined;
+    if (selectedPotion && potionUsedThisTurn(selectedPotion, usedPotionsRef.current)) return;
     if (selectedPotion && isRestorationPotion(selectedPotion)) {
       const hp = selectedPotion.stats.healFull ? combatStats.maxHp : selectedPotion.stats.heal || 0;
       const mp = selectedPotion.stats.manaRestore || 0;
       if (!restorationUseful(selectedPotion,combatPlayerHp,combatPlayerMp,combatStats.maxHp,combatStats.maxMp)) return;
+      markPotionUsed(selectedPotion);
       setCombatPlayerHp(value => Math.min(combatStats.maxHp, value + hp));
       setCombatPlayerMp(value => Math.min(combatStats.maxMp, value + mp));
       setPlayer(previous => previous ? { ...previous, inventory: previous.inventory.map(i => i.id === selectedPotion.id ? {...i, stackCount: (i.stackCount || 1) - 1} : i).filter(i => i.id !== selectedPotion.id || (i.stackCount || 0) > 0) } : previous);
@@ -2579,7 +2617,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
         setBattleLog(prev => [...prev, ...newLogs]);
-        setIsCombatEnded(true);
+        combatActiveRef.current = false; setIsCombatEnded(true);
         setCombatOutcome('defeat');
         setCombatChain(null);
         setTurnPhase('ended');
@@ -2609,9 +2647,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (actionType === 'flee') {
       if (Math.random() < 0.65) {
+        flightHandled.current = true;
+        setPlayer(prev => prev ? recordFlight(prev) : prev);
+        setAutoBattle(prev => ({ ...prev, enabled: false }));
         newLogs.push({ id: 'flee_' + Date.now(), turn: currentTurn, text: '🏃 Вы ловко ускользнули из боя!', type: 'flee' });
         setBattleLog(prev => [...prev, ...newLogs]);
-        setIsCombatEnded(true);
+        combatActiveRef.current = false; setIsCombatEnded(true);
         setCombatOutcome('flee');
         setCombatChain(null);
         setTurnPhase('ended');
@@ -2657,6 +2698,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (potionDamage(pot)) {
+        markPotionUsed(pot);
         const {power, damageType} = potionDamage(pot)!;
         const damage = calculateTypedDamage({power: power * (player.classId === 'rogue' ? 1.25 : 1), multiplier: 1, damageType,
           targetDefense: activeMonster.defense, targetMagicDefense: activeMonster.magicDefense,
@@ -2675,7 +2717,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const hp = Math.max(0, activeMonster.hp - damage);
         setActiveMonster(previous => previous ? {...previous,hp} : previous);
         if (hp <= 0) {
-          setIsCombatEnded(true); setCombatOutcome('victory'); setTurnPhase('ended');
+          combatActiveRef.current = false; setIsCombatEnded(true); setCombatOutcome('victory'); setTurnPhase('ended');
           completeCombatVictory(activeMonster,currentTurn,newLogs);
         } else {setBattleLog(log=>[...log,...newLogs]);setTurnPhase('monster');}
         return;
@@ -2701,6 +2743,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      markPotionUsed(pot);
       sound.playPotion();
       if (healFull) setCombatPlayerHp(combatStats.maxHp);
       else if (heal) setCombatPlayerHp(prev => Math.min(combatStats.maxHp, prev + heal));
@@ -2929,7 +2972,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Resolve the death state before rewards so a loot/error path can never leave
       // the opponent visually stuck at 1 HP.
       setActiveMonster(prev => prev ? { ...prev, hp: 0 } : null);
-      setIsCombatEnded(true);
+      combatActiveRef.current = false; setIsCombatEnded(true);
       setCombatOutcome('victory');
       setTurnPhase('ended');
       completeCombatVictory(activeMonster, currentTurn, newLogs);
@@ -2961,6 +3004,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (playerActionLock.current || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'player') return;
     const pot = actionType === 'potion' ? player.inventory.find(i => i.type === 'potion' && (!skillId || i.id === skillId)) : undefined;
     if (actionType === 'potion' && (!pot || activeMonster.id === 'ascension_echo_control')) { resolvePlayerAction(actionType, skillId); return; }
+    if (pot && potionUsedThisTurn(pot, usedPotionsRef.current)) return;
     if (pot && isRestorationPotion(pot) && !restorationUseful(pot,combatPlayerHp,combatPlayerMp,combatStats.maxHp,combatStats.maxMp)) return;
     const skill = actionType === 'skill' ? player.skills.find(s => s.id === skillId) : undefined;
     if (actionType === 'skill' && (!skill || player.level < skill.levelReq || skill.currentCooldown > 0 || combatPlayerMp < talentManaCost(skill.manaCost, player.talents))) return;
@@ -3087,7 +3131,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           newLogs.push({ id: 'm_fatal_' + Date.now(), turn: currentTurn, text: `💀 Вы пали в бою с ${activeMonster.name}...`, type: 'death' });
           sound.playDefeat(); triggerHaptic('error');
           setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
-          setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended');
+          combatActiveRef.current = false; setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended');
         } else {
           setCombatRound(prev => prev + 1);
           setTurnPhase('player');
@@ -3171,7 +3215,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logs.push({ id: 'monster_skill_fatal_' + Date.now(), turn: currentTurn, text: `💀 Особый приём ${skill.name} вас добил.`, type: 'death' });
           sound.playDefeat(); triggerHaptic('error');
           setPlayer(prev => prev ? { ...prev, statsSummary: { ...prev.statsSummary, battlesLost: prev.statsSummary.battlesLost + 1 } } : prev);
-          setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended'); setMonsterIntent(null);
+          combatActiveRef.current = false; setIsCombatEnded(true); setCombatOutcome('defeat'); setTurnPhase('ended'); setMonsterIntent(null);
         } else {
           setCombatRound(prev => prev + 1);
           setTurnPhase('player');
@@ -3195,10 +3239,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Auto-battle loop (operates only on player's turn)
   useEffect(() => {
-    if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player) return;
+    if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player || player.flightPenalty?.warningPending) return;
 
     const timer = setTimeout(() => {
-      const decision = chooseAutoBattleAction({player,monster:activeMonster,stats:combatStats,hp:combatPlayerHp,mp:combatPlayerMp,
+      const decision = chooseAutoBattleAction({player:{...player,inventory:player.inventory.filter(item => item.type !== 'potion' || !potionUsedThisTurn(item, usedPotionsRef.current))},monster:activeMonster,stats:combatStats,hp:combatPlayerHp,mp:combatPlayerMp,
         playerEffects,monsterEffects,settings:autoBattle,damageMultiplier:combatHuntingMode(activeMonster).damageMultiplier});
       performPlayerAction(decision.action, decision.id);
     }, 600);
@@ -3224,6 +3268,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const exitCombat = useCallback(() => {
+    if (combatActiveRef.current && isInCombat && !isCombatEnded && !flightHandled.current) {
+      flightHandled.current = true;
+      setPlayer(prev => prev ? recordFlight(prev) : prev);
+      setAutoBattle(prev => ({ ...prev, enabled: false }));
+    }
+    combatActiveRef.current = false;
     setIsInCombat(false);
     setMonsterIntent(null);
     setCombatChain(null);
@@ -3236,7 +3286,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCombatPlayerMp(combatStats.maxMp);
     }
     setBattleLog([]);
-  }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun]);
+  }, [combatStats.maxHp, combatStats.maxMp, activeDungeonRun, isInCombat, isCombatEnded]);
 
   const advanceRoyalBriefing = useCallback(() => {
     setPlayer(previous => {
@@ -3790,7 +3840,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isInCombat,travelState.isTraveling,activeDungeonRun]);
 
   const craftAlchemy = useCallback((recipeId: string): boolean => {
-    if (!player) return false;
+    if (!player || combatActiveRef.current || isInCombat && !isCombatEnded) return false;
 
     const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId);
     if (!recipe || player.alchemyLevel < recipe.levelReq || player.level < (recipe.heroLevelReq || 1)) {
@@ -3893,7 +3943,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sound.playPotion();
     triggerHaptic('success');
     return true;
-  }, [player]);
+  }, [player, isInCombat, isCombatEnded]);
 
   // Arena
   const challengeAscension = useCallback((echoId?:string) => {
@@ -4105,6 +4155,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       combatChain: combatChain ? { total: combatChain.total, defeated: combatChain.defeated, remaining: combatChain.queue.length } : null,
       battleLog,
       combatRound,
+      usedPotionKinds,
+      dismissFlightWarning,
       lastCombatReward,
       isInCombat,
       isCombatEnded,

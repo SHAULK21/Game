@@ -28,3 +28,17 @@ export function restorationUseful(item:GameItem,hp:number,mp:number,maxHp:number
  return !!(s.attackPercent || s.defensePercent || s.critChance || s.invulnerable
    || (s.heal || s.healFull) && hp<maxHp || s.manaRestore && mp<maxMp);
 }
+
+/** Effects identify a kind; different strengths, templates and stacks cannot bypass a turn limit. */
+export function potionKinds(item: GameItem): string[] {
+ const s = item.stats || {};
+ const kinds: string[] = [];
+ if (s.heal || s.healFull || item.templateId?.startsWith('pot_hp_')) kinds.push('heal');
+ if (s.manaRestore || item.templateId?.startsWith('pot_mp_')) kinds.push('mana');
+ for (const key of ['attackPercent','defensePercent','critChance','invulnerable','fireDamage','poisonDamage','iceDamage'])
+  if (s[key] > 0) kinds.push(key);
+ return kinds.length ? kinds : [item.templateId || item.name];
+}
+export function potionUsedThisTurn(item: GameItem, used: readonly string[]) {
+ return item.type === 'potion' && used.length > 0;
+}

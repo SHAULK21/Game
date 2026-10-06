@@ -1,3 +1,4 @@
+import { FlightWarning } from './components/dialogs/FlightWarning';
 import { observeMobileViewport } from './utils/mobileViewport';
 import { RoyalBriefing } from './components/dialogs/RoyalBriefing';
 import { AdventureStory } from './components/dialogs/AdventureStory';
@@ -25,6 +26,7 @@ const InterfaceContent = () => {
   const { player, isInCombat, isCombatEnded, travelState } = useGame();
   useEffect(() => { if (player) markStoryIntroSeen(); }, [Boolean(player)]);
   if (!player) return <><LanguageSync /><StartupReady /><StoryRegistration><CharacterCreationModal /></StoryRegistration></>;
+  if (player.flightPenalty?.warningPending) return <><LanguageSync /><StartupReady /><FlightWarning /></>;
   if (player.firstJourney === 'briefing') return <><LanguageSync /><StartupReady /><RoyalBriefing /></>;
   if (player.adventureJournal?.pending && (!isInCombat || isCombatEnded) && !travelState.isTraveling)
     return <><LanguageSync /><StartupReady /><AdventureStory /></>;

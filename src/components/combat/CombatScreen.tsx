@@ -1,7 +1,8 @@
+import { FlightPenaltyNotice } from '../../components/combat/FlightPenaltyNotice';
 import { RegionCompletionReward } from './RegionCompletionReward';
 import { getMonsterArtworkPath } from '../../interfaces/fantasy/utils/monsterArtwork';
 import { HuntStage } from '../../interfaces/modern/HuntStage';
-import { potionActionLabel } from '../../utils/combatPotions';
+import { potionActionLabel, potionUsedThisTurn } from '../../utils/combatPotions';
 import { useMonsterStrike } from '../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../utils/regionalProgress';
@@ -50,6 +51,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     combatRound,
     lastCombatReward,
     isInCombat,
+    usedPotionKinds,
     isCombatEnded,
     combatOutcome,
     combatPlayerHp,
@@ -195,6 +197,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     return (
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
         {localize(premiumModal)}
+        <FlightPenaltyNotice />
         {selectedMonster && <HuntStage region={currentRegion} monsters={regionMonsters} selected={selectedMonster} onSelect={setSelectedMonsterId} />}
           <div className="modern-hunt-action flex gap-2">
             <button
@@ -469,6 +472,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
       {localize(premiumModal)}
+        <FlightPenaltyNotice />
       {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
       <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
         <BattleBackdrop scene={battleScene} dungeonId={battleDungeon?.id} />
@@ -913,10 +917,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                   <button onClick={() => setIsPotionsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
+                  <p className="text-xs">{localize('За ход доступно одно зелье. Следующее — после хода противника.')}</p>
                   {combatPotions.map(potion => {
                     const stats = potion.stats || {};
                     const effects = [
-                      potionActionLabel(potion, player.classId),
+                      potionUsedThisTurn(potion, usedPotionKinds) ? localize('Зелье уже использовано на этом ходу. Следующее доступно на следующем ходу.') : potionActionLabel(potion, player.classId),
                       stats.heal ? `+${stats.heal} HP` : '',
                       stats.manaRestore ? `+${stats.manaRestore} MP` : '',
                       stats.attackPercent ? `+${stats.attackPercent}% атаки` : '',
@@ -927,7 +932,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                     return (
                       <button
                         key={potion.id}
-                        disabled={turnPhase !== 'player'}
+                        disabled={turnPhase !== 'player' || potionUsedThisTurn(potion, usedPotionKinds)}
                         onClick={() => {
                           performPlayerAction('potion', potion.id);
                           setIsPotionsOpen(false);

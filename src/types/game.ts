@@ -541,6 +541,7 @@ export interface PlayerCharacter {
   nextExp: number;
   firstJourney?: 'battle' | 'briefing' | 'codex' | 'done';
   royalBriefingStep?: number;
+  flightPenalty?: { battlesLeft: number; warningSeen: boolean; warningPending: boolean };
   firstJourneyDeparture?: boolean;
   adventureJournal?: AdventureJournalState;
   statPoints: number;

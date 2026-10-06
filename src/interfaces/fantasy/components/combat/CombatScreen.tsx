@@ -1,6 +1,7 @@
+import { FlightPenaltyNotice } from '../../../../components/combat/FlightPenaltyNotice';
 import { useInterface } from '../../../../context/InterfaceContext';
 import { BetaHuntDashboard } from './BetaHuntDashboard';
-import { potionActionLabel } from '../../../../utils/combatPotions';
+import { potionActionLabel, potionUsedThisTurn } from '../../../../utils/combatPotions';
 import { useMonsterStrike } from '../../../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
@@ -30,6 +31,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     combatRound,
     lastCombatReward,
     isInCombat,
+    usedPotionKinds,
     isCombatEnded,
     combatOutcome,
     combatPlayerHp,
@@ -157,6 +159,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     return (
       <>
         {localize(premiumModal)}
+        <FlightPenaltyNotice />
         <Dashboard
           player={player}
           currentRegion={currentRegion}
@@ -197,6 +200,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   return (
     <div className="folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3">
       {localize(premiumModal)}
+        <FlightPenaltyNotice />
       <CombatArena
         player={player}
         monster={activeMonster}
@@ -428,10 +432,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                   <button onClick={() => setIsPotionsOpen(false)} aria-label={localize("Закрыть выбор зелий")} className="combat-ledger-close">×</button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
+                  <p className="text-xs">{localize('За ход доступно одно зелье. Следующее — после хода противника.')}</p>
                   {combatPotions.map(potion => {
                     const stats = potion.stats || {};
                     const effects = [
-                      potionActionLabel(potion, player.classId),
+                      potionUsedThisTurn(potion, usedPotionKinds) ? localize('Зелье уже использовано на этом ходу. Следующее доступно на следующем ходу.') : potionActionLabel(potion, player.classId),
                       stats.heal ? `+${stats.heal} HP` : '',
                       stats.manaRestore ? `+${stats.manaRestore} MP` : '',
                       stats.attackPercent ? `+${stats.attackPercent}% атаки` : '',
@@ -442,7 +447,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                     return (
                       <button
                         key={potion.id}
-                        disabled={turnPhase !== 'player'}
+                        disabled={turnPhase !== 'player' || potionUsedThisTurn(potion, usedPotionKinds)}
                         onClick={() => {
                           performPlayerAction('potion', potion.id);
                           setIsPotionsOpen(false);

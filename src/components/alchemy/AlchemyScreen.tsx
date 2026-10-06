@@ -9,7 +9,7 @@ import { ItemArtwork } from '../ui/ItemArtwork';
 
 export const AlchemyScreen: React.FC = () => {
   useLocale();
-  const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
+  const { player, isInCombat, isCombatEnded, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
   const [recipeFilter, setRecipeFilter] = useState<'all' | 'fish'>('all');
   const [craftingRecipeId, setCraftingRecipeId] = useState<string | null>(null);
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
@@ -19,12 +19,14 @@ export const AlchemyScreen: React.FC = () => {
   useEffect(() => () => { if (craftTimer.current !== null) window.clearTimeout(craftTimer.current); }, []);
 
   if (!player) return null;
+  const combatLocked = isInCombat && !isCombatEnded;
   const progress = alchemyProgress(player.alchemyLevel, player.alchemyExp);
   const tool = player.equipped.alchemyTool;
   const bonus = getAlchemyToolBonus(tool, player.alchemyLevel);
   const nextRecipe = ALCHEMY_RECIPES.filter(recipe=>recipe.levelReq>player.alchemyLevel).sort((a,b)=>a.levelReq-b.levelReq)[0];
 
   const handleCraft = (recipeId: string) => {
+    if (combatLocked) { setCraftFeedback('Варить зелья можно только после боя.'); return; }
     if (craftingLock.current) return;
     craftingLock.current = true;
     setCraftingRecipeId(recipeId);
@@ -46,6 +48,7 @@ export const AlchemyScreen: React.FC = () => {
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      {combatLocked && <p role="status" className="rounded-lg border border-amber-700 bg-amber-950 p-3 text-xs text-amber-200">{localize('Варить зелья можно только после боя.')}</p>}
       {/* Header */}
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">
@@ -122,11 +125,11 @@ export const AlchemyScreen: React.FC = () => {
 
                   <button
                     onClick={() => handleCraft(rec.id)}
-                    disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
+                    disabled={combatLocked || craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed font-bold text-xs text-white active:scale-95 transition-all flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <FlaskConical className={`w-3.5 h-3.5 ${isCrafting ? 'animate-spin' : ''}`} />
-                    <span>{localize(isCrafting ? 'Варка...' : player.level < (rec.heroLevelReq || 1) ? `Герой ${rec.heroLevelReq} ур.` : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} ⚗`)}</span>
+                    <span>{localize(combatLocked ? 'Завершите бой' : isCrafting ? 'Варка...' : player.level < (rec.heroLevelReq || 1) ? `Герой ${rec.heroLevelReq} ур.` : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} ⚗`)}</span>
                   </button>
                 </div>
 

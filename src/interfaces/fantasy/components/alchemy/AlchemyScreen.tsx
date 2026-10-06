@@ -10,7 +10,7 @@ import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '
 
 export const AlchemyScreen: React.FC = () => {
   useLocale();
-  const { player, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
+  const { player, isInCombat, isCombatEnded, craftAlchemy, buyAlchemyTool, equipItem, unequipItem } = useGame();
   const [recipeFilter, setRecipeFilter] = useState<'all' | 'fish'>('all');
   const [craftingRecipeId, setCraftingRecipeId] = useState<string | null>(null);
   const [craftFeedback, setCraftFeedback] = useState<string | null>(null);
@@ -20,12 +20,14 @@ export const AlchemyScreen: React.FC = () => {
   useEffect(() => () => { if (craftTimer.current !== null) window.clearTimeout(craftTimer.current); }, []);
 
   if (!player) return null;
+  const combatLocked = isInCombat && !isCombatEnded;
   const progress = alchemyProgress(player.alchemyLevel, player.alchemyExp);
   const tool = player.equipped.alchemyTool;
   const bonus = getAlchemyToolBonus(tool, player.alchemyLevel);
   const nextRecipe = ALCHEMY_RECIPES.filter(recipe=>recipe.levelReq>player.alchemyLevel).sort((a,b)=>a.levelReq-b.levelReq)[0];
 
   const handleCraft = (recipeId: string) => {
+    if (combatLocked) { setCraftFeedback('Варить зелья можно только после боя.'); return; }
     if (craftingLock.current) return;
     craftingLock.current = true;
     setCraftingRecipeId(recipeId);
@@ -47,6 +49,7 @@ export const AlchemyScreen: React.FC = () => {
 
   return (
     <FolioPage className="space-y-3 pt-3">
+      {combatLocked && <p role="status" className="rounded-lg border border-amber-700 bg-amber-950 p-3 text-xs text-amber-200">{localize('Варить зелья можно только после боя.')}</p>}
       {/* Header */}
       <BestiaryPanel className="rounded-xl p-3">
         <div className="flex items-center justify-between">
@@ -119,12 +122,12 @@ export const AlchemyScreen: React.FC = () => {
 
                   <RpgButton
                     onClick={() => handleCraft(rec.id)}
-                    disabled={craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
+                    disabled={combatLocked || craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
                     variant="primary"
                     icon="alchemy"
                     className="shrink-0 px-3 disabled:opacity-40"
                   >
-                    {localize(isCrafting ? 'Варка...' : player.level < (rec.heroLevelReq || 1) ? `Герой ${rec.heroLevelReq} ур.` : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} энергии`)}
+                    {localize(combatLocked ? 'Завершите бой' : isCrafting ? 'Варка...' : player.level < (rec.heroLevelReq || 1) ? `Герой ${rec.heroLevelReq} ур.` : player.alchemyLevel<rec.levelReq ? `С ${rec.levelReq} ур.` : `Сварить · ${energyCost} энергии`)}
                   </RpgButton>
                 </div>
 
