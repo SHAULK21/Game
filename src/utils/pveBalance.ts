@@ -11,7 +11,7 @@ export function playerDamagePower(type: DamageType, classId: CharacterClassId, s
 export function regionalEnemyStats(monster: Monster, level: number) {
   if (!monster.isBoss && !monster.isElite) return {};
   const elite = !monster.isBoss;
-  const hp = Math.round(elite ? (200 + level * 24) * 1.5 : (340 + level * 34) * (.95 + level * .004));
+  const hp = Math.round(elite ? (200 + level * 24) * 1.05 : (340 + level * 34) * (.95 + level * .004) * .65);
   const defense = Math.round(elite ? 10 + level * .6 : 14 + level * .85);
   return { hp, maxHp: hp, defense, magicDefense: Math.round(defense * .85),
     attack: Math.round((elite ? 22 + level * 3 + Math.pow(level, 1.55) * .22 : 28 + level * 3.5 + Math.pow(Math.max(0, level - 12), 1.65) * .4) * .80),
