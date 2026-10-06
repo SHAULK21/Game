@@ -46,7 +46,7 @@ test('real combat resolves player actions immediately, rejects double clicks and
   // The berserker's real starting skill inflicts bleeding at this deterministic roll.
   await w.act(async()=>w.game.createCharacter('Кровотечение','berserker'));
   await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));await w.act(async()=>w.game.performPlayerAction('skill',w.game.player.skills[0].id));
-  const beforeTick=w.game.activeMonster.hp;await w.act(async()=>await new Promise(r=>setTimeout(r,1000)));
+  const beforeTick=w.game.activeMonster.hp;await w.act(async()=>await new Promise(r=>setTimeout(r,1800)));
   const bleed=w.game.battleLog.find((e:any)=>e.impact?.periodic==='bleed');assert(bleed);assert.equal(bleed.impact.amount,30);assert.equal(w.game.activeMonster.hp,beforeTick-30);
   await w.act(async()=>w.game.exitCombat());
   assert.equal(w.game.isInCombat,false);assert.equal(w.game.activeMonster,null);assert.equal(w.game.battleLog.length,0);

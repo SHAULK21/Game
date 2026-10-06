@@ -697,7 +697,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5">
             <div className="flex items-center gap-2 text-amber-200 text-xs font-bold">
               <RpgIcon kind="weapon" size={17} className="text-amber-300" />
-              <span>{localize("Следующее действие врага")}</span>
+              <span>{localize("Возможный приём врага")}</span>
               <span className="ml-auto text-[10px] text-slate-400">{localize("после вашего хода")}</span>
             </div>
             <div className="mt-1 flex items-center gap-2 text-[11px] font-mono">

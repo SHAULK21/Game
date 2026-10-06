@@ -1,10 +1,10 @@
 import type { AutoBattleSettings, CombatStats, Monster, PlayerCharacter, Skill, StatusEffect } from '../types/game';
 import { talentManaCost } from '../data/talents';
-import { playerDamagePower } from './pveBalance';
+import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant } from './pveBalance';
 import { getStatusModifiers } from './statusEffects';
 
 export function predictedMonsterSkill(monster: Monster) {
-  return (monster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && monster.mp >= s.manaCost)
+  return (monster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && monster.mp >= s.manaCost && (s.actionKind !== 'potion' || (monster.potionCharges || 0) > 0))
     .sort((a, b) => (b.damageMultiplier + (b.effect ? .2 : 0)) - (a.damageMultiplier + (a.effect ? .2 : 0)))[0] || null;
 }
 
@@ -52,14 +52,15 @@ export function chooseAutoBattleAction(input: AutoBattleInput): AutoBattleAction
   const planned = predictedMonsterSkill(monster);
   const type = planned?.damageType || monster.damageType || 'physical';
   const defense = type === 'physical' ? stats.defense : stats.magicDefense;
-  const incoming = (type === 'physical' ? monster.attack : monster.magicAttack) * (planned?.damageMultiplier || 1)
-    * (input.damageMultiplier || 1) * (type === 'physical' ? 80 : 90) / (defense + (type === 'physical' ? 80 : 90));
+  const incomingPower = planned?.actionKind === 'potion' ? Math.max(monster.attack, monster.magicAttack) : type === 'physical' ? monster.attack : monster.magicAttack;
+  const incoming = incomingPower * (planned?.damageMultiplier || 1)
+    * pveThreatMultiplier(monster, player.level) * (input.damageMultiplier || 1) * incomingArmorConstant(monster, type) / (defense + incomingArmorConstant(monster, type));
   const protectedNow = playerEffects.some(e => e.duration > 1 && (e.type === 'invulnerable' || e.type === 'shield' && e.value >= incoming));
   if (!protectedNow && !getStatusModifiers(monsterEffects).skipTurn && planned
       && incoming >= hp * .3) {
     const shield = ready.find(s => s.damageMultiplier === 0 && s.inflicts && ['shield', 'fortify', 'invulnerable'].includes(s.inflicts.type));
     if (shield) return { action: 'skill', id: shield.id };
-    if (incoming >= hp * .5) return { action: 'defend' };
+    if (incoming >= hp * .5 && hpPercent > 25) return { action: 'defend' };
   }
 
   const attacks = ready.filter(s => s.damageMultiplier > 0).map(skill => {

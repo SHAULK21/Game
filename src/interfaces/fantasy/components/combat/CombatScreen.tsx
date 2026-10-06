@@ -222,7 +222,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           <details className="bestiary-panel overflow-hidden">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">
               <RpgIcon kind={nextMonsterSkill ? 'skill' : 'attack'} size={17} className="text-[#c7a365]" />
-              <span className="min-w-0 flex-1"><span className="mr-1 text-[11px] text-[#918c82]">{localize("Враг готовит:")}</span><strong className="text-[#d8d1c4]">{localize(nextMonsterSkill ? nextMonsterSkill.name : 'Обычная атака')}</strong><span className="mt-1 block text-[11px] leading-relaxed text-[#aaa49a]">{monsterPreparation(activeMonster, combatRound, nextMonsterSkill).map((line,i)=><span key={i}>{localize(line)} </span>)}</span></span>
+              <span className="min-w-0 flex-1"><span className="mr-1 text-[11px] text-[#918c82]">{localize("Возможный приём:")}</span><strong className="text-[#d8d1c4]">{localize(nextMonsterSkill ? nextMonsterSkill.name : 'Обычная атака')}</strong><span className="mt-1 block text-[11px] leading-relaxed text-[#aaa49a]">{monsterPreparation(activeMonster, combatRound, nextMonsterSkill).map((line,i)=><span key={i}>{localize(line)} </span>)}</span></span>
               {nextMonsterSkill && <span className="shrink-0 font-mono text-[11px] text-[#d28f89]">×{localize(Math.round(nextMonsterSkill.damageMultiplier * 100))}%</span>}
             </summary>
             <p className="border-t border-[#343638] px-3 py-2 text-[11px] text-[#aaa49a]">{localize(nextMonsterSkill?.description || 'Противник нанесёт обычный физический удар.')}</p>

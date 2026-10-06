@@ -9,7 +9,7 @@ test('throwing recipes and turn labels distinguish restorative, buff and damage 
  assert(potionActionLabel({...item,stats:{fireDamage:90}},'rogue').includes('113'));
 });
 
-test('real provider: free restoration preserves effects and cooldowns; throws use a turn, resistances and rogue bonus; autobattle has original timers',async()=>{
+test('real provider: free restoration preserves effects and cooldowns; throws use a turn, resistances and rogue bonus; autobattle keeps player cadence and uses bounded monster preparation',async()=>{
  const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';function Probe(){window.game=useGame();return null;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:true,items:[],ok:true})});w.eval(bundle.outputFiles[0].text);
  const target:any={id:'potion_test',name:'Цель',regionId:'arena',level:1,hp:10000,maxHp:10000,mp:100,maxMp:100,attack:70,magicAttack:70,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:1,goldReward:1,drops:[]};
@@ -45,6 +45,6 @@ test('real provider: free restoration preserves effects and cooldowns; throws us
   const dot=w.game.battleLog.find((e:any)=>e.impact?.periodic==='poison');assert(dot);assert.equal(dot.impact.amount,33);assert.equal(dot.impact.target,'monster');assert.equal(w.game.activeMonster.hp,venomStartHp-253);
   await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
   const timers:number[]=[];const native=w.setTimeout.bind(w);w.setTimeout=(fn:any,ms:number,...args:any[])=>{timers.push(ms);return native(fn,ms,...args);};
-  await w.act(async()=>w.game.updateAutoBattleSettings({enabled:true,useSkills:false,healAtHpPercent:0}));await w.act(async()=>await new Promise(r=>setTimeout(r,650)));assert.equal(w.game.turnPhase,'monster');assert(timers.includes(600));assert(timers.includes(650));assert(!timers.includes(750));
+  await w.act(async()=>w.game.updateAutoBattleSettings({enabled:true,useSkills:false,healAtHpPercent:0}));await w.act(async()=>await new Promise(r=>setTimeout(r,650)));assert.equal(w.game.turnPhase,'monster');assert(timers.includes(600));assert(timers.some(ms=>ms>=100 && ms<=250));assert(!timers.includes(750));
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

@@ -1,0 +1,3943 @@
+{
+  "date": "2026-10-06",
+  "baselineCommit": "89b9b5f80e1cbbee78639ad9b085b414597cc0c8",
+  "method": "Real GameProvider, deterministic LCG, accelerated combat callbacks, 10 classes, auto strategy, no fleeing. Unlock gates pre-opened; fixed hero level and no XP growth. Gear and consumables are synthesized from existing recipes; balanced attribute/talent allocation, starter wolf. Probability/range RNG consumes draws, so baseline and new events are not paired.",
+  "suites": {
+    "standard": {
+      "runs": 1560,
+      "groups": [
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 120,
+          "wins": 72,
+          "losses": 48,
+          "timeouts": 0,
+          "meanHp": 48.34,
+          "meanRounds": 7.28,
+          "battles": 0,
+          "actions": {
+            "attack": 679,
+            "super": 79,
+            "defend": 35,
+            "potion": 0
+          },
+          "winPercent": 60.0
+        },
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 11.43,
+          "battles": 0,
+          "actions": {
+            "attack": 297,
+            "super": 38,
+            "defend": 8,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 8,
+          "losses": 22,
+          "timeouts": 0,
+          "meanHp": 11.45,
+          "meanRounds": 20.97,
+          "battles": 0,
+          "actions": {
+            "attack": 553,
+            "super": 42,
+            "defend": 20,
+            "potion": 0
+          },
+          "winPercent": 26.67
+        },
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 120,
+          "wins": 120,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 86.3,
+          "meanRounds": 5.65,
+          "battles": 0,
+          "actions": {
+            "attack": 459,
+            "super": 66,
+            "defend": 32,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 29,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 52.1,
+          "meanRounds": 15.13,
+          "battles": 0,
+          "actions": {
+            "attack": 360,
+            "super": 40,
+            "defend": 21,
+            "potion": 0
+          },
+          "winPercent": 96.67
+        },
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 21.57,
+          "battles": 0,
+          "actions": {
+            "attack": 547,
+            "super": 61,
+            "defend": 37,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 93.82,
+          "meanRounds": 4.87,
+          "battles": 0,
+          "actions": {
+            "attack": 193,
+            "super": 27,
+            "defend": 12,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 5,
+          "losses": 55,
+          "timeouts": 0,
+          "meanHp": 2.11,
+          "meanRounds": 21.35,
+          "battles": 0,
+          "actions": {
+            "attack": 1093,
+            "super": 112,
+            "defend": 64,
+            "potion": 0
+          },
+          "winPercent": 8.33
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 56.66,
+          "meanRounds": 11.8,
+          "battles": 0,
+          "actions": {
+            "attack": 282,
+            "super": 24,
+            "defend": 15,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 94.7,
+          "meanRounds": 5.28,
+          "battles": 0,
+          "actions": {
+            "attack": 205,
+            "super": 33,
+            "defend": 17,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 22,
+          "losses": 38,
+          "timeouts": 0,
+          "meanHp": 11.86,
+          "meanRounds": 20.73,
+          "battles": 0,
+          "actions": {
+            "attack": 942,
+            "super": 142,
+            "defend": 79,
+            "potion": 49
+          },
+          "winPercent": 36.67
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 71.26,
+          "meanRounds": 12.37,
+          "battles": 0,
+          "actions": {
+            "attack": 272,
+            "super": 44,
+            "defend": 21,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 92.78,
+          "meanRounds": 6.9,
+          "battles": 0,
+          "actions": {
+            "attack": 241,
+            "super": 58,
+            "defend": 32,
+            "potion": 21
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 47,
+          "losses": 13,
+          "timeouts": 0,
+          "meanHp": 34.57,
+          "meanRounds": 18.43,
+          "battles": 0,
+          "actions": {
+            "attack": 786,
+            "super": 138,
+            "defend": 77,
+            "potion": 43
+          },
+          "winPercent": 78.33
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 64.65,
+          "meanRounds": 12.97,
+          "battles": 0,
+          "actions": {
+            "attack": 248,
+            "super": 56,
+            "defend": 29,
+            "potion": 19
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 83.78,
+          "meanRounds": 7.53,
+          "battles": 0,
+          "actions": {
+            "attack": 234,
+            "super": 75,
+            "defend": 46,
+            "potion": 32
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 25,
+          "losses": 35,
+          "timeouts": 0,
+          "meanHp": 16.52,
+          "meanRounds": 19.77,
+          "battles": 0,
+          "actions": {
+            "attack": 801,
+            "super": 159,
+            "defend": 116,
+            "potion": 80
+          },
+          "winPercent": 41.67
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 28,
+          "losses": 2,
+          "timeouts": 0,
+          "meanHp": 57.19,
+          "meanRounds": 13.43,
+          "battles": 0,
+          "actions": {
+            "attack": 240,
+            "super": 58,
+            "defend": 43,
+            "potion": 32
+          },
+          "winPercent": 93.33
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 59,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 75.64,
+          "meanRounds": 8.38,
+          "battles": 0,
+          "actions": {
+            "attack": 244,
+            "super": 95,
+            "defend": 56,
+            "potion": 45
+          },
+          "winPercent": 98.33
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 10,
+          "losses": 50,
+          "timeouts": 0,
+          "meanHp": 6.09,
+          "meanRounds": 18.62,
+          "battles": 0,
+          "actions": {
+            "attack": 670,
+            "super": 201,
+            "defend": 133,
+            "potion": 96
+          },
+          "winPercent": 16.67
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 27,
+          "losses": 3,
+          "timeouts": 0,
+          "meanHp": 61.69,
+          "meanRounds": 12.77,
+          "battles": 0,
+          "actions": {
+            "attack": 213,
+            "super": 71,
+            "defend": 43,
+            "potion": 26
+          },
+          "winPercent": 90.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 85.1,
+          "meanRounds": 7.4,
+          "battles": 0,
+          "actions": {
+            "attack": 195,
+            "super": 81,
+            "defend": 56,
+            "potion": 40
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 3,
+          "losses": 57,
+          "timeouts": 0,
+          "meanHp": 0.86,
+          "meanRounds": 25.3,
+          "battles": 0,
+          "actions": {
+            "attack": 905,
+            "super": 291,
+            "defend": 177,
+            "potion": 123
+          },
+          "winPercent": 5.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 73.97,
+          "meanRounds": 11.0,
+          "battles": 0,
+          "actions": {
+            "attack": 167,
+            "super": 61,
+            "defend": 34,
+            "potion": 28
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 82.91,
+          "meanRounds": 7.48,
+          "battles": 0,
+          "actions": {
+            "attack": 218,
+            "super": 74,
+            "defend": 50,
+            "potion": 39
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 15,
+          "losses": 45,
+          "timeouts": 0,
+          "meanHp": 11.94,
+          "meanRounds": 24.12,
+          "battles": 0,
+          "actions": {
+            "attack": 840,
+            "super": 271,
+            "defend": 174,
+            "potion": 123
+          },
+          "winPercent": 25.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 73.63,
+          "meanRounds": 11.0,
+          "battles": 0,
+          "actions": {
+            "attack": 165,
+            "super": 57,
+            "defend": 38,
+            "potion": 33
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 93.93,
+          "meanRounds": 6.93,
+          "battles": 0,
+          "actions": {
+            "attack": 174,
+            "super": 79,
+            "defend": 56,
+            "potion": 40
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 19,
+          "losses": 41,
+          "timeouts": 0,
+          "meanHp": 13.6,
+          "meanRounds": 22.15,
+          "battles": 0,
+          "actions": {
+            "attack": 761,
+            "super": 246,
+            "defend": 154,
+            "potion": 105
+          },
+          "winPercent": 31.67
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 73.66,
+          "meanRounds": 10.8,
+          "battles": 0,
+          "actions": {
+            "attack": 157,
+            "super": 63,
+            "defend": 38,
+            "potion": 26
+          },
+          "winPercent": 100.0
+        }
+      ],
+      "warnings": []
+    },
+    "prepared": {
+      "runs": 2300,
+      "groups": [
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 200,
+          "wins": 200,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.06,
+          "meanRounds": 5.42,
+          "battles": 0,
+          "actions": {
+            "attack": 729,
+            "super": 99,
+            "defend": 44,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 65.98,
+          "meanRounds": 12.62,
+          "battles": 0,
+          "actions": {
+            "attack": 496,
+            "super": 54,
+            "defend": 18,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 5,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 50,
+          "wins": 4,
+          "losses": 46,
+          "timeouts": 0,
+          "meanHp": 3.06,
+          "meanRounds": 36.38,
+          "battles": 0,
+          "actions": {
+            "attack": 1482,
+            "super": 156,
+            "defend": 72,
+            "potion": 0
+          },
+          "winPercent": 8.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.11,
+          "meanRounds": 4.35,
+          "battles": 0,
+          "actions": {
+            "attack": 276,
+            "super": 42,
+            "defend": 15,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 83,
+          "losses": 17,
+          "timeouts": 0,
+          "meanHp": 47.27,
+          "meanRounds": 24.91,
+          "battles": 0,
+          "actions": {
+            "attack": 1891,
+            "super": 195,
+            "defend": 122,
+            "potion": 0
+          },
+          "winPercent": 83.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 65.97,
+          "meanRounds": 11.44,
+          "battles": 0,
+          "actions": {
+            "attack": 439,
+            "super": 52,
+            "defend": 25,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.65,
+          "meanRounds": 5.01,
+          "battles": 0,
+          "actions": {
+            "attack": 321,
+            "super": 50,
+            "defend": 26,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 92,
+          "losses": 8,
+          "timeouts": 0,
+          "meanHp": 51.72,
+          "meanRounds": 21.85,
+          "battles": 0,
+          "actions": {
+            "attack": 1539,
+            "super": 201,
+            "defend": 113,
+            "potion": 77
+          },
+          "winPercent": 92.0
+        },
+        {
+          "level": 12,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 76.2,
+          "meanRounds": 10.72,
+          "battles": 0,
+          "actions": {
+            "attack": 399,
+            "super": 57,
+            "defend": 21,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 94.22,
+          "meanRounds": 6.86,
+          "battles": 0,
+          "actions": {
+            "attack": 403,
+            "super": 95,
+            "defend": 41,
+            "potion": 41
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 99,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 62.85,
+          "meanRounds": 18.2,
+          "battles": 0,
+          "actions": {
+            "attack": 1224,
+            "super": 209,
+            "defend": 136,
+            "potion": 70
+          },
+          "winPercent": 99.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 72.49,
+          "meanRounds": 11.84,
+          "battles": 0,
+          "actions": {
+            "attack": 373,
+            "super": 90,
+            "defend": 45,
+            "potion": 27
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.57,
+          "meanRounds": 6.77,
+          "battles": 0,
+          "actions": {
+            "attack": 356,
+            "super": 96,
+            "defend": 68,
+            "potion": 48
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 73,
+          "losses": 27,
+          "timeouts": 0,
+          "meanHp": 45.94,
+          "meanRounds": 21.82,
+          "battles": 0,
+          "actions": {
+            "attack": 1361,
+            "super": 277,
+            "defend": 196,
+            "potion": 136
+          },
+          "winPercent": 73.0
+        },
+        {
+          "level": 40,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 74.76,
+          "meanRounds": 11.82,
+          "battles": 0,
+          "actions": {
+            "attack": 349,
+            "super": 93,
+            "defend": 48,
+            "potion": 37
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.31,
+          "meanRounds": 7.53,
+          "battles": 0,
+          "actions": {
+            "attack": 345,
+            "super": 134,
+            "defend": 85,
+            "potion": 71
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 60,
+          "losses": 40,
+          "timeouts": 0,
+          "meanHp": 33.26,
+          "meanRounds": 24.31,
+          "battles": 0,
+          "actions": {
+            "attack": 1374,
+            "super": 393,
+            "defend": 266,
+            "potion": 164
+          },
+          "winPercent": 60.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 76.9,
+          "meanRounds": 12.02,
+          "battles": 0,
+          "actions": {
+            "attack": 302,
+            "super": 114,
+            "defend": 71,
+            "potion": 48
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.31,
+          "meanRounds": 6.68,
+          "battles": 0,
+          "actions": {
+            "attack": 304,
+            "super": 120,
+            "defend": 65,
+            "potion": 65
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 56,
+          "losses": 44,
+          "timeouts": 0,
+          "meanHp": 26.25,
+          "meanRounds": 28.48,
+          "battles": 0,
+          "actions": {
+            "attack": 1515,
+            "super": 498,
+            "defend": 306,
+            "potion": 224
+          },
+          "winPercent": 56.0
+        },
+        {
+          "level": 75,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 81.33,
+          "meanRounds": 9.84,
+          "battles": 0,
+          "actions": {
+            "attack": 235,
+            "super": 96,
+            "defend": 58,
+            "potion": 41
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.06,
+          "meanRounds": 6.64,
+          "battles": 0,
+          "actions": {
+            "attack": 305,
+            "super": 116,
+            "defend": 78,
+            "potion": 56
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 73,
+          "losses": 27,
+          "timeouts": 0,
+          "meanHp": 40.91,
+          "meanRounds": 27.37,
+          "battles": 0,
+          "actions": {
+            "attack": 1458,
+            "super": 458,
+            "defend": 302,
+            "potion": 221
+          },
+          "winPercent": 73.0
+        },
+        {
+          "level": 90,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 82.76,
+          "meanRounds": 9.78,
+          "battles": 0,
+          "actions": {
+            "attack": 248,
+            "super": 89,
+            "defend": 51,
+            "potion": 40
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 100,
+          "wins": 100,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 96.06,
+          "meanRounds": 6.27,
+          "battles": 0,
+          "actions": {
+            "attack": 277,
+            "super": 116,
+            "defend": 72,
+            "potion": 56
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 100,
+          "wins": 80,
+          "losses": 20,
+          "timeouts": 0,
+          "meanHp": 49.31,
+          "meanRounds": 25.88,
+          "battles": 0,
+          "actions": {
+            "attack": 1361,
+            "super": 444,
+            "defend": 275,
+            "potion": 205
+          },
+          "winPercent": 80.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 50,
+          "wins": 50,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.14,
+          "meanRounds": 9.58,
+          "battles": 0,
+          "actions": {
+            "attack": 232,
+            "super": 83,
+            "defend": 51,
+            "potion": 46
+          },
+          "winPercent": 100.0
+        }
+      ],
+      "warnings": []
+    },
+    "modes": {
+      "runs": 1950,
+      "groups": [
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.65,
+          "meanRounds": 4.48,
+          "battles": 0,
+          "actions": {
+            "attack": 174,
+            "super": 25,
+            "defend": 9,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 52,
+          "losses": 8,
+          "timeouts": 0,
+          "meanHp": 42.14,
+          "meanRounds": 25.22,
+          "battles": 0,
+          "actions": {
+            "attack": 1141,
+            "super": 131,
+            "defend": 77,
+            "potion": 0
+          },
+          "winPercent": 86.67
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 63.82,
+          "meanRounds": 11.17,
+          "battles": 0,
+          "actions": {
+            "attack": 258,
+            "super": 31,
+            "defend": 11,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_abyss_curse",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 65.69,
+          "meanRounds": 12.52,
+          "battles": 0,
+          "actions": {
+            "attack": 552,
+            "super": 77,
+            "defend": 41,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_abyss_curse",
+          "role": "boss",
+          "runs": 60,
+          "wins": 0,
+          "losses": 60,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 16.47,
+          "battles": 0,
+          "actions": {
+            "attack": 743,
+            "super": 82,
+            "defend": 50,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_abyss_curse",
+          "role": "elite",
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 30.43,
+          "battles": 0,
+          "actions": {
+            "attack": 718,
+            "super": 92,
+            "defend": 40,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_blood_moon",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 79.06,
+          "meanRounds": 7.97,
+          "battles": 0,
+          "actions": {
+            "attack": 353,
+            "super": 41,
+            "defend": 21,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_blood_moon",
+          "role": "boss",
+          "runs": 60,
+          "wins": 0,
+          "losses": 60,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 24.08,
+          "battles": 0,
+          "actions": {
+            "attack": 1128,
+            "super": 121,
+            "defend": 80,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_blood_moon",
+          "role": "elite",
+          "runs": 30,
+          "wins": 17,
+          "losses": 13,
+          "timeouts": 0,
+          "meanHp": 21.16,
+          "meanRounds": 29.93,
+          "battles": 0,
+          "actions": {
+            "attack": 699,
+            "super": 75,
+            "defend": 46,
+            "potion": 0
+          },
+          "winPercent": 56.67
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 94.12,
+          "meanRounds": 6.52,
+          "battles": 0,
+          "actions": {
+            "attack": 223,
+            "super": 52,
+            "defend": 34,
+            "potion": 16
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 60.54,
+          "meanRounds": 18.15,
+          "battles": 0,
+          "actions": {
+            "attack": 732,
+            "super": 114,
+            "defend": 85,
+            "potion": 49
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 74.44,
+          "meanRounds": 11.5,
+          "battles": 0,
+          "actions": {
+            "attack": 226,
+            "super": 40,
+            "defend": 25,
+            "potion": 19
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_blood_moon",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 75.96,
+          "meanRounds": 12.52,
+          "battles": 0,
+          "actions": {
+            "attack": 498,
+            "super": 94,
+            "defend": 58,
+            "potion": 38
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_blood_moon",
+          "role": "boss",
+          "runs": 60,
+          "wins": 19,
+          "losses": 41,
+          "timeouts": 0,
+          "meanHp": 13.7,
+          "meanRounds": 29.68,
+          "battles": 0,
+          "actions": {
+            "attack": 1249,
+            "super": 212,
+            "defend": 110,
+            "potion": 55
+          },
+          "winPercent": 31.67
+        },
+        {
+          "level": 25,
+          "mode": "mod_blood_moon",
+          "role": "elite",
+          "runs": 30,
+          "wins": 23,
+          "losses": 7,
+          "timeouts": 0,
+          "meanHp": 45.27,
+          "meanRounds": 23.13,
+          "battles": 0,
+          "actions": {
+            "attack": 463,
+            "super": 83,
+            "defend": 46,
+            "potion": 25
+          },
+          "winPercent": 76.67
+        },
+        {
+          "level": 25,
+          "mode": "mod_abyss_curse",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 63.97,
+          "meanRounds": 19.28,
+          "battles": 0,
+          "actions": {
+            "attack": 793,
+            "super": 144,
+            "defend": 87,
+            "potion": 46
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_abyss_curse",
+          "role": "boss",
+          "runs": 60,
+          "wins": 0,
+          "losses": 60,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 30.4,
+          "battles": 0,
+          "actions": {
+            "attack": 1298,
+            "super": 209,
+            "defend": 134,
+            "potion": 53
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_abyss_curse",
+          "role": "elite",
+          "runs": 30,
+          "wins": 6,
+          "losses": 24,
+          "timeouts": 0,
+          "meanHp": 6.89,
+          "meanRounds": 32.13,
+          "battles": 0,
+          "actions": {
+            "attack": 678,
+            "super": 113,
+            "defend": 70,
+            "potion": 29
+          },
+          "winPercent": 20.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 83.52,
+          "meanRounds": 7.73,
+          "battles": 0,
+          "actions": {
+            "attack": 226,
+            "super": 86,
+            "defend": 49,
+            "potion": 34
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 40,
+          "losses": 20,
+          "timeouts": 0,
+          "meanHp": 36.99,
+          "meanRounds": 24.6,
+          "battles": 0,
+          "actions": {
+            "attack": 828,
+            "super": 238,
+            "defend": 166,
+            "potion": 96
+          },
+          "winPercent": 66.67
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 74.52,
+          "meanRounds": 12.57,
+          "battles": 0,
+          "actions": {
+            "attack": 203,
+            "super": 66,
+            "defend": 43,
+            "potion": 25
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_abyss_curse",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 35,
+          "losses": 25,
+          "timeouts": 0,
+          "meanHp": 34.24,
+          "meanRounds": 25.95,
+          "battles": 0,
+          "actions": {
+            "attack": 902,
+            "super": 257,
+            "defend": 175,
+            "potion": 100
+          },
+          "winPercent": 58.33
+        },
+        {
+          "level": 55,
+          "mode": "mod_abyss_curse",
+          "role": "boss",
+          "runs": 60,
+          "wins": 0,
+          "losses": 60,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 24.68,
+          "battles": 0,
+          "actions": {
+            "attack": 884,
+            "super": 237,
+            "defend": 154,
+            "potion": 89
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_abyss_curse",
+          "role": "elite",
+          "runs": 30,
+          "wins": 10,
+          "losses": 20,
+          "timeouts": 0,
+          "meanHp": 15.64,
+          "meanRounds": 31.3,
+          "battles": 0,
+          "actions": {
+            "attack": 555,
+            "super": 160,
+            "defend": 100,
+            "potion": 54
+          },
+          "winPercent": 33.33
+        },
+        {
+          "level": 55,
+          "mode": "mod_blood_moon",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 52,
+          "losses": 8,
+          "timeouts": 0,
+          "meanHp": 60.6,
+          "meanRounds": 16.73,
+          "battles": 0,
+          "actions": {
+            "attack": 540,
+            "super": 176,
+            "defend": 107,
+            "potion": 71
+          },
+          "winPercent": 86.67
+        },
+        {
+          "level": 55,
+          "mode": "mod_blood_moon",
+          "role": "boss",
+          "runs": 60,
+          "wins": 2,
+          "losses": 58,
+          "timeouts": 0,
+          "meanHp": 1.48,
+          "meanRounds": 29.22,
+          "battles": 0,
+          "actions": {
+            "attack": 1051,
+            "super": 277,
+            "defend": 197,
+            "potion": 103
+          },
+          "winPercent": 3.33
+        },
+        {
+          "level": 55,
+          "mode": "mod_blood_moon",
+          "role": "elite",
+          "runs": 30,
+          "wins": 21,
+          "losses": 9,
+          "timeouts": 0,
+          "meanHp": 45.55,
+          "meanRounds": 20.67,
+          "battles": 0,
+          "actions": {
+            "attack": 348,
+            "super": 107,
+            "defend": 59,
+            "potion": 43
+          },
+          "winPercent": 70.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.55,
+          "meanRounds": 6.33,
+          "battles": 0,
+          "actions": {
+            "attack": 172,
+            "super": 70,
+            "defend": 41,
+            "potion": 34
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 49,
+          "losses": 11,
+          "timeouts": 0,
+          "meanHp": 46.5,
+          "meanRounds": 25.72,
+          "battles": 0,
+          "actions": {
+            "attack": 777,
+            "super": 275,
+            "defend": 160,
+            "potion": 128
+          },
+          "winPercent": 81.67
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.12,
+          "meanRounds": 9.77,
+          "battles": 0,
+          "actions": {
+            "attack": 151,
+            "super": 52,
+            "defend": 32,
+            "potion": 22
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_blood_moon",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 78.38,
+          "meanRounds": 12.28,
+          "battles": 0,
+          "actions": {
+            "attack": 374,
+            "super": 135,
+            "defend": 88,
+            "potion": 66
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_blood_moon",
+          "role": "boss",
+          "runs": 60,
+          "wins": 1,
+          "losses": 59,
+          "timeouts": 0,
+          "meanHp": 0.38,
+          "meanRounds": 37.65,
+          "battles": 0,
+          "actions": {
+            "attack": 1303,
+            "super": 417,
+            "defend": 245,
+            "potion": 146
+          },
+          "winPercent": 1.67
+        },
+        {
+          "level": 100,
+          "mode": "mod_blood_moon",
+          "role": "elite",
+          "runs": 30,
+          "wins": 23,
+          "losses": 7,
+          "timeouts": 0,
+          "meanHp": 50.66,
+          "meanRounds": 21.6,
+          "battles": 0,
+          "actions": {
+            "attack": 346,
+            "super": 113,
+            "defend": 76,
+            "potion": 49
+          },
+          "winPercent": 76.67
+        },
+        {
+          "level": 100,
+          "mode": "mod_abyss_curse",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 69.07,
+          "meanRounds": 20.83,
+          "battles": 0,
+          "actions": {
+            "attack": 657,
+            "super": 222,
+            "defend": 148,
+            "potion": 98
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_abyss_curse",
+          "role": "boss",
+          "runs": 60,
+          "wins": 0,
+          "losses": 60,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 33.18,
+          "battles": 0,
+          "actions": {
+            "attack": 1142,
+            "super": 358,
+            "defend": 225,
+            "potion": 147
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_abyss_curse",
+          "role": "elite",
+          "runs": 30,
+          "wins": 17,
+          "losses": 13,
+          "timeouts": 0,
+          "meanHp": 34.51,
+          "meanRounds": 33.43,
+          "battles": 0,
+          "actions": {
+            "attack": 576,
+            "super": 167,
+            "defend": 114,
+            "potion": 72
+          },
+          "winPercent": 56.67
+        },
+        {
+          "level": 100,
+          "mode": "mod_sanctuary",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.31,
+          "meanRounds": 7.12,
+          "battles": 0,
+          "actions": {
+            "attack": 197,
+            "super": 79,
+            "defend": 55,
+            "potion": 29
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_sanctuary",
+          "role": "boss",
+          "runs": 60,
+          "wins": 36,
+          "losses": 24,
+          "timeouts": 0,
+          "meanHp": 32.89,
+          "meanRounds": 29.92,
+          "battles": 0,
+          "actions": {
+            "attack": 981,
+            "super": 299,
+            "defend": 194,
+            "potion": 134
+          },
+          "winPercent": 60.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_sanctuary",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 80.05,
+          "meanRounds": 11.33,
+          "battles": 0,
+          "actions": {
+            "attack": 172,
+            "super": 61,
+            "defend": 41,
+            "potion": 27
+          },
+          "winPercent": 100.0
+        }
+      ],
+      "warnings": []
+    },
+    "chains": {
+      "runs": 780,
+      "groups": [
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 120,
+          "wins": 41,
+          "losses": 79,
+          "timeouts": 0,
+          "meanHp": 23.93,
+          "meanRounds": 17.16,
+          "battles": 0,
+          "actions": {
+            "attack": 1475,
+            "super": 178,
+            "defend": 81,
+            "potion": 0
+          },
+          "winPercent": 34.17
+        },
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 19.07,
+          "battles": 0,
+          "actions": {
+            "attack": 444,
+            "super": 52,
+            "defend": 16,
+            "potion": 0
+          },
+          "winPercent": 0.0
+        },
+        {
+          "level": 1,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 27,
+          "losses": 3,
+          "timeouts": 0,
+          "meanHp": 47.14,
+          "meanRounds": 23.8,
+          "battles": 0,
+          "actions": {
+            "attack": 564,
+            "super": 44,
+            "defend": 21,
+            "potion": 0
+          },
+          "winPercent": 90.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 81.28,
+          "meanRounds": 16.37,
+          "battles": 0,
+          "actions": {
+            "attack": 628,
+            "super": 95,
+            "defend": 45,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 48,
+          "losses": 12,
+          "timeouts": 0,
+          "meanHp": 36.76,
+          "meanRounds": 26.45,
+          "battles": 0,
+          "actions": {
+            "attack": 1220,
+            "super": 136,
+            "defend": 64,
+            "potion": 0
+          },
+          "winPercent": 80.0
+        },
+        {
+          "level": 8,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 64.07,
+          "meanRounds": 11.27,
+          "battles": 0,
+          "actions": {
+            "attack": 267,
+            "super": 27,
+            "defend": 11,
+            "potion": 0
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 76.01,
+          "meanRounds": 29.6,
+          "battles": 0,
+          "actions": {
+            "attack": 1027,
+            "super": 237,
+            "defend": 122,
+            "potion": 110
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 62.17,
+          "meanRounds": 18.6,
+          "battles": 0,
+          "actions": {
+            "attack": 742,
+            "super": 130,
+            "defend": 81,
+            "potion": 47
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 25,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 74.59,
+          "meanRounds": 11.37,
+          "battles": 0,
+          "actions": {
+            "attack": 225,
+            "super": 41,
+            "defend": 24,
+            "potion": 16
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 58,
+          "losses": 2,
+          "timeouts": 0,
+          "meanHp": 60.28,
+          "meanRounds": 33.55,
+          "battles": 0,
+          "actions": {
+            "attack": 947,
+            "super": 360,
+            "defend": 212,
+            "potion": 172
+          },
+          "winPercent": 96.67
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 42,
+          "losses": 18,
+          "timeouts": 0,
+          "meanHp": 38.36,
+          "meanRounds": 25.28,
+          "battles": 0,
+          "actions": {
+            "attack": 864,
+            "super": 232,
+            "defend": 166,
+            "potion": 97
+          },
+          "winPercent": 70.0
+        },
+        {
+          "level": 55,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 75.05,
+          "meanRounds": 12.17,
+          "battles": 0,
+          "actions": {
+            "attack": 191,
+            "super": 61,
+            "defend": 39,
+            "potion": 34
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "ordinary",
+          "runs": 60,
+          "wins": 60,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.87,
+          "meanRounds": 27.55,
+          "battles": 0,
+          "actions": {
+            "attack": 741,
+            "super": 299,
+            "defend": 183,
+            "potion": 145
+          },
+          "winPercent": 100.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "boss",
+          "runs": 60,
+          "wins": 48,
+          "losses": 12,
+          "timeouts": 0,
+          "meanHp": 48.71,
+          "meanRounds": 25.52,
+          "battles": 0,
+          "actions": {
+            "attack": 781,
+            "super": 260,
+            "defend": 170,
+            "potion": 125
+          },
+          "winPercent": 80.0
+        },
+        {
+          "level": 100,
+          "mode": "mod_standard",
+          "role": "elite",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 80.35,
+          "meanRounds": 9.8,
+          "battles": 0,
+          "actions": {
+            "attack": 157,
+            "super": 46,
+            "defend": 33,
+            "potion": 21
+          },
+          "winPercent": 100.0
+        }
+      ],
+      "warnings": []
+    },
+    "dungeons": {
+      "runs": 720,
+      "groups": [
+        {
+          "cave": "cave_bat",
+          "difficulty": "normal",
+          "level": 3,
+          "runs": 30,
+          "wins": 8,
+          "losses": 22,
+          "timeouts": 0,
+          "meanHp": 11.59,
+          "meanRounds": 50.47,
+          "battles": 112,
+          "actions": {},
+          "winPercent": 26.67
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "hard",
+          "level": 3,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 47.23,
+          "battles": 79,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "nightmare",
+          "level": 3,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 44.93,
+          "battles": 71,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "hell",
+          "level": 3,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 35.8,
+          "battles": 61,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "normal",
+          "level": 14,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 63.73,
+          "meanRounds": 35.87,
+          "battles": 115,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "hard",
+          "level": 14,
+          "runs": 30,
+          "wins": 20,
+          "losses": 10,
+          "timeouts": 0,
+          "meanHp": 27.15,
+          "meanRounds": 57.33,
+          "battles": 114,
+          "actions": {},
+          "winPercent": 66.67
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "nightmare",
+          "level": 14,
+          "runs": 30,
+          "wins": 3,
+          "losses": 27,
+          "timeouts": 0,
+          "meanHp": 7.39,
+          "meanRounds": 64.3,
+          "battles": 102,
+          "actions": {},
+          "winPercent": 10.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "hell",
+          "level": 14,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 65.87,
+          "battles": 86,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "normal",
+          "level": 20,
+          "runs": 30,
+          "wins": 21,
+          "losses": 9,
+          "timeouts": 0,
+          "meanHp": 29.58,
+          "meanRounds": 45.17,
+          "battles": 98,
+          "actions": {},
+          "winPercent": 70.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "hard",
+          "level": 20,
+          "runs": 30,
+          "wins": 3,
+          "losses": 27,
+          "timeouts": 0,
+          "meanHp": 7.53,
+          "meanRounds": 76.13,
+          "battles": 141,
+          "actions": {},
+          "winPercent": 10.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "nightmare",
+          "level": 20,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 73.2,
+          "battles": 101,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "hell",
+          "level": 20,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 57.7,
+          "battles": 66,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "normal",
+          "level": 45,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 37.6,
+          "battles": 102,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "hard",
+          "level": 45,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 43.23,
+          "battles": 78,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "nightmare",
+          "level": 45,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 35.13,
+          "battles": 39,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "hell",
+          "level": 45,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 33.5,
+          "battles": 30,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "normal",
+          "level": 75,
+          "runs": 30,
+          "wins": 16,
+          "losses": 14,
+          "timeouts": 0,
+          "meanHp": 25.2,
+          "meanRounds": 47.57,
+          "battles": 136,
+          "actions": {},
+          "winPercent": 53.33
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "hard",
+          "level": 75,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 58.9,
+          "battles": 110,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "nightmare",
+          "level": 75,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 58.17,
+          "battles": 100,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "hell",
+          "level": 75,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 62.97,
+          "battles": 73,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "normal",
+          "level": 90,
+          "runs": 30,
+          "wins": 16,
+          "losses": 14,
+          "timeouts": 0,
+          "meanHp": 31.8,
+          "meanRounds": 57.0,
+          "battles": 164,
+          "actions": {},
+          "winPercent": 53.33
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "hard",
+          "level": 90,
+          "runs": 30,
+          "wins": 1,
+          "losses": 29,
+          "timeouts": 0,
+          "meanHp": 0.13,
+          "meanRounds": 73.8,
+          "battles": 149,
+          "actions": {},
+          "winPercent": 3.33
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "nightmare",
+          "level": 90,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 78.5,
+          "battles": 132,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "hell",
+          "level": 90,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 71.9,
+          "battles": 86,
+          "actions": {},
+          "winPercent": 0.0
+        }
+      ],
+      "warnings": []
+    },
+    "dungeons-plus10": {
+      "runs": 720,
+      "groups": [
+        {
+          "cave": "cave_bat",
+          "difficulty": "normal",
+          "level": 13,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 85.42,
+          "meanRounds": 12.2,
+          "battles": 112,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "hard",
+          "level": 13,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 69.52,
+          "meanRounds": 17.17,
+          "battles": 83,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "nightmare",
+          "level": 13,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 65.34,
+          "meanRounds": 25.1,
+          "battles": 78,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_bat",
+          "difficulty": "hell",
+          "level": 13,
+          "runs": 30,
+          "wins": 25,
+          "losses": 5,
+          "timeouts": 0,
+          "meanHp": 43.66,
+          "meanRounds": 38.9,
+          "battles": 83,
+          "actions": {},
+          "winPercent": 83.33
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "normal",
+          "level": 24,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 76.25,
+          "meanRounds": 22.8,
+          "battles": 115,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "hard",
+          "level": 24,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 62.68,
+          "meanRounds": 37.3,
+          "battles": 114,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "nightmare",
+          "level": 24,
+          "runs": 30,
+          "wins": 27,
+          "losses": 3,
+          "timeouts": 0,
+          "meanHp": 45.87,
+          "meanRounds": 52.93,
+          "battles": 102,
+          "actions": {},
+          "winPercent": 90.0
+        },
+        {
+          "cave": "cave_mine",
+          "difficulty": "hell",
+          "level": 24,
+          "runs": 30,
+          "wins": 9,
+          "losses": 21,
+          "timeouts": 0,
+          "meanHp": 13.15,
+          "meanRounds": 62.87,
+          "battles": 89,
+          "actions": {},
+          "winPercent": 30.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "normal",
+          "level": 30,
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 71.01,
+          "meanRounds": 24.87,
+          "battles": 98,
+          "actions": {},
+          "winPercent": 100.0
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "hard",
+          "level": 30,
+          "runs": 30,
+          "wins": 29,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 57.62,
+          "meanRounds": 53.17,
+          "battles": 144,
+          "actions": {},
+          "winPercent": 96.67
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "nightmare",
+          "level": 30,
+          "runs": 30,
+          "wins": 17,
+          "losses": 13,
+          "timeouts": 0,
+          "meanHp": 33.68,
+          "meanRounds": 70.2,
+          "battles": 125,
+          "actions": {},
+          "winPercent": 56.67
+        },
+        {
+          "cave": "cave_spider",
+          "difficulty": "hell",
+          "level": 30,
+          "runs": 30,
+          "wins": 6,
+          "losses": 24,
+          "timeouts": 0,
+          "meanHp": 16.12,
+          "meanRounds": 79.93,
+          "battles": 113,
+          "actions": {},
+          "winPercent": 20.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "normal",
+          "level": 55,
+          "runs": 30,
+          "wins": 22,
+          "losses": 8,
+          "timeouts": 0,
+          "meanHp": 37.09,
+          "meanRounds": 44.73,
+          "battles": 124,
+          "actions": {},
+          "winPercent": 73.33
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "hard",
+          "level": 55,
+          "runs": 30,
+          "wins": 4,
+          "losses": 26,
+          "timeouts": 0,
+          "meanHp": 5.17,
+          "meanRounds": 53.0,
+          "battles": 113,
+          "actions": {},
+          "winPercent": 13.33
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "nightmare",
+          "level": 55,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 56.5,
+          "battles": 92,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_catacombs",
+          "difficulty": "hell",
+          "level": 55,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 58.63,
+          "battles": 67,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "normal",
+          "level": 85,
+          "runs": 30,
+          "wins": 27,
+          "losses": 3,
+          "timeouts": 0,
+          "meanHp": 58.48,
+          "meanRounds": 38.57,
+          "battles": 136,
+          "actions": {},
+          "winPercent": 90.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "hard",
+          "level": 85,
+          "runs": 30,
+          "wins": 15,
+          "losses": 15,
+          "timeouts": 0,
+          "meanHp": 22.51,
+          "meanRounds": 53.4,
+          "battles": 113,
+          "actions": {},
+          "winPercent": 50.0
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "nightmare",
+          "level": 85,
+          "runs": 30,
+          "wins": 2,
+          "losses": 28,
+          "timeouts": 0,
+          "meanHp": 2.34,
+          "meanRounds": 69.4,
+          "battles": 118,
+          "actions": {},
+          "winPercent": 6.67
+        },
+        {
+          "cave": "cave_rift",
+          "difficulty": "hell",
+          "level": 85,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 85.1,
+          "battles": 124,
+          "actions": {},
+          "winPercent": 0.0
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "normal",
+          "level": 100,
+          "runs": 30,
+          "wins": 29,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 57.44,
+          "meanRounds": 47.6,
+          "battles": 164,
+          "actions": {},
+          "winPercent": 96.67
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "hard",
+          "level": 100,
+          "runs": 30,
+          "wins": 13,
+          "losses": 17,
+          "timeouts": 0,
+          "meanHp": 21.4,
+          "meanRounds": 73.17,
+          "battles": 162,
+          "actions": {},
+          "winPercent": 43.33
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "nightmare",
+          "level": 100,
+          "runs": 30,
+          "wins": 2,
+          "losses": 28,
+          "timeouts": 0,
+          "meanHp": 1.26,
+          "meanRounds": 89.5,
+          "battles": 154,
+          "actions": {},
+          "winPercent": 6.67
+        },
+        {
+          "cave": "cave_dragon",
+          "difficulty": "hell",
+          "level": 100,
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 98.4,
+          "battles": 135,
+          "actions": {},
+          "winPercent": 0.0
+        }
+      ],
+      "warnings": []
+    }
+  },
+  "crossLevel": {
+    "before": {
+      "wins": 182,
+      "runs": 200,
+      "timeouts": 0,
+      "classes": [
+        {
+          "classId": "warrior",
+          "runs": 20,
+          "wins": 20,
+          "losses": 0,
+          "timeouts": 0
+        },
+        {
+          "classId": "berserker",
+          "runs": 20,
+          "wins": 20,
+          "losses": 0,
+          "timeouts": 0
+        },
+        {
+          "classId": "knight",
+          "runs": 20,
+          "wins": 20,
+          "losses": 0,
+          "timeouts": 0
+        },
+        {
+          "classId": "rogue",
+          "runs": 20,
+          "wins": 13,
+          "losses": 7,
+          "timeouts": 0
+        },
+        {
+          "classId": "assassin",
+          "runs": 20,
+          "wins": 19,
+          "losses": 1,
+          "timeouts": 0
+        },
+        {
+          "classId": "archer",
+          "runs": 20,
+          "wins": 18,
+          "losses": 2,
+          "timeouts": 0
+        },
+        {
+          "classId": "mage",
+          "runs": 20,
+          "wins": 16,
+          "losses": 4,
+          "timeouts": 0
+        },
+        {
+          "classId": "necromancer",
+          "runs": 20,
+          "wins": 19,
+          "losses": 1,
+          "timeouts": 0
+        },
+        {
+          "classId": "paladin",
+          "runs": 20,
+          "wins": 19,
+          "losses": 1,
+          "timeouts": 0
+        },
+        {
+          "classId": "druid",
+          "runs": 20,
+          "wins": 18,
+          "losses": 2,
+          "timeouts": 0
+        }
+      ]
+    },
+    "after": {
+      "wins": 2,
+      "runs": 1000,
+      "timeouts": 0,
+      "classes": [
+        {
+          "classId": "warrior",
+          "runs": 100,
+          "wins": 2,
+          "losses": 98,
+          "timeouts": 0
+        },
+        {
+          "classId": "berserker",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "knight",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "rogue",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "assassin",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "archer",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "mage",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "necromancer",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "paladin",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        },
+        {
+          "classId": "druid",
+          "runs": 100,
+          "wins": 0,
+          "losses": 100,
+          "timeouts": 0
+        }
+      ]
+    }
+  },
+  "monsterProfiles": [
+    {
+      "id": "m_wolf",
+      "level": 2,
+      "speed": 14,
+      "ranges": {
+        "attack": [
+          603,
+          710
+        ],
+        "super": [
+          1111,
+          1215
+        ],
+        "defend": [
+          805,
+          915
+        ],
+        "potion": [
+          1009,
+          1173
+        ]
+      },
+      "weights": {
+        "defend": 0.043000000000000003,
+        "super": 0.10500000000000001,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_goblin",
+      "level": 4,
+      "speed": 16,
+      "ranges": {
+        "attack": [
+          621,
+          799
+        ],
+        "super": [
+          1257,
+          1395
+        ],
+        "defend": [
+          823,
+          923
+        ],
+        "potion": [
+          1027,
+          1181
+        ]
+      },
+      "weights": {
+        "defend": 0.049,
+        "super": 0.115,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_boar",
+      "level": 6,
+      "speed": 10,
+      "ranges": {
+        "attack": [
+          710,
+          817
+        ],
+        "super": [
+          1228,
+          1367
+        ],
+        "defend": [
+          912,
+          1022
+        ],
+        "potion": [
+          1116,
+          1280
+        ]
+      },
+      "weights": {
+        "defend": 0.055,
+        "super": 0.125,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_bandit",
+      "level": 8,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          798,
+          933
+        ],
+        "super": [
+          1179,
+          1283
+        ],
+        "defend": [
+          779,
+          917
+        ],
+        "potion": [
+          983,
+          1094
+        ]
+      },
+      "weights": {
+        "defend": 0.061,
+        "super": 0.135,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_queen_bat",
+      "level": 10,
+      "speed": 25,
+      "ranges": {
+        "attack": [
+          716,
+          846
+        ],
+        "super": [
+          1177,
+          1290
+        ],
+        "defend": [
+          918,
+          1051
+        ],
+        "potion": [
+          901,
+          1007
+        ]
+      },
+      "weights": {
+        "defend": 0.067,
+        "super": 0.14500000000000002,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_spider",
+      "level": 12,
+      "speed": 22,
+      "ranges": {
+        "attack": [
+          778,
+          921
+        ],
+        "super": [
+          1079,
+          1194
+        ],
+        "defend": [
+          759,
+          905
+        ],
+        "potion": [
+          963,
+          1082
+        ]
+      },
+      "weights": {
+        "defend": 0.073,
+        "super": 0.155,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_stone_golem",
+      "level": 18,
+      "speed": 8,
+      "ranges": {
+        "attack": [
+          716,
+          859
+        ],
+        "super": [
+          1100,
+          1224
+        ],
+        "defend": [
+          918,
+          1064
+        ],
+        "potion": [
+          1122,
+          1241
+        ]
+      },
+      "weights": {
+        "defend": 0.091,
+        "super": 0.185,
+        "potion": 0.08266666666666667
+      },
+      "potionCharges": 1
+    },
+    {
+      "id": "m_spider_queen",
+      "level": 22,
+      "speed": 30,
+      "ranges": {
+        "attack": [
+          626,
+          785
+        ],
+        "super": [
+          1110,
+          1215
+        ],
+        "defend": [
+          793,
+          906
+        ],
+        "potion": [
+          997,
+          1164
+        ]
+      },
+      "weights": {
+        "defend": 0.10300000000000001,
+        "super": 0.20500000000000002,
+        "potion": 0.088
+      },
+      "potionCharges": 1
+    },
+    {
+      "id": "m_death_knight_boss",
+      "level": 50,
+      "speed": 35,
+      "ranges": {
+        "attack": [
+          658,
+          782
+        ],
+        "super": [
+          1226,
+          1396
+        ],
+        "defend": [
+          860,
+          987
+        ],
+        "potion": [
+          1064,
+          1164
+        ]
+      },
+      "weights": {
+        "defend": 0.187,
+        "super": 0.345,
+        "potion": 0.12533333333333332
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "m_demon_lord",
+      "level": 80,
+      "speed": 48,
+      "ranges": {
+        "attack": [
+          532,
+          664
+        ],
+        "super": [
+          1190,
+          1356
+        ],
+        "defend": [
+          734,
+          869
+        ],
+        "potion": [
+          903,
+          1043
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "m_dragon_boss",
+      "level": 100,
+      "speed": 55,
+      "ranges": {
+        "attack": [
+          660,
+          799
+        ],
+        "super": [
+          1086,
+          1203
+        ],
+        "defend": [
+          862,
+          1004
+        ],
+        "potion": [
+          845,
+          960
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "m_sand_scorpion",
+      "level": 40,
+      "speed": 20,
+      "ranges": {
+        "attack": [
+          658,
+          791
+        ],
+        "super": [
+          1049,
+          1216
+        ],
+        "defend": [
+          860,
+          996
+        ],
+        "potion": [
+          1064,
+          1173
+        ]
+      },
+      "weights": {
+        "defend": 0.157,
+        "super": 0.29500000000000004,
+        "potion": 0.112
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "m_sand_guard",
+      "level": 45,
+      "speed": 21,
+      "ranges": {
+        "attack": [
+          712,
+          858
+        ],
+        "super": [
+          1110,
+          1288
+        ],
+        "defend": [
+          914,
+          1063
+        ],
+        "potion": [
+          1083,
+          1237
+        ]
+      },
+      "weights": {
+        "defend": 0.172,
+        "super": 0.31999999999999995,
+        "potion": 0.11866666666666667
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "m_cursed_soldier",
+      "level": 55,
+      "speed": 23,
+      "ranges": {
+        "attack": [
+          794,
+          914
+        ],
+        "super": [
+          1096,
+          1213
+        ],
+        "defend": [
+          775,
+          898
+        ],
+        "potion": [
+          979,
+          1156
+        ]
+      },
+      "weights": {
+        "defend": 0.202,
+        "super": 0.37,
+        "potion": 0.132
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "m_blood_hound",
+      "level": 62,
+      "speed": 24,
+      "ranges": {
+        "attack": [
+          647,
+          801
+        ],
+        "super": [
+          1164,
+          1279
+        ],
+        "defend": [
+          849,
+          1006
+        ],
+        "potion": [
+          1053,
+          1183
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "m_ash_imp",
+      "level": 75,
+      "speed": 27,
+      "ranges": {
+        "attack": [
+          752,
+          874
+        ],
+        "super": [
+          1037,
+          1141
+        ],
+        "defend": [
+          733,
+          858
+        ],
+        "potion": [
+          937,
+          1116
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "m_rift_drake",
+      "level": 82,
+      "speed": 28,
+      "ranges": {
+        "attack": [
+          774,
+          915
+        ],
+        "super": [
+          1047,
+          1221
+        ],
+        "defend": [
+          755,
+          899
+        ],
+        "potion": [
+          959,
+          1076
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "m_peak_guard",
+      "level": 90,
+      "speed": 30,
+      "ranges": {
+        "attack": [
+          737,
+          879
+        ],
+        "super": [
+          1102,
+          1238
+        ],
+        "defend": [
+          718,
+          863
+        ],
+        "potion": [
+          922,
+          1040
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "m_scale_hunter",
+      "level": 100,
+      "speed": 32,
+      "ranges": {
+        "attack": [
+          577,
+          678
+        ],
+        "super": [
+          1162,
+          1270
+        ],
+        "defend": [
+          779,
+          883
+        ],
+        "potion": [
+          983,
+          1141
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "elite_reg_plains",
+      "level": 1,
+      "speed": 14,
+      "ranges": {
+        "attack": [
+          611,
+          733
+        ],
+        "super": [
+          1073,
+          1223
+        ],
+        "defend": [
+          813,
+          938
+        ],
+        "potion": [
+          1017,
+          1196
+        ]
+      },
+      "weights": {
+        "defend": 0.04,
+        "super": 0.1,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "elite_reg_whisper_woods",
+      "level": 5,
+      "speed": 14,
+      "ranges": {
+        "attack": [
+          801,
+          903
+        ],
+        "super": [
+          1078,
+          1231
+        ],
+        "defend": [
+          782,
+          887
+        ],
+        "potion": [
+          986,
+          1145
+        ]
+      },
+      "weights": {
+        "defend": 0.052000000000000005,
+        "super": 0.12000000000000001,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "boss_reg_whisper_woods",
+      "level": 8,
+      "speed": 25,
+      "ranges": {
+        "attack": [
+          716,
+          831
+        ],
+        "super": [
+          1195,
+          1308
+        ],
+        "defend": [
+          918,
+          1036
+        ],
+        "potion": [
+          901,
+          1073
+        ]
+      },
+      "weights": {
+        "defend": 0.061,
+        "super": 0.135,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "elite_reg_forgotten_crypt",
+      "level": 8,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          735,
+          862
+        ],
+        "super": [
+          1258,
+          1392
+        ],
+        "defend": [
+          937,
+          1067
+        ],
+        "potion": [
+          920,
+          1023
+        ]
+      },
+      "weights": {
+        "defend": 0.061,
+        "super": 0.135,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_reg_forest_scout",
+      "level": 12,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          687,
+          790
+        ],
+        "super": [
+          1247,
+          1381
+        ],
+        "defend": [
+          889,
+          995
+        ],
+        "potion": [
+          1093,
+          1253
+        ]
+      },
+      "weights": {
+        "defend": 0.073,
+        "super": 0.155,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "elite_reg_forest",
+      "level": 12,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          635,
+          809
+        ],
+        "super": [
+          1087,
+          1192
+        ],
+        "defend": [
+          837,
+          1014
+        ],
+        "potion": [
+          1041,
+          1191
+        ]
+      },
+      "weights": {
+        "defend": 0.073,
+        "super": 0.155,
+        "potion": 0
+      },
+      "potionCharges": 0
+    },
+    {
+      "id": "m_reg_swamp_scout",
+      "level": 25,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          716,
+          827
+        ],
+        "super": [
+          1200,
+          1309
+        ],
+        "defend": [
+          918,
+          1032
+        ],
+        "potion": [
+          1122,
+          1290
+        ]
+      },
+      "weights": {
+        "defend": 0.11199999999999999,
+        "super": 0.22,
+        "potion": 0.092
+      },
+      "potionCharges": 1
+    },
+    {
+      "id": "elite_reg_swamp",
+      "level": 25,
+      "speed": 18,
+      "ranges": {
+        "attack": [
+          717,
+          887
+        ],
+        "super": [
+          1149,
+          1274
+        ],
+        "defend": [
+          919,
+          1092
+        ],
+        "potion": [
+          1123,
+          1269
+        ]
+      },
+      "weights": {
+        "defend": 0.11199999999999999,
+        "super": 0.22,
+        "potion": 0.092
+      },
+      "potionCharges": 1
+    },
+    {
+      "id": "elite_reg_desert",
+      "level": 40,
+      "speed": 21,
+      "ranges": {
+        "attack": [
+          668,
+          801
+        ],
+        "super": [
+          1163,
+          1326
+        ],
+        "defend": [
+          870,
+          1006
+        ],
+        "potion": [
+          1074,
+          1183
+        ]
+      },
+      "weights": {
+        "defend": 0.157,
+        "super": 0.29500000000000004,
+        "potion": 0.112
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "elite_reg_cursed",
+      "level": 55,
+      "speed": 24,
+      "ranges": {
+        "attack": [
+          666,
+          806
+        ],
+        "super": [
+          1180,
+          1351
+        ],
+        "defend": [
+          868,
+          1011
+        ],
+        "potion": [
+          1072,
+          1188
+        ]
+      },
+      "weights": {
+        "defend": 0.202,
+        "super": 0.37,
+        "potion": 0.132
+      },
+      "potionCharges": 2
+    },
+    {
+      "id": "elite_reg_rift",
+      "level": 75,
+      "speed": 28,
+      "ranges": {
+        "attack": [
+          741,
+          884
+        ],
+        "super": [
+          1058,
+          1191
+        ],
+        "defend": [
+          722,
+          868
+        ],
+        "potion": [
+          926,
+          1045
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    },
+    {
+      "id": "elite_reg_dragon",
+      "level": 90,
+      "speed": 32,
+      "ranges": {
+        "attack": [
+          624,
+          750
+        ],
+        "super": [
+          1057,
+          1236
+        ],
+        "defend": [
+          826,
+          955
+        ],
+        "potion": [
+          1030,
+          1132
+        ]
+      },
+      "weights": {
+        "defend": 0.22,
+        "super": 0.4,
+        "potion": 0.14
+      },
+      "potionCharges": 3
+    }
+  ],
+  "pvp": [
+    {
+      "classId": "warrior",
+      "matches": 9000,
+      "winPercent": 52.1,
+      "averageRounds": 10.9
+    },
+    {
+      "classId": "berserker",
+      "matches": 9000,
+      "winPercent": 51.4,
+      "averageRounds": 9.4
+    },
+    {
+      "classId": "knight",
+      "matches": 9000,
+      "winPercent": 48.3,
+      "averageRounds": 13.8
+    },
+    {
+      "classId": "rogue",
+      "matches": 9000,
+      "winPercent": 50.2,
+      "averageRounds": 9.8
+    },
+    {
+      "classId": "assassin",
+      "matches": 9000,
+      "winPercent": 52.4,
+      "averageRounds": 8.6
+    },
+    {
+      "classId": "archer",
+      "matches": 9000,
+      "winPercent": 50.7,
+      "averageRounds": 9.4
+    },
+    {
+      "classId": "mage",
+      "matches": 9000,
+      "winPercent": 46.5,
+      "averageRounds": 9.4
+    },
+    {
+      "classId": "necromancer",
+      "matches": 9000,
+      "winPercent": 51,
+      "averageRounds": 10
+    },
+    {
+      "classId": "paladin",
+      "matches": 9000,
+      "winPercent": 50.3,
+      "averageRounds": 13.5
+    },
+    {
+      "classId": "druid",
+      "matches": 9000,
+      "winPercent": 46,
+      "averageRounds": 10.3
+    }
+  ]
+}

@@ -1,6 +1,11 @@
 /** Only these template slots are game-authored. All other values (notably usernames,
  * clan names and administrator additions) remain exactly as supplied. */
 export const SYSTEM_SLOTS: Readonly<Record<string, readonly number[]>> = {
+  '{0} занимает защитную стойку.': [0],
+  '{0} достаёт склянку и готовится бросить «{1}».': [0,1],
+  '{0} укрепляет защиту: «{1}».': [0,1],
+  'Бросок зелья: «{0}».': [0],
+  '{0} впадает в ярость: затяжной бой постепенно усиливает его атаки.': [0],
   "{0} прижимается к земле и готовится к прыжку.": [0],
   "{0} напрягает лапы, выбирая момент для броска.": [0],
   "{0} скалит клыки и медленно подкрадывается.": [0],

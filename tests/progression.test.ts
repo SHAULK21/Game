@@ -62,6 +62,9 @@ test('autobattle avoids full-health healing and buff potions, respects ultimates
  assert.deepEqual(data.chooseAutoBattleAction({...input,mp:0,player:{...player,classId:'mage',skills:[{...strike,damageType:'magic'}]}}),{action:'defend'});
  const guarded={...input,monster:{...monster,attack:400,mp:100,skills:[{id:'heavy',manaCost:0,cooldown:4,damageMultiplier:2,damageType:'physical'}]},player:{...player,skills:[strike,{id:'shield',levelReq:1,manaCost:10,currentCooldown:0,damageMultiplier:0,inflicts:{type:'shield',power:200}}]}};
  assert.deepEqual(data.chooseAutoBattleAction(guarded),{action:'skill',id:'shield'});
+ const flaskThreat={...guarded,monster:{...guarded.monster,attack:800,magicAttack:0,potionCharges:1,skills:[{id:'flask',actionKind:'potion',manaCost:0,cooldown:4,damageMultiplier:1.05,damageType:'fire'}]}};
+ assert.deepEqual(data.chooseAutoBattleAction(flaskThreat),{action:'skill',id:'shield'});
+ assert.deepEqual(data.chooseAutoBattleAction({...flaskThreat,monster:{...flaskThreat.monster,potionCharges:0}}),{action:'skill',id:'strike'});
 });
 
 test('autobattle finishes weak enemies and only shields against meaningful incoming damage',()=>{

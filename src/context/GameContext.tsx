@@ -1,10 +1,11 @@
+import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat } from '../utils/monsterAI';
 import { completeTravelQuests } from '../utils/travelQuests';
 import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
-import { chooseAutoBattleAction, predictedMonsterSkill } from '../utils/autoBattle';
-import { playerDamagePower } from '../utils/pveBalance';
+import { chooseAutoBattleAction } from '../utils/autoBattle';
+import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant, monsterEnrageMultiplier } from '../utils/pveBalance';
 import { huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
 import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
@@ -189,54 +190,6 @@ interface CombatChainState {
   defeated: number;
   queue: Monster[];
 }
-
-const getMonsterCombatSkills = (monster: Monster): MonsterSkill[] => {
-  if (monster.id === 'm_stone_golem') return [
-    {id:'golem_guard',name:'Каменная стойка',icon:'🛡️',manaCost:0,cooldown:5,currentCooldown:0,damageMultiplier:.65,damageType:'physical',effect:'fortify',effectChance:1,effectDuration:2,effectPower:40,description:'Укрепляет броню на два хода. Сохраните сильный приём до окончания стойки.'},
-    {id:'golem_slam',name:'Размашистый удар',icon:'💥',manaCost:0,cooldown:4,currentCooldown:2,damageMultiplier:1.7,damageType:'physical',description:'После удара голем раскрывается: +35% получаемого урона на два хода.'}
-  ];
-  if (monster.skills?.length) return monster.skills.map(s => ({ ...s, currentCooldown: s.currentCooldown || 0 }));
-  const common: MonsterSkill[] = [
-    { id: monster.id + '_heavy', name: 'Сокрушительный удар', icon: '💥', manaCost: 0, cooldown: 3, damageMultiplier: 1.45, damageType: monster.damageType || 'physical', description: 'Сильная атака с повышенным уроном.' },
-    { id: monster.id + '_guard', name: 'Укрепление', icon: '🛡️', manaCost: 15, cooldown: 5, damageMultiplier: 0.55, damageType: monster.damageType || 'physical', effect: 'fortify', effectChance: 1, effectDuration: 2, effectPower: 25, description: 'Атака и укрепление защиты.' }
-  ];
-  if (monster.damageType === 'poison' || monster.id.includes('spider')) {
-    common[0] = { id: monster.id + '_venom', name: 'Ядовитый плевок', icon: '☠️', manaCost: 12, cooldown: 3, damageMultiplier: 1.25, damageType: 'poison', effect: 'poison', effectChance: 0.9, effectDuration: 3, effectPower: Math.max(10, Math.round(monster.attack * 0.25)), description: 'Наносит урон и накладывает яд.' };
-  } else if (monster.damageType === 'fire') {
-    common[0] = { id: monster.id + '_flame', name: 'Пылающий взрыв', icon: '🔥', manaCost: 20, cooldown: 3, damageMultiplier: 1.55, damageType: 'fire', effect: 'burn', effectChance: 0.75, effectDuration: 3, effectPower: Math.max(12, Math.round(monster.magicAttack * 0.2)), description: 'Огненная атака с поджиганием.' };
-  } else if (monster.damageType === 'dark') {
-    common[0] = { id: monster.id + '_curse', name: 'Проклятие тьмы', icon: '🌑', manaCost: 20, cooldown: 4, damageMultiplier: 1.35, damageType: 'dark', effect: 'vulnerability', effectChance: 0.65, effectDuration: 2, effectPower: 20, description: 'Тёмный удар, ослабляющий защиту.' };
-  } else if (monster.isBoss) {
-    common[0] = { id: monster.id + '_ultimate', name: 'Королевский натиск', icon: '👑', manaCost: 35, cooldown: 4, damageMultiplier: 1.85, damageType: monster.damageType || 'physical', effect: 'stun', effectChance: 0.25, effectDuration: 1, effectPower: 0, description: 'Особый приём босса с шансом оглушения.' };
-  }
-  return common;
-};
-
-const getMonsterPlannedSkill = predictedMonsterSkill;
-
-const prepareMonsterForCombat = (monster: Monster): Monster => {
-  if(monster.regionId==='ascension') return {...monster,skills:getMonsterCombatSkills(monster)};
-  const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
-  const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;
-  const hpMultiplier = 2.15 * levelFactor * roleFactor * (!monster.isBoss && !monster.isElite ? (monster.level < 5 ? 1.25 : 1.6) : 1);
-  const damageMultiplier = 1.35 * Math.sqrt(levelFactor) * (monster.isBoss ? 1.12 : 1);
-  const defenseMultiplier = 1.28 * Math.sqrt(levelFactor);
-
-  return {
-    ...monster,
-    hp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
-    maxHp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
-    mp: monster.maxMp,
-    maxMp: monster.maxMp,
-    attack: Math.max(1, Math.round(monster.attack * damageMultiplier)),
-    magicAttack: Math.max(0, Math.round(monster.magicAttack * damageMultiplier)),
-    defense: Math.max(0, Math.round(monster.defense * defenseMultiplier)),
-    magicDefense: Math.max(0, Math.round(monster.magicDefense * defenseMultiplier)),
-    expReward: Math.max(1, Math.round(monster.expReward * 1.2)),
-    goldReward: Math.max(1, Math.round(monster.goldReward * 1.12)),
-    skills: getMonsterCombatSkills(monster)
-  };
-};
 
 const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stats: CombatStats, regionId: string, mode?: import('../types/game').RegionModifier) => {
   const region = REGIONS.find(r => r.id === regionId) || REGIONS[0];
@@ -607,6 +560,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCombatNarration([]);
   }, [isInCombat, activeMonster?.id, player?.userId]);
   const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
+  const monsterPlan = useRef<{ key: string; skill: MonsterSkill | null; deadline: number; preparationDeadline: number } | null>(null);
+  useEffect(() => { if (!isInCombat || isCombatEnded || turnPhase !== 'monster') monsterPlan.current = null; }, [isInCombat, isCombatEnded, turnPhase]);
   const [lastCast, setLastCast] = useState<{ id: string; turn: number } | null>(null);
   const [warriorMomentum, setWarriorMomentum] = useState(0);
   const [rogueFocus, setRogueFocus] = useState(false);
@@ -2970,21 +2925,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resolvePlayerAction(actionType, skillId);
   }, [isInCombat,isCombatEnded,activeMonster,player,turnPhase,combatPlayerHp,combatPlayerMp,combatStats,resolvePlayerAction]);
 
-  useEffect(() => {
-    if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster') return;
-    const lines = monsterPreparation(activeMonster, combatRound, getMonsterPlannedSkill(activeMonster));
-    if (playerEffects.some(effect => effect.type === 'shield' && effect.value > 0)) lines.push('Вы выставили щит и ждёте удара.');
-    setCombatNarration(lines);
-  }, [isInCombat, isCombatEnded, activeMonster?.id, turnPhase, combatRound]);
-
   // MONSTER TURN CONTROLLER — monsters telegraph skills before casting them.
   useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player || monsterIntent) return;
 
+    const key = `${activeMonster.id}:${combatRound}`;
+    if (!monsterPlan.current || monsterPlan.current.key !== key) {
+      const skill = chooseMonsterSkill(activeMonster, monsterEffects);
+      const delay = sampleMonsterDelay(activeMonster, monsterActionKind(skill), autoBattle.enabled);
+      const now = Date.now();
+      monsterPlan.current = { key, skill, deadline: now + delay, preparationDeadline: now + (skill ? Math.min(250, Math.round(delay * .25)) : delay) };
+      const lines = monsterPreparation(activeMonster, combatRound, skill);
+      if (playerEffects.some(effect => effect.type === 'shield' && effect.value > 0)) lines.push('Вы выставили щит и ждёте удара.');
+      setCombatNarration(lines);
+    }
+    const plan = monsterPlan.current;
     const timer = setTimeout(() => {
       const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
       const activeMod = combatHuntingMode(activeMonster);
+      if (currentTurn === 26 && monsterEnrageMultiplier(activeMonster, currentTurn) > 1) newLogs.push({id:'monster_enrage_'+Date.now(),turn:currentTurn,text:`${activeMonster.name} впадает в ярость: затяжной бой постепенно усиливает его атаки.`,type:'system'});
       const monsterTick = tickStatusEffects(monsterEffects);
       setMonsterEffects(monsterTick.effects);
 
@@ -3023,7 +2983,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const plannedSkill = getMonsterPlannedSkill(activeMonster);
+      const plannedSkill = plan.skill;
       if (plannedSkill) {
         const skill = plannedSkill;
         setActiveMonster(prev => prev ? { ...prev, hp: workingHp } : null);
@@ -3043,9 +3003,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const monsterPower = (monsterDamageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(phase-1)*.15);
       const defense = monsterDamageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const effectiveDefense = defense * classDefenseMultiplier(player.classId, combatPlayerHp / combatStats.maxHp);
-      const mitigation = effectiveDefense / (effectiveDefense + (monsterDamageType === 'physical' ? 80 : 90));
+      const mitigation = effectiveDefense / (effectiveDefense + incomingArmorConstant(activeMonster, monsterDamageType));
       const resistance = getTargetResistance(monsterDamageType, combatStats.resistances);
-      let monsterFinalDmg = Math.max(0, Math.round(monsterPower * (activeMod.damageMultiplier || 1) * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      let monsterFinalDmg = Math.max(0, Math.round(monsterPower * monsterTick.attackMultiplier * pveThreatMultiplier(activeMonster, player.level) * monsterEnrageMultiplier(activeMonster, currentTurn) * (activeMod.damageMultiplier || 1) * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
       const attackRoll = incomingAttackRoll(monsterFinalDmg, combatStats.evasion, activeMonster.critChance);
       monsterFinalDmg = attackRoll.damage;
       const talents = talentBonuses(player.talents);
@@ -3090,10 +3050,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return nextHp;
       });
-      setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
+      setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), mp: Math.min(prev.maxMp, prev.mp + Math.ceil(prev.maxMp * .03)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...newLogs]);
-    }, autoBattle.enabled ? 650 : 1000);
+    }, Math.max(0, plan.preparationDeadline - Date.now()));
     return () => clearTimeout(timer);
   }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
 
@@ -3105,12 +3065,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentTurn = combatRound;
       const activeMod = combatHuntingMode(activeMonster);
       const playerMods = getStatusModifiers(playerEffects);
-      const power = (skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(ascensionBossPhase(activeMonster)-1)*.15);
+      const power = (monsterActionKind(skill) === 'potion' ? Math.max(activeMonster.attack, activeMonster.magicAttack) : skill.damageType === 'physical' ? activeMonster.attack : activeMonster.magicAttack)*(1+(ascensionBossPhase(activeMonster)-1)*.15);
       const defense = skill.damageType === 'physical' ? Math.max(0, combatStats.defense - (activeMod.bonusArmorPenetration || 0)) : combatStats.magicDefense;
       const effectiveDefense = defense * classDefenseMultiplier(player.classId, combatPlayerHp / combatStats.maxHp);
-      const mitigation = effectiveDefense / (effectiveDefense + (skill.damageType === 'physical' ? 80 : 90));
+      const mitigation = effectiveDefense / (effectiveDefense + incomingArmorConstant(activeMonster, skill.damageType));
       const resistance = getTargetResistance(skill.damageType, combatStats.resistances);
-      let damage = Math.max(0, Math.round(power * skill.damageMultiplier * activeMod.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
+      let damage = Math.max(0, Math.round(power * skill.damageMultiplier * getStatusModifiers(monsterEffects).attackMultiplier * pveThreatMultiplier(activeMonster, player.level) * monsterEnrageMultiplier(activeMonster, currentTurn) * activeMod.damageMultiplier * (1 - mitigation) * (1 - resistance / 100) * playerMods.damageTakenMultiplier * (playerMods.invulnerable ? 0 : 1)));
       const attackRoll = incomingAttackRoll(damage, combatStats.evasion, activeMonster.critChance);
       damage = attackRoll.damage;
       const talents = talentBonuses(player.talents);
@@ -3142,18 +3102,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (player.classId === 'warrior' && damage > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       if (damage > 0 && activeMod.bonusVampirism) setActiveMonster(prev => prev ? {...prev, hp: Math.min(prev.maxHp, prev.hp + Math.round(damage * activeMod.bonusVampirism! / 100))} : prev);
-      if (!attackRoll.evaded && !playerMods.invulnerable && skill.effect && Math.random() < (skill.effectChance ?? 1)) {
+      if (skill.effect && (['fortify','fury','shield'].includes(skill.effect) || !attackRoll.evaded && !playerMods.invulnerable) && Math.random() < (skill.effectChance ?? 1)) {
         const effect: StatusEffect = { type: skill.effect, name: skill.name, duration: skill.effectDuration || 1, value: skill.effectPower || 0 };
         if (skill.effect === 'fortify' || skill.effect === 'fury' || skill.effect === 'shield') setMonsterEffects(prev => applyStatusEffect(prev, effect));
         else setPlayerEffects(prev => applyStatusEffect(prev, effect));
         logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
       }
       if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(skill.damageType);
-      const impactNarration = monsterImpact(activeMonster.name, damage, blocked, attackRoll.evaded, !!playerMods.invulnerable);
-      impactNarration.unshift(`Особый приём: «${skill.name}».`);
+      const defensive = monsterActionKind(skill) === 'defend' && skill.damageMultiplier === 0;
+      const impactNarration = defensive ? [`${activeMonster.name} укрепляет защиту: «${skill.name}».`] : monsterImpact(activeMonster.name, damage, blocked, attackRoll.evaded, !!playerMods.invulnerable);
+      if (!defensive) impactNarration.unshift(`${monsterActionKind(skill) === 'potion' ? 'Бросок зелья' : 'Особый приём'}: «${skill.name}».`);
       setCombatNarration(impactNarration);
       logs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
-      logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack',impact:{target:'player',amount:damage,critical:attackRoll.critical,empowered:skill.damageMultiplier > 1,blocked,evaded:attackRoll.evaded} });
+      if (!defensive) logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack',impact:{target:'player',amount:damage,critical:attackRoll.critical,empowered:skill.damageMultiplier > 1,blocked,evaded:attackRoll.evaded} });
       setCombatPlayerHp(prevHp => {
         const nextHp = Math.max(0, prevHp - damage);
         if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
@@ -3174,12 +3135,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return nextHp;
       });
-      setActiveMonster(prev => prev ? { ...prev, skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.max(0, prev.mp - skill.manaCost) } : null);
+      setActiveMonster(prev => prev ? { ...prev, potionCharges: Math.max(0, (prev.potionCharges || 0) - (monsterActionKind(skill) === 'potion' ? 1 : 0)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.min(prev.maxMp, Math.max(0, prev.mp - skill.manaCost) + Math.ceil(prev.maxMp * .03)) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...logs]);
-    }, autoBattle.enabled ? 700 : 1000);
+    }, Math.max(0, (monsterPlan.current?.deadline || Date.now()) - Date.now()));
     return () => clearTimeout(timer);
-  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, monsterEffects, activeDungeonRun, autoBattle.enabled]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {

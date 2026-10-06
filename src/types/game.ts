@@ -230,6 +230,7 @@ export interface MonsterDrop {
 }
 
 export interface MonsterSkill {
+  actionKind?: 'super' | 'defend' | 'potion';
   id: string;
   name: string;
   icon: string;
@@ -246,6 +247,7 @@ export interface MonsterSkill {
 }
 
 export interface Monster {
+  potionCharges?: number;
   huntingModeId?: string;
   id: string;
   name: string;

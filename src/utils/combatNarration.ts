@@ -5,6 +5,8 @@ const pick = (lines: string[], round: number) => lines[Math.abs(round) % lines.l
 const fill = (text: string, ...values: (string | number)[]) => text.replace(/\{(\d+)\}/g, (_, index) => String(values[Number(index)]));
 
 export function monsterPreparation(monster: Monster, round: number, skill?: MonsterSkill | null): string[] {
+  if (skill?.actionKind === 'defend') return [fill('{0} занимает защитную стойку.', monster.name)];
+  if (skill?.actionKind === 'potion') return [fill('{0} достаёт склянку и готовится бросить «{1}».', monster.name, skill.name)];
   const identity = (monster.id + ' ' + monster.name).toLowerCase();
   const lines = /wolf|волк|вовк/.test(identity) ? ['{0} прижимается к земле и готовится к прыжку.', '{0} напрягает лапы, выбирая момент для броска.', '{0} скалит клыки и медленно подкрадывается.']
     : /boar|кабан/.test(identity) ? ['{0} опускает голову и готовится к разбегу.', '{0} роет землю копытом перед рывком.', '{0} отступает на шаг, собираясь таранить вас.']
