@@ -1,3 +1,4 @@
+import { useBetaBookTurn } from '../ui/useBetaBookTurn';
 import { RegionCompletionReward } from '../../../../components/combat/RegionCompletionReward';
 import { localizeBestiary as localize } from '../../i18n/bestiary';
 import { useLocale, intlLocale } from '../../../../i18n/locale';
@@ -69,6 +70,7 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
   onUpdateAutoBattle, onMeditate, onBuyElixir, onLeaveMine
 }) => {
   useLocale();
+  const { pageRef, turn } = useBetaBookTurn();
   const [isDossierOpen, setIsDossierOpen] = React.useState(false);
   const [bestiaryFilter, setBestiaryFilter] = React.useState<'all' | 'known' | 'unknown'>('all');
   const scene = getBattleScene(currentRegion.id, currentRegion.id);
@@ -96,16 +98,16 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
   React.useEffect(() => {
     if (!isDossierOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsDossierOpen(false);
+      if (event.key === 'Escape') turn(true, () => setIsDossierOpen(false));
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [isDossierOpen]);
 
   if (isDossierOpen && selectedMonster) {
-    return <div key={selectedMonster.id} className="bestiary-dossier-screen" role="dialog" aria-modal="true" aria-labelledby="bestiary-dossier-title">
+    return <div ref={pageRef} key={selectedMonster.id} className="bestiary-dossier-screen" role="region" aria-labelledby="bestiary-dossier-title">
       <header className="dossier-header">
-        <button type="button" onClick={() => setIsDossierOpen(false)} className="dossier-back"><span aria-hidden="true">‹</span>{localize("Назад")}</button>
+        <button type="button" onClick={() => turn(true, () => setIsDossierOpen(false))} className="dossier-back"><span aria-hidden="true">‹</span>{localize("Назад")}</button>
         <h1>{localize("Досье охотника")}</h1>
         <span className="dossier-level">{localize(selectedMonsterUnknown ? 'Ур. ???' : 'Ур. ' + selectedMonster.level)}</span>
       </header>
@@ -123,7 +125,7 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
               </>}
           </figure>
           {!selectedMonsterUnknown && <div className="dossier-damage-type"><RpgIcon kind={selectedMonster.damageType === 'physical' ? 'attack' : 'skill'} size={17} />{localize(damageTypeLabel(selectedMonster.damageType))}</div>}
-          <h2 id="bestiary-dossier-title" className="dossier-monster-name">{localize(selectedMonsterUnknown ? 'Неизвестное существо' : selectedMonster.name)}</h2>
+          <h2 id="bestiary-dossier-title" tabIndex={-1} className="dossier-monster-name">{localize(selectedMonsterUnknown ? 'Неизвестное существо' : selectedMonster.name)}</h2>
           <div className="dossier-meta">
             <div><span>{localize("Среда обитания")}</span><strong>{localize(selectedMonsterUnknown ? '???' : currentRegion.name)}</strong></div>
             <div><span>{localize("Угроза")}</span><strong>{localize(selectedMonsterUnknown ? '???' : selectedMonster.isBoss ? 'Босс' : selectedMonster.isElite ? 'Элита' : 'Обычный противник')}</strong></div>
@@ -175,7 +177,7 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
     </div>;
   }
 
-  return <div className="hunt-codex">
+  return <div ref={pageRef} className="hunt-codex">
     <img src={BOOK_SURFACE} alt="" aria-hidden="true" className="hunt-book-surface" />
     <div className="hunt-book-content">
       <header className="bestiary-book-heading">
@@ -235,7 +237,7 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
             { icon: 'inventory', label: 'Добыча', value: monster.drops?.[0]?.itemName || '—' },
             { icon: 'attack', label: 'Атака', value: damageTypeLabel(monster.damageType) }
           ];
-          return <button type="button" key={monster.id} aria-label={title} aria-pressed={monster.id === selectedMonster?.id} onClick={() => { onSelectMonster(monster.id); setIsDossierOpen(true); }} className={'bestiary-record' + (locked ? ' is-locked' : '') + (monster.id === selectedMonster?.id ? ' is-selected' : '')}>
+          return <button type="button" key={monster.id} aria-label={title} aria-pressed={monster.id === selectedMonster?.id} data-monster-id={monster.id} onClick={() => turn(false, () => { onSelectMonster(monster.id); setIsDossierOpen(true); }, monster.id)} className={'bestiary-record' + (locked ? ' is-locked' : '') + (monster.id === selectedMonster?.id ? ' is-selected' : '')}>
             <img src={MONSTER_PAGE_TILE} alt="" aria-hidden="true" className="bestiary-record-page" />
             <span className="bestiary-record-art">
               {locked

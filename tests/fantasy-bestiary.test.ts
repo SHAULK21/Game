@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 
-async function setup() {
+async function setup(finishTurn = true) {
   const bundle = await build({ stdin: { contents: `
     import React,{act} from 'react';
     import {createRoot} from 'react-dom/client';
@@ -35,11 +35,13 @@ async function setup() {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;
   w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };
+  w.AnimationEvent = w.Event;
   w.IS_REACT_ACT_ENVIRONMENT = true; w.Headers = Headers; w.AbortSignal = AbortSignal;
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], ok: true }) });
   w.eval(bundle.outputFiles[0].text);
   await w.act(async () => w.mount());
   await w.act(async () => w.document.querySelector('.bestiary-record').click());
+  if (finishTurn) await w.act(async () => w.document.querySelector('.beta-content-turn .beta-turn-leaf')?.dispatchEvent(new w.Event('animationend', { bubbles: true })));
   return { dom, w };
 }
 
@@ -80,4 +82,25 @@ test('fantasy bestiary and dossier switch their new labels between Russian and U
     assert.match(w.document.querySelector('.bestiary-title-copy').textContent, /Бестиарий/);
     assert.doesNotMatch(w.document.querySelector('.hunt-book-content').textContent, /[іїєґІЇЄҐ]/);
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
+});
+
+
+test('beta book locks repeat input, ignores child animation events and cleans up on resize/unmount', async () => {
+  const { dom, w } = await setup(false);
+  try {
+    assert(w.document.querySelector('.beta-content-turn'));
+    assert(w.document.querySelector('.bestiary-dossier-screen').inert);
+    await w.act(async () => w.document.querySelector('.dossier-back').click());
+    assert(w.document.querySelector('.bestiary-dossier-screen'), 'repeat navigation is blocked');
+    await w.act(async () => w.document.querySelector('.beta-turn-front').dispatchEvent(new w.Event('animationend', { bubbles:true })));
+    assert(w.document.querySelector('.beta-content-turn'), 'child completion does not finish the leaf');
+    await w.act(async () => w.dispatchEvent(new w.Event('resize')));
+    assert(!w.document.querySelector('.beta-content-turn'));
+    assert(!w.document.querySelector('.bestiary-dossier-screen').inert);
+    assert.equal(w.document.activeElement.id, 'bestiary-dossier-title');
+    await w.act(async () => w.document.querySelector('.dossier-back').click());
+    assert(w.document.querySelector('.beta-content-turn.is-backwards'));
+    await w.act(async () => w.root.unmount());
+    assert(!w.document.querySelector('.beta-content-turn'), 'leaving the tab removes temporary layers');
+  } finally { dom.window.close(); }
 });

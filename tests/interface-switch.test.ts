@@ -97,6 +97,7 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => w.document.querySelector('.bestiary-record:not(.is-locked)').click());
     assert(w.document.querySelector('.bestiary-dossier-screen'));
     assert.equal(JSON.stringify(save().player), stablePlayer, 'browsing beta enemies keeps the same character');
+    await w.act(async () => w.document.querySelector('.beta-content-turn .beta-turn-leaf')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
     await w.act(async () => w.document.querySelector('.dossier-back').click());
     for (const [label,page] of [['Мир','world'],['Арена','arena'],['Сумка','inventory']]) {
       const before=save().player.energy;
@@ -114,6 +115,10 @@ test('registration switches styles without losing input; both layouts share char
       }
       if(page==='inventory') {
         assert(w.document.querySelector('.beta-item-name'), 'item tiles show real inventory names');
+        const fold=w.document.querySelector('.beta-equipment-fold');
+        assert(!fold.open, 'equipment does not push the bag below fourteen slots');
+        await w.act(async()=>fold.querySelector('summary').click());
+        assert(fold.open, 'equipment can be expanded with its native control');
         await w.act(async()=>w.document.querySelector('[data-equipment-slot="weapon"]').click());
         assert(w.document.querySelector('[role="dialog"]'), 'equipment tiles open the functional item sheet');
         await w.act(async()=>w.document.querySelector('[aria-label="Закрыть описание предмета"]').click());

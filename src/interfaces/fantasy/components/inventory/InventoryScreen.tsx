@@ -211,8 +211,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     {!items.length && <p className="inventory-empty-message">{localize(emptyMessage)}</p>}
   </>;
 
-  return (
-    <FolioPage className="inventory-book">
+  const equipmentPage = (
       <section className="inventory-equipment-page" aria-label={localize('Экипировка')}>
         <div className="inventory-page-heading">
           <h1>{localize('Экипировка')}</h1>
@@ -220,6 +219,13 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
         </div>
         <EquipmentManuscript player={player} labels={TYPE_LABELS} onSelect={setSelectedItem}/>
       </section>
+  );
+
+  return (
+    <FolioPage className="inventory-book">
+      {style === 'fantasy-beta'
+        ? <details className="beta-equipment-fold"><summary>{localize('Экипировка')}</summary>{equipmentPage}</details>
+        : equipmentPage}
       <section className="inventory-bag-page" aria-label={localize('Сумка')}>
       <div className="flex items-center justify-between">
         <div>

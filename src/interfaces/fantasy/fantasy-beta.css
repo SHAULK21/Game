@@ -1137,7 +1137,7 @@ html[data-interface="fantasy-beta"] .bestiary-field-progress i b { display:block
 html[data-interface="fantasy-beta"] .bestiary-dossier-screen {
   position:fixed;
   z-index:90;
-  inset:0 auto 0 50%;
+  inset:70px auto calc(var(--shell-nav-height) + env(safe-area-inset-bottom)) 50%;
   display:flex;
   box-sizing:border-box;
   width:min(100vw,var(--shell-width));
@@ -1148,8 +1148,7 @@ html[data-interface="fantasy-beta"] .bestiary-dossier-screen {
   background:#17120e;
   color:#39291b;
 }
-html[data-interface="fantasy-beta"] .game-shell:has(.bestiary-dossier-screen) > .fantasy-shell-header,
-html[data-interface="fantasy-beta"] .game-shell:has(.bestiary-dossier-screen) > .fantasy-shell-nav { display:none; }
+
 html[data-interface="fantasy-beta"] .dossier-header {
   display:grid;
   flex:0 0 58px;
@@ -1562,7 +1561,7 @@ html[data-interface="fantasy-beta"] .fantasy-shell-header[hidden] { display:none
 /* The four primary beta tabs are leaves of the same field journal. */
 html[data-interface="fantasy-beta"] .beta-book-page {
   box-sizing:border-box; width:100%; min-height:calc(100dvh - 134px); padding:14px 10px 28px 41px;
-  background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center top / 100% calc(100dvh - 134px) repeat-y;
+  position:relative; isolation:isolate; background:transparent;
   color:#38291d; font-family:Georgia,"Times New Roman",serif;
 }
 html[data-interface="fantasy-beta"] .beta-book-heading { display:flex; align-items:center; gap:10px; min-height:72px; margin-bottom:10px; border-bottom:1px solid #9b754955; }
@@ -1606,15 +1605,70 @@ html[data-interface="fantasy-beta"] .beta-book-page .inventory-bag-slot.is-empty
 html[data-interface="fantasy-beta"] .beta-item-name { display:block; font:700 12px/1.25 Georgia,serif; text-align:center; overflow-wrap:anywhere; }
 html[data-interface="fantasy-beta"] .beta-item-name small { display:block; margin-top:5px; font-size:10px; font-weight:400; }
 html[data-interface="fantasy-beta"] .beta-book-page .inventory-bag-state { position:static; color:#356039; font-size:9px; }
-html[data-interface="fantasy-beta"] .beta-page-turn { position:fixed; z-index:45; top:70px; bottom:calc(64px + env(safe-area-inset-bottom)); left:50%; width:min(100vw,430px); transform:translateX(-50%); pointer-events:none; perspective:1100px; }
-html[data-interface="fantasy-beta"] .beta-page-turn > div { width:100%; height:100%; background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center / 100% 100%; transform-origin:left center; backface-visibility:hidden; box-shadow:12px 0 22px #28170d66; animation:beta-journal-turn 420ms ease-out both; }
-html[data-interface="fantasy-beta"] .beta-page-turn.is-backwards > div { transform-origin:right center; animation-name:beta-journal-turn-back; }
-@keyframes beta-journal-turn { from { opacity:1; transform:rotateY(0deg); } to { opacity:0; transform:rotateY(-105deg); } }
-@keyframes beta-journal-turn-back { from { opacity:1; transform:rotateY(0deg); } to { opacity:0; transform:rotateY(105deg); } }
-@media (prefers-reduced-motion:reduce) { html[data-interface="fantasy-beta"] .beta-page-turn { display:none; } }
 @media (max-width:350px) { html[data-interface="fantasy-beta"] .beta-book-page { padding-left:34px; padding-right:8px; } }
 html[data-interface="fantasy-beta"] .beta-book-world .world-codex > .bestiary-panel:first-child > .absolute { display:none; }
 html[data-interface="fantasy-beta"] .beta-book-page .inventory-equipped-copy > span { color:#70573c; }
 html[data-interface="fantasy-beta"] .beta-book-page [data-rarity="rare"] { border-color:#4b7799; }
 html[data-interface="fantasy-beta"] .beta-book-page [data-rarity="epic"] { border-color:#86639b; }
 html[data-interface="fantasy-beta"] .beta-book-page [data-rarity="legendary"] { border-color:#b37b20; }
+
+/* Stationary cover/spine. Only the visible parchment leaf rotates. */
+html[data-interface="fantasy-beta"] .beta-book-page::before {
+  content:""; position:fixed; z-index:-1; top:70px; bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom));
+  left:50%; width:min(100vw,430px); transform:translateX(-50%); pointer-events:none;
+  background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center / 100% 100% no-repeat;
+}
+html[data-interface="fantasy-beta"] .beta-page-turn {
+  position:fixed; z-index:95; top:70px; bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom));
+  left:calc(50% - min(50vw,215px) + min(6.5vw,27.95px)); width:min(93.5vw,402.05px);
+  perspective:1400px; pointer-events:none;
+}
+html[data-interface="fantasy-beta"] .beta-turn-leaf {
+  position:relative; width:100%; height:100%; transform-origin:left center; transform-style:preserve-3d;
+  animation:beta-journal-turn 400ms cubic-bezier(.4,.1,.2,1) both; will-change:transform;
+}
+html[data-interface="fantasy-beta"] .beta-page-turn.is-backwards > .beta-turn-leaf { animation-direction:reverse; }
+html[data-interface="fantasy-beta"] :is(.beta-turn-front,.beta-turn-back) {
+  position:absolute; inset:0; overflow:hidden; backface-visibility:hidden;
+  background:#dec495 url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') right center / 106.95% 100% no-repeat;
+}
+html[data-interface="fantasy-beta"] .beta-turn-back { transform:rotateY(180deg); }
+html[data-interface="fantasy-beta"] .beta-turn-leaf::after {
+  content:""; position:absolute; inset:0; background:linear-gradient(90deg,#38241244, #fff4 12%,transparent 35%,#38241233);
+  animation:beta-turn-light 400ms ease-in-out both; pointer-events:none;
+}
+html[data-interface="fantasy-beta"] .beta-turn-copy { position:relative; inset:auto; min-height:100%; margin:0; transform-origin:top left; }
+html[data-interface="fantasy-beta"] .beta-turn-copy .hunt-book-surface { position:absolute; top:0; height:100%; margin:0; }
+html[data-interface="fantasy-beta"] .beta-equipment-fold { margin-bottom:14px; border-bottom:1px solid #997347; }
+html[data-interface="fantasy-beta"] .beta-equipment-fold > summary { cursor:pointer; min-height:44px; padding:10px 4px; font:700 18px Georgia,serif; color:#49341f; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-bag-page > .flex { flex-wrap:wrap; gap:8px; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-expand { max-width:100%; white-space:normal; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-bag-slot { padding-bottom:28px; }
+html[data-interface="fantasy-beta"] .beta-book-inventory :is(.inventory-bag-quantity,.inventory-bag-upgrade,.inventory-equipped-upgrade) { padding:3px 5px; color:#f6e5bc; border-radius:3px; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-bag-state { white-space:normal; overflow:visible; line-height:1.3; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-equipped-slot:not(.is-filled) { min-height:90px; opacity:.7; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-equipped-art { width:42px; height:42px; }
+html[data-interface="fantasy-beta"] .beta-book-inventory .inventory-equipped-copy strong { -webkit-line-clamp:unset; overflow:visible; }
+@keyframes beta-journal-turn { from { transform:rotateY(0deg); } to { transform:rotateY(-180deg); } }
+@keyframes beta-turn-light { 0%,100% { opacity:0; } 50% { opacity:1; } }
+@keyframes beta-turn-fade { from { opacity:1; } to { opacity:0; } }
+@media (prefers-reduced-motion:reduce) {
+  html[data-interface="fantasy-beta"] .beta-turn-leaf { animation:beta-turn-fade 120ms linear both; transform:none; }
+  html[data-interface="fantasy-beta"] .beta-page-turn.is-backwards > .beta-turn-leaf { animation-direction:normal; }
+  html[data-interface="fantasy-beta"] .beta-turn-leaf::after { animation:none; opacity:0; }
+}
+@supports not (transform-style:preserve-3d) {
+  html[data-interface="fantasy-beta"] .beta-turn-leaf { animation:beta-turn-fade 120ms linear both; }
+}
+
+html[data-interface="fantasy-beta"] .dossier-scroll { background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center / 100% 100% no-repeat; }
+html[data-interface="fantasy-beta"] .dossier-page-surface { display:none; }
+html[data-interface="fantasy-beta"] .bestiary-dossier-screen { padding-top:0; }
+
+html[data-interface="fantasy-beta"] .bestiary-dossier-screen { background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center / 100% 100% no-repeat; }
+html[data-interface="fantasy-beta"] .dossier-scroll { background:none; }
+html[data-interface="fantasy-beta"] .dossier-header { background:none; padding-left:41px; grid-template-columns:auto minmax(0,1fr) auto; }
+html[data-interface="fantasy-beta"] .dossier-header :is(h1,.dossier-back,.dossier-level) { color:#39291b; }
+html[data-interface="fantasy-beta"] .dossier-header h1 { white-space:normal; font-size:15px; }
+html[data-interface="fantasy-beta"] .dossier-footer { background:none; padding-left:41px; }
+html[data-interface="fantasy-beta"] .dossier-footer p { color:#81372e; }

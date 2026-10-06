@@ -24,11 +24,17 @@ export function BetaPageTurn({ page }: { page: string }) {
   const [turn, setTurn] = useState<{ id: number; direction: string } | null>(null);
   useEffect(() => {
     if (previous.current === page) return;
-    const backwards = order.indexOf(page) < order.indexOf(previous.current);
+    const from = previous.current;
+    if (!order.includes(page) || !order.includes(from)) {
+      previous.current = page;
+      setTurn(null);
+      return;
+    }
+    const backwards = order.indexOf(page) < order.indexOf(from);
     previous.current = page;
     setTurn({ id: ++sequence.current, direction: backwards ? 'backwards' : 'forwards' });
     const timer = window.setTimeout(() => setTurn(null), 500);
     return () => window.clearTimeout(timer);
   }, [page]);
-  return turn && <div key={turn.id} className={`beta-page-turn is-${turn.direction}`} aria-hidden="true" onAnimationEnd={() => setTurn(null)}><div /></div>;
+  return turn && <div key={turn.id} className={`beta-page-turn is-${turn.direction}`} aria-hidden="true" onAnimationEnd={event => { if ((event.target as HTMLElement).classList.contains('beta-turn-leaf')) setTurn(null); }}><div className="beta-turn-leaf"><div className="beta-turn-front" /><div className="beta-turn-back" /></div></div>;
 }
