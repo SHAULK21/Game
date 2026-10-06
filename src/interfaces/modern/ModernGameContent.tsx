@@ -37,15 +37,15 @@ export const ModernGameContent: React.FC = () => {
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className="modern-shell game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
       {/* Top Header */}
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full max-w-md mx-auto">
+      <main data-modern-tab={isCharacterSheetOpen ? 'character' : currentTab} className="flex-1 w-full max-w-md mx-auto">
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
         {isCharacterSheetOpen || currentTab === 'character' ? (
-          <CharacterScreen onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') setCurrentTab('hunter'); }} />
+          <CharacterScreen onOpenInventory={() => { setIsCharacterSheetOpen(false); setCurrentTab('inventory'); }} onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') setCurrentTab('hunter'); }} />
         ) : (
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}

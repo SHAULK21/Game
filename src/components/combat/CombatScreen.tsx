@@ -1,3 +1,5 @@
+import { getMonsterArtworkPath } from '../../interfaces/fantasy/utils/monsterArtwork';
+import { HuntStage } from '../../interfaces/modern/HuntStage';
 import { potionActionLabel } from '../../utils/combatPotions';
 import { monsterPreparation } from '../../utils/combatNarration';
 import { useMonsterStrike } from '../../hooks/useMonsterStrike';
@@ -193,6 +195,28 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     return (
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
         {localize(premiumModal)}
+        {selectedMonster && <HuntStage region={currentRegion} monsters={regionMonsters} selected={selectedMonster} onSelect={setSelectedMonsterId} />}
+          <div className="modern-hunt-action flex gap-2">
+            <button
+              disabled={!selectedMonster || Boolean(selectedLock) || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
+              onClick={() => {
+                if (selectedMonster) handleStartBattle(selectedMonster);
+              }}
+              className="ui-primary disabled:opacity-40 disabled:cursor-not-allowed flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Swords className="w-4 h-4" />
+              <span>{localize("Начать охоту · ")}{localize(combatEnergyCost)} ⚡</span>
+            </button>
+
+            <button
+              onClick={() => setIsSettingsOpen(prev => !prev)}
+              aria-label={localize("Настройки автобоя")}
+              className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 active:scale-95 transition-all"
+            >
+              <Settings2 className="w-5 h-5" />
+            </button>
+          </div>
+
         {/* Banner */}
         <div className="ui-panel relative rounded-2xl overflow-hidden border p-4">
           <div className="flex items-center justify-between mb-2">
@@ -264,26 +288,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             </div>
           )}
 
-          <div className="mt-4 flex gap-2">
-            <button
-              disabled={!selectedMonster || Boolean(selectedLock) || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
-              onClick={() => {
-                if (selectedMonster) handleStartBattle(selectedMonster);
-              }}
-              className="ui-primary disabled:opacity-40 disabled:cursor-not-allowed flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <Swords className="w-4 h-4" />
-              <span>{localize("Начать охоту · ")}{localize(combatEnergyCost)} ⚡</span>
-            </button>
-
-            <button
-              onClick={() => setIsSettingsOpen(prev => !prev)}
-              aria-label={localize("Настройки автобоя")}
-              className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 active:scale-95 transition-all"
-            >
-              <Settings2 className="w-5 h-5" />
-            </button>
-          </div>
 
           {!premium.active && (
             <button
@@ -387,7 +391,10 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 <div
                   key={mon.id}
                   onClick={() => setSelectedMonsterId(mon.id)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                  onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedMonsterId(mon.id); } }}
+                  tabIndex={0}
+                  aria-label={localize(mon.name)}
+                  className={`modern-monster-card p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     isSelected
                       ? 'bg-[#252620] border-[#9d8459]'
                       : 'bg-[#0a0f1a] border-slate-800 hover:border-slate-700'
@@ -396,7 +403,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {hasImg ? (
                       <img
-                        src={mon.avatar}
+                        src={getMonsterArtworkPath(mon.id, mon.avatar)}
                         alt={localize(mon.name)}
                         className="w-12 h-12 shrink-0 rounded-lg object-cover border border-slate-700"
                         referrerPolicy="no-referrer"
@@ -452,7 +459,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const playerMpPct = Math.max(0, Math.min(100, Math.round((combatPlayerMp / combatStats.maxMp) * 100)));
   const hasMonImg = isMonsterImg(activeMonster.avatar);
   const playerClass = CLASSES[player.classId] || CLASSES['warrior'];
-  const playerHeroImg = playerClass?.image || ASSETS.heroHunter;
+  const playerHeroImg = `/assets/sprites/generated/heroes/${player.classId}.webp`;
   const battleDungeon = activeMonster.regionId !== 'arena' && activeDungeonRun ? CAVES[activeDungeonRun.dungeonId] : undefined;
   const battleRegion = REGIONS.find(region => region.id === activeMonster.regionId) || currentRegion;
   const battleLocationName = activeMonster.regionId === 'arena' ? 'Колизей Чемпионов' : battleDungeon?.name || battleRegion.name;
@@ -586,7 +593,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md flex items-center justify-center bg-red-950/40">
               {hasMonImg ? (
                 <img
-                  src={activeMonster.avatar}
+                  src={getMonsterArtworkPath(activeMonster.id, activeMonster.avatar)}
                   alt={localize(activeMonster.name)}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

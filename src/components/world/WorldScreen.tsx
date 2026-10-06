@@ -1,3 +1,4 @@
+import { ModernLandscape } from '../../interfaces/modern/ModernLandscape';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { huntingModeLockReason } from '../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../utils/dungeonRewards';
@@ -309,6 +310,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   // 3. MAIN WORLD EXPLORATION VIEW
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      <section className="modern-world-banner"><ModernLandscape regionId={selectedRegionId} /><div><p>{localize("Карта Аэтельгарда")}</p><h1>{localize(REGIONS.find(region => region.id === selectedRegionId)?.name || currentRegion.name)}</h1></div></section>
       {!isFirstDeparture && <>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">

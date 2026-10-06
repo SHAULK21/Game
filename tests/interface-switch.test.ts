@@ -91,6 +91,8 @@ test('registration switches styles without losing input; both layouts share char
       assert.equal(activeTab(), label);
       await w.act(async () => button('Современный').click()); await settle();
       assert.equal(activeTab(), label, 'modern keeps the selected section');
+      assert(w.document.querySelector('.modern-shell'));
+      if (label === 'Сумка') assert(w.document.querySelector('.modern-inventory-equipment'));
       await w.act(async () => button('Фэнтези').click()); await settle();
       assert.equal(activeTab(), label, 'fantasy keeps the selected section');
     }
@@ -99,12 +101,23 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Современный').click()); await settle();
     assert(w.document.querySelector('main').textContent.includes('Новый герой'), 'modern renders the fantasy hero tab');
+    assert.equal(w.document.querySelectorAll('[data-modern-equipment-slot]').length,12);
+    assert.equal(w.document.querySelector('.modern-hero-scene > img').getAttribute('src'), '/assets/sprites/generated/heroes/warrior-fullbody.webp');
+    assert.equal(activeTab(), 'Герой');
     assert.equal([...w.document.querySelectorAll('button')].some((node: any) => node.textContent.includes('Начать охоту')), false);
     await w.act(async () => button('Фэнтези').click()); await settle();
     assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Охота').click()); await settle();
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'modern'); assert.equal(save().player.id, original.id); assert.equal(save().player.gold, original.gold);
+    const beforeBrowseEnergy = save().player.energy;
+    const beforeBrowseName = w.document.querySelector('.modern-hunt-caption h1').textContent;
+    await w.act(async()=>w.document.querySelector('.modern-stage-arrow.is-right').click());
+    assert.notEqual(w.document.querySelector('.modern-hunt-caption h1').textContent,beforeBrowseName);
+    assert.equal(save().player.energy,beforeBrowseEnergy,'browsing monsters does not charge energy or start battle');
+    assert(!button('Атака'));
+    await w.act(async()=>w.document.querySelector('.modern-stage-arrow.is-left').click());
+    assert.equal(w.document.querySelector('.modern-hunt-caption h1').textContent,beforeBrowseName);
     await w.act(async () => button('Фэнтези').click()); await settle();
     const hunt = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.includes('Начать охоту')) as any;
     // The main action precedes the tall bestiary dossier in document order.
@@ -402,4 +415,28 @@ test('intro offers five bilingual scenes, back and skip, then remembers completi
     await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.match(w.document.body.textContent,/REGISTRATION/);
     await w.act(async()=>w.root.unmount());w.localStorage.removeItem('aethelgard_story_intro_v1_749219401');await w.act(async()=>w.mount());await click('Пропустити');assert.match(w.document.body.textContent,/REGISTRATION/);
   } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
+
+test('modern equipment drawer keeps equip and protection actions and restores focus on Escape', async () => {
+  const {dom,w} = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/components/inventory/InventoryScreen';window.act=act;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
+  w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});
+  const button=(text:string)=>[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===text) as any;
+  try {
+    await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Арсенал','warrior'));
+    const weapon=w.game.player.equipped.weapon;
+    const slot=w.document.querySelector('[data-modern-equipment-slot="weapon"]');slot.focus();
+    await w.act(async()=>slot.click());
+    assert(w.document.querySelector('[role="dialog"][aria-modal="true"]'));
+    assert.equal(w.document.body.style.overflow,'hidden');
+    await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape'})));
+    assert.equal(w.document.querySelector('[role="dialog"]'),null);
+    assert.equal(w.document.activeElement,slot);assert.equal(w.document.body.style.overflow,'');
+    await w.act(async()=>slot.click());await w.act(async()=>button('Снять').click());
+    assert(!w.game.player.equipped.weapon);
+    const card=w.document.querySelector(`[data-inventory-item="${weapon.id}"]`);assert(card);
+    await w.act(async()=>card.click());
+    const protection=[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.includes('Запереть')) as any;assert(protection);
+    await w.act(async()=>protection.click());assert(w.game.player.inventory.find((i:any)=>i.id===weapon.id).isLocked);
+    await w.act(async()=>button('Экипировать').click());assert.equal(w.game.player.equipped.weapon.id,weapon.id);
+  } finally { await w.act(async()=>w.root.unmount());dom.window.close(); }
 });

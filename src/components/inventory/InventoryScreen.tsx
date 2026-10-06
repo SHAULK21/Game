@@ -1,13 +1,14 @@
+import { HeroEquipment } from '../../interfaces/modern/HeroEquipment';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { STAT_LABELS } from '../../utils/statLabels';
 import { getAlchemyToolBonus } from '../../utils/alchemy';
 import { getPickaxeBonus } from '../../utils/mining';
 import { ASCENSION_FRAGMENT_DESCRIPTION } from '../../data/ascension';
 import { BulkInventoryActions } from './BulkInventoryActions';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { GameItem, ItemType, CharacterClassId } from '../../types/game';
-import { RARITY_COLORS, CLASSES, ASSETS } from '../../data/gameData';
+import { RARITY_COLORS } from '../../data/gameData';
 import {
   Shield,
   Sparkles,
@@ -131,6 +132,26 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
   const [tab, setTab] = useState<InventoryTab>('equipment');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectedItem) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedItem(null);
+      if (event.key !== 'Tab') return;
+      const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+      if (!buttons?.length) return;
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', onKey); if (previous?.isConnected) previous.focus(); };
+  }, [selectedItem?.id]);
+
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
 
@@ -203,8 +224,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     return (
       <button
         key={item.id}
+        data-inventory-item={item.id}
         onClick={() => setSelectedItem(item)}
-        className={`relative text-left p-2.5 rounded-xl border min-h-[88px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
+        className={`modern-item-card relative text-left p-2 rounded-xl border min-h-[104px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
       >
         {equipped && (
           <span className="absolute top-1 left-1 text-[8px] font-bold px-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">{localize("НАДЕТО")}</span>
@@ -213,7 +235,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           <ItemArtwork item={item} size={40} />
         </div>
         <div
-          className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[22px] max-h-[22px]"
+          className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[32px] max-h-[32px]"
           style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
           title={localize(item.name)}
         >
@@ -250,68 +272,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <div className="ui-panel rounded-2xl border p-3.5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="font-cinzel text-sm font-bold text-cyan-300">{localize("Снаряжение")}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">{localize("Сравнение показывает разницу до экипировки")}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] text-slate-400">{localize("Боевая сила")}</div>
-            <div className="text-sm font-mono font-bold text-amber-300">
-              {localize(Math.round(combatStats.attack * 2 + combatStats.defense * 1.5 + combatStats.magicAttack))}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[1fr_92px_1fr] gap-2 items-center">
-          <div className="space-y-2">
-            {(['helmet','weapon','gloves','pants','boots','cloak','pickaxe','alchemyTool'] as ItemType[]).map(type => {
-              const item = player.equipped[type];
-              return (
-                <button key={type} onClick={() => item && setSelectedItem(item)}
-                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
-                  <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[8px] text-slate-500 uppercase truncate">{localize(TYPE_LABELS[type])}</div>
-                    <div className="text-[9px] leading-[10px] text-slate-200 break-words overflow-hidden max-h-[20px]" title={localize(item?.name || 'Пусто')}>{localize(item?.name || 'Пусто')}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="relative flex flex-col items-center">
-            <div className="w-[88px] h-[150px] rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-950">
-              <img src={(player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter} alt={player.name} className="w-full h-full object-cover opacity-80" />
-            </div>
-            <div className="absolute bottom-1 px-2 py-1 rounded bg-black/75 border border-cyan-500/30 text-[9px] font-bold text-cyan-200">
-              {player.name}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {(['amulet','offhand','armor','ring','belt','artifact'] as ItemType[]).map(type => {
-              const item = player.equipped[type];
-              return (
-                <button key={type} onClick={() => item && setSelectedItem(item)}
-                  className={`w-full min-h-[48px] rounded-xl border px-2 flex items-center gap-2 text-left ${item ? `${RARITY_COLORS[item.rarity].border} ${RARITY_COLORS[item.rarity].bg} ring-1 ring-cyan-400/20` : 'border-slate-800 bg-slate-950/60'}`}>
-                  <div className="w-7 h-7 shrink-0 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center">
-                    {item ? <ItemArtwork item={item} size={28} /> : <ItemTypeIcon type={type} className="text-slate-600" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[8px] text-slate-500 uppercase truncate">{localize(TYPE_LABELS[type])}</div>
-                    <div className="text-[9px] leading-[10px] text-slate-200 break-words overflow-hidden max-h-[20px]" title={localize(item?.name || 'Пусто')}>{localize(item?.name || 'Пусто')}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
+      <details className="modern-inventory-equipment ui-panel rounded-2xl p-3"><summary className="cursor-pointer font-cinzel text-sm text-amber-200">{localize("Снаряжение")}</summary><HeroEquipment onSelect={setSelectedItem} /><div className="flex gap-2 mt-3">{(['pickaxe', 'alchemyTool'] as ItemType[]).map(type => { const item = player.equipped[type]; return <button key={type} className="game-section flex-1 rounded-lg p-3 text-xs" onClick={() => item && setSelectedItem(item)}>{localize(TYPE_LABELS[type])}: {localize(item?.name || 'Пусто')}</button>; })}</div></details>
       <div className="flex items-center justify-between">
         <div>
           <span className="font-cinzel text-xs font-bold text-slate-200">{localize("Сумка")}</span>
@@ -360,7 +321,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
       {tab === 'equipment' && (
         equipment.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">{localize(equipment.map(renderItemCard))}</div>
+          <div className="modern-item-grid grid grid-cols-4 gap-2">{localize(equipment.map(renderItemCard))}</div>
         ) : (
           <div className="rounded-xl border border-dashed border-slate-800 p-7 text-center text-xs text-slate-500">{localize("Здесь появится добытая экипировка.")}</div>
         )
@@ -412,7 +373,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
           onClick={() => setSelectedItem(null)}
         >
           <div
-            className={`w-full max-w-lg rounded-2xl border p-3.5 bg-[#080c15]  ${RARITY_COLORS[currentSelected.rarity].border}`}
+            ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modern-item-title"
+            className={`modern-item-details w-full max-w-lg rounded-2xl border p-3.5 bg-[#080c15]  ${RARITY_COLORS[currentSelected.rarity].border}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2">
@@ -422,7 +384,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-cinzel text-sm font-bold text-slate-100 truncate">
+                    <h3 id="modern-item-title" className="font-cinzel text-sm font-bold text-slate-100 break-words">
                       {localize(currentSelected.name)}
                     </h3>
                     <span className="text-amber-300 text-xs font-mono">+{localize(currentSelected.upgradeLevel)}</span>
@@ -436,7 +398,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>}
                 </div>
               </div>
-              <button onClick={() => setSelectedItem(null)} className="p-1 text-slate-500 hover:text-white">
+              <button onClick={() => setSelectedItem(null)} aria-label={localize("Закрыть")} className="p-1 text-slate-500 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>

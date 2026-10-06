@@ -4,7 +4,6 @@ import React, { useState, useSyncExternalStore } from 'react';
 import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
-import { CLASSES, ASSETS } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 
@@ -14,7 +13,7 @@ interface TopHeaderProps {
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
   useLocale();
-  const { player, combatStats, meditateOrRefillEnergy, premium } = useGame();
+  const { player, meditateOrRefillEnergy, premium } = useGame();
   const isMuted = useSyncExternalStore(sound.subscribe,()=>sound.getIsMuted(),()=>false);
   const [showEnergyModal, setShowEnergyModal] = useState(false);
 
@@ -26,105 +25,31 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   const elixirPrice = getEnergyElixirPrice(premium.active);
 
   const expPct = Math.min(100, Math.round((player.exp / player.nextExp) * 100));
-  const heroImage = (player.classId && CLASSES[player.classId]?.image) || ASSETS.heroHunter;
+  const heroImage = `/assets/sprites/generated/heroes/${player.classId}.webp`;
   const energyPct = Math.min(100, Math.round(((player.energy ?? 100) / (player.maxEnergy ?? 100)) * 100));
 
   return (
     <>
       <header className="game-header sticky top-0 z-30 px-3 py-3">
-        <div className="flex flex-col gap-2 max-w-md mx-auto">
-          {/* Main Top Row */}
+        <div className="modern-header-inner max-w-md mx-auto">
+          <div className="modern-brand">AETHELGARD</div>
           <div className="flex items-center justify-between gap-2">
-            {/* Left: Avatar & Player Summary */}
-            <button
-              onClick={onOpenCharacterSheet}
-              className="flex items-center gap-2.5 text-left focus:outline-none group active:scale-95 transition-transform"
-            >
-              <div className="relative">
-                <img
-                  src={heroImage}
-                  alt={player.name}
-                  className="w-10 h-10 rounded-lg object-cover border border-slate-600"
-                  referrerPolicy="no-referrer"
-                />
-                <span className="absolute -bottom-1 -right-1 bg-[#302c24] border border-[#9d8459] text-[#d5ba89] text-[10px] font-mono font-bold px-1 rounded-sm leading-tight">
-                  {localize(player.level)}
-                </span>
-              </div>
-
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-slate-100 truncate max-w-[120px]">
-                    {premium.active && <span className="text-amber-300" title="Premium">👑 </span>}
-                    {player.name}
-                  </span>
-                  {player.statPoints > 0 && (
-                    <span className="flex items-center justify-center w-4 h-4 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full">
-                      +
-                    </span>
-                  )}
-                </div>
-
-                <span className="text-[11px] text-slate-400">{localize(CLASSES[player.classId].name)}{localize(" · Ур. ")}{localize(player.level)}</span>
-                {/* EXP Bar */}
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                    <div
-                      className="h-full bg-[#bca16d] transition-all duration-300"
-                      style={{ width: `${expPct}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] font-mono text-[#d5ba89]">
-                    {localize(expPct)}%
-                  </span>
-                </div>
+            <button onClick={onOpenCharacterSheet} className="modern-profile flex items-center gap-3 min-w-0 text-left" aria-label={localize("Профиль героя")}>
+              <img src={heroImage} alt="" className="modern-avatar" />
+              <div className="min-w-0"><strong className="block truncate max-w-[150px]">{premium.active && '♛ '}{player.name}</strong>
+                <span className="text-xs text-slate-400">{localize("Ур. ")}{player.level}{player.statPoints > 0 && <b className="ml-2 text-amber-300">+{player.statPoints}</b>}</span>
+                <div className="modern-exp" role="progressbar" aria-label={localize("Опыт героя")} aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100}><span style={{width: `${expPct}%`}} /></div>
               </div>
             </button>
-
-            {/* Quick Energy & Sound & Admin buttons */}
-            <div className="flex items-center gap-1.5">
-              {/* Energy pill */}
-              <button
-                onClick={() => setShowEnergyModal(true)}
-                className="flex items-center gap-1 min-h-11 px-2 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/40 rounded text-amber-300 active:scale-95 transition-transform"
-                title={localize("Энергия для боя и переходов")}
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span className="text-xs font-mono font-bold">
-                  {localize(player.energy ?? 100)}/{localize(player.maxEnergy ?? 100)}
-                </span>
-                <Plus className="w-3 h-3 text-amber-300 bg-amber-600/40 rounded-full" />
-              </button>
-
-              {/* Sound Toggle */}
-              <button
-                onClick={handleToggleSound}
-                aria-label={localize("Переключить звук")}
-                className="w-11 h-11 rounded-lg flex items-center justify-center text-slate-300 hover:bg-white/5 active:scale-95 transition-transform"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-[#d5ba89]" />}
-              </button>
-
-            </div>
+            <button onClick={handleToggleSound} aria-label={localize("Переключить звук")} className="w-11 h-11 flex items-center justify-center rounded-lg text-amber-200">{isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
           </div>
-
-          {/* Currency Bar */}
-          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-800/80 text-[11px] font-mono">
-            {/* Gold */}
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-amber-500/20 text-amber-300">
-              <RpgIcon kind="gold" size={15} className="text-amber-300" />
-              <span className="font-bold">{localize(player.gold >= 10000 ? `${(player.gold / 1000).toFixed(1)}k` : player.gold)}</span>
-            </div>
-
-            {/* Silver */}
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/60 rounded border border-slate-400/20 text-slate-300">
-              <RpgIcon kind="silver" size={15} className="text-slate-200" />
-              <span className="font-bold">{localize(player.silver ?? 150)}</span>
-            </div>
-
+          <div className="modern-resources">
+            <div className="modern-resource"><RpgIcon kind="gold" size={23} /><b>{player.gold.toLocaleString()}</b></div>
+            <div className="modern-resource"><RpgIcon kind="silver" size={23} /><b>{(player.silver ?? 0).toLocaleString()}</b></div>
+            <button onClick={() => setShowEnergyModal(true)} className="modern-resource" aria-label={localize("Энергия для боя и переходов")}><Zap size={21} className="text-amber-400 fill-amber-400" /><b>{player.energy}/{player.maxEnergy}</b><Plus size={13} /></button>
           </div>
+          <details className="modern-appearance"><summary>{localize("Стиль интерфейса")}</summary><InterfaceSwitcher compact /></details>
         </div>
-      <InterfaceSwitcher compact />
       </header>
 
       {/* Energy Modal */}

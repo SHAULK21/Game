@@ -81,7 +81,7 @@ test('language selection is visible only at registration; its saved locale survi
     await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
     await click('Фентезі'); await click('Ще'); await click('Герой'); await click('Сучасний');
     assert.match(w.document.querySelector('main').textContent, /Золото/);
-    assert.equal(w.document.querySelector('main h3')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
+    assert.equal(w.document.querySelector('main [data-player-name]')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
     await click('Полювання');
     const hunt = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.includes('Почати полювання')) as any;
     assert(hunt); await w.act(async () => hunt.click()); await settle();

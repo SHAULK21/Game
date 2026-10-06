@@ -1,3 +1,4 @@
+import { HeroEquipment } from '../../interfaces/modern/HeroEquipment';
 import { FirstJourneyHint } from './FirstJourneyHint';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { HeroStats } from './HeroStats';
@@ -22,9 +23,10 @@ import { sound } from '../../utils/audio';
 
 interface CharacterScreenProps {
   onClose?: () => void;
+  onOpenInventory?: () => void;
 }
 
-export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => {
+export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose, onOpenInventory }) => {
   useLocale();
   const { player, combatStats, allocateAttribute, premium } = useGame();
   const [activeTab, setActiveTab] = useState<'stats' | 'talents' | 'pet'>('stats');
@@ -39,13 +41,13 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
       <FirstJourneyHint />
       <div className="flex items-center gap-3"><button onClick={onClose} disabled={!onClose} aria-label={localize("Закрыть профиль")} className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400"><ArrowLeft className="w-4 h-4"/></button><h2 className="font-cinzel text-sm font-bold text-slate-200">{localize("Профиль героя")}</h2></div>
 
-      <section className="relative overflow-hidden rounded-2xl border border-cyan-800/40 bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-950 p-4 space-y-4">
-        <div className="flex items-center gap-4"><div className="relative shrink-0"><img src={classDef.image || ASSETS.heroHunter} alt={localize(classDef.name)} className="w-20 h-24 rounded-xl object-cover border border-amber-500/40 shadow-lg" referrerPolicy="no-referrer"/><span className="absolute -bottom-2 inset-x-1 rounded-lg border border-amber-700 bg-slate-950 py-1 text-center text-[10px] text-amber-200">{localize("Ранг ")}{localize(player.ascension?.rank || 'E')}</span></div><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-widest text-cyan-400">{localize(classDef.role)}</p><h3 className="mt-1 font-cinzel text-lg font-bold text-slate-100 break-words">{player.name}</h3><p className="text-xs text-slate-400 mt-1">{localize(classDef.icon)} {localize(classDef.name)}{localize(" · Уровень ")}{localize(player.level)}</p>{premium.active && <span className="inline-block mt-2 rounded border border-amber-600/40 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">👑 Premium</span>}</div></div>
-        <div className="pt-1 space-y-1.5"><div className="flex justify-between text-[10px] text-slate-400"><span>{localize("До уровня ")}{localize(player.level+1)}</span><span className="font-mono text-cyan-200">{localize(player.exp.toLocaleString(intlLocale()))} / {localize(player.nextExp.toLocaleString(intlLocale()))} EXP</span></div><div role="progressbar" aria-label={localize("Опыт героя")} aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100} className="h-2 rounded-full bg-slate-950 overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-500 to-indigo-400" style={{width:`${expPct}%`}} /></div></div>
-        <div className="grid grid-cols-3 gap-2 text-center text-[10px]"><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-amber-200">{localize(player.statPoints)}</b><span className="text-slate-500">{localize("Очки атрибутов")}</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-purple-200">{localize(player.talentPoints)}</b><span className="text-slate-500">{localize("Очки талантов")}</span></div><div className="rounded-xl bg-slate-950/60 p-2"><b className="block text-emerald-200">{localize(player.miningLevel)} / {localize(player.alchemyLevel)}</b><span className="text-slate-500">{localize("Шахта / алхимия")}</span></div></div>
-        <details className="border-t border-slate-800 pt-2"><summary className="cursor-pointer py-1 text-xs text-amber-200">{localize("Класс и пассивка · ")}{localize(classDef.passive.name)}</summary><p className="text-[11px] text-slate-400 mt-2">{localize(classDef.description)}</p><p className="mt-2 text-[11px] text-amber-100/80">{localize(classDef.passive.description)}</p></details>
+      <section className="ui-panel rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3"><div className="min-w-0"><h2 data-player-name className="font-cinzel break-words">{player.name}</h2><p className="mt-1 text-xs text-slate-400">{localize(classDef.name)} · {localize("Уровень ")}{player.level} · {localize("Ранг ")}{player.ascension?.rank || 'E'}{premium.active && ' · Premium'}</p></div><span className="modern-tag">EXP {expPct}%</span></div>
+        <div role="progressbar" aria-label={localize("Опыт героя")} aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100} className="mt-3 h-1.5 rounded-full bg-black/50 overflow-hidden"><div className="h-full bg-amber-400" style={{width:`${expPct}%`}} /></div>
+        <details className="mt-3 text-xs"><summary className="cursor-pointer text-amber-200">{localize("Класс и пассивка · ")}{localize(classDef.passive.name)}</summary><p className="mt-2 text-slate-400">{localize(classDef.description)}</p><p className="mt-2 text-slate-400">{localize(classDef.passive.description)}</p><p className="mt-2 text-slate-400">{localize("Шахта / алхимия")}: {player.miningLevel} / {player.alchemyLevel}</p></details>
       </section>
 
+      <HeroEquipment onOpenInventory={onOpenInventory} />
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-1 text-xs">
         <button
@@ -125,7 +127,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
                         disabled={player.statPoints <= 0}
                         aria-label={localize(`Повысить: ${attr.label}`)}
                         onClick={() => allocateAttribute(attr.key as keyof CharacterAttributes)}
-                        className="w-5 h-5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="modern-attribute-plus w-8 h-8 shrink-0 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         +
                       </button>

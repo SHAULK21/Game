@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useEffect, useRef, useState } from 'react';
-import { Swords, Compass, Trophy, Backpack, Anvil, Hammer, FlaskConical, Pickaxe, ShieldCheck, MessageSquare, MoreHorizontal, Scroll, Dog, Store, Crown, Fish, X } from 'lucide-react';
+import { Swords, Compass, Trophy, Backpack, Anvil, Hammer, FlaskConical, Pickaxe, ShieldCheck, MessageSquare, Menu, Scroll, Dog, Store, Crown, Fish, X } from 'lucide-react';
 import { sound } from '../../utils/audio';
 import { triggerHaptic } from '../../utils/telegram';
 
@@ -15,11 +15,12 @@ interface BottomNavigationProps {
 const primary = [
   { id: 'hunter', label: 'Охота', icon: Swords },
   { id: 'world', label: 'Мир', icon: Compass },
-  { id: 'arena', label: 'Арена', icon: Trophy },
+  { id: 'character', label: 'Герой', icon: ShieldCheck },
   { id: 'inventory', label: 'Сумка', icon: Backpack },
-  { id: 'crafting', label: 'Крафт', icon: Hammer },
 ] as const;
 const secondary = [
+  { id: 'arena', label: 'Арена', icon: Trophy },
+  { id: 'crafting', label: 'Крафт', icon: Hammer },
   { id: 'blacksmith', label: 'Кузница', icon: Anvil },
   { id: 'alchemy', label: 'Алхимия', icon: FlaskConical },
   { id: 'fishing', label: 'Рыбалка', icon: Fish },
@@ -83,10 +84,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
       </div>
     </div>}
     <nav aria-label={localize("Основные разделы")} className="game-nav fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto pb-safe">
-      <div className="grid grid-cols-6 h-16 px-1">
+      <div className="grid grid-cols-5 h-16 px-1">
         {primary.map(({ id, label, icon: Icon }) => <button key={id} aria-current={currentTab === id ? 'page' : undefined} className={`game-nav-item flex flex-col items-center justify-center gap-1 text-[11px] ${currentTab === id ? 'is-active' : ''}`} onClick={() => select(id)}><Icon size={21} strokeWidth={1.7} /><span>{localize(label)}</span></button>)}
         <button ref={moreRef} aria-expanded={open} aria-haspopup="dialog" onClick={() => { sound.playClick(); triggerHaptic('light'); setOpen(value => !value); }} className={`game-nav-item relative flex flex-col items-center justify-center gap-1 text-[11px] ${open || secondary.some(tab => tab.id === currentTab) ? 'is-active' : ''}`}>
-          <MoreHorizontal size={21} /><span>{localize("Ещё")}</span>
+          <Menu size={24} /><span>{localize("Ещё")}</span>
           {(unreadChatCount > 0 || availableQuestsCount > 0) && <span className="nav-dot absolute top-3 right-3" aria-label={localize("Есть новые события")} />}
         </button>
       </div>
