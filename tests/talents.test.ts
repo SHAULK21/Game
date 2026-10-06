@@ -11,9 +11,9 @@ const player = (id: CharacterClassId = 'archer', level = 100): PlayerCharacter =
 for (const id of Object.keys(CLASS_BRANCHES) as CharacterClassId[]) {
   test(`${id}: complete specialization costs 58, second path requires a choice`, () => {
     let p = player(id);
-    assert.equal(new Set(p.talents.map(t => t.id)).size, 34);
+    assert.equal(new Set(p.talents.map(t => t.id)).size, 35);
     for (const branch of ['damage', 'survival', 'class']) {
-      assert.equal(p.talents.filter(t => t.branch === branch).length, 10);
+      assert.equal(p.talents.filter(t => t.branch === branch).length, branch === 'survival' ? 11 : 10);
     }
     const attributes = { ...p.attributes };
     for (const branch of ['damage', 'survival']) {
@@ -60,7 +60,7 @@ test('old learned bonuses persist; migration is idempotent; reset refunds every 
   const reset = resetTalents(migrated);
   assert.equal(reset.talentPoints, 20);
   assert.equal(reset.silver, 3000);
-  assert.equal(reset.talents.length, 34);
+  assert.equal(reset.talents.length, 35);
   assert.equal(resetTalents(reset), reset);
   assert.equal(resetTalents({ ...migrated, silver: 1999 }).talentPoints, 17);
 });

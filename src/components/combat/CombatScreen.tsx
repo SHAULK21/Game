@@ -1,7 +1,6 @@
 import { getMonsterArtworkPath } from '../../interfaces/fantasy/utils/monsterArtwork';
 import { HuntStage } from '../../interfaces/modern/HuntStage';
 import { potionActionLabel } from '../../utils/combatPotions';
-import { monsterPreparation } from '../../utils/combatNarration';
 import { useMonsterStrike } from '../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../utils/regionalProgress';
@@ -58,6 +57,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     playerEffects,
     monsterEffects,
     monsterIntent,
+    monsterForecast,
     combatNarration,
     comboReady,
     autoBattle,
@@ -112,7 +112,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const combatEnergyCost = 2;
   const progress = regionProgress(player, currentRegion);
   const selectedLock = selectedMonster ? huntLockReason(player, selectedMonster, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id) : null;
-  const nextMonsterSkill = activeMonster ? getPredictedMonsterSkill(activeMonster) : null;
+  const nextMonsterSkill = monsterForecast?.skill || null;
 
   const lastAction = [...battleLog].reverse().find(entry => ['player-attack','monster-attack','crit','heal'].includes(entry.type));
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
@@ -710,7 +710,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               )}
             </div>
             <div className="mt-1 text-[10px] text-slate-400">
-              {monsterPreparation(activeMonster, combatRound, nextMonsterSkill).map((line,i)=><p key={i}>{localize(line)}</p>)}
+              <p>{localize('Прогноз может ошибаться или измениться после вашего действия.')}</p>
+              <p>{localize('Точность чтения:')}{' '}{monsterForecast?.accuracy ?? 50}%</p>
             </div>
           </div>
         )}

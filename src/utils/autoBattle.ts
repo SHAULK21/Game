@@ -2,9 +2,11 @@ import type { AutoBattleSettings, CombatStats, Monster, PlayerCharacter, Skill, 
 import { talentManaCost } from '../data/talents';
 import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant } from './pveBalance';
 import { getStatusModifiers } from './statusEffects';
+import { monsterActionKind } from './monsterAI';
 
 export function predictedMonsterSkill(monster: Monster) {
-  return (monster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && monster.mp >= s.manaCost && (s.actionKind !== 'potion' || (monster.potionCharges || 0) > 0))
+  return (monster.skills || []).filter(s => (s.currentCooldown || 0) <= 0 && monster.mp >= s.manaCost && (s.actionKind !== 'potion' || (monster.potionCharges || 0) > 0)
+    && (monster.regionId === 'arena' || monsterActionKind(s) !== 'super' || (monster.superCooldown || 0) <= 0))
     .sort((a, b) => (b.damageMultiplier + (b.effect ? .2 : 0)) - (a.damageMultiplier + (a.effect ? .2 : 0)))[0] || null;
 }
 

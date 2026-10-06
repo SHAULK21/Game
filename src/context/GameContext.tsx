@@ -1,4 +1,5 @@
-import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat } from '../utils/monsterAI';
+import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat, availableMonsterSkills, advanceMonsterCooldowns } from '../utils/monsterAI';
+import { forecastMonsterAction, monsterReadingAccuracy, type MonsterForecast } from '../utils/monsterForecast';
 import { huntSeriesPool } from '../utils/huntEncounters';
 import { completeTravelQuests } from '../utils/travelQuests';
 import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
@@ -96,6 +97,7 @@ interface GameContextType {
   playerEffects: StatusEffect[];
   monsterEffects: StatusEffect[];
   monsterIntent: MonsterSkill | null;
+  monsterForecast: MonsterForecast | null;
   combatNarration: string[];
   comboReady: string[];
   autoBattle: AutoBattleSettings;
@@ -561,8 +563,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCombatNarration([]);
   }, [isInCombat, activeMonster?.id, player?.userId]);
   const [monsterIntent, setMonsterIntent] = useState<MonsterSkill | null>(null);
+  const [monsterForecast, setMonsterForecast] = useState<MonsterForecast | null>(null);
+  const monsterDecision = useRef<{ key: string; skill: MonsterSkill | null; readRoll: number; errorRoll: number } | null>(null);
   const monsterPlan = useRef<{ key: string; skill: MonsterSkill | null; deadline: number; preparationDeadline: number } | null>(null);
   useEffect(() => { if (!isInCombat || isCombatEnded || turnPhase !== 'monster') monsterPlan.current = null; }, [isInCombat, isCombatEnded, turnPhase]);
+  useEffect(() => {
+    if (!isInCombat || isCombatEnded || !activeMonster || !player) {
+      monsterDecision.current = null;
+      setMonsterForecast(null);
+      return;
+    }
+    if (turnPhase !== 'player') return;
+    const key = `${activeMonster.id}:${combatRound}`;
+    if (monsterDecision.current?.key !== key) {
+      const skill = chooseMonsterSkill(activeMonster, monsterEffects);
+      monsterDecision.current = { key, skill, readRoll: Math.random(), errorRoll: Math.random() };
+    }
+    const decision = monsterDecision.current;
+    if (monsterForecast?.monsterId === activeMonster.id && monsterForecast.round === combatRound
+        && monsterForecast.accuracy === monsterReadingAccuracy(player.talents)) return;
+    let read = false;
+    setMonsterForecast(forecastMonsterAction(activeMonster, monsterEffects, decision.skill, player.talents, combatRound,
+      () => { if (read) return decision.errorRoll; read = true; return decision.readRoll; }));
+  }, [isInCombat, isCombatEnded, activeMonster, player?.talents, turnPhase, combatRound, monsterEffects, monsterForecast]);
   const [lastCast, setLastCast] = useState<{ id: string; turn: number } | null>(null);
   const [warriorMomentum, setWarriorMomentum] = useState(0);
   const [rogueFocus, setRogueFocus] = useState(false);
@@ -2932,7 +2955,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const key = `${activeMonster.id}:${combatRound}`;
     if (!monsterPlan.current || monsterPlan.current.key !== key) {
-      const skill = chooseMonsterSkill(activeMonster, monsterEffects);
+      const decision = monsterDecision.current?.key === key ? monsterDecision.current : { skill: chooseMonsterSkill(activeMonster, monsterEffects) };
+      const skill = decision.skill && availableMonsterSkills(activeMonster, monsterEffects).some(s => s.id === decision.skill!.id) ? decision.skill : null;
       const delay = sampleMonsterDelay(activeMonster, monsterActionKind(skill), autoBattle.enabled);
       const now = Date.now();
       monsterPlan.current = { key, skill, deadline: now + delay, preparationDeadline: now + (skill ? Math.min(250, Math.round(delay * .25)) : delay) };
@@ -2976,7 +3000,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (monsterTick.skipTurn) {
         newLogs.push({ id: 'monster_cc_' + Date.now(), turn: currentTurn, text: `🌀 [Контроль] ${activeMonster.name} пропускает ход.`, type: 'status' });
-        setActiveMonster(prev => prev ? { ...prev, hp: workingHp, skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
+        setActiveMonster(prev => prev ? { ...advanceMonsterCooldowns(prev), hp: workingHp } : null);
         setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
         setBattleLog(prev => [...prev, ...newLogs]);
         setCombatRound(prev => prev + 1);
@@ -3051,7 +3075,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return nextHp;
       });
-      setActiveMonster(prev => prev ? { ...prev, hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), mp: Math.min(prev.maxMp, prev.mp + Math.ceil(prev.maxMp * .03)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : null);
+      setActiveMonster(prev => prev ? { ...advanceMonsterCooldowns(prev), hp: Math.min(prev.maxHp, workingHp + Math.round(monsterFinalDmg * (activeMod.bonusVampirism || 0) / 100)), mp: Math.min(prev.maxMp, prev.mp + Math.ceil(prev.maxMp * .03)) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...newLogs]);
     }, Math.max(0, plan.preparationDeadline - Date.now()));
@@ -3136,7 +3160,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return nextHp;
       });
-      setActiveMonster(prev => prev ? { ...prev, potionCharges: Math.max(0, (prev.potionCharges || 0) - (monsterActionKind(skill) === 'potion' ? 1 : 0)), skills: prev.skills?.map(s => ({ ...s, currentCooldown: s.id === skill.id ? skill.cooldown : Math.max(0, (s.currentCooldown || 0) - 1) })), mp: Math.min(prev.maxMp, Math.max(0, prev.mp - skill.manaCost) + Math.ceil(prev.maxMp * .03)) } : null);
+      setActiveMonster(prev => prev ? { ...advanceMonsterCooldowns(prev, skill), potionCharges: Math.max(0, (prev.potionCharges || 0) - (monsterActionKind(skill) === 'potion' ? 1 : 0)), mp: Math.min(prev.maxMp, Math.max(0, prev.mp - skill.manaCost) + Math.ceil(prev.maxMp * .03)) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...logs]);
     }, Math.max(0, (monsterPlan.current?.deadline || Date.now()) - Date.now()));
@@ -4072,6 +4096,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       playerEffects,
       monsterEffects,
       monsterIntent,
+      monsterForecast,
       combatNarration,
       comboReady: lastCast && combatRound - lastCast.turn <= 3 ? player?.skills.filter(s => s.comboFrom === lastCast.id).map(s => s.id) || [] : [],
       autoBattle,

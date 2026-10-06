@@ -1,0 +1,487 @@
+{
+  "date": "2026-10-06",
+  "baselineCommit": "fa72d4aedd3e99cb0560db5abba7dedfff1d830a",
+  "accuracy": [
+    {
+      "rank": 0,
+      "configuredAccuracy": 50,
+      "hits": 4923,
+      "total": 10000,
+      "measuredPercent": 49.23
+    },
+    {
+      "rank": 1,
+      "configuredAccuracy": 58,
+      "hits": 5740,
+      "total": 10000,
+      "measuredPercent": 57.4
+    },
+    {
+      "rank": 2,
+      "configuredAccuracy": 66,
+      "hits": 6551,
+      "total": 10000,
+      "measuredPercent": 65.51
+    },
+    {
+      "rank": 3,
+      "configuredAccuracy": 74,
+      "hits": 7342,
+      "total": 10000,
+      "measuredPercent": 73.42
+    },
+    {
+      "rank": 4,
+      "configuredAccuracy": 82,
+      "hits": 8177,
+      "total": 10000,
+      "measuredPercent": 81.77
+    },
+    {
+      "rank": 5,
+      "configuredAccuracy": 90,
+      "hits": 8968,
+      "total": 10000,
+      "measuredPercent": 89.68
+    }
+  ],
+  "combat": {
+    "hunts": {
+      "source": "real GameProvider; accelerated monster timers; shared smart autobattle selector; no fleeing; wolf pet; balanced attributes/talents; gear standard; prepared profile has 2 HP/MP potions; region gates pre-unlocked to isolate combat; ascension uses previous earned rank",
+      "runs": 540,
+      "groups": [
+        {
+          "heroLevel": 1,
+          "region": "reg_plains",
+          "monster": "m_wolf",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.0,
+          "meanRounds": 9.03,
+          "actionCounts": {
+            "attack": 166,
+            "super": 17,
+            "defend": 6,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 1,
+          "region": "reg_plains",
+          "monster": "m_goblin",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 75.8,
+          "meanRounds": 11.33,
+          "actionCounts": {
+            "attack": 233,
+            "super": 21,
+            "defend": 4,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 1,
+          "region": "reg_plains",
+          "monster": "m_boar",
+          "runs": 30,
+          "wins": 29,
+          "losses": 1,
+          "timeouts": 0,
+          "meanHp": 68.34,
+          "meanRounds": 13.0,
+          "actionCounts": {
+            "attack": 268,
+            "super": 30,
+            "defend": 9,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 1,
+          "region": "reg_plains",
+          "monster": "m_bandit",
+          "runs": 30,
+          "wins": 0,
+          "losses": 30,
+          "timeouts": 0,
+          "meanHp": 0.0,
+          "meanRounds": 8.37,
+          "actionCounts": {
+            "attack": 210,
+            "super": 30,
+            "defend": 11,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 5,
+          "region": "reg_whisper_woods",
+          "monster": "m_wolf",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 82.79,
+          "meanRounds": 13.67,
+          "actionCounts": {
+            "attack": 271,
+            "super": 45,
+            "defend": 21,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 5,
+          "region": "reg_whisper_woods",
+          "monster": "m_goblin",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 84.28,
+          "meanRounds": 11.83,
+          "actionCounts": {
+            "attack": 239,
+            "super": 24,
+            "defend": 18,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 5,
+          "region": "reg_whisper_woods",
+          "monster": "m_bandit",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 82.53,
+          "meanRounds": 11.8,
+          "actionCounts": {
+            "attack": 236,
+            "super": 25,
+            "defend": 14,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 5,
+          "region": "reg_whisper_woods",
+          "monster": "m_spider",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.8,
+          "meanRounds": 13.07,
+          "actionCounts": {
+            "attack": 259,
+            "super": 40,
+            "defend": 15,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 8,
+          "region": "reg_forgotten_crypt",
+          "monster": "m_bandit",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 88.26,
+          "meanRounds": 13.9,
+          "actionCounts": {
+            "attack": 258,
+            "super": 38,
+            "defend": 16,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 8,
+          "region": "reg_forgotten_crypt",
+          "monster": "m_spider",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 91.98,
+          "meanRounds": 13.07,
+          "actionCounts": {
+            "attack": 240,
+            "super": 36,
+            "defend": 19,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 12,
+          "region": "reg_forest",
+          "monster": "m_reg_forest_scout",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 81.82,
+          "meanRounds": 19.23,
+          "actionCounts": {
+            "attack": 386,
+            "super": 64,
+            "defend": 28,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 12,
+          "region": "reg_forest",
+          "monster": "m_spider",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 87.82,
+          "meanRounds": 18.2,
+          "actionCounts": {
+            "attack": 354,
+            "super": 62,
+            "defend": 28,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 25,
+          "region": "reg_swamp",
+          "monster": "m_reg_swamp_scout",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 64.28,
+          "meanRounds": 50.9,
+          "actionCounts": {
+            "attack": 920,
+            "super": 204,
+            "defend": 117,
+            "potion": 86
+          }
+        },
+        {
+          "heroLevel": 25,
+          "region": "reg_swamp",
+          "monster": "m_spider",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 65.56,
+          "meanRounds": 48.1,
+          "actionCounts": {
+            "attack": 860,
+            "super": 178,
+            "defend": 112,
+            "potion": 86
+          }
+        },
+        {
+          "heroLevel": 55,
+          "region": "reg_cursed",
+          "monster": "m_blood_hound",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 74.88,
+          "meanRounds": 22.7,
+          "actionCounts": {
+            "attack": 334,
+            "super": 125,
+            "defend": 78,
+            "potion": 55
+          }
+        },
+        {
+          "heroLevel": 55,
+          "region": "reg_cursed",
+          "monster": "m_cursed_soldier",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 71.48,
+          "meanRounds": 23.8,
+          "actionCounts": {
+            "attack": 359,
+            "super": 126,
+            "defend": 75,
+            "potion": 63
+          }
+        },
+        {
+          "heroLevel": 90,
+          "region": "reg_dragon",
+          "monster": "m_scale_hunter",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 77.61,
+          "meanRounds": 36.63,
+          "actionCounts": {
+            "attack": 503,
+            "super": 196,
+            "defend": 132,
+            "potion": 93
+          }
+        },
+        {
+          "heroLevel": 90,
+          "region": "reg_dragon",
+          "monster": "m_peak_guard",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 78.11,
+          "meanRounds": 37.77,
+          "actionCounts": {
+            "attack": 530,
+            "super": 203,
+            "defend": 123,
+            "potion": 100
+          }
+        }
+      ]
+    },
+    "rankTrials": {
+      "source": "real GameProvider; accelerated monster timers; shared smart autobattle selector; no fleeing; wolf pet; balanced attributes/talents; gear prepared; prepared profile has 2 HP/MP potions; region gates pre-unlocked to isolate combat; ascension uses previous earned rank",
+      "runs": 210,
+      "groups": [
+        {
+          "heroLevel": 10,
+          "region": "ascension",
+          "monster": "ascension_D",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 87.05,
+          "meanRounds": 10.47,
+          "actionCounts": {
+            "attack": 210,
+            "super": 71,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 25,
+          "region": "ascension",
+          "monster": "ascension_C",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 92.95,
+          "meanRounds": 13.9,
+          "actionCounts": {
+            "attack": 280,
+            "super": 101,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 40,
+          "region": "ascension",
+          "monster": "ascension_B",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 94.12,
+          "meanRounds": 17.93,
+          "actionCounts": {
+            "attack": 334,
+            "super": 167,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 55,
+          "region": "ascension",
+          "monster": "ascension_A",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 86.08,
+          "meanRounds": 17.93,
+          "actionCounts": {
+            "attack": 332,
+            "super": 168,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 75,
+          "region": "ascension",
+          "monster": "ascension_S",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 95.59,
+          "meanRounds": 15.97,
+          "actionCounts": {
+            "attack": 286,
+            "super": 147,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 90,
+          "region": "ascension",
+          "monster": "ascension_SS",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 93.05,
+          "meanRounds": 18.07,
+          "actionCounts": {
+            "attack": 337,
+            "super": 170,
+            "defend": 0,
+            "potion": 0
+          }
+        },
+        {
+          "heroLevel": 100,
+          "region": "ascension",
+          "monster": "ascension_SSS",
+          "runs": 30,
+          "wins": 30,
+          "losses": 0,
+          "timeouts": 0,
+          "meanHp": 93.19,
+          "meanRounds": 22.67,
+          "actionCounts": {
+            "attack": 423,
+            "super": 215,
+            "defend": 0,
+            "potion": 0
+          }
+        }
+      ]
+    }
+  }
+}

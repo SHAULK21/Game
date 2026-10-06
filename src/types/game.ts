@@ -248,6 +248,7 @@ export interface MonsterSkill {
 
 export interface Monster {
   potionCharges?: number;
+  superCooldown?: number;
   huntingModeId?: string;
   id: string;
   name: string;

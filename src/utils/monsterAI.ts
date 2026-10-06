@@ -1,5 +1,4 @@
 import type { Monster, MonsterSkill, StatusEffect } from '../types/game';
-import { predictedMonsterSkill } from './autoBattle';
 
 export type MonsterActionKind = 'attack' | 'super' | 'defend' | 'potion';
 const identityHash = (id: string) => [...id].reduce((hash, letter) => (Math.imul(hash, 31) + letter.charCodeAt(0)) >>> 0, 17);
@@ -27,12 +26,25 @@ export function monsterActionWeights(monster: Monster) {
   return { defend: .04 + progress * .18, super: .10 + progress * .30,
     potion: monster.level < 15 ? 0 : .06 + progress * .08 };
 }
-export function chooseMonsterSkill(monster: Monster, effects: StatusEffect[], random = Math.random): MonsterSkill | null {
-  // Player opponents and rank trials retain their authored rotations.
-  if (monster.regionId === 'arena' || monster.regionId === 'ascension') return predictedMonsterSkill(monster);
-  const ready = (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost
+export function availableMonsterSkills(monster: Monster, effects: StatusEffect[]): MonsterSkill[] {
+  return (monster.skills || []).filter(skill => (skill.currentCooldown || 0) <= 0 && monster.mp >= skill.manaCost
+    && (monster.regionId === 'arena' || monsterActionKind(skill) !== 'super' || (monster.superCooldown || 0) <= 0)
     && (monsterActionKind(skill) !== 'potion' || (monster.potionCharges || 0) > 0)
     && (monsterActionKind(skill) !== 'defend' || !effects.some(e => ['fortify','shield','invulnerable'].includes(e.type) && e.duration > 0)));
+}
+export function advanceMonsterCooldowns(monster: Monster, used?: MonsterSkill): Monster {
+  const superUsed = !!used && monsterActionKind(used) === 'super' && monster.regionId !== 'arena';
+  return { ...monster,
+    superCooldown: superUsed ? 2 : Math.max(0, (monster.superCooldown || 0) - 1),
+    skills: monster.skills?.map(skill => ({ ...skill, currentCooldown: skill.id === used?.id
+      ? superUsed ? Math.max(3, skill.cooldown || 0) : skill.cooldown
+      : Math.max(0, (skill.currentCooldown || 0) - 1) })) };
+}
+export function chooseMonsterSkill(monster: Monster, effects: StatusEffect[], random = Math.random): MonsterSkill | null {
+  const ready = availableMonsterSkills(monster, effects);
+  // Player opponents and rank trials keep their priority among available skills.
+  if (monster.regionId === 'arena' || monster.regionId === 'ascension') return ready
+    .sort((a,b) => (b.damageMultiplier + (b.effect ? .2 : 0)) - (a.damageMultiplier + (a.effect ? .2 : 0)))[0] || null;
   const weights = monsterActionWeights(monster);
   const roll = random();
   let boundary = 0;
@@ -79,11 +91,12 @@ export function getMonsterCombatSkills(monster: Monster): MonsterSkill[] {
   const skills = getBaseMonsterCombatSkills(monster);
   if (monster.level >= 15 && monster.regionId !== 'arena' && monster.regionId !== 'ascension'
       && !skills.some(skill => skill.actionKind === 'potion')) skills.push(monsterThrowingPotion(monster));
-  return skills;
+  return skills.map(skill => ({ ...skill, cooldown: monster.regionId !== 'arena' && monsterActionKind(skill) === 'super'
+    ? Math.max(3, skill.cooldown || 0) : skill.cooldown }));
 }
 
 export const prepareMonsterForCombat = (monster: Monster): Monster => {
-  if(monster.regionId==='ascension') return {...monster,skills:getMonsterCombatSkills(monster)};
+  if(monster.regionId==='ascension') return {...monster,superCooldown:0,skills:getMonsterCombatSkills(monster)};
   const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
   const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;
   const hpMultiplier = 2.15 * levelFactor * roleFactor * (!monster.isBoss && !monster.isElite ? (monster.level < 5 ? 1.25 : 1.6) : 1);
@@ -93,6 +106,7 @@ export const prepareMonsterForCombat = (monster: Monster): Monster => {
 
   return {
     ...monster,
+    superCooldown: 0,
     hp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
     maxHp: Math.max(1, Math.round(monster.maxHp * hpMultiplier)),
     mp: monster.maxMp,

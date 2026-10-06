@@ -108,7 +108,11 @@ export function createTalentTree(classId: CharacterClassId): Talent[] {
     ['hpPercent', 'Мастерство стойкости', 15], ['damagePercent', 'Мастерство оружия', 10],
     ['manaPercent', 'Мастерство ресурса', 15], ['defensePercent', 'Мастерство защиты', 10],
   ] as const;
-  return [...talents, ...masteries.map(([stat, name, cap]) => ({
+  const reading: Talent = { id: `${classId}_survival_read`, name: 'Чтение намерений',
+    description: 'Точнее определяете следующий приём монстра: +8 процентных пунктов за ранг, от 50% до 90%. Прогноз может ошибаться.',
+    branch: 'survival', branchName: CLASS_BRANCHES[classId][1], levelReq: 1, branchPointsReq: 0,
+    tier: 1, maxRank: 5, currentRank: 0, pointCost: 1, icon: '👁️', effect: { stat: 'monsterReadAccuracy', valuePerRank: 8 } };
+  return [...talents, reading, ...masteries.map(([stat, name, cap]) => ({
     id: `${classId}_mastery_${stat}`, name, description: `Плавный прирост до +${cap}%. Каждый следующий ранг даёт меньшую прибавку; стоимость растёт каждые 5 рангов.`,
     branch: 'mastery' as const, branchName: 'Мастерство', levelReq: 101, tier: 6,
     maxRank: Number.MAX_SAFE_INTEGER, currentRank: 0, pointCost: 1, icon: '🏅',
