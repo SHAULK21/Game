@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "generatedWith": "Built-in image_gen",
+  "reference": "User-provided mobile bestiary screenshot, 2026-10-05",
+  "atlases": {
+    "monster_dossier_ui_atlas": {
+      "path": "monster_dossier_ui_atlas.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 5,
+      "rows": 5,
+      "cellOrder": "row-major, zero-based",
+      "sprites": {
+        "dossier_header_plate": [0, 0],
+        "back_button_idle": [1, 0],
+        "back_button_pressed": [2, 0],
+        "level_badge_small": [3, 0],
+        "monster_type_badge": [4, 0],
+        "header_divider_ornament": [0, 1],
+        "monster_art_frame_large": [1, 1],
+        "monster_art_shadow_back": [2, 1],
+        "stats_section_header": [3, 1],
+        "stats_row_divider": [4, 1],
+        "stats_column_divider": [0, 2],
+        "loot_slot_small": [1, 2],
+        "loot_slot_small_selected": [2, 2],
+        "traits_section_header": [3, 2],
+        "trait_bullet_icon": [4, 2],
+        "btn_primary_idle": [0, 3],
+        "btn_primary_pressed": [1, 3],
+        "btn_secondary_idle": [2, 3],
+        "btn_secondary_pressed": [3, 3],
+        "book_page_corner_ornament": [4, 3],
+        "unknown_monster_silhouette_frame": [0, 4],
+        "unknown_badge_question": [1, 4],
+        "unknown_stats_mask": [2, 4],
+        "unknown_entry_stamp": [3, 4],
+        "icon_lock": [4, 4]
+      }
+    },
+    "monster_dossier_icons_atlas": {
+      "path": "monster_dossier_icons_atlas.png",
+      "width": 1402,
+      "height": 1122,
+      "columns": 5,
+      "rows": 4,
+      "cellOrder": "row-major, zero-based",
+      "sprites": {
+        "icon_health": [0, 0],
+        "icon_attack": [1, 0],
+        "icon_defense": [2, 0],
+        "icon_magic_defense": [3, 0],
+        "icon_danger": [4, 0],
+        "icon_environment": [0, 1],
+        "icon_loot": [1, 1],
+        "icon_traits": [2, 1],
+        "icon_beast": [3, 1],
+        "icon_humanoid": [4, 1],
+        "icon_undead": [0, 2],
+        "icon_unknown": [1, 2],
+        "icon_question": [2, 2],
+        "icon_lock": [3, 2],
+        "icon_weakness": [4, 2],
+        "icon_behavior": [0, 3],
+        "icon_pack_hunter": [1, 3],
+        "icon_speed": [2, 3],
+        "icon_magic": [3, 3],
+        "icon_physical": [4, 3]
+      }
+    },
+    "monster_loot_icons_atlas": {
+      "path": "monster_loot_icons_atlas.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 2,
+      "rows": 2,
+      "cellOrder": "row-major, zero-based",
+      "sprites": {
+        "loot_fang_icon": [0, 0],
+        "loot_wolf_hide_icon": [1, 0],
+        "loot_healing_herb_icon": [0, 1],
+        "loot_hunter_armor_icon": [1, 1]
+      }
+    },
+    "monster_dossier_action_buttons": {
+      "path": "monster_dossier_action_buttons.png",
+      "width": 1983,
+      "height": 793,
+      "columns": 1,
+      "rows": 4,
+      "cellOrder": "top-to-bottom, zero-based",
+      "sprites": {
+        "btn_primary_idle": [0, 0],
+        "btn_primary_pressed": [0, 1],
+        "btn_secondary_idle": [0, 2],
+        "btn_secondary_pressed": [0, 3]
+      }
+    }
+  },
+  "standalone": {
+    "monster_dossier_book_edges": "monster_dossier_book_edges.png",
+    "monster_art_frame_large": "monster_art_frame_large.png",
+    "header_divider_ornament": "header_divider_ornament.png",
+    "unknown_monster_silhouette": "unknown_monster_silhouette_landscape.png",
+    "unknown_monster_silhouette_portrait_alternate": "unknown_monster_silhouette.png",
+    "parchment_fill_tile": "parchment_fill_tile.webp"
+  },
+  "extractedFromAtlas": {
+    "header_divider_ornament": {
+      "source": "monster_dossier_ui_atlas.png",
+      "crop": [23, 353, 251, 421]
+    }
+  },
+  "generationPrompts": {
+    "ui_atlas": "25 transparent sprites in a 5x5 grid, aged hunter's codex, parchment, worn dark leather and muted brass; contains badges, controls, dividers, loot slots, action buttons, unknown-state frames and marks.",
+    "icons_atlas": "20 consistent transparent etched icons in a 5x4 grid for monster stats, danger, environment, loot, species, behavior and weaknesses.",
+    "loot_atlas": "Four transparent painterly item sprites in a 2x2 grid: wolf fang, wolf hide, healing herbs and hunter armor.",
+    "book_edges": "Portrait transparent overlay with a dark leather left spine, engraved right margin and page corners; center left empty for UI content.",
+    "monster_art_frame": "Transparent landscape engraved parchment-and-brass portrait frame with empty center.",
+    "unknown_silhouette": "Wide dark ink silhouette of an unidentified quadruped beast on a transparent background.",
+    "action_buttons": "Four wide hunter-codex action plaques in a vertical sprite sheet: green brass primary idle and pressed, then charcoal leather secondary idle and pressed."
+  }
+}

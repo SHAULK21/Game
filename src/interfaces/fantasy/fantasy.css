@@ -166,7 +166,6 @@ html[data-interface="fantasy"] .rpg-icon-button { border-color: #66563c; backgro
 html[data-interface="fantasy"] .codex-tab.is-active { color: #e1c483; border-color: #c09a59; }
 html[data-interface="fantasy"] .progress-track { border-color: #514b40; box-shadow: inset 0 1px 2px rgb(0 0 0 / 55%); }
 
-html[data-interface="fantasy"] .bestiary-list { scrollbar-color: #766342 #171818; scrollbar-width: thin; }
 html[data-interface="fantasy"] .bestiary-entry-row {
   display: flex;
   width: 100%;
@@ -183,7 +182,6 @@ html[data-interface="fantasy"] .bestiary-entry-row.is-selected {
   background: linear-gradient(90deg, rgb(157 116 52 / 25%), rgb(41 34 25 / 76%) 45%, #17191a);
   box-shadow: inset 0 0 0 1px rgb(195 157 91 / 23%), 0 2px 9px rgb(0 0 0 / 24%);
 }
-html[data-interface="fantasy"] .bestiary-entry-row.is-locked { opacity: .73; }
 html[data-interface="fantasy"] .bestiary-entry-portrait {
   position: relative;
   display: grid;
@@ -198,6 +196,7 @@ html[data-interface="fantasy"] .bestiary-entry-portrait {
   box-shadow: inset 0 0 0 2px rgb(0 0 0 / 38%);
 }
 html[data-interface="fantasy"] .bestiary-entry-portrait.is-locked { border-style: dashed; }
+html[data-interface="fantasy"] .bestiary-entry-row.is-locked { opacity:.73; }
 html[data-interface="fantasy"] .bestiary-marker {
   flex: 0 0 auto;
   padding: 3px 6px;
@@ -210,44 +209,8 @@ html[data-interface="fantasy"] .bestiary-marker {
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-html[data-interface="fantasy"] .bestiary-marker.is-boss { border-color: #77423d; background: #321c1b; color: #d99d94; }
-html[data-interface="fantasy"] .bestiary-entry-chevron { color: #9b8256; font-family: Georgia, serif; font-size: 24px; line-height: 1; }
-html[data-interface="fantasy"] .bestiary-dossier { border-color: #8b7047; box-shadow: 0 8px 24px rgb(0 0 0 / 35%), inset 0 0 0 1px rgb(219 184 116 / 12%); }
-html[data-interface="fantasy"] .bestiary-dossier-art { background: #101517; }
-html[data-interface="fantasy"] .bestiary-dossier-art-shade {
-  background: linear-gradient(180deg, rgb(7 10 10 / 31%) 0%, transparent 28%, rgb(7 9 9 / 14%) 48%, rgb(8 9 9 / 87%) 100%);
-}
-html[data-interface="fantasy"] .bestiary-art-stamp {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  border: 1px solid rgb(189 155 96 / 58%);
-  border-radius: 4px;
-  background: rgb(13 14 14 / 72%);
-  color: #e4d2ad;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-html[data-interface="fantasy"] .bestiary-dossier-paper {
-  color: #302820;
-  background:
-    url('/assets/sprites/generated/ui/parchment-grain.webp'),
-    radial-gradient(ellipse at 8% 10%, rgb(255 248 220 / 62%), transparent 30%),
-    radial-gradient(ellipse at 92% 90%, rgb(140 102 58 / 13%), transparent 30%),
-    linear-gradient(133deg, #eadcc0, #cdb996 58%, #dfcfac);
-  background-size: 420px 420px, auto, auto, 100% 100%;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-  background-blend-mode: soft-light, normal, normal, normal;
-  box-shadow: inset 0 1px rgb(255 251 229 / 55%);
-}
-html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row { border-color: rgb(85 66 42 / 18%); }
-html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row > span { color: #6c5d48; }
-html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row strong { color: #352a20; }
-
+html[data-interface="fantasy"] .bestiary-marker.is-boss { border-color:#77423d; background:#321c1b; color:#d99d94; }
+html[data-interface="fantasy"] .bestiary-entry-chevron { color:#9b8256; font:24px/1 Georgia,serif; }
 html[data-interface="fantasy"] .combat-scene {
   border-color: #766344;
   border-radius: 12px;
@@ -351,46 +314,10 @@ html[data-interface="fantasy"] .equipment-tile { display: flex; flex-direction: 
 html[data-interface="fantasy"] .equipment-tile span { font-size: 11px; }
 html[data-interface="fantasy"] .equipment-tile small { font-size: 10px; overflow-wrap: anywhere; }
 html[data-interface="fantasy"] .portrait-fallback { display: flex; align-items: center; justify-content: center; }
-html[data-interface="fantasy"] .bestiary-spread { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
-html[data-interface="fantasy"] .atlas-sidebar { display: none; padding: 14px; }
-html[data-interface="fantasy"] .atlas-sidebar ul { margin: 12px 0; }
-html[data-interface="fantasy"] .atlas-sidebar li { display: flex; align-items: center; gap: 8px; padding: 12px 4px; font-size: 12px; border-bottom: 1px solid #98774766; }
-html[data-interface="fantasy"] .atlas-sidebar li[aria-current] { font-weight: bold; background: #f6e4b95c; }
-html[data-interface="fantasy"] .atlas-sidebar small { display: block; margin-top: 4px; font-size: 10px; font-weight: normal; }
-html[data-interface="fantasy"] .bestiary-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: none; overflow: visible; }
-html[data-interface="fantasy"] .bestiary-entry-row { flex-direction: column; align-items: stretch; padding: 7px; border: 2px double #9c784b; border-radius: 5px; background: #e9d5ae; color: #3b2c1d; min-width: 0; position: relative; }
-html[data-interface="fantasy"] .bestiary-entry-row.is-selected { border-color: #775529; background: #f7e6c0; box-shadow: 0 0 0 2px #bf9750, inset 0 0 14px #cead7638; }
-html[data-interface="fantasy"] .bestiary-entry-row.is-locked { opacity: .75; }
-html[data-interface="fantasy"] .bestiary-entry-row > .bestiary-entry-portrait { width: 100%; height: 105px; flex: auto; border: 0; background: radial-gradient(ellipse, #f5e4be, #d6b78a); box-shadow: none; }
-html[data-interface="fantasy"] .bestiary-entry-row .truncate { white-space: normal; overflow-wrap: anywhere; }
-html[data-interface="fantasy"] .bestiary-entry-row > span:nth-child(2) { min-height: 38px; }
-html[data-interface="fantasy"] .bestiary-entry-chevron { display: none; }
-html[data-interface="fantasy"] .bestiary-marker { align-self: flex-start; font-size: 10px; }
-html[data-interface="fantasy"] .bestiary-dossier-art { background: #dcc297; }
-html[data-interface="fantasy"] .bestiary-dossier-art > .portrait-fallback, html[data-interface="fantasy"] .bestiary-dossier-art > img { filter: sepia(.25) saturate(.7); padding: 10px 12px 55px; }
-html[data-interface="fantasy"] .bestiary-dossier-art-shade { background: linear-gradient(transparent 55%, #e2c79e); }
-html[data-interface="fantasy"] .bestiary-art-stamp { color: #eed8b1; }
-html[data-interface="fantasy"] .bestiary-dossier-paper { background: transparent; }
-html[data-interface="fantasy"] .bestiary-dossier-paper .stat-row { border-bottom-color: #93704444; }
-html[data-interface="fantasy"] .dossier-loot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-html[data-interface="fantasy"] .loot-entry { display: flex; align-items: center; gap: 6px; font-size: 11px; min-width: 0; border: 1px solid #97744888; border-radius: 4px; padding: 6px; background: #f1deba55; }
-html[data-interface="fantasy"] .loot-entry img { flex-shrink: 0; }
-html[data-interface="fantasy"] .loot-entry span { overflow-wrap: anywhere; }
-html[data-interface="fantasy"] .loot-entry small { display: block; font-size: 10px; color: #715638; margin-top: 3px; }
-html[data-interface="fantasy"] .hunt-codex > .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
+html[data-interface="fantasy"] .dossier-footer .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
 html[data-interface="fantasy"] .dialog-frame { max-height: calc(100dvh - 24px - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
 html[data-interface="fantasy"] .dialog-frame .rpg-button { white-space: normal; }
 html[data-interface="fantasy"] .game-drawer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-@media (min-width: 760px) {
-  html[data-interface="fantasy"] .bestiary-spread { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  html[data-interface="fantasy"] .hero-identity { grid-template-columns: 215px minmax(0, 1fr); }
-  html[data-interface="fantasy"] .hero-portrait { min-height: 270px; }
-  html[data-interface="fantasy"] .hero-counters button { min-height: 92px; }
-}
-@media (min-width: 1060px) {
-  html[data-interface="fantasy"] .bestiary-spread { grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1fr); }
-  html[data-interface="fantasy"] .atlas-sidebar { display: block; }
-}
 @media (max-width: 420px) {
   html[data-interface="fantasy"] .attribute-grid { grid-template-columns: minmax(0, 1fr); }
   html[data-interface="fantasy"] .hero-identity { grid-template-columns: 90px minmax(0, 1fr); gap: 9px; }
@@ -444,6 +371,7 @@ html[data-interface="fantasy"] .skill-codex-lines svg { width:16px; height:16px;
 html[data-interface="fantasy"] .hero-codex-heading { position:relative; text-align:center; justify-content:center; padding:12px 48px; border:3px double #9e7a47; background:linear-gradient(#ecd9ad,#cdb081); color:#483220; }
 html[data-interface="fantasy"] .hero-codex-heading > div > div { color:#765634; }
 html[data-interface="fantasy"] .game-shell main .hero-codex-heading h1 { color:#3c291d; font:700 clamp(22px,4vw,32px) Georgia,serif; }
+
 html[data-interface="fantasy"] .hero-codex-heading > button { position:absolute; right:8px; top:50%; transform:translateY(-50%); }
 html[data-interface="fantasy"] .hero-sheet { border-width:4px; padding:18px; }
 html[data-interface="fantasy"] .hero-class-heading { display:flex; align-items:center; gap:9px; }
@@ -546,94 +474,812 @@ html[data-interface="fantasy"] .hero-reference-codex .codex-detail summary { dis
 html[data-interface="fantasy"] .hero-reference-codex .codex-detail summary::before { content:'▸'; font-size:13px; }
 html[data-interface="fantasy"] .hero-reference-codex .codex-detail[open] summary::before { content:'▾'; }
 html[data-interface="fantasy"] .hero-reference-codex .codex-stat { padding:5px 8px; }
-@media (max-width:760px) {
-  html[data-interface="fantasy"] .hero-reference-codex { padding:10px 3% 96px; min-height:0; }
-  html[data-interface="fantasy"] .hero-reference-codex .hero-identity { grid-template-columns:28% minmax(0,1fr); gap:9px; }
-  html[data-interface="fantasy"] .hero-reference-castle { display:none; }
-  html[data-interface="fantasy"] .hero-reference-codex .hero-counters button { display:flex; padding:5px 2px; min-height:70px; }
-  html[data-interface="fantasy"] .hero-reference-codex .hero-counters button span:last-child { font-size:9px; }
-  html[data-interface="fantasy"] .hero-reference-codex .attribute-grid { gap:5px; }
-  html[data-interface="fantasy"] .hero-reference-codex .attribute-card { flex-wrap:wrap; gap:4px; }
-  html[data-interface="fantasy"] .hero-reference-codex .attribute-summary { font-size:10px; }
-  html[data-interface="fantasy"] .hero-reference-codex .hero-rank { font-size:10px; padding:2px; }
-}
+html[data-interface="fantasy"] .hero-reference-codex { padding:10px 3% 96px; min-height:0; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-identity { grid-template-columns:28% minmax(0,1fr); gap:9px; }
+html[data-interface="fantasy"] .hero-reference-castle { display:none; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-counters button { display:flex; padding:5px 2px; min-height:70px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-counters button span:last-child { font-size:9px; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-grid { gap:5px; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-card { flex-wrap:wrap; gap:4px; }
+html[data-interface="fantasy"] .hero-reference-codex .attribute-summary { font-size:10px; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-rank { font-size:10px; padding:2px; }
 
 html[data-interface="fantasy"] .hero-reference-clean-page { position:absolute; inset:0 18.5% 70px; z-index:-1; pointer-events:none; background:#d9c096; }
 html[data-interface="fantasy"] .hero-reference-clean-page > .hero-reference-art { width:100%; height:100%; }
-@media(max-width:760px) { html[data-interface="fantasy"] .hero-reference-clean-page { inset:0 3% 70px; } }
+html[data-interface="fantasy"] .hero-reference-clean-page { inset:0 3% 70px; }
 
 html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading { position:static; min-height:67px; isolation:isolate; }
 html[data-interface="fantasy"] .hero-title-art { position:absolute; left:29%; right:20%; top:7px; width:auto; height:67px; z-index:-1; }
 html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > div { width:82%; padding:2px; background:#d7be95; }
 html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { top:8px; right:8px; width:39px; height:43px; border:0; background:none; }
 html[data-interface="fantasy"] .hero-close-art { width:39px; height:43px; }
-@media(max-width:760px) {
-  html[data-interface="fantasy"] .hero-title-art { left:31%; right:4%; }
-  html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { width:28px; height:30px; right:3px; }
-  html[data-interface="fantasy"] .hero-close-art { width:28px; height:30px; }
-}
+html[data-interface="fantasy"] .hero-title-art { left:31%; right:4%; }
+html[data-interface="fantasy"] .hero-reference-codex .hero-codex-heading > button { width:28px; height:30px; right:3px; }
+html[data-interface="fantasy"] .hero-close-art { width:28px; height:30px; }
 
 html[data-interface="fantasy"] .class-portrait-icon { border:0; border-radius:0; box-shadow:none; background:none; }
 html[data-interface="fantasy"] .registration-class-portrait { width:52px; height:52px; }
 
-/* Shared shell: full on Hunt, compact on secondary sections. */
-html[data-interface="fantasy"] { --shell-width: 900px; --shell-nav-height: 76px; --shell-frame-size: 20px; }
+/* Shared mobile shell: a compact leather HUD and one continuous navigation rail. */
+html[data-interface="fantasy"] { --shell-width: 430px; --shell-nav-height: 64px; }
 html[data-interface="fantasy"] .fantasy-shell-header {
-  width:100%; max-width:var(--shell-width); margin-inline:auto; padding:12px 15px 17px;
+  box-sizing:border-box; width:100%; max-width:var(--shell-width); min-height:70px; margin-inline:auto; padding:6px 10px;
   border:0; border-radius:0; background:#171716 url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
-  background-size:360px; color:#dcc99d; box-shadow:0 4px 12px #0008; font-family:Georgia,"Times New Roman",serif;
+  background-size:360px; color:#dcc99d; box-shadow:0 3px 8px #0007; font-family:Georgia,"Times New Roman",serif;
 }
-html[data-interface="fantasy"] .shell-brand-row { position:relative; display:flex; align-items:center; justify-content:center; min-height:42px; padding-inline:40px; }
-html[data-interface="fantasy"] .shell-brand { color:#d5ba7d; font-size:clamp(21px,5.5vw,30px); line-height:1.1; white-space:nowrap; }
-html[data-interface="fantasy"] .shell-settings { position:absolute; right:0; top:0; z-index:2; }
-html[data-interface="fantasy"] .shell-settings summary { display:grid; place-items:center; width:44px; height:44px; cursor:pointer; list-style:none; }
-html[data-interface="fantasy"] .shell-settings summary::-webkit-details-marker { display:none; }
-html[data-interface="fantasy"] .shell-settings-content { position:absolute; right:0; top:44px; width:min(300px,calc(100vw - 32px)); padding:8px; border:1px solid #8b7148; background:#171716; box-shadow:0 4px 10px #0008; }
-html[data-interface="fantasy"] .shell-hud-content { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(112px,30%); gap:8px; min-height:68px; }
-html[data-interface="fantasy"] .shell-hero-button { display:flex; align-items:center; gap:8px; min-width:0; text-align:left; }
-html[data-interface="fantasy"] .shell-hero-portrait { position:relative; display:block; width:56px; height:64px; flex-shrink:0; overflow:hidden; border:2px solid #907347; background:#131616; }
+html[data-interface="fantasy"] .shell-hud-content { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px; width:100%; max-width:var(--shell-width); min-height:54px; margin-inline:auto; }
+html[data-interface="fantasy"] .shell-hero-button { display:flex; align-items:center; gap:7px; min-width:0; min-height:52px; text-align:left; }
+html[data-interface="fantasy"] .shell-hero-portrait { position:relative; display:block; width:46px; height:46px; flex-shrink:0; overflow:hidden; border:1px solid #806744; background:#131616; }
 html[data-interface="fantasy"] .shell-hero-portrait > img { width:100%; height:100%; object-fit:cover; object-position:50% 20%; }
-html[data-interface="fantasy"] .shell-hud-resources { display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:0; }
-html[data-interface="fantasy"] .shell-energy { order:-1; justify-content:center; min-height:44px; width:100%; color:#e8cb85; }
-html[data-interface="fantasy"] .shell-energy::after { content:'+'; display:grid; place-items:center; width:18px; height:18px; margin-left:4px; border:1px solid #ae8746; border-radius:50%; font-size:16px; }
-html[data-interface="fantasy"] .shell-currencies { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
-html[data-interface="fantasy"] .shell-currencies .resource-badge { justify-content:center; min-width:0; padding:3px; font-size:11px; gap:3px; }
-html[data-interface="fantasy"] .fantasy-shell-nav { max-width:var(--shell-width); border:0; border-radius:0; background:#121514; box-shadow:0 -4px 12px #0008; }
-html[data-interface="fantasy"] .shell-nav-grid { display:grid; height:var(--shell-nav-height); grid-template-columns:repeat(6,minmax(0,1fr)); padding:2px; gap:0; }
-html[data-interface="fantasy"] .game-nav-item { position:relative; isolation:isolate; color:#cabb9c; border:0; border-radius:0; min-width:0; font-family:Georgia,"Times New Roman",serif; font-size:12px; background:none; transition:color 150ms; }
-html[data-interface="fantasy"] .game-nav-item.is-active { color:#ffe1a0; background:none; box-shadow:none; }
-html[data-interface="fantasy"] .game-nav-item > :not(.shell-ornament) { position:relative; z-index:1; }
-html[data-interface="fantasy"] .game-nav-item > span:not(.shell-ornament):not(.nav-dot) { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[data-interface="fantasy"] .game-nav-item .shell-ornament { z-index:0; }
-html[data-interface="fantasy"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 16px); }
-html[data-interface="fantasy"] .shell-main .folio-page { padding-bottom:16px; }
-html[data-interface="fantasy"] .shell-ornament { position:absolute; inset:0; pointer-events:none; display:block; overflow:hidden; }
-html[data-interface="fantasy"] .shell-ornament svg { position:absolute; display:block; }
-html[data-interface="fantasy"] .shell-corner { width:20px; height:20px; }
-html[data-interface="fantasy"] .shell-top-left { top:0; left:0; }
-html[data-interface="fantasy"] .shell-top-right { top:0; right:0; }
-html[data-interface="fantasy"] .shell-bottom-left { bottom:0; left:0; }
-html[data-interface="fantasy"] .shell-bottom-right { bottom:0; right:0; }
-html[data-interface="fantasy"] .shell-top, html[data-interface="fantasy"] .shell-bottom { left:20px; right:20px; width:calc(100% - 40px); height:20px; }
-html[data-interface="fantasy"] .shell-top { top:0; }
-html[data-interface="fantasy"] .shell-bottom { bottom:0; }
-html[data-interface="fantasy"] .shell-left, html[data-interface="fantasy"] .shell-right { top:20px; bottom:20px; height:calc(100% - 40px); width:20px; }
-html[data-interface="fantasy"] .shell-left { left:0; }
-html[data-interface="fantasy"] .shell-right { right:0; }
-html[data-interface="fantasy"] .shell-accent { width:16.36px; height:20px; left:calc(50% - 8.18px); }
-html[data-interface="fantasy"] .shell-accent-top { top:0; }
-html[data-interface="fantasy"] .shell-accent-bottom { bottom:0; }
-html[data-interface="fantasy"] .shell-frame-fill { inset:10px; width:calc(100% - 20px); height:calc(100% - 20px); }
-html[data-interface="fantasy"] .shell-divider { display:block; height:14px; width:100px; margin:2px auto -10px; pointer-events:none; }
-html[data-interface="fantasy"] .shell-divider-art { display:block; width:100%; height:100%; }
+html[data-interface="fantasy"] .shell-hero-identity { display:flex; flex-direction:column; min-width:0; gap:2px; line-height:1.1; }
+html[data-interface="fantasy"] .shell-hero-name { color:#e2ded5; font-size:13px; font-weight:600; }
+html[data-interface="fantasy"] .shell-hero-level { color:#b9aa8e; font-size:10px; }
+html[data-interface="fantasy"] .shell-hud-right { display:flex; align-items:center; gap:3px; }
+html[data-interface="fantasy"] .shell-resource-strip { display:flex; align-items:center; gap:3px; min-width:0; }
+html[data-interface="fantasy"] .shell-energy-resource { display:flex; align-items:center; justify-content:center; width:84px; min-height:42px; padding:2px; border:0; background:transparent; color:#e8cb85; }
+html[data-interface="fantasy"] .shell-energy-value { display:flex; align-items:center; justify-content:center; gap:3px; white-space:nowrap; font-size:11px; font-variant-numeric:tabular-nums; }
+html[data-interface="fantasy"] .shell-energy-refill { display:grid; place-items:center; width:14px; height:14px; margin-left:1px; border:1px solid #a8864a; border-radius:50%; font-size:11px; line-height:1; }
+html[data-interface="fantasy"] .shell-energy-meter { position:absolute; right:-10px; bottom:-10px; left:-10px; display:block; height:2px; overflow:hidden; background:#8a7148; pointer-events:none; }
+html[data-interface="fantasy"] .shell-energy-meter > span { display:block; height:100%; background:#e0bd75; transition:width 180ms ease-out; }
+html[data-interface="fantasy"] .shell-currency-group { display:flex; align-items:center; gap:8px; margin-left:8px; }
+html[data-interface="fantasy"] .shell-currency { display:inline-flex; align-items:center; gap:3px; color:#d5c6a6; font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+html[data-interface="fantasy"] .shell-settings { position:relative; flex:0 0 auto; z-index:2; }
+html[data-interface="fantasy"] .shell-settings summary { display:grid; place-items:center; width:38px; height:38px; border:0; background:transparent; color:#d0bd96; cursor:pointer; list-style:none; }
+html[data-interface="fantasy"] .shell-settings summary::-webkit-details-marker { display:none; }
+html[data-interface="fantasy"] .shell-settings-content { position:absolute; right:0; top:calc(100% + 6px); width:min(300px,calc(100vw - 32px)); padding:8px; border:1px solid #705a37; background:#171716; box-shadow:0 4px 10px #0008; }
+html[data-interface="fantasy"] .fantasy-shell-nav { box-sizing:border-box; max-width:var(--shell-width); border:0; border-top:1px solid #705a37; border-radius:0; background:#171716 url('/assets/sprites/generated/ui/leather-grain.webp') repeat; background-size:360px; box-shadow:0 -3px 8px #0008; }
+html[data-interface="fantasy"] .shell-nav-grid { display:grid; height:var(--shell-nav-height); grid-template-columns:repeat(5,minmax(0,1fr)); padding:0; gap:0; }
+html[data-interface="fantasy"] .game-nav-item { position:relative; box-sizing:border-box; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:2px; width:100%; height:100%; min-width:0; min-height:48px; padding:6px 2px 4px; border:0; border-radius:0; background:transparent; color:#938a78; font-family:Georgia,"Times New Roman",serif; font-size:11px; line-height:1.1; transition:color 150ms; }
+html[data-interface="fantasy"] .game-nav-item > :not(.nav-dot) { transform:translateY(-4px); }
+html[data-interface="fantasy"] .game-nav-item:hover { background:#ffffff08; color:#d9c69c; }
+html[data-interface="fantasy"] .game-nav-item::before { position:absolute; top:0; left:50%; width:32px; height:2px; transform:translateX(-50%); background:transparent; content:""; }
+html[data-interface="fantasy"] .game-nav-item.is-active { background:transparent; color:#f1deb6; box-shadow:none; }
+html[data-interface="fantasy"] .game-nav-item.is-active::before { background:#c8a15c; box-shadow:0 0 4px #c8a15c66; }
+html[data-interface="fantasy"] .game-nav-item img { filter:brightness(.8) saturate(.75); }
+html[data-interface="fantasy"] .game-nav-item.is-active img { filter:brightness(1) saturate(.9) drop-shadow(0 0 3px #d4b87955); }
+html[data-interface="fantasy"] .game-nav-label { min-height:12px; max-width:100%; overflow:hidden; color:inherit; font-size:11px; line-height:12px; text-overflow:ellipsis; white-space:nowrap; visibility:hidden; }
+html[data-interface="fantasy"] .game-nav-item.is-active .game-nav-label { visibility:visible; }
+html[data-interface="fantasy"] .nav-more-icon { display:grid; place-items:center; width:30px; height:30px; color:#c5b596; font:700 32px/24px Georgia,"Times New Roman",serif; text-shadow:0 0 3px #d4b87977; }
+html[data-interface="fantasy"] .game-nav-item.is-active .nav-more-icon { color:#f1deb6; }
+html[data-interface="fantasy"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 8px); }
+html[data-interface="fantasy"] .shell-main .folio-page { padding-bottom:8px; }
+@media (max-width:390px) {
+  html[data-interface="fantasy"] .fantasy-shell-header { padding-inline:8px; }
+  html[data-interface="fantasy"] .shell-hud-content { gap:3px; }
+  html[data-interface="fantasy"] .shell-hero-button { gap:4px; }
+  html[data-interface="fantasy"] .shell-hero-portrait { width:42px; height:42px; }
+  html[data-interface="fantasy"] .shell-hero-name { font-size:10.5px; }
+  html[data-interface="fantasy"] .shell-resource-strip { gap:3px; }
+  html[data-interface="fantasy"] .shell-energy-resource { width:76px; }
+  html[data-interface="fantasy"] .shell-energy-meter { right:-8px; bottom:-10px; left:-8px; }
+  html[data-interface="fantasy"] .shell-currency-group { gap:3px; margin-left:0; }
+  html[data-interface="fantasy"] .shell-currency { gap:2px; }
+  html[data-interface="fantasy"] .shell-settings summary { width:36px; height:36px; }
+}
 @media (max-width:360px) {
-  html[data-interface="fantasy"] .fantasy-shell-header { padding-inline:10px; }
-  html[data-interface="fantasy"] .shell-hud-content { grid-template-columns:minmax(0,1fr) 110px; gap:5px; }
-  html[data-interface="fantasy"] .shell-hero-portrait { width:44px; height:56px; }
-  html[data-interface="fantasy"] .game-nav-item { font-size:10px; }
+  html[data-interface="fantasy"] .game-nav-label { font-size:10px; }
 }
 
-html[data-interface="fantasy"] .shell-currencies .resource-badge > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Bestiary reference pages: one real book surface, live content, and no legacy parchment panel underneath. */
+html[data-interface="fantasy"] .hunt-codex {
+  position:relative;
+  isolation:isolate;
+  width:100%;
+  max-width:var(--shell-width);
+  min-height:calc(100dvh - 134px);
+  margin-inline:auto;
+  color:#38291d;
+  font-family:Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .hunt-book-surface {
+  position:sticky;
+  z-index:0;
+  top:70px;
+  display:block;
+  width:100%;
+  height:calc(100dvh - 134px);
+  margin-bottom:calc(134px - 100dvh);
+  object-fit:fill;
+  pointer-events:none;
+}
+html[data-interface="fantasy"] .hunt-book-content {
+  position:relative;
+  z-index:1;
+  margin-top:0;
+  padding:10px 10px 24px 41px;
+}
+html[data-interface="fantasy"] .bestiary-book-heading {
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) minmax(126px,.92fr);
+  align-items:center;
+  gap:7px;
+  min-height:91px;
+}
+html[data-interface="fantasy"] .bestiary-heading-title {
+  display:flex;
+  align-items:center;
+  min-width:0;
+  gap:3px;
+}
+html[data-interface="fantasy"] .bestiary-wolf-seal {
+  display:block;
+  width:52px;
+  height:60px;
+  flex:0 0 52px;
+  object-fit:contain;
+}
+html[data-interface="fantasy"] .bestiary-title-copy { min-width:0; }
+html[data-interface="fantasy"] .bestiary-title-copy > span {
+  display:block;
+  color:#71502e;
+  margin-top:3px;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.2;
+}
+html[data-interface="fantasy"] .game-shell main .bestiary-title-copy h1 {
+  margin:0;
+  color:#38271b;
+  font:700 clamp(22px,6.2vw,29px)/1 Georgia,"Times New Roman",serif;
+  letter-spacing:-.035em;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .bestiary-title-copy i {
+  display:block;
+  width:100%;
+  height:7px;
+  margin-top:5px;
+  border-top:1px solid #785632;
+  position:relative;
+}
+html[data-interface="fantasy"] .bestiary-title-copy i::after {
+  position:absolute;
+  top:-4px;
+  left:48%;
+  width:6px;
+  height:6px;
+  border:1px solid #785632;
+  transform:rotate(45deg);
+  background:#ddc397;
+  content:"";
+}
+html[data-interface="fantasy"] .bestiary-region-card {
+  position:relative;
+  display:block;
+  min-width:0;
+  height:auto;
+  aspect-ratio:3 / 2;
+  overflow:hidden;
+  background:transparent;
+  transform:translateX(-10px);
+  transform-origin:top left;
+}
+html[data-interface="fantasy"] .bestiary-region-card > img {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+/* Match the transparent photo opening in location-tile-frame.png, not the full sprite canvas. */
+html[data-interface="fantasy"] .bestiary-region-photo-window {
+  position:absolute;
+  z-index:0;
+  top:15%;
+  left:6.25%;
+  width:87.5%;
+  height:calc(63% + 10px);
+  overflow:hidden;
+  clip-path:polygon(7% 0,93% 0,100% 8%,100% 88%,97% 100%,3% 100%,0 88%,0 8%);
+}
+html[data-interface="fantasy"] .bestiary-region-photo-window > img {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+}
+html[data-interface="fantasy"] .bestiary-region-card > .bestiary-region-frame { z-index:2; object-fit:contain; pointer-events:none; }
+html[data-interface="fantasy"] .bestiary-region-card > div {
+  position:absolute;
+  z-index:3;
+  inset:0;
+}
+html[data-interface="fantasy"] .bestiary-region-card strong {
+  position:absolute;
+  right:8%;
+  bottom:27px;
+  left:8%;
+  font:700 13px/1.05 Georgia,"Times New Roman",serif;
+  text-shadow:0 1px 3px #000;
+  color:#f1dfbb;
+  text-align:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .bestiary-region-card > div > span {
+  position:absolute;
+  bottom:13px;
+  left:22%;
+  width:56%;
+  color:#39291b;
+  font-size:9px;
+  font-weight:700;
+  line-height:1;
+  text-align:center;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .bestiary-intro {
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  height:36px;
+  margin-top:-4px;
+  margin-bottom:-4px;
+}
+html[data-interface="fantasy"] .bestiary-settings-button {
+  width:44px;
+  min-width:44px;
+  height:44px;
+  min-height:44px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#49341f;
+}
+html[data-interface="fantasy"] .bestiary-settings-button:hover { background:transparent; }
+html[data-interface="fantasy"] .bestiary-settings-button:focus-visible { outline:2px solid #80623d; outline-offset:-3px; }
+html[data-interface="fantasy"] .bestiary-settings-button img { filter:sepia(.6) brightness(.65); }
+html[data-interface="fantasy"] .dialog-frame.auto-battle-settings-dialog {
+  position:relative;
+  isolation:isolate;
+  width:min(100%,410px);
+  min-height:0;
+  padding:32px 40px 35px;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  color:#39291b;
+  background-image:url('/assets/sprites/generated/ui/monster-dossier/parchment_fill_tile.webp'),linear-gradient(135deg,#ead8b2,#c9a778);
+  background-size:260px 260px,100% 100%;
+  background-repeat:repeat,no-repeat;
+  box-shadow:0 18px 40px #000a;
+}
+html[data-interface="fantasy"] .auto-battle-settings-dialog .auto-battle-settings-frame {
+  position:absolute;
+  z-index:1;
+  inset:-23px -8px;
+  width:calc(100% + 16px);
+  height:calc(100% + 46px);
+  max-width:none;
+  pointer-events:none;
+  object-fit:fill;
+}
+html[data-interface="fantasy"] .auto-battle-settings-dialog > :not(.auto-battle-settings-frame) {
+  position:relative;
+  z-index:3;
+}
+html[data-interface="fantasy"] .auto-battle-settings-dialog > div:first-child { gap:8px; margin:0 0 4px; }
+html[data-interface="fantasy"] .auto-battle-settings-dialog .section-title {
+  display:flex;
+  min-width:0;
+  flex:1;
+  align-items:center;
+  gap:6px;
+  color:#38271b;
+  font:700 clamp(15px,4.1vw,17px)/1.2 Georgia,"Times New Roman",serif;
+  letter-spacing:.01em;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .auto-battle-settings-dialog .section-title::before {
+  width:25px;
+  height:25px;
+  flex:0 0 25px;
+  background:url('/assets/sprites/generated/ui/icons/settings.webp') center/contain no-repeat;
+  content:"";
+  filter:sepia(.4) drop-shadow(0 1px 1px #654a27);
+}
+html[data-interface="fantasy"] .auto-battle-settings-dialog .rpg-icon-button {
+  display:inline-flex;
+  width:35px;
+  min-width:35px;
+  height:35px;
+  flex:0 0 35px;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border:1px solid #896a3d;
+  border-radius:2px;
+  color:#49341f;
+  background:#e4cf9e99;
+  box-shadow:inset 0 0 0 2px #eadcb777,0 1px 3px #76522a55;
+  font:20px/1 Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .auto-battle-settings-divider {
+  display:block;
+  width:96px;
+  height:auto;
+  margin:4px auto 2px;
+  object-fit:contain;
+}
+html[data-interface="fantasy"] .auto-battle-setting-toggle,
+html[data-interface="fantasy"] .auto-battle-setting-threshold {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 48px;
+  align-items:center;
+  column-gap:10px;
+  color:#51402b;
+  font:14px/1.35 Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .auto-battle-setting-copy { display:flex; min-width:0; align-items:center; gap:7px; }
+html[data-interface="fantasy"] .auto-battle-setting-copy img { width:27px; height:27px; flex:0 0 27px; object-fit:contain; filter:drop-shadow(0 1px 1px #5e4424aa); }
+html[data-interface="fantasy"] .auto-battle-setting-toggle { min-height:42px; border-bottom:1px solid #765b3833; }
+html[data-interface="fantasy"] .auto-battle-setting-toggle input {
+  display:grid;
+  width:22px;
+  height:22px;
+  justify-self:end;
+  place-content:center;
+  appearance:none;
+  border:1px solid #79603c;
+  border-radius:2px;
+  background:#e8d6b0;
+  cursor:pointer;
+}
+html[data-interface="fantasy"] .auto-battle-setting-toggle input::after {
+  width:7px;
+  height:12px;
+  border:solid #f4e3bd;
+  border-width:0 2px 2px 0;
+  content:"";
+  transform:rotate(45deg) scale(0);
+  transition:transform 100ms ease-out;
+}
+html[data-interface="fantasy"] .auto-battle-setting-toggle input:checked { border-color:#35452f; background:#46573b; }
+html[data-interface="fantasy"] .auto-battle-setting-toggle input:checked::after { transform:rotate(45deg) scale(1); }
+html[data-interface="fantasy"] .auto-battle-setting-toggle input:focus-visible { outline:2px solid #84653b; outline-offset:2px; }
+html[data-interface="fantasy"] .auto-battle-setting-threshold { min-height:34px; margin-top:4px; }
+html[data-interface="fantasy"] .auto-battle-setting-threshold strong {
+  display:inline-flex;
+  width:48px;
+  height:22px;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #9a774b;
+  color:#4a5a37;
+  background:#ead7ae;
+  font:700 14px/1.25 Georgia,"Times New Roman",serif;
+  font-variant-numeric:tabular-nums;
+}
+html[data-interface="fantasy"] .auto-battle-setting-range {
+  display:block;
+  width:100%;
+  height:16px;
+  margin:3px 0 11px;
+  appearance:none;
+  background:transparent;
+  cursor:pointer;
+}
+html[data-interface="fantasy"] .auto-battle-setting-range::-webkit-slider-runnable-track { height:4px; border:1px solid #8b704a; background:#d5c19b; box-shadow:inset 0 1px 2px #60472955; }
+html[data-interface="fantasy"] .auto-battle-setting-range::-moz-range-track { height:4px; border:1px solid #8b704a; background:#d5c19b; box-shadow:inset 0 1px 2px #60472955; }
+html[data-interface="fantasy"] .auto-battle-setting-range::-webkit-slider-thumb { width:14px; height:14px; margin-top:-6px; appearance:none; border:2px solid #f0d9a7; border-radius:50%; background:linear-gradient(145deg,#b48c4d,#72532d); box-shadow:0 1px 3px #543a1e99; }
+html[data-interface="fantasy"] .auto-battle-setting-range::-moz-range-thumb { width:14px; height:14px; border:2px solid #f0d9a7; border-radius:50%; background:linear-gradient(145deg,#b48c4d,#72532d); box-shadow:0 1px 3px #543a1e99; }
+html[data-interface="fantasy"] .bestiary-region-note {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin:4px 2px 8px;
+  color:#765b3a;
+  font:10px/1.2 Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .bestiary-region-note span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-interface="fantasy"] .hunt-notice,
+html[data-interface="fantasy"] .hunt-energy-notice {
+  margin:6px 0;
+  padding:7px 8px;
+  border-block:1px solid #98704488;
+  color:#51391f;
+  font-size:11px;
+}
+html[data-interface="fantasy"] .hunt-notice { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+html[data-interface="fantasy"] .hunt-notice button,
+html[data-interface="fantasy"] .hunt-energy-notice button {
+  min-height:34px;
+  padding:4px 8px;
+  border:1px solid #8c6b42;
+  background:#d8bd8e;
+  color:#39291b;
+  font:600 11px Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .hunt-energy-notice p { margin:0 0 5px; }
+html[data-interface="fantasy"] .hunt-energy-notice > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+html[data-interface="fantasy"] .hunt-energy-notice button:disabled { opacity:.55; }
+html[data-interface="fantasy"] .bestiary-filter-tabs {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  min-height:48px;
+  margin:0 0 8px;
+  overflow:hidden;
+  border:1px solid #8a673e;
+  background:#211910 url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
+  background-size:360px;
+  box-shadow:0 2px 4px #4c301855;
+}
+html[data-interface="fantasy"] .bestiary-filter-tabs > button {
+  display:flex;
+  min-width:0;
+  min-height:46px;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:3px 2px;
+  border-right:1px solid #8c71484d;
+  color:#b5a383;
+  font:600 11px Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .bestiary-filter-tabs > button:last-child { border-right:0; }
+html[data-interface="fantasy"] .bestiary-filter-tabs > button img { width:19px; height:19px; filter:sepia(.6) brightness(.8); }
+html[data-interface="fantasy"] .bestiary-filter-tabs > button small { color:#aa9370; font:10px Georgia,"Times New Roman",serif; }
+html[data-interface="fantasy"] .bestiary-filter-tabs > button > span > small { font-size:inherit; }
+html[data-interface="fantasy"] .bestiary-filter-tabs > button.is-active {
+  color:#f0d48f;
+  background:#a0783e25;
+  box-shadow:inset 0 0 0 1px #d0a45a,inset 0 -2px #d0a45a;
+}
+html[data-interface="fantasy"] .bestiary-filter-tabs > button.is-active img { filter:sepia(.7) brightness(1.25); }
+html[data-interface="fantasy"] .bestiary-question-mark {
+  display:grid;
+  width:19px;
+  height:19px;
+  flex:0 0 19px;
+  place-items:center;
+  border:1px solid currentColor;
+  border-radius:50%;
+  font:700 14px/1 Georgia,serif;
+}
+html[data-interface="fantasy"] .bestiary-record-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+  gap:8px 7px;
+}
+html[data-interface="fantasy"] .bestiary-record {
+  position:relative;
+  isolation:isolate;
+  display:block;
+  min-width:0;
+  height:auto;
+  aspect-ratio:1069 / 1331;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#39291b;
+  text-align:left;
+}
+html[data-interface="fantasy"] .bestiary-record-page {
+  position:absolute;
+  z-index:1;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  pointer-events:none;
+}
+html[data-interface="fantasy"] .bestiary-record.is-selected .bestiary-record-page { filter:drop-shadow(0 0 2px #8b602b); }
+html[data-interface="fantasy"] .bestiary-record.is-locked { color:#57442d; }
+/* These percentages map the illustration opening in monster-page-tile.png. */
+html[data-interface="fantasy"] .bestiary-record-art {
+  position:absolute;
+  z-index:0;
+  top:8%;
+  left:6%;
+  display:block;
+  width:87%;
+  height:37%;
+  overflow:hidden;
+  background:#cab087;
+}
+html[data-interface="fantasy"] .bestiary-record-landscape,
+html[data-interface="fantasy"] .bestiary-unknown-art {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+html[data-interface="fantasy"] .bestiary-record-panel { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+html[data-interface="fantasy"] .bestiary-record-landscape { filter:sepia(.12) saturate(.8); }
+html[data-interface="fantasy"] .bestiary-record-creature {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
+}
+html[data-interface="fantasy"] .bestiary-record-stamp {
+  position:absolute;
+  top:4px;
+  right:4px;
+  display:grid;
+  width:25px;
+  height:25px;
+  place-items:center;
+  border:0;
+  background:transparent;
+  color:#d5b477;
+  font:700 17px Georgia,serif;
+  text-shadow:0 1px 2px #21170ee8;
+}
+/* icon_traits: paw symbol in cell (column 2, row 1) of the 5x4 dossier icon atlas. */
+html[data-interface="fantasy"] .bestiary-record-paw {
+  display:block;
+  width:25px;
+  height:25px;
+  background-image:url('/assets/sprites/generated/ui/monster-dossier/monster_dossier_icons_atlas.png');
+  background-repeat:no-repeat;
+  background-size:500% 400%;
+  background-position:50% 33.333%;
+  filter:drop-shadow(0 1px 1px #f1d9a5) drop-shadow(0 1px 2px #23170edd);
+}
+html[data-interface="fantasy"] .bestiary-record-title {
+  position:absolute;
+  z-index:2;
+  inset:0;
+}
+/* Keep each label inside the tile's engraved name plate and level cartouche. */
+html[data-interface="fantasy"] .bestiary-record-title > strong {
+  position:absolute;
+  top:49%;
+  left:8%;
+  width:84%;
+  height:10%;
+  display:-webkit-box;
+  align-content:center;
+  min-width:0;
+  max-height:100%;
+  overflow:hidden;
+  color:#38271b;
+  font:700 12px/1.08 Georgia,"Times New Roman",serif;
+  text-align:center;
+  text-wrap:balance;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+html[data-interface="fantasy"] .bestiary-record-title > strong.is-long {
+  font-size:11px;
+  line-height:1.02;
+}
+html[data-interface="fantasy"] .bestiary-record-title > small {
+  position:absolute;
+  top:61%;
+  transform:translateY(-3px);
+  left:30%;
+  display:grid;
+  width:40%;
+  height:6%;
+  place-items:center;
+  color:#573c22;
+  font:10px/1 Georgia,"Times New Roman",serif;
+  text-align:center;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .bestiary-record-details {
+  position:absolute;
+  top:64%;
+  left:9%;
+  display:grid;
+  width:82%;
+  height:32%;
+  grid-template-rows:repeat(4,minmax(16px,1fr));
+}
+html[data-interface="fantasy"] .bestiary-record-detail {
+  display:grid;
+  min-width:0;
+  grid-template-columns:14px minmax(0,1fr);
+  align-items:center;
+  gap:4px;
+  color:#49351f;
+  font:8.5px/1 Georgia,"Times New Roman",serif;
+}
+html[data-interface="fantasy"] .bestiary-record-detail > span:first-child {
+  width:14px;
+  height:14px;
+  color:#684b2b;
+}
+html[data-interface="fantasy"] .bestiary-record-detail > span:first-child img { width:14px; height:14px; filter:sepia(.7) brightness(.65); }
+html[data-interface="fantasy"] .bestiary-record-detail-copy {
+  display:block;
+  min-width:0;
+  color:#49351f;
+  font:400 8.5px/1 Georgia,"Times New Roman",serif;
+  overflow-wrap:anywhere;
+}
+html[data-interface="fantasy"] .bestiary-record-detail-copy > strong {
+  position:static;
+  display:inline;
+  width:auto;
+  height:auto;
+  max-height:none;
+  overflow:visible;
+  color:#3b2919;
+  font:700 8.5px/1 Georgia,"Times New Roman",serif;
+  text-align:left;
+}
+html[data-interface="fantasy"] .bestiary-empty-state {
+  grid-column:1/-1;
+  margin:14px 0;
+  color:#5b4327;
+  font:13px Georgia,"Times New Roman",serif;
+  text-align:center;
+}
+html[data-interface="fantasy"] .bestiary-field-progress {
+  display:grid;
+  box-sizing:border-box;
+  width:calc(100% - 8px);
+  justify-self:center;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+  margin-top:14px;
+  padding-top:7px;
+  border-top:1px solid #654528a8;
+  color:#432d1b;
+}
+html[data-interface="fantasy"] .bestiary-field-progress > span { grid-column:1/-1; color:#3d2918; font:700 11px Georgia,serif; letter-spacing:.06em; text-shadow:0 1px #f3dfb8; text-transform:uppercase; }
+html[data-interface="fantasy"] .bestiary-field-progress > div { min-width:0; }
+html[data-interface="fantasy"] .bestiary-field-progress small { display:block; overflow:hidden; margin-bottom:4px; color:#4a311c; font:700 10px Georgia,serif; text-shadow:0 1px #f3dfb8; text-overflow:ellipsis; white-space:nowrap; }
+html[data-interface="fantasy"] .bestiary-field-progress i { display:block; height:5px; overflow:hidden; border:1px solid #704a25; background:#cfb181; box-shadow:inset 0 1px #f2ddb3; }
+html[data-interface="fantasy"] .bestiary-field-progress i b { display:block; height:100%; background:#5c3918; box-shadow:0 0 2px #5c391888; }
+
+html[data-interface="fantasy"] .bestiary-dossier-screen {
+  position:fixed;
+  z-index:90;
+  inset:0 auto 0 50%;
+  display:flex;
+  box-sizing:border-box;
+  width:min(100vw,var(--shell-width));
+  flex-direction:column;
+  transform:translateX(-50%);
+  padding-top:env(safe-area-inset-top);
+  overflow:hidden;
+  background:#17120e;
+  color:#39291b;
+}
+html[data-interface="fantasy"] .game-shell:has(.bestiary-dossier-screen) > .fantasy-shell-header,
+html[data-interface="fantasy"] .game-shell:has(.bestiary-dossier-screen) > .fantasy-shell-nav { display:none; }
+html[data-interface="fantasy"] .dossier-header {
+  display:grid;
+  flex:0 0 58px;
+  grid-template-columns:minmax(72px,1fr) auto minmax(72px,1fr);
+  align-items:center;
+  gap:6px;
+  padding:0 10px;
+  border-bottom:1px solid #806744;
+  background:#17120e url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
+  background-size:360px;
+  color:#ead9b8;
+}
+html[data-interface="fantasy"] .dossier-back {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  justify-self:start;
+  min-width:72px;
+  min-height:44px;
+  padding:0;
+  color:#dfc99e;
+  font:16px Georgia,serif;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .dossier-back > span { font:34px/1 Georgia,serif; }
+html[data-interface="fantasy"] .dossier-header h1 {
+  margin:0;
+  color:#ead9b8;
+  font:700 17px Georgia,serif;
+  letter-spacing:.06em;
+  text-align:center;
+  white-space:nowrap;
+}
+html[data-interface="fantasy"] .dossier-level { justify-self:end; color:#dfc99e; font:16px Georgia,serif; white-space:nowrap; }
+html[data-interface="fantasy"] .dossier-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding:0; }
+html[data-interface="fantasy"] .dossier-page {
+  position:relative;
+  isolation:isolate;
+  box-sizing:border-box;
+  width:100%;
+  height:auto;
+  min-height:100%;
+  margin:0 auto;
+  padding:9px 16px 14px 42px;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:#39291b;
+}
+html[data-interface="fantasy"] .dossier-page-surface {
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  pointer-events:none;
+}
+html[data-interface="fantasy"] .dossier-hero-art { position:relative; height:clamp(150px,20dvh,184px); margin:0 0 26px; overflow:visible; background:transparent; }
+html[data-interface="fantasy"] .dossier-art-backdrop { position:absolute; z-index:0; inset:14px 0 0; overflow:hidden; border:1px solid #8c6941; background:#b99462; clip-path:inset(0 0 0 20px); transform:translate(-20px,8px); }
+html[data-interface="fantasy"] .dossier-region-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+html[data-interface="fantasy"] .dossier-art-backdrop .dossier-region-art { filter:brightness(.66) saturate(.76) sepia(.08); }
+html[data-interface="fantasy"] .dossier-hero-art.is-unknown { overflow:hidden; border:1px solid #8c6941; background:#b99462; }
+html[data-interface="fantasy"] .dossier-monster-portrait { position:absolute; z-index:1; top:-12px; right:0; left:0; width:100%; height:calc(100% + 12px); object-fit:contain; object-position:center bottom; filter:drop-shadow(0 2px 4px rgb(28 18 10 / 55%)); transform:translate(-20px,26px) scale(1.15); transform-origin:center bottom; }
+html[data-interface="fantasy"] .dossier-page .dossier-stat-row img,
+html[data-interface="fantasy"] .dossier-page .dossier-traits-grid img,
+html[data-interface="fantasy"] .dossier-damage-type img { filter:grayscale(1) sepia(.6) saturate(.6) brightness(.68); }
+html[data-interface="fantasy"] .dossier-damage-type { display:flex; align-items:center; gap:5px; margin:4px 2px 2px; color:#735c3c; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+html[data-interface="fantasy"] .dossier-monster-name { margin:0 2px 6px; color:#38271b; font:700 clamp(19px,5.2vw,22px)/1.05 Georgia,"Times New Roman",serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .bestiary-dossier-screen .dossier-monster-name { color:#38271b; }
+html[data-interface="fantasy"] .dossier-meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:7px 0; border-block:1px solid #93704466; }
+html[data-interface="fantasy"] .dossier-meta > div { display:grid; align-content:start; gap:2px; min-width:0; }
+html[data-interface="fantasy"] .dossier-meta > div:first-child { padding-right:8px; border-right:1px solid #93704455; }
+html[data-interface="fantasy"] .dossier-meta span { color:#735c3c; font:700 10px Georgia,serif; letter-spacing:.08em; text-transform:uppercase; }
+html[data-interface="fantasy"] .dossier-meta strong { color:#39291b; font:700 13px/1.2 Georgia,serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .dossier-section { margin-top:6px; padding-top:6px; border-top:1px solid #93704455; }
+html[data-interface="fantasy"] .dossier-section h3 { margin:0 0 3px; color:#38271b; font:700 12px Georgia,serif; letter-spacing:.06em; text-transform:uppercase; }
+html[data-interface="fantasy"] .dossier-stats-grid,
+html[data-interface="fantasy"] .dossier-traits-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+html[data-interface="fantasy"] .dossier-stat-row { display:grid; grid-template-columns:18px minmax(0,1fr) auto; align-items:center; gap:5px; min-width:0; min-height:31px; padding:2px 7px 2px 1px; border-bottom:1px solid #93704444; color:#51432f; font-size:12px; }
+html[data-interface="fantasy"] .dossier-stat-row:nth-child(even) { padding-right:1px; padding-left:7px; border-left:1px solid #93704455; }
+html[data-interface="fantasy"] .dossier-stat-row > span { min-width:0; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .dossier-stat-row > strong { color:#35291d; font:700 14px Georgia,serif; white-space:nowrap; }
+html[data-interface="fantasy"] .dossier-traits-grid > div { display:grid; grid-template-columns:18px minmax(0,1fr) auto; align-items:center; gap:5px; min-width:0; min-height:30px; padding:2px 7px 2px 1px; border-bottom:1px solid #93704444; color:#51432f; font-size:11px; }
+html[data-interface="fantasy"] .dossier-traits-grid > div:nth-child(even) { padding-right:1px; padding-left:7px; border-left:1px solid #93704455; }
+html[data-interface="fantasy"] .dossier-traits-grid > div > span { min-width:0; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .dossier-traits-grid strong { color:#35291d; font:700 12px Georgia,serif; white-space:nowrap; }
+html[data-interface="fantasy"] .dossier-traits-grid .dossier-trait-note { grid-column:1/-1; align-items:start; padding:4px 1px; border-left:0; font-size:11px; line-height:1.3; }
+html[data-interface="fantasy"] .dossier-trait-note strong { margin-right:4px; }
+html[data-interface="fantasy"] .dossier-unknown-copy { margin:8px 0 0; color:#55432b; font:italic 13px/1.35 Georgia,serif; text-align:center; }
+html[data-interface="fantasy"] .dossier-loot-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+html[data-interface="fantasy"] .dossier-loot-entry { display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:6px; min-width:0; min-height:50px; padding:4px; border:1px solid #97744866; color:#3b2c1d; font-size:11px; }
+html[data-interface="fantasy"] .dossier-loot-entry > span { min-width:0; }
+html[data-interface="fantasy"] .dossier-loot-entry strong { display:block; color:#39291b; font:700 11px/1.15 Georgia,serif; overflow-wrap:anywhere; }
+html[data-interface="fantasy"] .dossier-loot-entry small { display:block; margin-top:2px; color:#715638; font-size:10px; line-height:1.2; }
+html[data-interface="fantasy"] .dossier-empty-loot { grid-column:1/-1; color:#766958; font-size:12px; }
+html[data-interface="fantasy"] .dossier-footer {
+  display:grid;
+  flex:0 0 auto;
+  gap:4px;
+  padding:6px 10px max(8px,env(safe-area-inset-bottom));
+  border-top:1px solid #806744;
+  background:#17120e url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
+  background-size:360px;
+}
+html[data-interface="fantasy"] .dossier-footer p { margin:0; color:#d6b86d; font-size:10px; line-height:1.25; text-align:center; }
+html[data-interface="fantasy"] .dossier-hunt-button { width:100%; min-height:48px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+html[data-interface="fantasy"] .dossier-energy-cost { display:inline-flex; align-items:center; gap:3px; font-size:10px; letter-spacing:0; text-transform:none; }
+html[data-interface="fantasy"] .dossier-energy-cost img { width:14px; height:14px; }
+@media (max-width:390px) {
+  html[data-interface="fantasy"] .hunt-book-content { padding-right:8px; padding-left:38px; }
+  html[data-interface="fantasy"] .bestiary-book-heading { grid-template-columns:minmax(0,1.15fr) minmax(116px,.9fr); gap:5px; }
+  html[data-interface="fantasy"] .bestiary-wolf-seal { width:45px; height:53px; flex-basis:45px; }
+  html[data-interface="fantasy"] .game-shell main .bestiary-title-copy h1 { font-size:22px; }
+  html[data-interface="fantasy"] .bestiary-book-heading { min-height:86px; }
+  html[data-interface="fantasy"] .bestiary-region-card strong { font-size:12px; }
+  html[data-interface="fantasy"] .bestiary-record-title > strong { font-size:12px; }
+  html[data-interface="fantasy"] .bestiary-record-title > small { font-size:9px; }
+  html[data-interface="fantasy"] .dossier-page { padding:8px 8px 12px 38px; }
+}
+@media (max-width:350px) {
+  html[data-interface="fantasy"] .hunt-book-content { padding-left:34px; }
+  html[data-interface="fantasy"] .bestiary-book-heading { grid-template-columns:minmax(0,1fr) 112px; }
+  html[data-interface="fantasy"] .bestiary-wolf-seal { width:39px; flex-basis:39px; }
+  html[data-interface="fantasy"] .game-shell main .bestiary-title-copy h1 { font-size:20px; }
+  html[data-interface="fantasy"] .bestiary-filter-tabs > button { gap:2px; font-size:10px; }
+  html[data-interface="fantasy"] .dossier-page { padding-left:34px; }
+}
 
 /* Combat selections are compact entries on a shared parchment leaf. */
 html[data-interface="fantasy"] .fantasy-combat-page {
@@ -780,20 +1426,6 @@ html[data-interface="fantasy"] .inventory-equipped-slot:enabled:hover { filter:b
   html[data-interface="fantasy"] .inventory-page-heading strong { font-size:20px; }
 }
 
-/* Secondary pages retain the live HUD actions without the large title and XP row. */
-html[data-interface="fantasy"] .fantasy-shell-header.is-compact { padding:10px 12px; }
-html[data-interface="fantasy"] .is-compact .shell-brand-row { position:absolute; right:12px; top:10px; min-height:0; padding:0; }
-html[data-interface="fantasy"] .is-compact .shell-brand { display:none; }
-html[data-interface="fantasy"] .is-compact .shell-settings summary { width:40px; height:44px; }
-html[data-interface="fantasy"] .is-compact .shell-hud-content { grid-template-columns:minmax(0,1fr) 112px; min-height:0; padding-right:44px; gap:6px; }
-html[data-interface="fantasy"] .is-compact .shell-hero-button { gap:6px; min-height:44px; }
-html[data-interface="fantasy"] .is-compact .shell-hero-portrait { width:32px; height:44px; }
-html[data-interface="fantasy"] .is-compact .shell-hero-class,
-html[data-interface="fantasy"] .is-compact .shell-hero-experience,
-html[data-interface="fantasy"] .is-compact .shell-hero-button [title="Premium"],
-html[data-interface="fantasy"] .is-compact .shell-divider { display:none; }
-html[data-interface="fantasy"] .is-compact .shell-currencies .resource-badge { min-height:18px; padding-block:0; border:0; background:none; }
-
 /* Quest journal: ink on a single parchment leaf, leather chapter tabs. */
 html[data-interface="fantasy"] .fantasy-more-menu .journal-tabs > button {
   min-height:44px; border:3px double #80623d; border-radius:2px; box-shadow:none;
@@ -919,6 +1551,10 @@ html[data-interface="fantasy"] .combat-player-hit { animation:combat-player-hit 
 @keyframes combat-player-attack { 0%,100% { transform:translateX(0); } 40% { transform:translateX(6px); } }
 @keyframes combat-player-hit { 0%,100% { transform:translateX(0); } 35% { transform:translateX(-3px); } }
 
-@media(min-width:640px) { html[data-interface="fantasy"] .combat-player-art { height:306px; } }
 @media(max-width:380px) { html[data-interface="fantasy"] .combat-player-art { left:0; top:34px; height:236px; } html[data-interface="fantasy"] .combat-monster-art { width:55%; } }
 @media(prefers-reduced-motion:reduce) { html[data-interface="fantasy"] .combat-player-breathe,html[data-interface="fantasy"] .combat-player-attack,html[data-interface="fantasy"] .combat-player-hit { animation:none; } }
+
+/* Keep the mobile shell restriction inside the fantasy interface. */
+html[data-interface="fantasy"] #root { width:100%; max-width:430px; min-height:100dvh; margin-inline:auto; overflow-x:clip; }
+html[data-interface="fantasy"] .game-drawer { max-width:430px; }
+html[data-interface="fantasy"] .fantasy-shell-header[hidden] { display:none; }
