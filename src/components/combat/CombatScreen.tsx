@@ -1,3 +1,4 @@
+import { RegionCompletionReward } from './RegionCompletionReward';
 import { getMonsterArtworkPath } from '../../interfaces/fantasy/utils/monsterArtwork';
 import { HuntStage } from '../../interfaces/modern/HuntStage';
 import { potionActionLabel } from '../../utils/combatPotions';
@@ -377,8 +378,9 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           </div>
 
           <div className="mb-3 rounded-lg border border-slate-700 p-3 text-xs text-slate-300">
+            <RegionCompletionReward region={currentRegion} />
             <p>{localize("Освоение зоны: обычные враги ")}{localize(Math.min(6,progress.kills))}{localize("/6 → элита ")}{localize(Math.min(2,progress.eliteWins))}{localize("/2 → босс ")}{localize(progress.bossWins ? '✓' : '0/1')}</p>
-            <p className="mt-1 text-slate-400">{localize("Базовый комплект +3–5 — охота. Усиленный комплект +5–10 и зелья — элита и босс. Победа над боссом открывает опасные режимы.")}</p>
+            <p className="mt-1 text-slate-400">{localize("Базовый комплект +3–5 — охота и первые боссы. Для поздних боссов нужны усиленное снаряжение и зелья. Победа над боссом открывает опасные режимы.")}</p>
             {selectedLock && <p role="status" className="mt-1 text-amber-200">{localize(selectedLock)}</p>}
           </div>
           <div className="space-y-2">

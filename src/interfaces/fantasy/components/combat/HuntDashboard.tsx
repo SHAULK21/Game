@@ -1,3 +1,4 @@
+import { RegionCompletionReward } from '../../../../components/combat/RegionCompletionReward';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import React from 'react';
 import { useNavigation } from '../../../../context/NavigationContext';
@@ -104,6 +105,7 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
         })}
         {!regionMonsters.length && <p role="status">{localize("В этой локации пока нет доступных противников.")}</p>}
       </div>
+      <RegionCompletionReward region={currentRegion} />
       <OrnamentDivider />
       <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
         <div><div className="mb-1 flex justify-between text-[#aaa49a]"><span>{localize("Следы")}</span><span>{localize(Math.min(6, progress.kills))}/6</span></div><div className="progress-track h-1.5"><div className="progress-fill is-energy" style={{ width: `${Math.min(100, progress.kills / 6 * 100)}%` }} /></div></div>

@@ -6,7 +6,7 @@ export type AscensionPath = 'precision'|'ward'|'flow';
 export interface AscensionState {rank:AscensionRank;primary?:AscensionPath;secondary?:AscensionPath;trialsWon:AscensionRank[];echoWeek?:string;echoWins?:string[];season?:string;seasonWins?:number;titles?:string[]}
 export const initialAscension = ():AscensionState => ({rank:'E',trialsWon:[]});
 export const ASCENSION_STAGES = [
- {rank:'D',name:'Страж порога',recommendedLevel:10,recommendedUpgrade:3,hp:3600,power:80,defense:20,silver:150,fragments:0,reward:'Выбор первой пассивки',hint:'Периодически готовит сокрушительный удар. Защищайтесь перед сильным ударом.'},
+ {rank:'D',name:'Страж порога',recommendedLevel:4,recommendedUpgrade:3,hp:600,power:35,defense:14,silver:150,fragments:2,reward:'Выбор первой пассивки',hint:'Периодически готовит сокрушительный удар. Защищайтесь перед сильным ударом.'},
  {rank:'C',name:'Рыцарь зеркального щита',recommendedLevel:25,recommendedUpgrade:5,hp:8000,power:160,defense:55,silver:600,fragments:4,reward:'Новый классовый навык',hint:'Чередует обычную и усиленную защиту. Пробитие и эффекты помогают преодолеть броню.'},
  {rank:'B',name:'Хранитель живого пламени',recommendedLevel:40,recommendedUpgrade:5,hp:13750,power:350,defense:80,silver:1500,fragments:8,reward:'Усиление первой пассивки',hint:'Периодически лечится. Контроль позволяет пропустить его ход лечения.'},
  {rank:'A',name:'Судья трёх стихий',recommendedLevel:55,recommendedUpgrade:7,hp:21250,power:600,defense:100,silver:3000,fragments:15,reward:'Выбор второй пассивки',hint:'Чередует физические и магические атаки; после потери половины HP усиливается.'},
@@ -113,7 +113,7 @@ export function ascensionBossPhase(monster:Monster):number {
  if(monster.id==='ascension_SSS'||monster.id.startsWith('ascension_echo_'))return ratio<=.3?3:ratio<=.65?2:1;
  return ['ascension_A','ascension_S','ascension_SS'].includes(monster.id)&&ratio<=.5?2:1;
 }
-export const ASCENSION_FRAGMENT_DESCRIPTION = 'Первое вознесение D не требует осколков. Для следующих рангов: первый босс каждой зоны даёт 1 гарантированный осколок; далее боссы — шанс 40%, элиты — 25%, по 1 осколку. Также можно купить у других игроков на рынке. Хранители арены осколки не дают.';
+export const ASCENSION_FRAGMENT_DESCRIPTION = 'Первое вознесение D требует 2 осколка. После освоения равнин опасная серия в Густом Тумане гарантирует 1 осколок до ранга D. Для следующих рангов: первый босс каждой зоны даёт 1 гарантированный осколок; далее боссы — шанс 40%, элиты — 25%, по 1 осколку. Также можно купить у других игроков на рынке. Хранители арены осколки не дают.';
 export const fragmentItem=(id:string)=>({id,templateId:'ascension_fragment',name:'Осколок вознесения',type:'material' as const,rarity:'rare' as const,level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:1,description:ASCENSION_FRAGMENT_DESCRIPTION});
 
 export const ASCENSION_ECHOES = [

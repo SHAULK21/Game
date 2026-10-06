@@ -48,3 +48,23 @@ export function recordRegionalVictory(player: PlayerCharacter, monster: Monster,
 }
 
 export const regionalSealName = (regionId: string, boss = false) => `${boss ? 'Печать покорителя' : 'Знак элиты'} · ${regionId.replace('reg_', '')}`;
+
+export function regionCompleted(player: PlayerCharacter, region: { id: string; minLevel: number }): boolean {
+  const p = regionProgress(player, region);
+  return p.kills >= ELITE_HUNT_REQUIREMENT && p.eliteWins >= BOSS_HUNT_REQUIREMENT && p.bossWins >= 1;
+}
+/** Preserve previously reached areas; the new introductory gate only applies before reaching the forest. */
+export function regionEntryLockReason(player: PlayerCharacter, region: { id: string; minLevel: number }): string | null {
+  if (player.level < region.minLevel) return `Для перехода нужен ${region.minLevel}-й уровень.`;
+  if (region.id === 'reg_whisper_woods' && player.currentRegionId !== region.id && !player.unlockedRegionIds?.includes(region.id)
+    && !player.regionProgress?.[region.id]?.kills && !player.regionProgress?.[region.id]?.eliteWins && !player.regionProgress?.[region.id]?.bossWins
+    && (!regionCompleted(player, {id:'reg_plains', minLevel:1}) || (player.ascension?.rank || 'E') === 'E'))
+    return 'Завершите освоение Зелёных равнин и вознеситесь до ранга D.';
+  return null;
+}
+export function claimRegionalReward(player: PlayerCharacter, region: { id: string; minLevel: number }): PlayerCharacter {
+  if (!regionCompleted(player, region) || player.regionalRewardsClaimed?.includes(region.id)) return player;
+  return { ...player, regionalRewardsClaimed: [...(player.regionalRewardsClaimed || []), region.id],
+    gold: player.gold + 200 * region.minLevel, silver: player.silver + 60 * region.minLevel,
+    arenaTickets: player.arenaTickets + 1 };
+}

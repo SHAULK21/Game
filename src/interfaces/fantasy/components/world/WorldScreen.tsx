@@ -1,5 +1,5 @@
 import { t as localize, useLocale } from '../../../../i18n/locale';
-import { huntingModeLockReason } from '../../../../utils/regionalProgress';
+import { regionEntryLockReason, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../../../utils/dungeonRewards';
 import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
@@ -25,7 +25,6 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     enterDungeon,
     proceedDungeonRoom,
     exitDungeon,
-    setActiveRegionMod,
     isInCombat,
     isCombatEnded,
     premium
@@ -201,7 +200,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   const renderRegion = (reg: (typeof REGIONS)[number]) => {
     const isCurrent = player.currentRegionId === reg.id;
     const isInspecting = selectedRegionId === reg.id;
-    const isLocked = player.level < reg.minLevel;
+    const isLocked = Boolean(regionEntryLockReason(player, reg));
     const selectRegion = () => {
       setSelectedRegionId(reg.id);
       setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
@@ -250,7 +249,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
 
           <div className="text-right">
             {isLocked ? (
-              <span className="text-[11px] font-mono text-rose-400 font-bold">{localize("Треб. ур. ")}{localize(reg.minLevel)}
+              <span className="text-[11px] font-mono text-rose-400 font-bold">{localize(player.level < reg.minLevel ? `Треб. ур. ${reg.minLevel}` : "Нужен ранг D")}
               </span>
             ) : (
               <span aria-hidden="true" className={`text-2xl ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`}>›</span>
@@ -352,7 +351,6 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   disabled={player.level<inspectingRegion.minLevel || Boolean(modeLock)}
                   onClick={() => {
                     setSelectedModId(mod.id);
-                    if (inspectingRegion.id === currentRegion.id) setActiveRegionMod(mod.id);
                     sound.playClick();
                   }}
                   aria-pressed={isSelected}
@@ -378,9 +376,10 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <p title={localize(activeMod.description)} className="hunting-mode-description"><span className="font-bold">{localize(activeMod.name)}: </span>{localize(activeMod.description)}</p>
         </div>
 
+        {regionEntryLockReason(player, inspectingRegion) && <p role="status" className="text-xs text-amber-200">{localize(regionEntryLockReason(player, inspectingRegion)!)}</p>}
         {/* Travel / Action Button */}
         <div className="pt-2">
-          {player.currentRegionId === inspectingRegion.id && !isFirstDeparture ? (
+          {player.currentRegionId === inspectingRegion.id && selectedModId === (player.activeRegionModId || inspectingRegion.defaultModId) && !isFirstDeparture ? (
             <RpgButton
               onClick={() => {
                 if (onEnterCombatTab) onEnterCombatTab();
@@ -393,7 +392,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <>
               <RpgButton
                 onClick={() => handleStartTravel(inspectingRegion.id)}
-                disabled={player.level < inspectingRegion.minLevel}
+                disabled={Boolean(regionEntryLockReason(player, inspectingRegion))}
                 variant="primary"
                 icon="map"
                 className="w-full disabled:opacity-50"

@@ -11,11 +11,11 @@ export function playerDamagePower(type: DamageType, classId: CharacterClassId, s
 export function regionalEnemyStats(monster: Monster, level: number) {
   if (!monster.isBoss && !monster.isElite) return {};
   const elite = !monster.isBoss;
-  const hp = Math.round(elite ? (200 + level * 24) * 3 : (340 + level * 34) * (2 + level * .01));
-  const defense = Math.round(elite ? 12 + level * .75 : 18 + level * 1.05);
+  const hp = Math.round(elite ? (200 + level * 24) * 1.5 : (340 + level * 34) * (.95 + level * .004));
+  const defense = Math.round(elite ? 10 + level * .6 : 14 + level * .85);
   return { hp, maxHp: hp, defense, magicDefense: Math.round(defense * .85),
-    attack: Math.round(elite ? 22 + level * 3 + Math.pow(level, 1.55) * .22 : 28 + level * 3.5 + Math.pow(Math.max(0, level - 12), 1.65) * .4),
-    magicAttack: Math.round(elite ? 20 + level * 2.8 + Math.pow(level, 1.55) * .22 : 26 + level * 3.3 + Math.pow(Math.max(0, level - 12), 1.65) * .4),
+    attack: Math.round((elite ? 22 + level * 3 + Math.pow(level, 1.55) * .22 : 28 + level * 3.5 + Math.pow(Math.max(0, level - 12), 1.65) * .4) * .80),
+    magicAttack: Math.round((elite ? 20 + level * 2.8 + Math.pow(level, 1.55) * .22 : 26 + level * 3.3 + Math.pow(Math.max(0, level - 12), 1.65) * .4) * .80),
     evasion: Math.min(elite ? 12 : 15, monster.evasion), critChance: elite ? 8 : 10 };
 }
 

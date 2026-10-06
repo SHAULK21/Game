@@ -516,7 +516,7 @@ export interface PlayerStatsSummary {
   dungeonsCleared: number;
 }
 
-export type AdventureChapterId = 'first-boss' | 'royal-return';
+export type AdventureChapterId = 'first-boss' | 'royal-return' | 'plains-complete';
 export interface BattleStartOptions {
   chain?: boolean;
   energyCost?: number;
@@ -547,6 +547,8 @@ export interface PlayerCharacter {
   talentPoints: number;
   lastBulkDisposalId?: string;
   ascension?: AscensionState;
+  unlockedRegionIds?: string[];
+  regionalRewardsClaimed?: string[];
   regionProgress?: Record<string, { kills: number; eliteWins: number; bossWins: number }>;
   lastMarketListingOperation?: string;
   lastResidentSaleOperation?: string;

@@ -21,10 +21,10 @@ test('trial, choice and material failures consume nothing and cannot skip ranks'
  const won={...p,ascension:{...p.ascension!,trialsWon:['D' as const]}};
  assert.equal(ascendCharacter(won).player,won);
  assert.equal(ascendCharacter({...won,silver:ASCENSION_STAGES[0].silver-1},'ward').success,false);
- assert.equal(ascendCharacter({...won,inventory:[]},'ward').success,true,'first rank has no fragment dependency');
+ assert.equal(ascendCharacter({...won,inventory:[]},'ward').success,false,'first rank requires dangerous-hunt fragments');
  const c={...p,ascension:{rank:'D' as const,primary:'ward' as const,trialsWon:['C' as const]},inventory:[{...fragmentItem('locked'),stackCount:10,isLocked:true}]};
  assert.equal(ascendCharacter(c).success,false,'locked fragments cannot pay for C');
- const success=ascendCharacter(won,'ward');assert.equal(success.player.silver,p.silver-ASCENSION_STAGES[0].silver);assert.equal(success.player.inventory[0].stackCount,1000);
+ const success=ascendCharacter(won,'ward');assert.equal(success.player.silver,p.silver-ASCENSION_STAGES[0].silver);assert.equal(success.player.inventory[0].stackCount,998);
  assert.equal(ascendCharacter(success.player).success,false,'D victory cannot unlock C');
  const rankB={...p,ascension:{rank:'B' as const,primary:'ward' as const,trialsWon:['A' as const]}};assert.equal(ascendCharacter(rankB,'ward').success,false,'second choice must differ');
 });

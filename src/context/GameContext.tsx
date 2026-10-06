@@ -8,7 +8,7 @@ import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/c
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction } from '../utils/autoBattle';
 import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant, monsterEnrageMultiplier } from '../utils/pveBalance';
-import { huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
+import { claimRegionalReward, regionCompleted, regionEntryLockReason, huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
 import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
 import { useBalanceTelemetry } from '../hooks/useBalanceTelemetry';
@@ -133,6 +133,7 @@ interface GameContextType {
   expandInventory: () => { success: boolean; message: string };
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
   meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
+  claimRegionCompletion: (regionId: string) => void;
   setActiveRegionMod: (modId: string) => void;
   setActivePet: (petId: string) => boolean;
   craftPet: (petId: string) => { success: boolean; message: string };
@@ -1901,14 +1902,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [player, achievements]);
 
-  const setActiveRegionMod = useCallback((modId: string) => {
+  const claimRegionCompletion = useCallback((regionId: string) => {
+    if (travelState.isTraveling || activeDungeonRun || isInCombat && !isCombatEnded) return;
+    const region = REGIONS.find(r => r.id === regionId);
+    if (!region) return;
     setPlayer(prev => {
-      const region = REGIONS.find(r => r.id === prev?.currentRegionId);
-      return prev && region && region.availableMods.includes(modId) && !huntingModeLockReason(prev, region, modId) ? {...prev, activeRegionModId:modId} : prev;
+      if (!prev || prev.adventureJournal?.pending) return prev;
+      const rewarded = claimRegionalReward(prev, region);
+      return rewarded !== prev && regionId === 'reg_plains'
+        ? beginAdventureChapter(rewarded, 'plains-complete') : rewarded;
     });
-    triggerHaptic('light');
-    sound.playClick();
-  }, []);
+  }, [travelState.isTraveling, activeDungeonRun, isInCombat, isCombatEnded]);
 
   const meditateOrRefillEnergy = useCallback((mode: 'meditate' | 'silver' | 'potion') => {
     const now = Date.now();
@@ -1968,7 +1972,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isInCombat && !isCombatEnded) return false;
 
     const huntingRegion = REGIONS.find(region=>region.id===monster.regionId);
-    if (huntingRegion && player && !activeDungeonRun && player.level<huntingRegion.minLevel) return false;
+    if (huntingRegion && player && !activeDungeonRun && regionEntryLockReason(player, huntingRegion)) return false;
     if (huntingRegion && player && !activeDungeonRun && (huntLockReason(player, monster, huntingRegion) || huntingModeLockReason(player, huntingRegion, activeModId))) return false;
     // Save the encounter before charging energy or starting any combat timers.
     if (player && monster.isBoss && monster.id === 'm_queen_bat'
@@ -2091,6 +2095,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player || player.level < targetReg.minLevel) {
       return { success: false, message: `Для перехода нужен ${targetReg.minLevel}-й уровень.` };
     }
+    const entryLock = regionEntryLockReason(player, targetReg);
+    if (entryLock) return {success:false,message:entryLock};
     if (travelState.isTraveling) return { success: false, message: 'Путешествие уже идёт.' };
     if (isInCombat && !isCombatEnded) return { success: false, message: 'Сначала завершите текущий бой.' };
     if (activeDungeonRun) return { success: false, message: 'Сначала завершите поход в подземелье.' };
@@ -2161,6 +2167,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPlayer(prev => prev ? {
               ...prev,
               currentRegionId: targetRegionId,
+              unlockedRegionIds: [...new Set([...(prev.unlockedRegionIds || []), targetRegionId])],
               activeRegionModId: selectedModId
             } : prev);
 
@@ -2186,6 +2193,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPlayer(prev => prev ? {
               ...prev,
               currentRegionId: targetRegionId,
+              unlockedRegionIds: [...new Set([...(prev.unlockedRegionIds || []), targetRegionId])],
               activeRegionModId: selectedModId
             } : prev);
           }, 800);
@@ -2195,6 +2203,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return { success: true, message: 'Путешествие началось!' };
   }, [player, travelState.isTraveling, startBattleWithMonster, isInCombat, isCombatEnded, activeDungeonRun, premium.active]);
+
+  const setActiveRegionMod = useCallback((modId: string) => {
+    const region = REGIONS.find(r => r.id === player?.currentRegionId);
+    if (region && region.availableMods.includes(modId) && modId !== (player?.activeRegionModId || region.defaultModId))
+      startTravel(region.id, modId);
+  }, [player?.currentRegionId, player?.activeRegionModId, startTravel]);
 
   // COMBAT ENGINE WITH FULL ATTRIBUTES INFLUENCE & CHESS-LIKE TURNS
   const completeCombatVictory = useCallback((monster: Monster, currentTurn: number, baseLogs: BattleLogEntry[]) => {
@@ -2279,6 +2293,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPendingChainItems([]);
     }
 
+    if (player && monster.regionId === 'reg_plains' && activeMod.id === 'mod_dense_fog'
+      && (player.ascension?.rank || 'E') === 'E' && combatChain && !hasNextCombat
+      && regionCompleted(player, REGIONS[0])) {
+      itemsToAward.push(fragmentItem('dangerous_series_' + createOperationId()));
+    }
     const completionReward = completesDungeon && activeDungeonRun
       ? getDungeonCompletionReward(CAVES[activeDungeonRun.dungeonId]?.minLevel || 1, activeDungeonRun.difficulty)
       : undefined;
@@ -4130,6 +4149,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expandInventory,
       upgradeItem,
       meditateOrRefillEnergy,
+      claimRegionCompletion,
       setActiveRegionMod,
       setActivePet,
       craftPet,

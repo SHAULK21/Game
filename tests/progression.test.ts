@@ -147,3 +147,18 @@ test('actual hunts unlock elite then boss, award seals and first-boss fragment o
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.equal(JSON.stringify(w.game.player.regionProgress),progress);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });
+
+test('completed regions reward once, historical completed progress can claim, and forest requires D without relocking visited areas',()=>{
+ const plains=data.REGIONS[0], forest=data.REGIONS[1];
+ const p:any={level:5,currentRegionId:plains.id,gold:10,silver:20,arenaTickets:0,regionProgress:{[plains.id]:{kills:6,eliteWins:2,bossWins:1}},ascension:{rank:'E'}};
+ assert.equal(data.regionCompleted(p,plains),true);
+ const reward=data.claimRegionalReward(p,plains);assert.equal(reward.gold,210);assert.equal(reward.silver,80);assert.equal(reward.arenaTickets,1);
+ assert.equal(data.claimRegionalReward(reward,plains),reward,'replay cannot grant another reward');
+ assert.equal(data.claimRegionalReward({...p,regionProgress:{[plains.id]:{kills:6,eliteWins:2,bossWins:0}}},plains).gold,10);
+ assert.ok(data.regionEntryLockReason(p,forest));
+ assert.equal(data.regionEntryLockReason({...p,ascension:{rank:'D'}},forest),null);
+ assert.ok(data.regionEntryLockReason({...p,level:4,ascension:{rank:'D'}},forest));
+ assert.equal(data.regionEntryLockReason({...p,unlockedRegionIds:[forest.id]},forest),null);
+ assert.equal(data.regionEntryLockReason({...p,regionProgress:{...p.regionProgress,[forest.id]:{kills:1,eliteWins:0,bossWins:0}}},forest),null);
+ assert.equal(data.regionEntryLockReason(p,plains),null,'high-level monsters never lock first area');
+});
