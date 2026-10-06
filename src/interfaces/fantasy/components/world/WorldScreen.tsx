@@ -1,3 +1,4 @@
+import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { regionEntryLockReason, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../../../utils/dungeonRewards';
@@ -6,7 +7,7 @@ import { useGame } from '../../../../context/GameContext';
 import { REGIONS, CAVES, ASSETS, REGION_MODIFIERS } from '../../data/gameData';
 import { sound } from '../../../../utils/audio';
 import { groupRegionsByLevel, levelEnvironment } from '../../utils/levelEnvironment';
-import { BattleBackdrop, getBattleScene } from '../../../../components/combat/BattleBackdrop';
+import { BattleBackdrop, getBattleScene, getBattleBackground } from '../../../../components/combat/BattleBackdrop';
 import { BestiaryPanel, FolioPage, OrnamentDivider, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';
 
@@ -16,6 +17,8 @@ interface WorldScreenProps {
 
 export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) => {
   useLocale();
+  const { style } = useInterface();
+  const beta = style === 'fantasy-beta';
   const {
     player,
     combatStats,
@@ -213,7 +216,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       <div
         key={reg.id}
         onClick={selectRegion}
-        className={`atlas-node codex-paper bestiary-entry p-3 transition-all cursor-pointer ${
+        className={`beta-world-tile atlas-node codex-paper bestiary-entry p-3 transition-all cursor-pointer ${
           isInspecting
             ? 'is-selected shadow-md '
             : isLocked
@@ -225,6 +228,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         aria-pressed={isInspecting}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRegion(); } }}
       >
+        {beta && <img className="beta-tile-art" src={getBattleBackground(getBattleScene(reg.id, currentRegion.id))} alt="" loading="lazy" />}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-lg border border-[#514633] bg-[#111416]">
@@ -288,7 +292,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
       <div className="space-y-2">
         <SectionTitle eyebrow="Отмечены на карте">{localize("Земли и рубежи")}</SectionTitle>
 
-        <div className="space-y-2">
+        <div className="beta-world-grid space-y-2">
           {localize(regionGroups.recommended.map(renderRegion))}
           {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">{localize("Нет земель для вашего уровня.")}</p>}
         </div>
@@ -301,7 +305,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               {localize(group.title)} · {localize(regionGroups[group.key].length)}
               {localize(regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь')}
             </summary>
-            <div className="mt-3 space-y-2">{localize(regionGroups[group.key].map(renderRegion))}</div>
+            <div className="beta-world-grid mt-3 space-y-2">{localize(regionGroups[group.key].map(renderRegion))}</div>
           </details>
         ))}
       </div>
@@ -420,7 +424,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           <span className="mt-1 block text-slate-400">{localize("HP врагов ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].hp)}{localize(" · урон ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].damage)}{localize(" · защита ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].defense)}{localize(". Множитель награды относится к завершению похода.")}</span>
         </label>
 
-        <div className="space-y-2">
+        <div className="beta-cave-grid space-y-2">
           {Object.values(CAVES).map(cave => {
             const isSelected = selectedCaveId === cave.id;
             const canEnter = player.energy >= 15 && !(isInCombat && !isCombatEnded) && !(player.miningExpedition && !premium.active);
@@ -431,7 +435,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   setSelectedCaveId(cave.id);
                   sound.playClick();
                 }}
-                className={`bestiary-entry p-3 transition-all cursor-pointer ${
+                className={`beta-cave-tile bestiary-entry p-3 transition-all cursor-pointer ${
                   isSelected
                     ? 'border-purple-400 bg-purple-950/40 shadow-md '
                     : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'

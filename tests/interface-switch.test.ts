@@ -27,6 +27,7 @@ async function setup(contents: string) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;
   w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };
+  w.AnimationEvent = w.Event;
   w.IS_REACT_ACT_ENVIRONMENT = true; w.Headers = Headers; w.AbortSignal = AbortSignal;
   w.localStorage.setItem('aethelgard_story_intro_v1_749219401','done');
   w.eval(bundle.outputFiles[0].text);
@@ -97,6 +98,32 @@ test('registration switches styles without losing input; both layouts share char
     assert(w.document.querySelector('.bestiary-dossier-screen'));
     assert.equal(JSON.stringify(save().player), stablePlayer, 'browsing beta enemies keeps the same character');
     await w.act(async () => w.document.querySelector('.dossier-back').click());
+    for (const [label,page] of [['Мир','world'],['Арена','arena'],['Сумка','inventory']]) {
+      const before=save().player.energy;
+      await w.act(async () => button(label).click()); await settle();
+      assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
+      assert(w.document.querySelector('.beta-page-turn.is-forwards'), 'forward navigation turns a page');
+      if(page==='world') {
+        assert(w.document.querySelector('.beta-world-grid .beta-world-tile'));
+        await w.act(async()=>w.document.querySelector('.beta-world-tile').click());
+        assert.equal(w.document.querySelector('.beta-world-tile').getAttribute('aria-pressed'),'true');
+      }
+      if(page==='arena') {
+        await w.act(async()=>button('Тренировка').click());
+        assert(w.document.querySelector('.beta-opponent-grid .beta-opponent-tile button'), 'opponent tiles keep their fight action');
+      }
+      if(page==='inventory') {
+        assert(w.document.querySelector('.beta-item-name'), 'item tiles show real inventory names');
+        await w.act(async()=>w.document.querySelector('[data-equipment-slot="weapon"]').click());
+        assert(w.document.querySelector('[role="dialog"]'), 'equipment tiles open the functional item sheet');
+        await w.act(async()=>w.document.querySelector('[aria-label="Закрыть описание предмета"]').click());
+      }
+      assert.equal(save().player.energy,before,'book navigation never charges energy');
+      await w.act(async()=>w.document.querySelector('.beta-page-turn > div').dispatchEvent(new w.Event('animationend',{bubbles:true})));
+      assert(!w.document.querySelector('.beta-page-turn'), 'page turn is removed after its animation');
+    }
+    await w.act(async()=>button('Охота').click()); await settle();
+    assert(w.document.querySelector('.beta-page-turn.is-backwards'), 'returning to the first tab turns backwards');
     await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy-beta', 'beta preference survives restart');
     assert.equal(w.localStorage.getItem('aethelgard_interface_style'), 'fantasy-beta');

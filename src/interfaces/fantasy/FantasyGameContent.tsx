@@ -1,3 +1,4 @@
+import { BetaBookPage, BetaPageTurn } from './components/ui/BetaBookPage';
 import { useInterface } from '../../context/InterfaceContext';
 import { BetaTopHeader } from './components/layout/BetaTopHeader';
 import { BetaBottomNavigation } from './components/layout/BetaBottomNavigation';
@@ -47,6 +48,7 @@ export const FantasyGameContent: React.FC = () => {
       {/* Top Header */}
       <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
+      {style === 'fantasy-beta' && <BetaPageTurn page={isCharacterSheetOpen ? 'character' : currentTab} />}
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
@@ -55,10 +57,10 @@ export const FantasyGameContent: React.FC = () => {
         ) : (
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
-            {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
+            {currentTab === 'world' && (style === 'fantasy-beta' ? <BetaBookPage page="world"><WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} /></BetaBookPage> : <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />)}
             {currentTab === 'character' && <CharacterScreen onClose={() => setCurrentTab('hunter')} />}
-            {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
-            {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
+            {currentTab === 'arena' && (style === 'fantasy-beta' ? <BetaBookPage page="arena"><ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} /></BetaBookPage> : <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />)}
+            {currentTab === 'inventory' && (style === 'fantasy-beta' ? <BetaBookPage page="inventory"><InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} /></BetaBookPage> : <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />)}
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
             {currentTab === 'crafting' && <CraftingScreen />}
             {currentTab === 'alchemy' && <AlchemyScreen />}

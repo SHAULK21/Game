@@ -1,3 +1,4 @@
+import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { AscensionArena } from './AscensionArena';
 import { PvpArena } from './PvpArena';
@@ -14,6 +15,7 @@ interface ArenaScreenProps {
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) => {
   useLocale();
+  const { style } = useInterface();
   const { player, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
   const [mode,setMode] = useState<'ascension'|'pve'|'pvp'>('ascension');
   const [fightError, setFightError] = useState<string | null>(null);
@@ -43,8 +45,8 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
   };
 
   return (
-    <FolioPage className="space-y-3 pt-3">
-      <div role="tablist" className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} role="tab" aria-selected={mode===m} onClick={()=>setMode(m)} className={`min-h-11 rounded-lg border px-1 text-xs ${mode===m?'border-[#9d8459] bg-[#302c24] text-amber-200':'border-slate-800 bg-slate-950 text-slate-400'}`}>{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
+    <FolioPage className="beta-arena-page space-y-3 pt-3">
+      <div role="tablist" className="beta-arena-modes grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} role="tab" aria-selected={mode===m} onClick={()=>setMode(m)} className={`min-h-11 rounded-lg border px-1 text-xs ${mode===m?'border-[#9d8459] bg-[#302c24] text-amber-200':'border-slate-800 bg-slate-950 text-slate-400'}`}>{style === 'fantasy-beta' && <RpgIcon kind={m==='ascension'?'crown':m==='pve'?'attack':'arena'} size={34}/>}{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
       {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p title={localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")} className="line-clamp-2 text-xs text-slate-400">{localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")}</p>
       {/* Header Banner */}
@@ -95,12 +97,12 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
           <span className="text-[11px] text-slate-400">{localize("Обновление через 15м")}</span>
         </div>
 
-        <div className="space-y-2">
+        <div className="beta-opponent-grid space-y-2">
           {ARENA_BOTS.map(opp => {
             return (
               <div
                 key={opp.id}
-                className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all flex items-center justify-between"
+                className="beta-opponent-tile p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-900"><RpgIcon kind="character" size={22} className="text-[#a48b60]" /></span>

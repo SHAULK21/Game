@@ -1,3 +1,4 @@
+import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { STAT_LABELS } from '../../../../utils/statLabels';
 import { getAlchemyToolBonus } from '../../../../utils/alchemy';
@@ -104,6 +105,7 @@ const getResourceUse = (item: GameItem) => {
 
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBlacksmith, onNavigateToCrafting }) => {
   useLocale();
+  const { style } = useInterface();
   const {
     player,
     combatStats,
@@ -194,6 +196,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       title={localize(item.name)}>
       <ReferenceFrameParts id="equipment" />
       <InventoryArt item={item} size={42} />
+      {style === 'fantasy-beta' && <span className="beta-item-name">{localize(item.name)}<small>{localize('Ур.')} {localize(item.level)}</small></span>}
       <span className="inventory-bag-quantity">{localize(item.stackCount || 1)}</span>
       {item.upgradeLevel>0 && <span className="inventory-bag-upgrade">+{item.upgradeLevel}</span>}
       {equipped && <span className="inventory-bag-state">{localize('НАДЕТО')}</span>}
