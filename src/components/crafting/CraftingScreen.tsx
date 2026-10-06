@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { craftStageLockReason, regionalSealName } from '../../utils/regionalProgress';
 import { smithingProgress } from '../../utils/professions';
@@ -69,26 +70,26 @@ export const CraftingScreen: React.FC = () => {
         </details>
       </div>
 
-      <label className="block text-xs text-slate-300">{localize("Локация рецептов")}<select
+      <label className="block text-xs text-slate-300">{localize("Локация рецептов")}<SelectionField aria-label={localize("Локация рецептов")}
           value={selectedRegionId}
           onChange={event => { setRegionId(event.target.value); setFeedback(null); }}
           className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-xs text-slate-100"
         >
           {REGIONS.map(region => <option key={region.id} value={region.id}>{localize(region.name)}{localize(" · с ")}{localize(region.minLevel)}{localize(" ур.")}</option>)}
-        </select>
+        </SelectionField>
       </label>
 
       {feedback && <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-2 text-xs text-amber-200">{localize(feedback)}</div>}
-      <label className="block text-xs text-slate-300">{localize("Класс снаряжения")}<select value={selectedClass} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
+      <label className="block text-xs text-slate-300">{localize("Класс снаряжения")}<SelectionField aria-label={localize("Класс снаряжения")} value={selectedClass} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
           <option value="all">{localize("Все классы — любые вещи можно носить по уровню")}</option>
           {CLASS_GEAR_IDS.map(id => <option key={id} value={id}>{localize(CLASS_EQUIPMENT[id].label)}{localize(id === player.classId ? ' · ваш герой' : '')}</option>)}
-        </select>
+        </SelectionField>
       </label>
 
-      <label className="block text-xs text-slate-300">{localize("Уровень рецептов")}<select value={levelFilter} onChange={event => setLevelFilter(event.target.value as 'available' | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
+      <label className="block text-xs text-slate-300">{localize("Уровень рецептов")}<SelectionField aria-label={localize("Уровень рецептов")} value={levelFilter} onChange={event => setLevelFilter(event.target.value as 'available' | 'all')} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-xs">
           <option value="available">{localize("Доступные по уровню · до ")}{localize(player.level)}{localize(" ур.")}</option>
           <option value="all">{localize("Все уровни · включая будущие рецепты")}</option>
-        </select>
+        </SelectionField>
       </label>
       <p className="text-[11px] text-slate-500">{localize("Найдено рецептов: ")}{localize(recipes.length)}{localize(". Общие расходники и снаряжение без классового бонуса тоже показаны.")}</p>
       {recipes.length === 0 && <div role="status" className="rounded-lg border border-slate-800 p-3 text-xs text-slate-400">{localize("В этой локации нет рецептов под выбранный класс и уровень. Выберите другую локацию или измените фильтры.")}</div>}

@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import React,{useEffect,useState} from 'react';
 import {apiRequest} from '../../utils/api';
 import {t,useLocale,intlLocale} from '../../i18n/locale';
@@ -21,7 +22,7 @@ export function PlayerAnalytics(){
  const when=(date:string)=>new Date(date).toLocaleString(intlLocale(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
  return <section className="rounded-xl border border-amber-700/50 p-3 space-y-3 text-xs" aria-label={t('Статистика игроков')}>
   <div className="flex flex-wrap gap-2 items-center justify-between"><h3 className="text-amber-200 font-bold">{t('Первые уровни и возвращаемость')}</h3>
-   <div className="flex gap-2"><select aria-label={t('Период статистики')} value={days} onChange={e=>setDays(Number(e.target.value))} className="bg-slate-950 rounded p-2">{[7,30,90].map(n=><option key={n} value={n}>{n} {t('дней')}</option>)}</select>
+   <div className="flex gap-2"><SelectionField aria-label={t('Период статистики')} value={days} onChange={e=>setDays(Number(e.target.value))} className="bg-slate-950 rounded p-2">{[7,30,90].map(n=><option key={n} value={n}>{n} {t('дней')}</option>)}</SelectionField>
    <button disabled={busy} onClick={()=>setVersion(v=>v+1)}>{t('Обновить')}</button></div></div>
   <p className="text-slate-400">{t('Период отбора — первый зафиксированный вход. Воронка считает только начавших с 1 уровня. Нет входа 24 часа — признак неактивности, а не доказательство ухода. История до начала сбора недоступна.')}</p>
   <p className="text-slate-400">{t('Ваш аккаунт администратора исключён из этой статистики.')}</p>

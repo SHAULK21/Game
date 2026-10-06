@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import { INTRO_SCENES } from '../../data/storyScenes';
 export { INTRO_SCENES } from '../../data/storyScenes';
 import { createContext, useContext, useState } from 'react';
@@ -19,7 +20,7 @@ export function StoryIntro({onFinish}: {onFinish:()=>void}) {
   const finish = () => {markStoryIntroSeen();onFinish();};
   return <main className="story-intro min-h-dvh bg-[#0b1013] px-3 py-4 text-[#e8dcc5] sm:grid sm:place-items-center">
     <section aria-label={locale==='uk'?'Історія Аетельгарда':'История Аэтельгарда'} className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-[#725936] bg-[#151817] shadow-xl">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 text-xs"><span className="tracking-widest text-[#cfb783]">AETHELGARD · {index+1}/5</span><div className="flex items-center gap-3"><select aria-label={locale==='uk'?'Мова гри':'Язык игры'} value={locale} onChange={e=>setLocale(e.target.value as 'ru'|'uk')} className="min-h-11 rounded border border-[#584a33] bg-[#161b1c] px-2"><option value="uk">Українська</option><option value="ru">Русский</option></select><button onClick={finish} className="min-h-11 text-[#c1b49d] underline underline-offset-4">{locale==='uk'?'Пропустити':'Пропустить'}</button></div></div>
+      <div className="flex items-center justify-between gap-2 px-4 py-3 text-xs"><span className="tracking-widest text-[#cfb783]">AETHELGARD · {index+1}/5</span><div className="flex items-center gap-3"><SelectionField aria-label={locale==='uk'?'Мова гри':'Язык игры'} value={locale} onChange={e=>setLocale(e.target.value as 'ru'|'uk')} className="min-h-11 rounded border border-[#584a33] bg-[#161b1c] px-2"><option value="uk">Українська</option><option value="ru">Русский</option></SelectionField><button onClick={finish} className="min-h-11 text-[#c1b49d] underline underline-offset-4">{locale==='uk'?'Пропустити':'Пропустить'}</button></div></div>
       <div className="aspect-[3/2] w-full overflow-hidden bg-[#211d17]">
         {!failed.includes(scene.id) && <img key={scene.id} src={`/assets/story/${scene.id}.webp`} alt="" className="h-full w-full object-cover" onError={()=>setFailed(old=>old.includes(scene.id)?old:[...old,scene.id])}/>}
       </div>

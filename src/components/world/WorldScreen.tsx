@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import { ModernLandscape } from '../../interfaces/modern/ModernLandscape';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { regionEntryLockReason, huntingModeLockReason } from '../../utils/regionalProgress';
@@ -476,9 +477,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             {localize(Object.keys(CAVES).length)}{localize(" локаций")}</span>
         </div>
 
-        <label className="block text-xs text-purple-200">{localize("Сложность похода")}<select value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
+        <label className="block text-xs text-purple-200">{localize("Сложность похода")}<SelectionField aria-label={localize("Сложность похода")} value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
             <option value="normal">{localize("Обычная · награда ×1")}</option><option value="hard">{localize("Сложная · награда ×1,5")}</option><option value="nightmare">{localize("Кошмар · награда ×2")}</option><option value="hell">{localize("Ад · награда ×3")}</option>
-          </select>
+          </SelectionField>
           <span className="mt-1 block text-slate-400">{localize("HP врагов ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].hp)}{localize(" · урон ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].damage)}{localize(" · защита ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].defense)}{localize(". Множитель награды относится к завершению похода.")}</span>
         </label>
 

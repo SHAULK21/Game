@@ -5,7 +5,6 @@ import { GameItem, ItemType } from '../../types/game';
 import { ItemArtwork } from '../../components/ui/ItemArtwork';
 import { RpgIcon } from '../../components/ui/RpgIcon';
 import { RARITY_COLORS } from '../../data/gameData';
-import { BattleBackdrop } from '../../components/combat/BattleBackdrop';
 const slots = [
   ['helmet', 'Шлем'], ['amulet', 'Амулет'], ['weapon', 'Оружие'], ['offhand', 'Второе оружие'],
   ['armor', 'Доспех'], ['cloak', 'Плащ'], ['gloves', 'Перчатки'], ['ring', 'Кольцо'],
@@ -25,7 +24,7 @@ export function HeroEquipment({ onSelect, onOpenInventory }: { onSelect?: (item:
     </button>;
   };
   return <section className="modern-hero-equipment" aria-label={localize("Снаряжение")}>
-    <div className="modern-hero-scene"><BattleBackdrop scene="arena" /><img src={`/assets/sprites/generated/heroes/${player.classId}-fullbody.webp`} alt={player.name} /></div>
+    <div className="modern-hero-scene"><img src={`/assets/sprites/generated/heroes/${player.classId}-fullbody.webp`} alt={player.name} /></div>
     <div className="modern-gear-side">{slots.filter((_, i) => i % 2 === 0).map(renderSlot)}</div>
     <div className="modern-gear-side is-right">{slots.filter((_, i) => i % 2 === 1).map(renderSlot)}</div>
     <div className="modern-vitals"><div className="modern-vital is-hp"><span style={{ width: `${Math.max(0, Math.min(100, hp / combatStats.maxHp * 100))}%` }} /><b>HP {Math.round(hp)} / {combatStats.maxHp}</b></div><div className="modern-vital is-mp"><span style={{ width: `${Math.max(0, Math.min(100, mp / combatStats.maxMp * 100))}%` }} /><b>MP {Math.round(mp)} / {combatStats.maxMp}</b></div></div>

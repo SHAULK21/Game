@@ -1,3 +1,4 @@
+import { ItemSelector } from '../ui/ItemSelector';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../utils/sharpening';
 import React, { useState } from 'react';
@@ -75,35 +76,8 @@ export const BlacksmithScreen: React.FC = () => {
           <span>{localize(upgradeableItems.length)}{localize(" доступно")}</span>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {upgradeableItems.map(item => {
-            const isSelected = currentItem?.id === item.id;
-            const rarityStyle = RARITY_COLORS[item.rarity];
-            return (
-              <div
-                key={item.id}
-                onClick={() => {
-                  setSelectedItemId(item.id);
-                  setUpgradeResultMsg(null);
-                  sound.playClick();
-                }}
-                className={`shrink-0 p-2.5 rounded-xl border flex flex-col items-center justify-center w-24 cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-amber-400 bg-amber-950/40 shadow-md '
-                    : `${rarityStyle.border} ${rarityStyle.bg} opacity-75 hover:opacity-100`
-                }`}
-              >
-                <ItemArtwork item={item} size={36} />
-                <span className="text-[10px] font-medium text-slate-200 truncate w-full text-center">
-                  {localize(item.name)}
-                </span>
-                <span className="text-[10px] font-mono text-amber-400 font-bold mt-0.5">
-                  +{localize(item.upgradeLevel)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <ItemSelector label="Выберите предмет для улучшения:" items={upgradeableItems} value={currentItem?.id||''} disabled={isUpgrading} onSelect={id=>{setSelectedItemId(id);setUpgradeResultMsg(null);sound.playClick();}}/>
+
       </div>
 
       {/* Main Upgrade Anvil Display */}

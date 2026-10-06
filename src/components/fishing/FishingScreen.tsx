@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useInterface } from '../../context/InterfaceContext';
@@ -37,7 +38,7 @@ export const FishingScreen: React.FC = () => {
   </header>
   <div role="tablist" aria-label={localize('Разделы рыбалки')} className="grid grid-cols-3 gap-2">{[['shore','Берег'],['journal','Журнал улова'],['recipes','Рыба и алхимия']].map(([id,label])=><button key={id} role="tab" aria-selected={section===id} className={`${section===id?button:secondary} min-h-11 px-2 text-xs`} onClick={()=>setSection(id as typeof section)}>{localize(label)}</button>)}</div>
   {section==='shore'&&<>
-   <label className="block text-xs"><span className={`mb-1 block ${muted}`}>{localize('Водоём')}</span><select aria-label={localize('Водоём')} value={cast?.spotId||selectedSpot} disabled={!!cast} onChange={e=>setSelectedSpot(e.target.value)} className={`${panel} min-h-11 w-full px-3 text-sm bg-[#161b1b]`}>{FISHING_SPOTS.map(s=><option key={s.id} value={s.id} disabled={player.level<s.heroLevel||fishing.level<s.level}>{localize(s.name)}{player.level<s.heroLevel||fishing.level<s.level?' · '+localize('Герой')+' '+s.heroLevel+' / '+localize('Рыболов')+' '+s.level:''}</option>)}</select></label>
+   <label className="block text-xs"><span className={`mb-1 block ${muted}`}>{localize('Водоём')}</span><SelectionField aria-label={localize('Водоём')} value={cast?.spotId||selectedSpot} disabled={!!cast} onChange={e=>setSelectedSpot(e.target.value)} className={`${panel} min-h-11 w-full px-3 text-sm bg-[#161b1b]`}>{FISHING_SPOTS.map(s=><option key={s.id} value={s.id} disabled={player.level<s.heroLevel||fishing.level<s.level}>{localize(s.name)}{player.level<s.heroLevel||fishing.level<s.level?' · '+localize('Герой')+' '+s.heroLevel+' / '+localize('Рыболов')+' '+s.level:''}</option>)}</SelectionField></label>
    <section className={`${panel} overflow-hidden`}>
     <div className={`relative ${phase==='reel'?'aspect-[16/5]':'aspect-[3/2]'} overflow-hidden bg-[#282d25]`}>
      <img src="/assets/fishing/river.webp" alt={localize('Камышовый берег старой реки')} className={`h-full w-full object-cover fishing-water-${spot.id}`} />

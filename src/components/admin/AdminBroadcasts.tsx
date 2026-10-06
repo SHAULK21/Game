@@ -1,3 +1,4 @@
+import { SelectionField } from '../ui/SelectionField';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { createOperationId } from '../../utils/operationId';
 import React,{useEffect,useState} from 'react';
@@ -28,8 +29,8 @@ export const AdminBroadcasts:React.FC=()=>{
   <h3 className="text-xs font-bold text-purple-200">{localize("📢 Оповещения по шаблону")}</h3>
   <p className="text-[11px] text-slate-400">{localize("В игре объявление увидит вся выбранная аудитория. В Telegram оно придёт тем, кто запустил бота, включил сообщения и разрешил объявления администрации.")}</p>
   {feedback&&<p role="status" className="rounded-lg bg-slate-950 p-2 text-xs text-purple-200">{localize(feedback)}</p>}
-  <label className="block text-xs text-slate-300">{localize("Готовый шаблон")}<select aria-label={localize("Шаблон оповещения")} value={templateId} disabled={busy||pending} onChange={e=>setTemplateId(e.target.value)} className="w-full mt-1 rounded-lg bg-slate-950 p-2">{NOTIFICATION_TEMPLATES.map(t=><option key={t.id} value={t.id}>{localize(t.name)}</option>)}</select></label>
-  <label className="block text-xs text-slate-300">{localize("Кому")}<select aria-label={localize("Аудитория оповещения")} value={audience} disabled={busy||pending} onChange={e=>setAudience(e.target.value as BroadcastAudience)} className="w-full mt-1 rounded-lg bg-slate-950 p-2">{Object.entries(BROADCAST_AUDIENCES).map(([id,label])=><option key={id} value={id}>{localize(label)}</option>)}</select></label>
+  <label className="block text-xs text-slate-300">{localize("Готовый шаблон")}<SelectionField aria-label={localize("Шаблон оповещения")} value={templateId} disabled={busy||pending} onChange={e=>setTemplateId(e.target.value)} className="w-full mt-1 rounded-lg bg-slate-950 p-2">{NOTIFICATION_TEMPLATES.map(t=><option key={t.id} value={t.id}>{localize(t.name)}</option>)}</SelectionField></label>
+  <label className="block text-xs text-slate-300">{localize("Кому")}<SelectionField aria-label={localize("Аудитория оповещения")} value={audience} disabled={busy||pending} onChange={e=>setAudience(e.target.value as BroadcastAudience)} className="w-full mt-1 rounded-lg bg-slate-950 p-2">{Object.entries(BROADCAST_AUDIENCES).map(([id,label])=><option key={id} value={id}>{localize(label)}</option>)}</SelectionField></label>
   <p className="text-xs text-slate-400">{localize(summary?`В игре: ${summary.audiences[audience].players} · Telegram: ${summary.audiences[audience].telegram}`:'Загружаю количество получателей…')}</p>
   <label className="block text-xs text-slate-300">{localize("Дополнение — необязательно")}<textarea aria-label={localize("Дополнение к оповещению")} value={details} disabled={busy||pending} maxLength={1000} onChange={e=>setDetails(e.target.value)} placeholder={localize("Например, время техработ. Можно оставить пустым.")} rows={2} className="w-full mt-1 rounded-lg bg-slate-950 p-2"/></label>
   <div className="rounded-lg bg-slate-950 p-3 text-xs text-slate-300 whitespace-pre-wrap">{localize(renderBroadcast(templateId,details))}</div>
