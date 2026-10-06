@@ -9,7 +9,7 @@ html[data-interface="modern"] .modern-shell .font-cinzel,
 html[data-interface="modern"] .modern-shell h1,
 html[data-interface="modern"] .modern-shell h2,
 html[data-interface="modern"] .modern-brand { font-family: Georgia, 'Times New Roman', serif; }
-html[data-interface="modern"] .modern-shell main { padding-bottom: env(safe-area-inset-bottom); }
+html[data-interface="modern"] .modern-shell main { padding-bottom: var(--app-safe-bottom); }
 html[data-interface="modern"] .modern-shell .game-header { background: linear-gradient(115deg, #0b1512f7, #080e0cf5); border-bottom: 1px solid #71603d; box-shadow: 0 4px 20px #0006; padding: 8px 14px; backdrop-filter: blur(16px); }
 html[data-interface="modern"] .modern-brand { text-align: center; color: #e3bf7b; font-size: 23px; letter-spacing: .15em; line-height: 1.3; margin-bottom: 8px; text-shadow: 0 2px 12px #000; }
 html[data-interface="modern"] .modern-avatar { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 2px solid #d0ac65; padding: 2px; background: #080e0c; }
@@ -68,7 +68,7 @@ html[data-interface="modern"] .modern-vital b { position: relative; display: blo
 html[data-interface="modern"] .modern-inventory-equipment .modern-hero-equipment { margin-top: 12px; }
 html[data-interface="modern"] .modern-item-card { box-shadow: inset 0 1px #f5cd7820; background-image: radial-gradient(ellipse at center, #d6b65e10, #0003); }
 html[data-interface="modern"] .modern-item-card img { filter: drop-shadow(0 3px 5px #0008); }
-html[data-interface="modern"] .modern-item-details { max-height: calc(90dvh - env(safe-area-inset-bottom)); overflow-y: auto; padding-bottom: max(14px, env(safe-area-inset-bottom)); background: linear-gradient(145deg, #1d241c, #0b110e); }
+html[data-interface="modern"] .modern-item-details { max-height: calc(90dvh - var(--app-safe-bottom)); overflow-y: auto; padding-bottom: max(14px, var(--app-safe-bottom)); background: linear-gradient(145deg, #1d241c, #0b110e); }
 @media (max-width: 360px) {
   html[data-interface="modern"] .modern-item-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-interface="modern"] .modern-gear-slot { width: 50px; }
@@ -88,7 +88,7 @@ html[data-interface="modern"] .selection-trigger { display:flex; align-items:cen
 html[data-interface="modern"] .selection-trigger > span:first-child { min-width:0; flex:1; white-space:normal; overflow-wrap:anywhere; }
 html[data-interface="modern"] .selection-trigger:disabled { opacity:.45; cursor:not-allowed; }
 html[data-interface="modern"] .selection-chevron { color:#c6ad76; font-size:20px; }
-html[data-interface="modern"] .selection-backdrop { position:fixed; inset:0; z-index:130; display:flex; align-items:flex-end; justify-content:center; padding:12px; padding-bottom:max(12px,env(safe-area-inset-bottom)); background:#030907d9; backdrop-filter:blur(8px); }
+html[data-interface="modern"] .selection-backdrop { position:fixed; inset:0; z-index:130; display:flex; align-items:flex-end; justify-content:center; padding:12px; padding-bottom:max(12px,var(--app-safe-bottom)); background:#030907d9; backdrop-filter:blur(8px); }
 html[data-interface="modern"] .selection-dialog { width:min(100%,520px); max-height:85dvh; display:flex; flex-direction:column; gap:12px; padding:18px; border:1px solid #716346; border-radius:20px; background:#111914; color:#eee7d8; box-shadow:0 24px 80px #0009; }
 html[data-interface="modern"] .selection-dialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 html[data-interface="modern"] .selection-dialog h2 { font-size:16px; font-weight:600; }
@@ -110,4 +110,4 @@ html[data-interface="modern"] .selection-empty { padding:24px 12px; text-align:c
 html[data-interface="modern"] .selection-trigger:focus-visible,html[data-interface="modern"] .selection-dialog button:focus-visible,html[data-interface="modern"] .selection-dialog input:focus-visible { outline:2px solid #e3c778; outline-offset:2px; }
 @media(min-width:640px) { html[data-interface="modern"] .selection-backdrop { align-items:center; } }
 
-html[data-interface="modern"] .modern-item-details { max-height:85dvh; overflow-y:auto; overscroll-behavior:contain; padding-bottom:max(14px,env(safe-area-inset-bottom)); }
+html[data-interface="modern"] .modern-item-details { max-height:85dvh; overflow-y:auto; overscroll-behavior:contain; padding-bottom:max(14px,var(--app-safe-bottom)); }

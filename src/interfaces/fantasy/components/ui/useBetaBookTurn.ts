@@ -29,6 +29,8 @@ export function useBetaBookTurn() {
     const snapshot = (backwards ? list.current : source)?.cloneNode(true) as HTMLElement | undefined;
     const overlay = document.createElement('div');
     overlay.className = `beta-page-turn beta-content-turn is-${backwards ? 'backwards' : 'forwards'}`;
+    const shell = source.closest<HTMLElement>('.game-shell');
+    if (shell) overlay.style.setProperty('--beta-book-top', getComputedStyle(shell).getPropertyValue('--beta-book-top'));
     overlay.setAttribute('aria-hidden', 'true');
     overlay.inert = true;
     const leaf = document.createElement('div');

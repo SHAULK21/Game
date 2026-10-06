@@ -56,8 +56,8 @@ html[data-interface="fantasy"] ::-webkit-scrollbar-thumb { background: #515760; 
   80% { transform: translate(2px, 1px); }
 }
 html[data-interface="fantasy"] .animate-hit-shake { animation: screen-shake 0.25s ease-in-out; }
-html[data-interface="fantasy"] .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-html[data-interface="fantasy"] .pt-safe { padding-top: env(safe-area-inset-top); }
+html[data-interface="fantasy"] .pb-safe { padding-bottom: var(--app-safe-bottom); }
+html[data-interface="fantasy"] .pt-safe { padding-top: var(--app-safe-top); }
 html[data-interface="fantasy"] .min-h-screen { min-height: 100dvh; }
 
 html[data-interface="fantasy"] .folio-page { color: var(--text-primary); }
@@ -308,7 +308,7 @@ html[data-interface="fantasy"] .registration-screen h1 { font-family: Georgia, s
 /* Book pages follow the supplied references; gameplay values remain shared. */
 html[data-interface="fantasy"] .game-shell { background: radial-gradient(ellipse at top, #3c2c1c, #17120e 60%, #0b0b0b); }
 html[data-interface="fantasy"] .game-shell main { max-width: 1140px; min-width: 0; }
-html[data-interface="fantasy"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+html[data-interface="fantasy"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + var(--app-safe-bottom)); }
 html[data-interface="fantasy"] .hero-codex { max-width: 900px; }
 html[data-interface="fantasy"] .header-content { max-width: 1100px; }
 html[data-interface="fantasy"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
@@ -378,9 +378,9 @@ html[data-interface="fantasy"] .loot-entry img { flex-shrink: 0; }
 html[data-interface="fantasy"] .loot-entry span { overflow-wrap: anywhere; }
 html[data-interface="fantasy"] .loot-entry small { display: block; font-size: 10px; color: #715638; margin-top: 3px; }
 html[data-interface="fantasy"] .hunt-codex > .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
-html[data-interface="fantasy"] .dialog-frame { max-height: calc(100dvh - 24px - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+html[data-interface="fantasy"] .dialog-frame { max-height: calc(100dvh - 24px - var(--app-safe-bottom)); overflow-y: auto; overscroll-behavior: contain; }
 html[data-interface="fantasy"] .dialog-frame .rpg-button { white-space: normal; }
-html[data-interface="fantasy"] .game-drawer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+html[data-interface="fantasy"] .game-drawer { padding-bottom: max(16px, var(--app-safe-bottom)); }
 @media (min-width: 760px) {
   html[data-interface="fantasy"] .bestiary-spread { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   html[data-interface="fantasy"] .hero-identity { grid-template-columns: 215px minmax(0, 1fr); }
@@ -605,7 +605,7 @@ html[data-interface="fantasy"] .game-nav-item.is-active { color:#ffe1a0; backgro
 html[data-interface="fantasy"] .game-nav-item > :not(.shell-ornament) { position:relative; z-index:1; }
 html[data-interface="fantasy"] .game-nav-item > span:not(.shell-ornament):not(.nav-dot) { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html[data-interface="fantasy"] .game-nav-item .shell-ornament { z-index:0; }
-html[data-interface="fantasy"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 16px); }
+html[data-interface="fantasy"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + var(--app-safe-bottom) + 16px); }
 html[data-interface="fantasy"] .shell-main .folio-page { padding-bottom:16px; }
 html[data-interface="fantasy"] .shell-ornament { position:absolute; inset:0; pointer-events:none; display:block; overflow:hidden; }
 html[data-interface="fantasy"] .shell-ornament svg { position:absolute; display:block; }

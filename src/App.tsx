@@ -1,3 +1,4 @@
+import { observeMobileViewport } from './utils/mobileViewport';
 import { RoyalBriefing } from './components/dialogs/RoyalBriefing';
 import { AdventureStory } from './components/dialogs/AdventureStory';
 import { StoryRegistration, markStoryIntroSeen } from './components/dialogs/StoryIntro';
@@ -34,6 +35,6 @@ const InterfaceContent = () => {
 
 export default function App() {
   useLocale();
-  useEffect(() => { initTelegramApp(); }, []);
+  useEffect(() => { initTelegramApp(); return observeMobileViewport(); }, []);
   return <InterfaceProvider><AccountSessionGate><GameProvider><NavigationProvider><InterfaceContent /></NavigationProvider></GameProvider></AccountSessionGate></InterfaceProvider>;
 }

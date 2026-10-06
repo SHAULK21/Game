@@ -104,7 +104,7 @@ export const AlchemyScreen: React.FC = () => {
                 key={rec.id}
                 className="space-y-2 p-3"
               >
-                <div className="flex items-start justify-between">
+                <div className="alchemy-recipe-row flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <ItemArtwork item={{ name: rec.resultItem, type: "potion", rarity: "common", icon: rec.icon }} size={40} className="shrink-0" />
                     <div>

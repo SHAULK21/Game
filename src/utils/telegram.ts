@@ -28,6 +28,10 @@ declare global {
         isExpanded: boolean;
         viewportHeight: number;
         viewportStableHeight: number;
+        safeAreaInset?: { top: number; bottom: number; left: number; right: number };
+        contentSafeAreaInset?: { top: number; bottom: number; left: number; right: number };
+        onEvent?: (event: string, callback: () => void) => void;
+        offEvent?: (event: string, callback: () => void) => void;
         headerColor: string;
         backgroundColor: string;
         BackButton: {

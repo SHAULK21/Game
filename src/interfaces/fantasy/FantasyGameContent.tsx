@@ -1,3 +1,4 @@
+import { useBookBounds } from './components/layout/useBookBounds';
 import { BetaBookPage, BetaPageTurn } from './components/ui/BetaBookPage';
 import { useInterface } from '../../context/InterfaceContext';
 import { BetaTopHeader } from './components/layout/BetaTopHeader';
@@ -37,6 +38,8 @@ export const FantasyGameContent: React.FC = () => {
   const { player, quests, isInCombat, activeMonster } = useGame();
   const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
+  const shellRef = useBookBounds(style === 'fantasy-beta', `${currentTab}:${isCharacterSheetOpen}:${Boolean(player)}:${isInCombat}`);
+
   if (!player) {
     return <CharacterCreationModal />;
   }
@@ -44,7 +47,7 @@ export const FantasyGameContent: React.FC = () => {
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
+    <div ref={shellRef} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
       <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 

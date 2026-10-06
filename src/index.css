@@ -47,8 +47,8 @@
   80% { transform: translate(2px, 1px); }
 }
 .animate-hit-shake { animation: screen-shake 0.25s ease-in-out; }
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: var(--app-safe-bottom); }
+.pt-safe { padding-top: var(--app-safe-top); }
 .min-h-screen { min-height: 100dvh; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

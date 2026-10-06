@@ -105,7 +105,7 @@ export const AlchemyScreen: React.FC = () => {
                 key={rec.id}
                 className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all space-y-2"
               >
-                <div className="flex items-start justify-between">
+                <div className="alchemy-recipe-row flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
                       <ItemArtwork item={{name:rec.resultItem,type:'potion',rarity:'common',icon:rec.icon}} size={32} />

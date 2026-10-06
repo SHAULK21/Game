@@ -56,8 +56,8 @@ html[data-interface="fantasy-beta"] ::-webkit-scrollbar-thumb { background: #515
   80% { transform: translate(2px, 1px); }
 }
 html[data-interface="fantasy-beta"] .animate-hit-shake { animation: beta-screen-shake 0.25s ease-in-out; }
-html[data-interface="fantasy-beta"] .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-html[data-interface="fantasy-beta"] .pt-safe { padding-top: env(safe-area-inset-top); }
+html[data-interface="fantasy-beta"] .pb-safe { padding-bottom: var(--app-safe-bottom); }
+html[data-interface="fantasy-beta"] .pt-safe { padding-top: var(--app-safe-top); }
 html[data-interface="fantasy-beta"] .min-h-screen { min-height: 100dvh; }
 
 html[data-interface="fantasy-beta"] .folio-page { color: var(--text-primary); }
@@ -271,7 +271,7 @@ html[data-interface="fantasy-beta"] .registration-screen h1 { font-family: Georg
 /* Book pages follow the supplied references; gameplay values remain shared. */
 html[data-interface="fantasy-beta"] .game-shell { background: radial-gradient(ellipse at top, #3c2c1c, #17120e 60%, #0b0b0b); }
 html[data-interface="fantasy-beta"] .game-shell main { max-width: 1140px; min-width: 0; }
-html[data-interface="fantasy-beta"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+html[data-interface="fantasy-beta"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + var(--app-safe-bottom)); }
 html[data-interface="fantasy-beta"] .hero-codex { max-width: 900px; }
 html[data-interface="fantasy-beta"] .header-content { max-width: 1100px; }
 html[data-interface="fantasy-beta"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
@@ -315,9 +315,9 @@ html[data-interface="fantasy-beta"] .equipment-tile span { font-size: 11px; }
 html[data-interface="fantasy-beta"] .equipment-tile small { font-size: 10px; overflow-wrap: anywhere; }
 html[data-interface="fantasy-beta"] .portrait-fallback { display: flex; align-items: center; justify-content: center; }
 html[data-interface="fantasy-beta"] .dossier-footer .rpg-button-primary { background: linear-gradient(#47512b, #23311c); color: #f4e5be; border: 3px double #b39b62; min-height: 52px; }
-html[data-interface="fantasy-beta"] .dialog-frame { max-height: calc(100dvh - 24px - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+html[data-interface="fantasy-beta"] .dialog-frame { max-height: calc(100dvh - 24px - var(--app-safe-bottom)); overflow-y: auto; overscroll-behavior: contain; }
 html[data-interface="fantasy-beta"] .dialog-frame .rpg-button { white-space: normal; }
-html[data-interface="fantasy-beta"] .game-drawer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+html[data-interface="fantasy-beta"] .game-drawer { padding-bottom: max(16px, var(--app-safe-bottom)); }
 @media (max-width: 420px) {
   html[data-interface="fantasy-beta"] .attribute-grid { grid-template-columns: minmax(0, 1fr); }
   html[data-interface="fantasy-beta"] .hero-identity { grid-template-columns: 90px minmax(0, 1fr); gap: 9px; }
@@ -541,7 +541,7 @@ html[data-interface="fantasy-beta"] .game-nav-label { min-height:12px; max-width
 html[data-interface="fantasy-beta"] .game-nav-item.is-active .game-nav-label { visibility:visible; }
 html[data-interface="fantasy-beta"] .nav-more-icon { display:grid; place-items:center; width:30px; height:30px; color:#c5b596; font:700 32px/24px Georgia,"Times New Roman",serif; text-shadow:0 0 3px #d4b87977; }
 html[data-interface="fantasy-beta"] .game-nav-item.is-active .nav-more-icon { color:#f1deb6; }
-html[data-interface="fantasy-beta"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom) + 8px); }
+html[data-interface="fantasy-beta"] .shell-main { max-width:var(--shell-width); padding-bottom:calc(var(--shell-nav-height) + var(--app-safe-bottom) + 8px); }
 html[data-interface="fantasy-beta"] .shell-main .folio-page { padding-bottom:8px; }
 @media (max-width:390px) {
   html[data-interface="fantasy-beta"] .fantasy-shell-header { padding-inline:8px; }
@@ -1137,13 +1137,13 @@ html[data-interface="fantasy-beta"] .bestiary-field-progress i b { display:block
 html[data-interface="fantasy-beta"] .bestiary-dossier-screen {
   position:fixed;
   z-index:90;
-  inset:70px auto calc(var(--shell-nav-height) + env(safe-area-inset-bottom)) 50%;
+  inset:70px auto calc(var(--shell-nav-height) + var(--app-safe-bottom)) 50%;
   display:flex;
   box-sizing:border-box;
   width:min(100vw,var(--shell-width));
   flex-direction:column;
   transform:translateX(-50%);
-  padding-top:env(safe-area-inset-top);
+  padding-top:var(--app-safe-top);
   overflow:hidden;
   background:#17120e;
   color:#39291b;
@@ -1251,7 +1251,7 @@ html[data-interface="fantasy-beta"] .dossier-footer {
   display:grid;
   flex:0 0 auto;
   gap:4px;
-  padding:6px 10px max(8px,env(safe-area-inset-bottom));
+  padding:6px 10px max(8px,var(--app-safe-bottom));
   border-top:1px solid #806744;
   background:#17120e url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
   background-size:360px;
@@ -1614,12 +1614,12 @@ html[data-interface="fantasy-beta"] .beta-book-page [data-rarity="legendary"] { 
 
 /* Stationary cover/spine. Only the visible parchment leaf rotates. */
 html[data-interface="fantasy-beta"] .beta-book-page::before {
-  content:""; position:fixed; z-index:-1; top:70px; bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom));
+  content:""; position:fixed; z-index:-1; top:70px; bottom:calc(var(--shell-nav-height) + var(--app-safe-bottom));
   left:50%; width:min(100vw,430px); transform:translateX(-50%); pointer-events:none;
   background:url('/assets/sprites/generated/ui/bestiary-reference/book-page-with-spine.png') center / 100% 100% no-repeat;
 }
 html[data-interface="fantasy-beta"] .beta-page-turn {
-  position:fixed; z-index:95; top:70px; bottom:calc(var(--shell-nav-height) + env(safe-area-inset-bottom));
+  position:fixed; z-index:95; top:70px; bottom:calc(var(--shell-nav-height) + var(--app-safe-bottom));
   left:calc(50% - min(50vw,215px) + min(6.5vw,27.95px)); width:min(93.5vw,402.05px);
   perspective:1400px; pointer-events:none;
 }
