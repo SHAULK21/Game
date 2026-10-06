@@ -1,4 +1,5 @@
 import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat } from '../utils/monsterAI';
+import { huntSeriesPool } from '../utils/huntEncounters';
 import { completeTravelQuests } from '../utils/travelQuests';
 import { potionDamage, isRestorationPotion, restorationUseful } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
@@ -197,7 +198,7 @@ const buildCombatChain = (firstMonster: Monster, _player: PlayerCharacter, _stat
     .map(id => MONSTERS[id])
     .filter((m): m is Monster => Boolean(m) && !m.isBoss && !m.isElite)
     .map(m => getRegionMonster(m, region));
-  const pool = normalPool.length > 0 ? normalPool : [firstMonster];
+  const pool = huntSeriesPool(firstMonster, normalPool);
   const count = firstMonster.isBoss || firstMonster.isElite ? 1 : 2 + Math.floor(Math.random() * (_player.level < 8 ? 2 : _player.level < 25 ? 4 : 6));
   const chain: Monster[] = [applyHuntingMode(prepareMonsterForCombat(firstMonster),mode)];
   for (let i = 1; i < count; i += 1) {

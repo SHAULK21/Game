@@ -5,8 +5,28 @@ import { JSDOM } from 'jsdom';
 import fs from 'node:fs/promises';
 
 const art = {name:'art',setup(b:any){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}};
-const bundle = await build({stdin:{contents:`export {REGIONS,MONSTERS,REGION_CRAFT_TIERS,BASIC_CRAFT_RECIPES,ALCHEMY_RECIPES,MINING_NODES,MINE_CATALYST_BY_ORE,getRegionMonster,getUpgradeRequirements} from './src/data/gameData';export * from './src/utils/regionalProgress';export * from './src/utils/autoBattle';export {clanRaidReward,clanRaidItem} from './src/utils/clanProjects';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[art]});
+const bundle = await build({stdin:{contents:`export {REGIONS,MONSTERS,REGION_CRAFT_TIERS,BASIC_CRAFT_RECIPES,ALCHEMY_RECIPES,MINING_NODES,MINE_CATALYST_BY_ORE,getRegionMonster,getUpgradeRequirements} from './src/data/gameData';export * from './src/utils/regionalProgress';export * from './src/utils/autoBattle';export * from './src/utils/huntEncounters';export {clanRaidReward,clanRaidItem} from './src/utils/clanProjects';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[art]});
 const data:any=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
+
+test('regional hunts offer alternatives at entry level and series follow the chosen target without level locks',()=>{
+ for(const region of data.REGIONS){
+  const ordinary=region.monsters.map((id:string)=>data.getRegionMonster(data.MONSTERS[id],region)).filter((m:any)=>!m.isBoss&&!m.isElite);
+  const player:any={level:region.minLevel,regionProgress:{}};
+  assert(ordinary.filter((m:any)=>m.level<=region.minLevel+(region.id==='reg_plains'?2:1)).length>=2,region.id);
+  for(const first of ordinary){
+   assert.equal(data.huntLockReason(player,first,region),null,'ordinary targets do not require a kill order');
+   const pool=data.huntSeriesPool(first,ordinary);
+   assert(pool.length>0);assert(pool.every((m:any)=>Math.abs(m.level-first.level)<=1));
+  }
+ }
+ const plains=data.REGIONS[0],targets=plains.monsters.map((id:string)=>data.getRegionMonster(data.MONSTERS[id],plains)).filter((m:any)=>!m.isBoss&&!m.isElite);
+ assert.deepEqual(targets.map((m:any)=>m.level),[2,2,3,8]);
+ assert.deepEqual(data.huntSeriesPool(targets[0],targets).map((m:any)=>m.id),['m_wolf','m_goblin','m_boar']);
+ assert.deepEqual(data.huntSeriesPool(targets[3],targets).map((m:any)=>m.id),['m_bandit']);
+ assert.equal(data.MONSTERS.m_goblin.level,4,'regional encounters must not mutate shared templates');
+ assert(data.getRegionMonster(data.MONSTERS.m_goblin,plains,5).maxHp>targets[1].maxHp,'explicit dungeon floors scale the regional template');
+ assert.deepEqual(data.huntSeriesPool(targets[0],[{...targets[1],regionId:'other'},{...targets[1],isElite:true}]),[targets[0]]);
+});
 
 test('every base kit and regional potion has ordinary hunt and reachable mine sources; upgraded kits use earned seals',()=>{
  for (const tier of data.REGION_CRAFT_TIERS) {
@@ -85,13 +105,24 @@ test('autobattle finishes weak enemies and only shields against meaningful incom
 });
 
 test('actual hunts unlock elite then boss, award seals and first-boss fragment once, craft earned kits and persist progress',async()=>{
- const ui=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {REGIONS,MONSTERS,BASIC_CRAFT_RECIPES,getRegionMonster} from './src/data/gameData';window.data={REGIONS,MONSTERS,BASIC_CRAFT_RECIPES,getRegionMonster};function Probe(){window.game=useGame();return null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};window.act=act;`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[art,{name:'fixture',setup(b){b.onLoad({filter:/GameContext\.tsx$/},async (args:any)=>({contents:(await fs.readFile(args.path,'utf8')).replace('const [player, setPlayer] = useState<PlayerCharacter | null>(null);','const [player, setPlayer] = useState<PlayerCharacter | null>(null); (window as any).setPlayer = setPlayer;'),loader:'tsx'}));}}]});
+ const ui=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {REGIONS,MONSTERS,BASIC_CRAFT_RECIPES,getRegionMonster} from './src/data/gameData';window.data={REGIONS,MONSTERS,BASIC_CRAFT_RECIPES,getRegionMonster};function Probe(){window.game=useGame();return null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};window.act=act;`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[art,{name:'fixture',setup(b){b.onLoad({filter:/GameContext\.tsx$/},async (args:any)=>({contents:(await fs.readFile(args.path,'utf8')).replace('const [player, setPlayer] = useState<PlayerCharacter | null>(null);','const [player, setPlayer] = useState<PlayerCharacter | null>(null); (window as any).setPlayer = setPlayer;').replace('const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);','const [combatChain, setCombatChain] = useState<CombatChainState | null>(null); (window as any).combatQueue = combatChain?.queue;'),loader:'tsx'}));}}]});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;
  w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});w.Math.random=()=>.5;
  w.eval(ui.outputFiles[0].text);
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Охотник','knight'));
+  await w.act(async()=>w.game.exitCombat());
+  w.Math.random=()=>.99;
+  for(const id of ['m_wolf','m_goblin','m_boar','m_bandit']){
+   const selected=w.data.getRegionMonster(w.data.MONSTERS[id],w.data.REGIONS[0]);
+   await w.act(async()=>assert.equal(w.game.startBattleWithMonster(selected,{chain:true,energyCost:0}),true));
+   assert.equal(w.game.activeMonster.id,id);assert.equal(w.game.activeMonster.level,selected.level);
+   assert.equal(w.game.combatChain.total,3);assert(w.combatQueue.every((m:any)=>Math.abs(m.level-selected.level)<=1));
+   if(id!=='m_bandit')assert(w.combatQueue.every((m:any)=>m.id!=='m_bandit'));
+   await w.act(async()=>w.game.exitCombat());
+  }
+  w.Math.random=()=>.5;
   await w.act(async()=>w.setPlayer({...w.game.player,attributes:{...w.game.player.attributes,strength:1000000},level:4,nextExp:1e12,maxInventorySlots:1000}));
   const region=w.data.REGIONS[0],enemy=(id:string)=>w.data.getRegionMonster(w.data.MONSTERS[id],region);
   const elite=enemy('elite_reg_plains'),boss=enemy('m_queen_bat');

@@ -1,6 +1,7 @@
 import { THROWING_RECIPES } from '../utils/combatPotions';
 import { FISHING_RECIPES } from '../utils/fishing';
 import { regionalEnemyStats } from '../utils/pveBalance';
+import { ordinaryHuntLevel, regionalHuntTemplate } from '../utils/huntEncounters';
 import { regionalSealName } from '../utils/regionalProgress';
 import { 
   CharacterClassId, 
@@ -1413,9 +1414,12 @@ const ADVANCED_REGIONAL_RECIPES: BasicCraftRecipe[] = REGIONAL_CRAFT_RECIPES.fla
 
 // Shared monster templates adapt to the region where they are encountered.
 export const getRegionMonster = (monster: Monster, region: RegionDefinition, minimumLevel = region.minLevel): Monster => {
+  monster = regionalHuntTemplate(monster, region.id);
   const range = region.levelRange.match(/\d+/g)?.map(Number);
   const maxLevel = Math.max(region.minLevel, range?.[1] ?? region.minLevel);
-  const encounterLevel = monster.isBoss ? Math.min(monster.level, region.minLevel + 3) : monster.level;
+  const ordinaryIds = region.monsters.filter(id => MONSTERS[id] && !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
+  const encounterLevel = monster.isBoss ? Math.min(monster.level, region.minLevel + 3) : monster.isElite ? monster.level
+    : ordinaryHuntLevel(monster, region, ordinaryIds);
   const level = Math.min(maxLevel, Math.max(region.minLevel, encounterLevel, minimumLevel));
   const factor = level / Math.max(1, monster.level);
   const scale = (value: number, multiplier = factor) => Math.round(value * multiplier);
