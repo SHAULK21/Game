@@ -5,11 +5,14 @@ import {t,useLocale,intlLocale} from '../../i18n/locale';
 import {CLASSES,MONSTERS} from '../../data/gameData';
 import type {CharacterClassId} from '../../types/game';
 
-type PlayerRow={telegram_id:string;name:string;class_id:CharacterClassId;last_level:number;reached_level:number;sessions:number;active_ms:string;last_seen:string;first_seen:string;last_screen:string|null;last_state:string|null;energy:number|null;last_outcome:string|null;last_monster:string|null;};
+type PlayerRow={telegram_id:string;name:string;class_id:CharacterClassId;last_level:number;reached_level:number;sessions:number;active_ms:string;last_seen:string;first_seen:string;last_screen:string|null;last_state:string|null;energy:number|null;last_outcome:string|null;last_monster:string|null;preferred_interface:string|null;preferred_language:string|null;};
 type Report={summary:{players:number;newcomers:number;returned:number;inactive_24h:number;stopped_early:number;first_minutes:string|null;total_minutes:string|null;collecting_since:string|null};
  funnel:Array<{level:number;eligible:number;reached:number;inactive_here:number}>;milestones:Array<{level:number;samples:number;minutes:string}>;
+ interfaceUsage:Array<{interface_style:string|null;players:number}>;languageUsage:Array<{language:string|null;players:number}>;
  battles:Array<{level:number;battles:number;defeats:number;flees:number;seconds:string;rounds:string;exp:string}>;players:PlayerRow[];
  classes:Array<{class_id:CharacterClassId;players:number;level4:number;inactive_early:number}>};
+const interfaces:Record<string,string>={modern:'Современный',fantasy:'Фэнтези','fantasy-beta':'Фэнтези — бета'};
+const languages:Record<string,string>={ru:'Русский',uk:'Українська'};
 const screens:Record<string,string>={hunter:'Охота',world:'Мир',character:'Герой',inventory:'Сумка',arena:'Арена',mine:'Шахта',fishing:'Рыбалка',alchemy:'Алхимия',blacksmith:'Кузница',crafting:'Ремесло',clan:'Клан',chat:'Чат',more:'Ещё',pets:'Питомцы',market:'Рынок',leaderboard:'Рейтинг'};
 const states:Record<string,string>={idle:'Вне боя',combat:'Бой не завершён',victory:'Победа',defeat:'Поражение',flee:'Побег',dungeon:'Пещера'};
 export function PlayerAnalytics(){
@@ -31,6 +34,12 @@ export function PlayerAnalytics(){
    <div className="grid grid-cols-2 gap-2">{[
     ['Наблюдаемых игроков',data.summary.players],['Новичков с 1 уровня',data.summary.newcomers],['Больше одной сессии',`${data.summary.returned} / ${data.summary.players}`],['Нет активности 24 ч',data.summary.inactive_24h],['Неактивны на ур. 1–3',data.summary.stopped_early],['Первая сессия, мин',data.summary.first_minutes??'—']
    ].map(([label,value])=><div key={label} className="rounded border border-slate-700 p-2"><div className="text-slate-400">{t(label)}</div><strong className="text-lg">{value}</strong></div>)}</div>
+   <h4 className="font-bold text-amber-200">{t('Интерфейсы и языки игроков')}</h4>
+   <p className="text-slate-400">{t('Последние сохранённые настройки игроков из выбранной выборки. Нет данных — игрок ещё не передал настройку.')}</p>
+   <div className="grid grid-cols-2 gap-2">
+    <div className="rounded border border-slate-700 p-2"><strong>{t('Интерфейс')}</strong>{(data.interfaceUsage||[]).map(row=><p key={row.interface_style||'unknown'}>{t(interfaces[row.interface_style||'']||'Нет данных')}: {row.players} ({pct(row.players,data.summary.players)})</p>)}</div>
+    <div className="rounded border border-slate-700 p-2"><strong>{t('Язык')}</strong>{(data.languageUsage||[]).map(row=><p key={row.language||'unknown'}>{t(languages[row.language||'']||'Нет данных')}: {row.players} ({pct(row.players,data.summary.players)})</p>)}</div>
+   </div>
    {data.summary.collecting_since&&<p className="text-slate-400">{t('Первое наблюдение в выборке')}: {when(data.summary.collecting_since)}</p>}
    <h4 className="font-bold text-amber-200">{t('Воронка уровней')}</h4>
    <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Уровень','Дошли','Доля новичков','Неактивны здесь','Минут до уровня'].map(x=><th key={x} className="p-1">{t(x)}</th>)}</tr></thead><tbody>
@@ -45,6 +54,7 @@ export function PlayerAnalytics(){
    {!data.players.length&&<p>{t('Данные появятся после новых входов игроков.')}</p>}
    {data.players.map(p=><div key={p.telegram_id} className="border border-slate-700 rounded p-2 space-y-1">
     <p className="font-bold">{p.name||p.telegram_id} · {t(CLASSES[p.class_id]?.name||p.class_id)} · {t('Уровень')} {p.last_level} ({t('макс.')}: {p.reached_level})</p>
+    <p>{t('Интерфейс')}: {t(interfaces[p.preferred_interface||'']||'Нет данных')} · {t('Язык')}: {t(languages[p.preferred_language||'']||'Нет данных')}</p>
     <p>{t('Сессий')}: {p.sessions} · {t('Активных минут')}: {(Number(p.active_ms)/60000).toFixed(1)} · {t('Последняя активность')}: {when(p.last_seen)}</p>
     <p>{t('Последний экран')}: {t(screens[p.last_screen||'']||'Нет данных')} · {t(states[p.last_state||'']||'Нет данных')} · {t('Энергия')}: {p.energy??'—'}</p>
     {p.last_outcome&&<p>{t('Последний бой')}: {t(MONSTERS[p.last_monster||'']?.name||p.last_monster||'—')} · {t(states[p.last_outcome]||p.last_outcome)}</p>}

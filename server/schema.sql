@@ -295,3 +295,5 @@ CREATE TABLE IF NOT EXISTS balance_activity (
 
 -- UI language is independent of notifications opt-in and character resets.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_language TEXT CHECK (preferred_language IN ('ru', 'uk'));
+
+ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_interface TEXT CHECK (preferred_interface IN ('modern', 'fantasy', 'fantasy-beta'));

@@ -105,3 +105,19 @@ test('notification enablement trusts signed write access, not a client body clai
  await call('POST','/api/notifications/settings',{enabled:false},1,true);
  assert.deepEqual(grants,[false,true,false]);
 });
+
+test('preferences accept all three interfaces, reject unknown values, and update only the authenticated player',async()=>{
+ const writes:Array<{sql:string;args:any[]}> = [];
+ const call=harness(async(sql,args)=>{writes.push({sql,args});return empty;});
+ for(const interfaceStyle of ['modern','fantasy','fantasy-beta']) {
+  assert.equal((await call('POST','/api/preferences/language',{language:'uk',interfaceStyle,userId:999},42)).status,200);
+  assert.deepEqual(writes.at(-1)?.args,[interfaceStyle,42]);
+ }
+ const count=writes.length;
+ for(const interfaceStyle of ['invalid',null,{},123]) {
+  assert.equal((await call('POST','/api/preferences/language',{language:'uk',interfaceStyle},42)).status,400);
+ }
+ assert.equal(writes.length,count,'invalid interface does not update language or interface');
+ assert.equal((await call('POST','/api/preferences/language',{language:'ru'},42)).status,200,'old clients still sync language');
+ assert.equal(writes.length,count+1,'old clients do not overwrite the saved interface');
+});

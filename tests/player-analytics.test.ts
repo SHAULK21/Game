@@ -21,6 +21,7 @@ test('real PostgreSQL newcomer funnel, checkpoints, return sessions and admin ac
   const schema=(await fs.readFile('server/schema.sql','utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;','');
   await db.exec(schema);await db.exec(schema);
   await query("INSERT INTO players(telegram_id,display_name) VALUES(1,'Admin'),(2,'Stopped'),(3,'Returned'),(4,'Legacy')");
+  await query("UPDATE players SET preferred_interface=CASE telegram_id WHEN 1 THEN 'fantasy-beta' WHEN 2 THEN 'modern' WHEN 3 THEN 'fantasy' END, preferred_language=CASE telegram_id WHEN 1 THEN 'uk' WHEN 2 THEN 'ru' WHEN 3 THEN 'uk' END");
   await send(1,event(1,1));
   await send(2,event(2,1));await send(2,event(2,2,2,60000));await send(2,{...event(2,3,3,180000),state:'defeat',energy:0});
   await send(2,event(2,9,1,999999)); // stale snapshot must not invent a milestone
@@ -40,6 +41,14 @@ test('real PostgreSQL newcomer funnel, checkpoints, return sessions and admin ac
   assert.equal(r.body.funnel.find((x:any)=>x.level===9).reached,0);
   assert.equal(Number(r.body.milestones.find((x:any)=>x.level===4).minutes),3,'time across two sessions adds active time only');
   const p=r.body.players.find((x:any)=>String(x.telegram_id)==='2');assert.equal(p.last_level,3);assert.equal(p.energy,0);assert.equal(p.last_outcome,'defeat');
+  assert.equal(p.preferred_interface,'modern');assert.equal(p.preferred_language,'ru');
+  assert.deepEqual(Object.fromEntries(r.body.interfaceUsage.map((x:any)=>[x.interface_style??'unknown',x.players])),{modern:1,fantasy:1,unknown:1});
+  assert.deepEqual(Object.fromEntries(r.body.languageUsage.map((x:any)=>[x.language??'unknown',x.players])),{ru:1,uk:1,unknown:1});
+  await query("UPDATE players SET preferred_interface='fantasy-beta',preferred_language='ru' WHERE telegram_id=4");
+  const updated=await call('GET','/api/admin/player-analytics');
+  assert.equal(updated.body.interfaceUsage.find((x:any)=>x.interface_style==='fantasy-beta').players,1,'admin is excluded from preference counts');
+  assert.equal(updated.body.players.find((x:any)=>String(x.telegram_id)==='4').preferred_interface,'fantasy-beta');
+  assert.equal(updated.body.languageUsage.find((x:any)=>x.language==='ru').players,2);
   assert.equal(r.body.battles[0].defeats,1);
   assert.equal((await query('SELECT count(*)::int AS n FROM balance_progress WHERE level=9')).rows[0].n,0);
   assert.equal(validTelemetryEvent({...event(2,3),energy:-1}),false);

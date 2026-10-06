@@ -40,16 +40,20 @@ export function registerPlayerAnalytics(app:Express,getPool:()=>Pool,auth:Reques
     COUNT(*) FILTER(WHERE outcome='flee')::int AS flees,ROUND(AVG(duration_ms)/1000,1) AS seconds,
     ROUND(AVG(rounds),1) AS rounds,ROUND(AVG(exp),1) AS exp FROM balance_battles b JOIN people p USING(telegram_id)
     WHERE b.level<=10 GROUP BY b.level ORDER BY b.level`,
-   `${cohort} SELECT p.*,COALESCE(pl.character_name,pl.display_name) AS name,pl.class_id,
+   `${cohort} SELECT p.*,COALESCE(pl.character_name,pl.display_name) AS name,pl.class_id,pl.preferred_interface,pl.preferred_language,
     b.outcome AS last_outcome,b.monster AS last_monster,b.region AS last_region,b.duration_ms AS last_battle_ms
     FROM people p JOIN players pl USING(telegram_id)
     LEFT JOIN LATERAL(SELECT outcome,monster,region,duration_ms FROM balance_battles WHERE telegram_id=p.telegram_id AND session_id=p.last_session_id ORDER BY created_at DESC,id DESC LIMIT 1)b ON TRUE
     ORDER BY p.last_seen DESC,p.telegram_id LIMIT 50`,
    `${cohort} SELECT class_id,COUNT(*)::int AS players,COUNT(*) FILTER(WHERE p.reached_level>=4)::int AS level4,
     COUNT(*) FILTER(WHERE p.last_seen<NOW()-INTERVAL '24 hours' AND p.reached_level<=3)::int AS inactive_early
-    FROM people p JOIN players pl USING(telegram_id) WHERE p.start_level=1 GROUP BY class_id ORDER BY players DESC,class_id`
+    FROM people p JOIN players pl USING(telegram_id) WHERE p.start_level=1 GROUP BY class_id ORDER BY players DESC,class_id`,
+   `${cohort} SELECT pl.preferred_interface AS interface_style,COUNT(*)::int AS players
+    FROM people p JOIN players pl USING(telegram_id) GROUP BY pl.preferred_interface ORDER BY players DESC,interface_style`,
+   `${cohort} SELECT pl.preferred_language AS language,COUNT(*)::int AS players
+    FROM people p JOIN players pl USING(telegram_id) GROUP BY pl.preferred_language ORDER BY players DESC,language`
   ];
   const results=await Promise.all(queries.map(sql=>getPool().query(sql,[days,req.authUser!.id])));
-  res.json({days,summary:results[0].rows[0],funnel:results[1].rows,milestones:results[2].rows,battles:results[3].rows,players:results[4].rows,classes:results[5].rows,source:'client_diagnostics'});
+  res.json({days,summary:results[0].rows[0],funnel:results[1].rows,milestones:results[2].rows,battles:results[3].rows,players:results[4].rows,classes:results[5].rows,interfaceUsage:results[6].rows,languageUsage:results[7].rows,source:'client_diagnostics'});
  });
 }

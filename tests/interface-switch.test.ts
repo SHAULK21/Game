@@ -36,7 +36,8 @@ async function setup(contents: string) {
 test('registration switches styles without losing input; both layouts share character, energy and active combat', async () => {
   const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`);
   let serverVersion = 0;
-  w.fetch = async (url: string) => ({ ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], ok: true, totalGold: 0, isAdmin: false }) });
+  const preferences:any[]=[];
+  w.fetch = async (url: string,options:any) => {if(url==='/api/preferences/language')preferences.push(JSON.parse(options.body));return { ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], ok: true, totalGold: 0, isAdmin: false }) };};
   const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 40)); });
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === text) as any;
   const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
@@ -88,6 +89,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(w.document.querySelector('.bestiary-record-grid'), null);
     await w.act(async () => button('Фэнтези — бета').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy-beta');
+    assert.deepEqual(JSON.parse(JSON.stringify(preferences.at(-1))),{language:'ru',interfaceStyle:'fantasy-beta'},'beta and language are synced to the server');
     assert(w.document.querySelector('.bestiary-record-grid'), 'beta uses the new PR85 bestiary');
     assert.equal(w.document.querySelector('.bestiary-dossier'), null);
     assert.equal(JSON.stringify(save().player), stablePlayer);

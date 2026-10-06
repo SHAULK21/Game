@@ -92,7 +92,13 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
   app.post('/api/preferences/language',auth,async(req,res)=>{
     const language=req.body?.language;
     if(language!=='ru' && language!=='uk')return res.status(400).json({error:'Unsupported language.'});
+    const interfaceStyle=req.body?.interfaceStyle;
+    if(interfaceStyle!==undefined && !['modern','fantasy','fantasy-beta'].includes(interfaceStyle))
+      return res.status(400).json({error:'Unsupported interface style.'});
     const changed=await getPool().query('UPDATE players SET preferred_language=$1 WHERE telegram_id=$2 AND preferred_language IS DISTINCT FROM $1 RETURNING bot_started',[language,req.authUser!.id]);
+    if(interfaceStyle!==undefined) await getPool().query(
+      'UPDATE players SET preferred_interface=$1 WHERE telegram_id=$2 AND preferred_interface IS DISTINCT FROM $1',
+      [interfaceStyle,req.authUser!.id]);
     const menu=gameMenuButton(baseUrl,language);
     if(changed.rows[0]?.bot_started && menu) {
       try { await telegram('setChatMenuButton',{chat_id:Number(req.authUser!.id),menu_button:menu}); }
