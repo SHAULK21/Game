@@ -106,7 +106,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 className="beta-opponent-tile p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-900"><RpgIcon kind="character" size={22} className="text-[#a48b60]" /></span>
+                  <img src={opp.portrait} alt={localize(opp.name)} width={80} height={96} className="arena-gladiator-portrait h-24 w-20 shrink-0 rounded-lg border border-[#756344] object-cover object-top" decoding="async" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-cinzel text-xs font-bold text-slate-100">

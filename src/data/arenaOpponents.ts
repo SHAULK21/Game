@@ -3,6 +3,7 @@ import type { ArenaOpponent } from '../types/game';
 export const ARENA_BOTS: ArenaOpponent[] = [
   {
     id: 'opp_1',
+    portrait: '/assets/arena/opp_1.webp',
     name: 'Рагнар Железнобокий',
     characterClass: 'warrior',
     level: 3,
@@ -14,6 +15,7 @@ export const ARENA_BOTS: ArenaOpponent[] = [
   },
   {
     id: 'opp_2',
+    portrait: '/assets/arena/opp_2.webp',
     name: 'Ванесса Теневой Клинок',
     characterClass: 'rogue',
     level: 5,
@@ -25,6 +27,7 @@ export const ARENA_BOTS: ArenaOpponent[] = [
   },
   {
     id: 'opp_3',
+    portrait: '/assets/arena/opp_3.webp',
     name: 'Архимаг Элириан',
     characterClass: 'mage',
     level: 8,
@@ -36,6 +39,7 @@ export const ARENA_BOTS: ArenaOpponent[] = [
   },
   {
     id: 'opp_4',
+    portrait: '/assets/arena/opp_4.webp',
     name: 'Мортис Пожиратель Душ',
     characterClass: 'necromancer',
     level: 12,
@@ -47,6 +51,7 @@ export const ARENA_BOTS: ArenaOpponent[] = [
   },
   {
     id: 'opp_5',
+    portrait: '/assets/arena/opp_5.webp',
     name: 'Кровавый Берсерк Корг',
     characterClass: 'berserker',
     level: 18,
@@ -58,6 +63,7 @@ export const ARENA_BOTS: ArenaOpponent[] = [
   },
   {
     id: 'opp_6',
+    portrait: '/assets/arena/opp_6.webp',
     name: 'Лорд-Командующий Валориан',
     characterClass: 'paladin',
     level: 25,

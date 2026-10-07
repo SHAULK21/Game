@@ -448,6 +448,7 @@ export interface ArenaOpponent {
   powerRating: number;
   rating: number;
   avatar: string;
+  portrait?: string;
   league: 'Бронза' | 'Серебро' | 'Золото' | 'Платина' | 'Алмаз' | 'Мастер';
   stats: {
     hp: number;

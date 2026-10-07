@@ -104,9 +104,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                 className="p-3 rounded-xl border border-slate-800 bg-[#0a0f1d] hover:border-slate-700 transition-all flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                    {localize(opp.avatar)}
-                  </span>
+                  <img src={opp.portrait} alt={localize(opp.name)} width={80} height={96} className="h-24 w-20 shrink-0 rounded-lg border border-slate-700 object-cover object-top" decoding="async" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-cinzel text-xs font-bold text-slate-100">

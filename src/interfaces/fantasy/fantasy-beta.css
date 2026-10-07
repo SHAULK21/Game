@@ -1672,3 +1672,5 @@ html[data-interface="fantasy-beta"] .dossier-header :is(h1,.dossier-back,.dossie
 html[data-interface="fantasy-beta"] .dossier-header h1 { white-space:normal; font-size:15px; }
 html[data-interface="fantasy-beta"] .dossier-footer { background:none; padding-left:41px; }
 html[data-interface="fantasy-beta"] .dossier-footer p { color:#81372e; }
+
+html[data-interface="fantasy-beta"] .beta-opponent-tile .arena-gladiator-portrait { width:100%; height:auto; aspect-ratio:1; object-fit:cover; object-position:top; }

@@ -42,6 +42,6 @@ export function arenaMonster(id:string,heroLevel:number):Monster|undefined {
     attack:caster?Math.round(opponent.stats.attack*.6):opponent.stats.attack,
     magicAttack:caster?opponent.stats.attack:0,defense:opponent.stats.defense,magicDefense:Math.round(opponent.stats.defense*.85),
     speed:opponent.stats.speed,critChance:opponent.stats.critChance,evasion:opponent.characterClass==='rogue'?10:4,
-    isBoss:false,avatar:opponent.avatar,damageType,expReward:opponent.expReward,goldReward:opponent.level*60,
+    isBoss:false,avatar:opponent.portrait ?? opponent.avatar,damageType,expReward:opponent.expReward,goldReward:opponent.level*60,
     drops:[{itemName:'Жетон чемпиона Арены',type:'material',rarity:'epic',chance:1,minQty:1,maxQty:2}],skills};
 }
