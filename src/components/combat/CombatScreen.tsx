@@ -595,12 +595,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               : 'opacity-80 bg-slate-900/40'
           }`}>
             {/* Monster Image */}
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md flex items-center justify-center bg-red-950/40">
+            <div className={`relative flex items-center justify-center ${activeMonster.regionId === 'arena' ? 'w-28 h-40 sm:w-32 sm:h-48' : 'w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md bg-red-950/40'}`}>
               {hasMonImg ? (
                 <img
                   src={getMonsterArtworkPath(activeMonster.id, activeMonster.avatar)}
                   alt={localize(activeMonster.name)}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full ${activeMonster.regionId === 'arena' ? 'object-contain object-bottom' : 'object-cover'}`}
                   referrerPolicy="no-referrer"
                 />
               ) : (

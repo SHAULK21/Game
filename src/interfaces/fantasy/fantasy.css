@@ -922,3 +922,10 @@ html[data-interface="fantasy"] .combat-player-hit { animation:combat-player-hit 
 @media(min-width:640px) { html[data-interface="fantasy"] .combat-player-art { height:306px; } }
 @media(max-width:380px) { html[data-interface="fantasy"] .combat-player-art { left:0; top:34px; height:236px; } html[data-interface="fantasy"] .combat-monster-art { width:55%; } }
 @media(prefers-reduced-motion:reduce) { html[data-interface="fantasy"] .combat-player-breathe,html[data-interface="fantasy"] .combat-player-attack,html[data-interface="fantasy"] .combat-player-hit { animation:none; } }
+
+/* Arena sprites stand on the same ground plane as the hero. */
+html[data-interface="fantasy"] .combat-monster-art.arena-gladiator-art { top:36px; right:0; width:48%; height:256px; overflow:visible; filter:none; }
+html[data-interface="fantasy"] .arena-gladiator-art::before { content:""; position:absolute; left:20%; right:15%; bottom:0; height:10px; border-radius:50%; background:#03060590; filter:blur(3px); }
+html[data-interface="fantasy"] .arena-gladiator-art img { position:relative; object-position:center bottom; filter:drop-shadow(2px 3px 2px #0005); }
+@media(min-width:640px) { html[data-interface="fantasy"] .combat-monster-art.arena-gladiator-art { height:306px; } }
+@media(max-width:380px) { html[data-interface="fantasy"] .combat-monster-art.arena-gladiator-art { top:34px; height:236px; } }

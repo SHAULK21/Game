@@ -73,7 +73,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         <CombatCompanion pet={player.activePet} />
       </div>
 
-      <div className={`combat-monster-art ${monsterStriking ? 'monster-strike-motion' : ''} pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]`}>
+      <div className={`combat-monster-art ${monster.regionId === 'arena' ? 'arena-gladiator-art' : ''} ${monsterStriking ? 'monster-strike-motion' : ''} pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]`}>
         <Portrait src={monsterArtwork} alt="" className="h-full w-full object-contain object-right-bottom"/>
       </div>
 

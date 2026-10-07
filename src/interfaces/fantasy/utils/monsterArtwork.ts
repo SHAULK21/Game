@@ -24,7 +24,7 @@ const isGeneratedMonsterImage = (value?: string) => Boolean(value && /^\/assets\
 
 /** Resolve monster portraits without touching combat data or the saved avatar values. */
 export const getMonsterArtworkPath = (id: string, savedAvatar?: string): string => {
-  if (/^gladiator_opp_[1-6]$/.test(id)) return `/assets/arena/${id.replace('gladiator_', '')}.webp`;
+  if (/^gladiator_opp_[1-6]$/.test(id)) return `/assets/arena/${id.replace('gladiator_', '')}-fullbody.webp`;
   let artId = authoredMonsterArt.has(id) ? id : regionalAliases[id];
 
   if (!artId && id.startsWith('ascension_echo_')) artId = 'm_demon_lord';
