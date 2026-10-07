@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from './GameContext';
 import type { GameTabId } from '../types/navigation';
 
@@ -13,9 +13,23 @@ interface NavigationState {
 const NavigationContext = createContext<NavigationState | null>(null);
 
 export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [currentTab, setCurrentTab] = useState<GameTabId>('hunter');
-  const [isCharacterSheetOpen, setIsCharacterSheetOpen] = useState(false);
+  const [currentTab, updateTab] = useState<GameTabId>('hunter');
+  const [isCharacterSheetOpen, updateSheet] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const tabRef = useRef(currentTab), sheetRef = useRef(isCharacterSheetOpen);
+  const setCurrentTab = useCallback<NavigationState['setCurrentTab']>(action => {
+    const next = typeof action === 'function' ? action(tabRef.current) : action;
+    if (next === tabRef.current) return;
+    if (!sheetRef.current) window.dispatchEvent(new CustomEvent('aethelgard:before-navigation'));
+    tabRef.current = next; updateTab(next);
+  }, []);
+  const setIsCharacterSheetOpen = useCallback<NavigationState['setIsCharacterSheetOpen']>(action => {
+    const next = typeof action === 'function' ? action(sheetRef.current) : action;
+    if (next === sheetRef.current) return;
+    if (tabRef.current !== 'character') window.dispatchEvent(new CustomEvent('aethelgard:before-navigation'));
+    sheetRef.current = next; updateSheet(next);
+  }, []);
+
   const { player, isInCombat, isCombatEnded, exitCombat, acknowledgeFirstJourney, travelState } = useGame();
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('aethelgard:screen',{detail:isCharacterSheetOpen?'character':currentTab}));

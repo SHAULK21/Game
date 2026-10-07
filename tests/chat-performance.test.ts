@@ -40,15 +40,15 @@ test('chat skips overlapping polls and hidden windows, resumes on visibility and
     assert.equal(requests,2,'no background polling');
     hidden=false;
     await w.act(async()=>w.document.dispatchEvent(new w.Event('visibilitychange')));
-    assert.equal(requests,4,'resume immediately when visible');
+    assert.equal(requests,3,'resume messages immediately without repeating fresh statistics');
     await finish();
     await w.act(async()=>w.document.querySelector('button').click());
-    assert.equal(requests,6,'manual refresh remains available');
+    assert.equal(requests,5,'manual refresh remains available');
     await finish();
     await w.act(async()=>w.root.unmount());
     assert.equal(stopped,true);
     w.document.dispatchEvent(new w.Event('visibilitychange'));
     poll();
-    assert.equal(requests,6);
+    assert.equal(requests,5);
   } finally {dom.window.close();}
 });

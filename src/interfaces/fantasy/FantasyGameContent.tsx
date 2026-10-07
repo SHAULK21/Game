@@ -4,7 +4,7 @@ import { useInterface } from '../../context/InterfaceContext';
 import { BetaTopHeader } from './components/layout/BetaTopHeader';
 import { BetaBottomNavigation } from './components/layout/BetaBottomNavigation';
 import { t as localize, useLocale } from '../../i18n/locale';
-import React, { lazy, Suspense, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
 import { TopHeader } from './components/layout/TopHeader';
 import { BottomNavigation } from './components/layout/BottomNavigation';
@@ -41,15 +41,10 @@ export const FantasyGameContent: React.FC = () => {
 
   const shellRef = useBookBounds(style === 'fantasy-beta', `${currentTab}:${isCharacterSheetOpen}:${Boolean(player)}:${isInCombat}`);
 
-  if (!player) {
-    return <CharacterCreationModal />;
-  }
-
-  const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
-
-  return (
-    <div ref={shellRef} onClickCapture={event => {
-      if (style !== 'fantasy-beta' || !(event.target as HTMLElement).closest('button,a,summary')) return;
+  useEffect(() => {
+    if (style !== 'fantasy-beta') return;
+    const capture = () => {
+      if (pageSnapshot.current || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
       const main = shellRef.current?.querySelector('main');
       if (!main) return;
       const copy = document.createElement('div');
@@ -59,12 +54,25 @@ export const FantasyGameContent: React.FC = () => {
       copy.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
       copy.setAttribute('inert', '');
       copy.setAttribute('aria-hidden', 'true');
-      copy.style.width = `${main.getBoundingClientRect().width}px`;
+      const bounds = main.getBoundingClientRect();
+      copy.style.width = `${bounds.width}px`;
       copy.style.position = 'absolute';
-      copy.style.top = `${main.getBoundingClientRect().top - parseFloat(getComputedStyle(shellRef.current!).getPropertyValue('--beta-book-top') || '0')}px`;
+      copy.style.top = `${bounds.top - parseFloat(getComputedStyle(shellRef.current!).getPropertyValue('--beta-book-top') || '0')}px`;
       copy.style.left = '-6.95%';
       pageSnapshot.current = copy;
-    }} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
+    };
+    window.addEventListener('aethelgard:before-navigation', capture);
+    return () => { window.removeEventListener('aethelgard:before-navigation', capture); pageSnapshot.current = null; };
+  }, [style, shellRef]);
+
+  if (!player) {
+    return <CharacterCreationModal />;
+  }
+
+  const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
+
+  return (
+    <div ref={shellRef} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
       <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 

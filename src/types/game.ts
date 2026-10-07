@@ -563,6 +563,8 @@ export interface PlayerCharacter {
   energy: number;
   maxEnergy: number;
   lastEnergyRegenTimestamp?: number;
+  lastStaminaRegenTimestamp?: number;
+  lastAlchemyRegenTimestamp?: number;
   stamina: number;
   maxStamina: number;
 

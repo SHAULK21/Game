@@ -123,7 +123,7 @@ html[data-interface="fantasy"] .font-cinzel, html[data-interface="fantasy"] .fol
 html[data-interface="fantasy"] .bestiary-panel {
   border-color: #4d4639;
   background:
-    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'),
     linear-gradient(145deg, rgb(34 31 26 / 97%), rgb(17 19 20 / 99%) 70%),
     #141619;
   background-size: 360px 360px, 100% 100%, auto;
@@ -134,7 +134,7 @@ html[data-interface="fantasy"] .bestiary-panel {
 }
 html[data-interface="fantasy"] .leather-panel {
   background:
-    url('/assets/sprites/generated/ui/leather-grain.webp'),
+    url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'),
     linear-gradient(145deg, #292319, #181714 72%);
   background-size: 360px 360px, 100% 100%;
   background-repeat: repeat, no-repeat;
@@ -235,7 +235,7 @@ html[data-interface="fantasy"] .bestiary-art-stamp {
 html[data-interface="fantasy"] .bestiary-dossier-paper {
   color: #302820;
   background:
-    url('/assets/sprites/generated/ui/parchment-grain.webp'),
+    url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),
     radial-gradient(ellipse at 8% 10%, rgb(255 248 220 / 62%), transparent 30%),
     radial-gradient(ellipse at 92% 90%, rgb(140 102 58 / 13%), transparent 30%),
     linear-gradient(133deg, #eadcc0, #cdb996 58%, #dfcfac);
@@ -311,7 +311,7 @@ html[data-interface="fantasy"] .game-shell main { max-width: 1140px; min-width: 
 html[data-interface="fantasy"] .folio-page { max-width: 1140px; padding-bottom: calc(96px + var(--app-safe-bottom)); }
 html[data-interface="fantasy"] .hero-codex { max-width: 900px; }
 html[data-interface="fantasy"] .header-content { max-width: 1100px; }
-html[data-interface="fantasy"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
+html[data-interface="fantasy"] .codex-paper { --text-primary: #39291b; --text-muted: #6b5338; color: #39291b; border: 3px double #8c6941; border-radius: 8px; background: url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'), radial-gradient(ellipse at center, #f0dfb8, #cfaf7e); background-size: 420px, auto; background-blend-mode: soft-light, normal; box-shadow: inset 0 0 24px #8f5b2933, 0 4px 14px #0006; }
 html[data-interface="fantasy"] .game-shell main .codex-paper h1, html[data-interface="fantasy"] .game-shell main .codex-paper h2, html[data-interface="fantasy"] .game-shell main .codex-paper h3 { color: #38271b; font-family: Georgia, 'Times New Roman', serif; }
 html[data-interface="fantasy"] .codex-paper [class*="text-[#"], html[data-interface="fantasy"] .codex-paper [class*="text-slate"], html[data-interface="fantasy"] .codex-paper .text-white { color: inherit; }
 html[data-interface="fantasy"] .codex-paper .section-title { font-size: 19px; }
@@ -407,7 +407,7 @@ html[data-interface="fantasy"] .game-drawer { padding-bottom: max(16px, var(--ap
   html[data-interface="fantasy"] .dossier-loot { grid-template-columns: minmax(0, 1fr); }
 }
 
-html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper { background: url('/assets/sprites/generated/ui/parchment-grain.webp'), linear-gradient(130deg, #eddbb6, #c6a778); background-size: 420px, auto; background-blend-mode: soft-light, normal; }
+html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper { background: url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'), linear-gradient(130deg, #eddbb6, #c6a778); background-size: 420px, auto; background-blend-mode: soft-light, normal; }
 html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper.is-selected { border-color: #d6ae69; box-shadow: inset 0 0 0 1px #735330, 0 0 0 2px #b48e51; }
 html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="text-"] { color: inherit; }
 html[data-interface="fantasy"] .world-codex .atlas-node.codex-paper [class*="bg-"] { color: #dfcaa7; }
@@ -425,7 +425,7 @@ html[data-interface="fantasy"] .registration-skills summary { font:700 clamp(16p
 html[data-interface="fantasy"] .registration-passive { border:3px double #8f6840; background:linear-gradient(105deg,#e9d4a5,#cdb080); padding:14px; color:#402b1c; }
 html[data-interface="fantasy"] .registration-passive > div { color:inherit; font-size:12px; }
 html[data-interface="fantasy"] .registration-passive > div:first-child { font:700 16px Georgia,serif; text-transform:none; }
-html[data-interface="fantasy"] .skill-codex-card { --skill-aura:#867055; display:grid; grid-template-columns:96px minmax(0,1fr); gap:12px; padding:13px; position:relative; border:3px double #997347; border-radius:5px; background:url('/assets/sprites/generated/ui/parchment-grain.webp'),radial-gradient(ellipse,#f0dfba,#d2b68b); background-size:420px,auto; background-blend-mode:soft-light,normal; color:#412d20; box-shadow:inset 0 0 18px #86552933,0 3px 5px #0003; }
+html[data-interface="fantasy"] .skill-codex-card { --skill-aura:#867055; display:grid; grid-template-columns:96px minmax(0,1fr); gap:12px; padding:13px; position:relative; border:3px double #997347; border-radius:5px; background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),radial-gradient(ellipse,#f0dfba,#d2b68b); background-size:420px,auto; background-blend-mode:soft-light,normal; color:#412d20; box-shadow:inset 0 0 18px #86552933,0 3px 5px #0003; }
 html[data-interface="fantasy"] .skill-codex-card.is-blood,html[data-interface="fantasy"] .skill-codex-card.is-fire { --skill-aura:#ab3d32; }
 html[data-interface="fantasy"] .skill-codex-card.is-dark,html[data-interface="fantasy"] .skill-codex-card.is-magic { --skill-aura:#8653a6; }
 html[data-interface="fantasy"] .skill-codex-card.is-ice,html[data-interface="fantasy"] .skill-codex-card.is-lightning { --skill-aura:#4b83ac; }
@@ -580,7 +580,7 @@ html[data-interface="fantasy"] .registration-class-portrait { width:52px; height
 html[data-interface="fantasy"] { --shell-width: 900px; --shell-nav-height: 76px; --shell-frame-size: 20px; }
 html[data-interface="fantasy"] .fantasy-shell-header {
   width:100%; max-width:var(--shell-width); margin-inline:auto; padding:12px 15px 17px;
-  border:0; border-radius:0; background:#171716 url('/assets/sprites/generated/ui/leather-grain.webp') repeat;
+  border:0; border-radius:0; background:#171716 url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp') repeat;
   background-size:360px; color:#dcc99d; box-shadow:0 4px 12px #0008; font-family:Georgia,"Times New Roman",serif;
 }
 html[data-interface="fantasy"] .shell-brand-row { position:relative; display:flex; align-items:center; justify-content:center; min-height:42px; padding-inline:40px; }
@@ -641,7 +641,7 @@ html[data-interface="fantasy"] .fantasy-combat-page {
 }
 html[data-interface="fantasy"] .combat-ledger {
   color:var(--combat-ink); border:3px double var(--combat-rule); border-radius:3px;
-  background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac);
+  background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac);
   background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 18px #86552933;
 }
 html[data-interface="fantasy"] .combat-ledger-heading {
@@ -685,7 +685,7 @@ html[data-interface="fantasy"] .inventory-book {
   --inventory-ink:#39291b; --inventory-muted:#6b5338; --inventory-rule:#997347;
   max-width:700px; padding:12px 10px 22px; color:var(--inventory-ink);
   border:3px double #8c6941; border-radius:0;
-  background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac);
+  background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac);
   background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 28px #76522a44;
 }
 html[data-interface="fantasy"] .inventory-page-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 4px 10px; border-bottom:1px solid var(--inventory-rule); }
@@ -695,7 +695,7 @@ html[data-interface="fantasy"] .inventory-page-heading > div > span { display:bl
 html[data-interface="fantasy"] .inventory-page-heading strong { display:block; overflow-wrap:anywhere; font:700 26px/1.1 Georgia,serif; }
 html[data-interface="fantasy"] .inventory-paper-doll { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr); align-items:stretch; gap:5px; margin-top:10px; }
 html[data-interface="fantasy"] .inventory-slot-column { display:flex; flex-direction:column; gap:6px; }
-html[data-interface="fantasy"] .inventory-equipped-slot { position:relative; display:flex; align-items:center; gap:5px; min-height:48px; padding:6px 8px; color:#bfb5a3; text-align:left; background:#211e19 url('/assets/sprites/generated/ui/leather-grain.webp'); background-size:220px; border-radius:0; }
+html[data-interface="fantasy"] .inventory-equipped-slot { position:relative; display:flex; align-items:center; gap:5px; min-height:48px; padding:6px 8px; color:#bfb5a3; text-align:left; background:#211e19 url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'); background-size:220px; border-radius:0; }
 html[data-interface="fantasy"] .inventory-equipped-slot:disabled { cursor:default; }
 html[data-interface="fantasy"] .inventory-equipped-slot.is-filled { background-color:#1b3024; color:#eddfba; }
 html[data-interface="fantasy"] .inventory-equipped-art { display:flex; align-items:center; justify-content:center; width:26px; height:32px; flex-shrink:0; }
@@ -722,7 +722,7 @@ html[data-interface="fantasy"] .inventory-bag-page > [role="tablist"] { gap:3px;
 html[data-interface="fantasy"] .inventory-book .codex-tab { flex:1; min-width:0; min-height:44px; padding:6px 3px; color:#d9c9a9; border:2px double #8c6941; border-radius:2px; background:#29251e; font:700 12px/1.25 Georgia,serif; white-space:normal; }
 html[data-interface="fantasy"] .inventory-book .codex-tab.is-active { color:#eedbb5; background:#263f31; border-color:#b99a5a; }
 html[data-interface="fantasy"] .inventory-bag-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:3px; }
-html[data-interface="fantasy"] .inventory-bag-slot { position:relative; display:flex; align-items:center; justify-content:center; min-width:0; min-height:44px; aspect-ratio:1; padding:5px; color:#e6d3aa; background:#26221b url('/assets/sprites/generated/ui/leather-grain.webp'); background-size:220px; border-radius:0; }
+html[data-interface="fantasy"] .inventory-bag-slot { position:relative; display:flex; align-items:center; justify-content:center; min-width:0; min-height:44px; aspect-ratio:1; padding:5px; color:#e6d3aa; background:#26221b url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'); background-size:220px; border-radius:0; }
 html[data-interface="fantasy"] .inventory-bag-slot.is-equipped { background-color:#1b3024; }
 html[data-interface="fantasy"] .inventory-bag-slot.is-empty { opacity:.72; }
 html[data-interface="fantasy"] .inventory-bag-slot > img { max-width:100%; max-height:100%; }
@@ -749,7 +749,7 @@ html[data-interface="fantasy"] .inventory-book [data-frame-strip="bottom"] { bot
 html[data-interface="fantasy"] .inventory-book [data-frame-strip="left"],html[data-interface="fantasy"] .inventory-book [data-frame-strip="right"] { top:var(--frame-corner); bottom:var(--frame-corner); width:var(--frame-corner); }
 html[data-interface="fantasy"] .inventory-book [data-frame-strip="left"] { left:0; }
 html[data-interface="fantasy"] .inventory-book [data-frame-strip="right"] { right:0; }
-html[data-interface="fantasy"] .inventory-item-sheet { color:var(--inventory-ink); border:3px double var(--inventory-rule); border-radius:3px; background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac); background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 20px #76522a33,0 10px 30px #0008; }
+html[data-interface="fantasy"] .inventory-item-sheet { color:var(--inventory-ink); border:3px double var(--inventory-rule); border-radius:3px; background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),linear-gradient(133deg,#eadcc0,#cdb996 58%,#dfcfac); background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 20px #76522a33,0 10px 30px #0008; }
 html[data-interface="fantasy"] .inventory-book .inventory-ink { color:var(--inventory-ink); }
 html[data-interface="fantasy"] .inventory-book .inventory-positive { color:#385132; }
 html[data-interface="fantasy"] .inventory-book .inventory-negative { color:#81372e; }
@@ -797,14 +797,14 @@ html[data-interface="fantasy"] .is-compact .shell-currencies .resource-badge { m
 /* Quest journal: ink on a single parchment leaf, leather chapter tabs. */
 html[data-interface="fantasy"] .fantasy-more-menu .journal-tabs > button {
   min-height:44px; border:3px double #80623d; border-radius:2px; box-shadow:none;
-  background:#282019 url('/assets/sprites/generated/ui/leather-grain.webp'); background-size:260px;
+  background:#282019 url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'); background-size:260px;
   color:#d2bd95; font:700 12px/1.3 Georgia,serif;
 }
 html[data-interface="fantasy"] .fantasy-more-menu .journal-tabs > button[aria-pressed="true"] { color:#f0ddb2; border-color:#b49960; background-color:#34412b; }
 html[data-interface="fantasy"] .fantasy-more-menu .journal-sound { border:1px solid #80623d; border-radius:2px; background:#221d16; }
 html[data-interface="fantasy"] .quest-book {
   color:#39291b; border:3px double #8c6941; padding:14px 12px;
-  background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(135deg,#eadcc0,#cdb996 60%,#dfcfac);
+  background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),linear-gradient(135deg,#eadcc0,#cdb996 60%,#dfcfac);
   background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 25px #76522a44;
   font-family:Georgia,"Times New Roman",serif;
 }
@@ -842,7 +842,7 @@ html[data-interface="fantasy"] .stats-ledger > div { display:grid; grid-template
 html[data-interface="fantasy"] .stats-ledger > div:last-child { border-bottom:0; }
 html[data-interface="fantasy"] .stats-ledger dt { color:#6b5338; overflow-wrap:anywhere; }
 html[data-interface="fantasy"] .stats-ledger dd { margin:0; color:#39291b; font-weight:700; font-variant-numeric:tabular-nums; }
-html[data-interface="fantasy"] .journal-admin { padding:10px; border:3px double #80623d; border-radius:2px; color:#d2bd95; background:#282019 url('/assets/sprites/generated/ui/leather-grain.webp'); background-size:260px; font:700 14px Georgia,serif; }
+html[data-interface="fantasy"] .journal-admin { padding:10px; border:3px double #80623d; border-radius:2px; color:#d2bd95; background:#282019 url('/assets/sprites/generated/ui/leather-grain-512-f73ad28d67a4.webp'); background-size:260px; font:700 14px Georgia,serif; }
 html[data-interface="fantasy"] .journal-admin:hover { color:#f0ddb2; border-color:#b49960; }
 html[data-interface="fantasy"] .mining-manuscript-heading { padding-bottom:12px; border-bottom:3px double #997347; }
 html[data-interface="fantasy"] .game-shell main .mining-manuscript .section-title { color:#39291b; }
@@ -899,7 +899,7 @@ html[data-interface="fantasy"] .hunting-mode-description { margin-top:12px; padd
 html[data-interface="fantasy"] .hunting-mode-description > span { color:#39291b; }
 html[data-interface="fantasy"] .region-dispatch .rpg-button { border:3px double #8c6941; border-radius:2px; background:#34412b; color:#eddfb8; font:700 14px Georgia,serif; min-height:44px; }
 
-html[data-interface="fantasy"] .notification-onboarding-dialog { color:#39291b; font-family:Georgia,serif; border:3px double #997347; border-radius:0; background:url('/assets/sprites/generated/ui/parchment-grain.webp'),linear-gradient(133deg,#eadcc0,#cdb996); background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 28px #76522a44; }
+html[data-interface="fantasy"] .notification-onboarding-dialog { color:#39291b; font-family:Georgia,serif; border:3px double #997347; border-radius:0; background:url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'),linear-gradient(133deg,#eadcc0,#cdb996); background-size:420px,auto; background-blend-mode:soft-light,normal; box-shadow:inset 0 0 28px #76522a44; }
 html[data-interface="fantasy"] .notification-onboarding-dialog .ui-primary { color:#eedbb5; background:#263f31; border:2px double #b99a5a; border-radius:2px; }
 html[data-interface="fantasy"] .notification-onboarding-dialog [role="alert"] { color:#8d2922; }
 

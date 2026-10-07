@@ -1,110 +1,14 @@
+import {useGlobalChat} from '../../../../hooks/useGlobalChat';
 import { t as localize, useLocale } from '../../../../i18n/locale';
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { apiRequest } from '../../../../utils/api';
-import { triggerHaptic } from '../../../../utils/telegram';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';
-
-type GlobalMessage = {
-  id: number | string;
-  text: string;
-  created_at: string;
-  display_name: string;
-  telegram_id?: number | string;
-  is_premium?: boolean;
-};
-
-const normalizeMessages = (value: unknown): GlobalMessage[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter(item => item && typeof item === 'object')
-    .map((item: any, index) => ({
-      id: item.id ?? `fallback_${index}`,
-      text: String(item.text ?? ''),
-      created_at: String(item.created_at ?? new Date().toISOString()),
-      display_name: String(item.display_name || 'Игрок'),
-      telegram_id: item.telegram_id,
-      is_premium: Boolean(item.is_premium)
-    }))
-    .filter(item => item.text.length > 0);
-};
 
 export const ChatScreen: React.FC = () => {
   useLocale();
   const { player } = useGame();
-  const [messages, setMessages] = useState<GlobalMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
-  const [onlinePlayers, setOnlinePlayers] = useState(0);
-
-  const requestInFlight = useRef(false);
-  const mounted = useRef(false);
-  const load = useCallback(async (showLoading = false) => {
-    if (requestInFlight.current || !mounted.current) return;
-    requestInFlight.current = true;
-    if (showLoading) setLoading(true);
-    try {
-      const [response, stats] = await Promise.all([
-        apiRequest<{ messages?: unknown }>('/api/chat/global'),
-        apiRequest<{ onlinePlayers: number }>('/api/community/stats')
-      ]);
-      if (!mounted.current) return;
-      setMessages(normalizeMessages(response?.messages));
-      setOnlinePlayers(Number(stats?.onlinePlayers || 0));
-      setError('');
-    } catch (e) {
-      if (mounted.current) setError(e instanceof Error ? e.message : 'Не удалось подключиться к общему чату.');
-    } finally {
-      requestInFlight.current = false;
-      if (mounted.current) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    mounted.current = true;
-    const refresh = () => { if (!document.hidden) void load(); };
-    refresh();
-    const timer = window.setInterval(refresh, 10000);
-    document.addEventListener('visibilitychange', refresh);
-    return () => {
-      mounted.current = false;
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', refresh);
-    };
-  }, [load]);
-
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || sending) return;
-
-    setSending(true);
-    try {
-      if (player) await apiRequest('/api/profile/sync', {
-        method: 'POST',
-        body: JSON.stringify({ characterName: player.name, level: player.level, arenaRating: player.arenaRating })
-      });
-      const response = await apiRequest<{ message?: unknown }>('/api/chat/global', {
-        method: 'POST',
-        body: JSON.stringify({ text })
-      });
-      const created = normalizeMessages(response?.message ? [response.message] : []);
-      if (created[0]) setMessages(prev => [...prev, created[0]].slice(-80));
-      setInput('');
-      setError('');
-      triggerHaptic('light');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось отправить сообщение.');
-      triggerHaptic('error');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const renderedMessages = useMemo(() => messages.slice(-80), [messages]);
+  const {input,setInput,loading,sending,error,onlinePlayers,load,send,renderedMessages}=useGlobalChat();
 
   if (!player) return null;
 

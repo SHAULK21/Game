@@ -104,6 +104,16 @@ test('all game chapters in three interfaces render enabled buttons with working 
     for(const button of tabs){if(button.isConnected){await w.act(async()=>button.click());await settle();check();}}
    }
   }
+
+  await w.act(async()=>w.nav.setCurrentTab('mine'));await settle();
+  let clones=0;const originalClone=w.Node.prototype.cloneNode;
+  w.Node.prototype.cloneNode=function(deep:boolean){clones++;return originalClone.call(this,deep);};
+  const local=w.document.querySelector('main button:not(:disabled)');
+  assert(local);await w.act(async()=>local.click());assert.equal(clones,0,'local game actions must not clone a book page');
+  await w.act(async()=>w.nav.setCurrentTab('alchemy'));await settle();assert(clones>0,'a real chapter change captures the old page');
+  clones=0;w.matchMedia=()=>({matches:true});
+  await w.act(async()=>w.nav.setCurrentTab('mine'));await settle();assert.equal(clones,0,'reduced motion skips snapshots');assert.equal(w.document.querySelector('.beta-page-turn'),null);
+  w.Node.prototype.cloneNode=originalClone;
   assert.equal(errors.length,0,errors.map(String).join('\n'));assert(checked>300);console.log(`Verified ${checked} enabled button instances across all three interfaces.`);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });

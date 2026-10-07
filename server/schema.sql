@@ -313,3 +313,8 @@ CREATE TABLE IF NOT EXISTS market_purchase_requests (
   result_json JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Presence does not alter profile progression/ranking timestamps.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+ALTER TABLE players ALTER COLUMN last_seen_at SET DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS idx_players_last_seen ON players(last_seen_at);

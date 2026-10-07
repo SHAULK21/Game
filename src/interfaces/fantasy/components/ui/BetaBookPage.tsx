@@ -40,7 +40,8 @@ export function BetaPageTurn({ page, snapshot }: { page: string; snapshot?: RefO
   useEffect(() => {
     if (previous.current === page) return;
     const from = previous.current;
-    if (!order.includes(page) || !order.includes(from)) {
+    if (!order.includes(page) || !order.includes(from) || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      if (snapshot) snapshot.current = null;
       previous.current = page;
       setTurn(null);
       return;
@@ -54,11 +55,11 @@ export function BetaPageTurn({ page, snapshot }: { page: string; snapshot?: RefO
       if (main?.querySelector('[role="status"]')?.textContent?.match(/Загрузка раздела|Завантаження розділу/)) return;
       observer?.disconnect();
       setTurn({ id: ++sequence.current, direction: backwards ? 'backwards' : 'forwards' });
-      timer = window.setTimeout(() => setTurn(null), window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 140 : 500);
+      timer = window.setTimeout(() => setTurn(null), 500);
     };
     const observer = main ? new MutationObserver(start) : undefined;
     observer?.observe(main!, { childList: true, subtree: true });
-    const cancel = () => { observer?.disconnect(); window.clearTimeout(timer); setTurn(null); };
+    const cancel = () => { if (snapshot) snapshot.current = null; observer?.disconnect(); window.clearTimeout(timer); setTurn(null); };
     window.addEventListener('resize', cancel);
     start();
     return () => { observer?.disconnect(); window.clearTimeout(timer); window.removeEventListener('resize', cancel); };

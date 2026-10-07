@@ -1,3 +1,4 @@
+import {authenticatePlayer, heartbeatPlayer, communityStatsCache} from './playerSession';
 import { sellToResidents } from './localMarket';
 import { recordTelegramWriteAccess } from './telegramWriteAccess';
 import { translateText } from '../src/i18n/translate';
@@ -83,19 +84,6 @@ const ensureDatabaseConnection = async () => {
   }
 };
 
-const ensureGlobalChatSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS global_chat_messages (
-      id BIGSERIAL PRIMARY KEY,
-      telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
-      text VARCHAR(500) NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_global_chat_created
-      ON global_chat_messages(created_at DESC);
-  `);
-};
-
 app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
@@ -175,14 +163,7 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
       req.authUser = validateTelegramInitData(initData);
     }
 
-    const authenticated = await pool.query(
-      `INSERT INTO players (telegram_id, username, display_name)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (telegram_id) DO UPDATE SET username = EXCLUDED.username, display_name = EXCLUDED.display_name, updated_at = NOW()
-       RETURNING reset_version`,
-      [req.authUser.id, req.authUser.username || null, req.authUser.displayName]
-    );
-    const resetVersion = Number(authenticated.rows[0].reset_version);
+    const resetVersion = await authenticatePlayer(pool,req.authUser);
     if (!['GET', 'HEAD'].includes(req.method) && Number(req.get('X-Game-Reset-Version') || 0) !== resetVersion) {
       res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion, error: 'Прогресс сброшен администратором. Создайте нового персонажа.' });
       return;
@@ -276,24 +257,16 @@ app.post('/api/profile/sync', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/community/stats', auth, async (_req, res) => {
-  const result = await pool.query(
-    `SELECT
-       COUNT(*)::int AS total_players,
-       COUNT(*) FILTER (WHERE updated_at >= NOW() - INTERVAL '5 minutes')::int AS online_players
-     FROM players`
-  );
-  res.json({
-    totalPlayers: Number(result.rows[0]?.total_players || 0),
-    onlinePlayers: Number(result.rows[0]?.online_players || 0),
-    onlineWindowMinutes: 5
-  });
+const getCommunityStats=communityStatsCache(()=>pool);
+app.post('/api/profile/heartbeat',auth,async(req,res)=>{
+  await heartbeatPlayer(pool,req.authUser!.id);res.json({ok:true});
 });
+app.get('/api/community/stats',auth,async(_req,res)=>res.json(await getCommunityStats()));
 
 app.get('/api/leaderboard', auth, async (_req, res) => {
   const result = await pool.query(
     `SELECT telegram_id, COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS character_name, level, arena_rating,
-            updated_at >= NOW() - INTERVAL '5 minutes' AS is_online
+            last_seen_at >= NOW() - INTERVAL '5 minutes' AS is_online
      FROM players
      ORDER BY level DESC, arena_rating DESC, updated_at ASC
      LIMIT 100`
@@ -666,19 +639,21 @@ app.post('/api/clan/chat', auth, requireClan, async (req, res) => {
   res.status(201).json({ message: { ...result.rows[0], display_name: profile.rows[0]?.display_name || 'Игрок' } });
 });
 
-app.get('/api/chat/global', auth, async (_req, res) => {
+app.get('/api/chat/global', auth, async (req, res) => {
+  const afterId=String(req.query.afterId || '');
+  if (afterId && (!/^[0-9]{1,19}$/.test(afterId) || BigInt(afterId)>9223372036854775807n)) {res.status(400).json({error:'Неверный курсор чата.'});return;}
   try {
-    await ensureGlobalChatSchema();
     const result = await pool.query(
       `SELECT m.id, m.telegram_id, m.text, m.created_at,
               COALESCE(NULLIF(BTRIM(p.character_name), ''), 'Игрок') AS display_name,
               (p.premium_until IS NOT NULL AND p.premium_until > NOW()) AS is_premium
        FROM global_chat_messages m
        JOIN players p ON p.telegram_id = m.telegram_id
-       ORDER BY m.created_at DESC
-       LIMIT 80`
+       ${afterId ? 'WHERE m.id > $1' : ''}
+       ORDER BY m.id ${afterId ? 'ASC' : 'DESC'}
+       LIMIT 80`, afterId ? [afterId] : []
     );
-    res.json({ messages: result.rows.reverse() });
+    res.json({ messages: afterId ? result.rows : result.rows.reverse() });
   } catch (error) {
     console.error('Global chat read failed:', error);
     res.status(500).json({ error: 'Чат временно недоступен. Сервер не смог прочитать сообщения.' });
@@ -690,7 +665,6 @@ app.post('/api/chat/global', auth, async (req, res) => {
   if (!text || text.length > 500) return res.status(400).json({ error: 'Сообщение: 1–500 символов.' });
 
   try {
-    await ensureGlobalChatSchema();
     const result = await pool.query(
       `INSERT INTO global_chat_messages (telegram_id, text)
        VALUES ($1, $2)
@@ -911,6 +885,7 @@ app.use(express.static(path.resolve(__dirname, '../dist'), {
   setHeaders: (res, filePath) => {
     // Never cache HTML: Telegram Mini App / WebView must always receive
     // the latest Vite asset manifest after a deployment.
+    if (isProduction && (/[/\\]assets[/\\][^/\\]+-[\w-]{8,}\.(js|css)$/.test(filePath) || /-[a-f0-9]{12}\.webp$/.test(filePath))) res.setHeader('Cache-Control','public, max-age=31536000, immutable');
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Pragma', 'no-cache');
@@ -920,6 +895,7 @@ app.use(express.static(path.resolve(__dirname, '../dist'), {
 }));
 
 app.get('*', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.sendFile(path.resolve(__dirname, '../dist/index.html'));
 });
 
@@ -927,7 +903,6 @@ const bootstrap = async () => {
   await ensureDatabaseConnection();
   const schema = await fs.readFile(path.resolve(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
-  await ensureGlobalChatSchema();
 
   if (telegramBotToken && publicBaseUrl && telegramWebhookSecret) {
     try {

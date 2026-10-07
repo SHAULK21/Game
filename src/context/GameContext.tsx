@@ -24,7 +24,7 @@ import { ASCENSION_ECHOES, ascensionEcho, ascensionWeek, recordAscensionEcho, in
 import { createOperationId } from '../utils/operationId';
 import { PICKAXES, getPickaxeBonus, makePickaxe, miningCritChance, rollMiningYield, miningExperience, miningYieldRange } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
-import { refreshGameTimers, utcDay } from '../utils/gameCadence';
+import { anchorSpentResources, refreshGameTimers, utcDay } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
 import { createTalentTree, migrateTalents, talentBonuses, learnTalent, resetTalents, classTalentStatus, incomingTalentMultiplier, talentManaCost } from '../data/talents';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -527,7 +527,13 @@ const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const accountResetVersion = useRef(readResetVersion(getTelegramUser().id));
-  const [player, setPlayer] = useState<PlayerCharacter | null>(null);
+  const [player, setPlayerState] = useState<PlayerCharacter | null>(null);
+  const setPlayer = useCallback<React.Dispatch<React.SetStateAction<PlayerCharacter | null>>>(action => {
+    setPlayerState(previous => {
+      const next = typeof action === 'function' ? action(previous) : action;
+      return previous && next && next !== previous ? anchorSpentResources(previous, next) : next;
+    });
+  }, []);
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
   const [combatChain, setCombatChain] = useState<CombatChainState | null>(null);
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
@@ -625,7 +631,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [onlinePlayersCount, setOnlinePlayersCount] = useState<number>(142);
+  const onlinePlayersCount = 0; // Legacy field; chat and leaderboard use server presence.
   const [offlineReport, setOfflineReport] = useState<{ minutes: number; gold: number; exp: number; kills: number; itemsCount: number; miningRewards?: MiningExpeditionReward[] } | null>(null);
   const [pendingOfflineMinutes, setPendingOfflineMinutes] = useState(0);
   const [premium, setPremium] = useState({
@@ -999,28 +1005,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, [player?.userId]);
 
-  // Separate mining energy regeneration (+1 every 10 seconds).
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPlayer(prev => {
-        if (!prev || prev.stamina >= prev.maxStamina) return prev;
-        return { ...prev, stamina: Math.min(prev.maxStamina, prev.stamina + 1) };
-      });
-    }, 10000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Separate alchemy energy regeneration (+1 every 20 seconds).
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPlayer(prev => {
-        if (!prev || prev.alchemyEnergy >= prev.maxAlchemyEnergy) return prev;
-        return { ...prev, alchemyEnergy: Math.min(prev.maxAlchemyEnergy, prev.alchemyEnergy + 1) };
-      });
-    }, 20000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Load saved state or check Telegram User
   useEffect(() => {
     const tgUser: TelegramUser = getTelegramUser();
@@ -1198,13 +1182,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [player, quests, achievements, chatMessages, activeDungeonRun]);
 
-  // Online count simulation
+  // Presence is separate from profile edits and stops while the app is hidden.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setOnlinePlayersCount(prev => Math.max(80, Math.min(300, prev + Math.floor(Math.random() * 5) - 2)));
-    }, 15000);
-    return () => clearInterval(timer);
-  }, []);
+    if (!player) return;
+    const heartbeat=()=>{if(!document.hidden)void apiRequest('/api/profile/heartbeat',{method:'POST',body:'{}'}).catch(()=>undefined);};
+    heartbeat();const timer=window.setInterval(heartbeat,60000);
+    document.addEventListener('visibilitychange',heartbeat);
+    return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',heartbeat);};
+  },[player?.userId]);
 
   const activeFlightPenalty = isInCombat && !isCombatEnded && flightBattlesLeft(player) > 0;
 
