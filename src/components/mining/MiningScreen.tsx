@@ -1,7 +1,7 @@
+import {PickaxePanel} from './PickaxePanel';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
-import {PICKAXES,getPickaxeBonus,miningCritChance,miningYieldRange} from '../../utils/mining';
+import {miningCritChance,miningYieldRange} from '../../utils/mining';
 import {ItemArtwork} from '../ui/ItemArtwork';
-import {RARITY_COLORS} from '../../data/gameData';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { MINING_NODES } from '../../data/gameData';
@@ -42,9 +42,6 @@ export const MiningScreen: React.FC = () => {
     premium,
     achievements,
     mineNode,
-    buyPickaxe,
-    equipItem,
-    unequipItem,
     startMiningExpedition,
     claimMiningExpedition,
     leaveMiningExpedition
@@ -111,11 +108,7 @@ export const MiningScreen: React.FC = () => {
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
       <div className="ui-panel rounded-2xl border p-3 space-y-2">
-        <h3 className="text-sm font-bold text-amber-200">{localize("⛏️ Кирка для шахты")}</h3>
-        <p className="text-[10px] text-slate-400">{localize("Отдельный слот. Бонусы работают при ручной добыче. Максимум жилы — редкий крит; Обычная добыча зависит от жилы.")}</p>
-        {player.equipped.pickaxe ? <div className="flex items-center gap-2 text-xs"><ItemArtwork item={player.equipped.pickaxe} size={36}/><div className="flex-1">{localize(player.equipped.pickaxe.name)}<div className="text-[10px] text-emerald-300">+{localize(getPickaxeBonus(player.equipped.pickaxe)?.critBonus||0)}{localize(" п.п. крита · +")}{localize(getPickaxeBonus(player.equipped.pickaxe)?.expBonus||0)}{localize("% опыта")}</div></div><button disabled={isMining || player.inventory.length>=player.maxInventorySlots} onClick={async()=>{const result=await unequipItem('pickaxe');setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-slate-400 disabled:opacity-40">{localize("Снять")}</button></div> : <p className="text-xs text-slate-500">{localize("Кирка не экипирована")}</p>}
-        {player.inventory.filter(i=>i.type==='pickaxe').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={30}/><span className="flex-1">{localize(item.name)}</span><button disabled={isMining} onClick={async()=>{const result=await equipItem(item);setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-cyan-300">{localize("Экипировать")}</button></div>)}
-        <details><summary className="text-xs text-amber-300 cursor-pointer">{localize("Купить кирку · 5 редкостей")}</summary><div className="mt-2 space-y-2">{PICKAXES.map(offer=><div key={offer.id} className="rounded-lg bg-slate-950 p-2 flex items-center gap-2"><div className="flex-1"><div className={`text-xs ${RARITY_COLORS[offer.rarity].text}`}>{localize(offer.name)} · {localize(RARITY_COLORS[offer.rarity].label)}</div><div className="text-[10px] text-slate-400">{localize("Шахта ")}{localize(offer.miningLevel)}{localize(" ур. · +")}{localize(offer.critBonus)}{localize(" п.п. крита · +")}{localize(offer.expBonus)}{localize("% опыта")}</div></div><button disabled={isMining || player.miningLevel<offer.miningLevel || player.gold<offer.price || player.inventory.length>=player.maxInventorySlots} onClick={()=>{const result=buyPickaxe(offer.id);setMiningLog(prev=>[result.message,...prev].slice(0,8));}} className="text-[10px] text-amber-300 disabled:opacity-40">{localize(player.miningLevel<offer.miningLevel ? `С ${offer.miningLevel} ур.` : `${offer.price.toLocaleString(intlLocale())} 🪙`)}</button></div>)}</div></details>
+        <PickaxePanel isMining={isMining} onFeedback={message=>setMiningLog(prev=>[message,...prev].slice(0,8))}/>
       </div>
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between gap-3">
