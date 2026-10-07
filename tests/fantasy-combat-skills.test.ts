@@ -1,10 +1,11 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 
 test('fantasy battle ledger preserves skill gates, combo and manual action', async () => {
-  const bundle = await build({ stdin: { resolveDir:process.cwd(),loader:'tsx',contents:`
+  const bundle = await build({plugins:[localProgressPlugin], stdin: { resolveDir:process.cwd(),loader:'tsx',contents:`
     import React,{act} from 'react';import {createRoot} from 'react-dom/client';
     import {CombatSkillList} from './src/interfaces/fantasy/components/combat/CombatSkillList';
     window.act=act;window.used=[];

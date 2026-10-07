@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import { petBattleOpening } from '../src/utils/petCombat';
 import type { Monster, Pet } from '../src/types/game';
 import { combatHitChance, incomingAttackRoll } from '../src/utils/combatBonuses';
@@ -14,7 +15,7 @@ import { registerClanProjects } from '../server/clanProjects';
 import { PGlite } from '@electric-sql/pglite';
 import fs from 'node:fs/promises';
 
-const dataBundle=await build({stdin:{contents:"export {MONSTERS,REGIONS,REGIONAL_TROPHIES} from './src/data/gameData';export {smithingQuality,smithingProgress} from './src/utils/professions';",resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+const dataBundle=await build({stdin:{contents:"export {MONSTERS,REGIONS,REGIONAL_TROPHIES} from './src/data/gameData';export {smithingQuality,smithingProgress} from './src/utils/professions';",resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[localProgressPlugin,{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
 const {MONSTERS,REGIONS,REGIONAL_TROPHIES,smithingQuality,smithingProgress}=await import('data:text/javascript;base64,'+Buffer.from(dataBundle.outputFiles[0].text).toString('base64')) as typeof import('../src/data/gameData') & typeof import('../src/utils/professions');
 
 test('harder dungeons increase actual enemies; each veteran region has regular trophy sources',()=>{

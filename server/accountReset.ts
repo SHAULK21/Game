@@ -43,7 +43,9 @@ export async function resetPlayerAccount(pool: Pick<Pool, 'connect'>, adminId: n
     await client.query('DELETE FROM pvp_profiles WHERE telegram_id=$1', [targetId]);
     await client.query("DELETE FROM game_notifications WHERE telegram_id=$1 AND category IN ('energy','mining','arena')", [targetId]);
     const updated = (await client.query(`UPDATE players SET character_name=NULL, level=1, arena_rating=1000,
-      class_id='warrior', market_gold=120, clan_id=NULL, reset_version=reset_version+1, reset_at=NOW(), updated_at=NOW()
+      class_id='warrior', market_gold=120, clan_id=NULL, reset_version=reset_version+1, reset_at=NOW(), updated_at=NOW(),
+      progress_json=NULL,progress_version=progress_version+1,progress_session_hash=NULL,
+      progress_session_generation=progress_session_generation+1,progress_migration_open=TRUE
       WHERE telegram_id=$1 RETURNING reset_version`, [targetId])).rows[0];
     await client.query('INSERT INTO admin_account_resets (id, admin_id, target_id, reset_version) VALUES ($1,$2,$3,$4)', [operationId, adminId, targetId, updated.reset_version]);
     await client.query('COMMIT');

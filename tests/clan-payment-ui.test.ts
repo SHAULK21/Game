@@ -1,10 +1,11 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 
-test('character wallet reserves clan payment once, resumes a lost response and refunds a rejected creation',async()=>{
- const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';function Probe(){window.game=useGame();return null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};window.act=act;`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+test('character view waits for server payment confirmation, resumes a lost receipt and spends nothing on rejection',async()=>{
+ const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';function Probe(){window.game=useGame();return null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};window.act=act;`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[localProgressPlugin,{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;
  let calls:any[]=[];let mode='lost';let premium=false;
@@ -19,7 +20,7 @@ test('character wallet reserves clan payment once, resumes a lost response and r
   const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.gold=120000;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/Нет соединения/);});
-  assert.equal(w.game.player.gold,20000);assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.gold,20000);
+  assert.equal(w.game.player.gold,120000);assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.gold,120000);
   const operation=calls[0].operationId;mode='ok';
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());
   assert.equal(calls.length,2);assert.equal(calls[1].operationId,operation);assert.equal(w.game.player.gold,20000);assert.equal(w.game.player.lastClanCreationOperation,operation);
