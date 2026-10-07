@@ -7,7 +7,7 @@ export const ALCHEMY_TOOLS: {id:string;name:string;rarity:ItemRarity;alchemyLeve
   {id:'retort_epic',name:'Руническая реторта',rarity:'epic',alchemyLevel:50,price:40000,expBonus:55,extraChance:4,color:'#cb9cff'},
   {id:'retort_legendary',name:'Реторта великого алхимика',rarity:'legendary',alchemyLevel:80,price:150000,expBonus:80,extraChance:5,color:'#ffd16d'}
 ];
-export const getAlchemyToolBonus = (item: Pick<GameItem,'type'|'templateId'> | undefined, level: number) => item?.type === 'alchemyTool' ? ALCHEMY_TOOLS.find(tool=>tool.id===item.templateId && level>=tool.alchemyLevel) : undefined;
+export const getAlchemyToolBonus = (item: (Pick<GameItem,'type'|'templateId'> & {name?:string}) | undefined, level: number) => item?.type === 'alchemyTool' ? ALCHEMY_TOOLS.find(tool=>(tool.id===item.templateId || (!item.templateId && tool.name===item.name)) && level>=tool.alchemyLevel) : undefined;
 export const alchemyExperience = (base:number,item:GameItem|undefined,level:number) => Math.round(base*(1+(getAlchemyToolBonus(item,level)?.expBonus||0)/100));
 export const alchemyExtraYield = (item:GameItem|undefined,level:number,rng=Math.random) => {
   const chance=getAlchemyToolBonus(item,level)?.extraChance||0;

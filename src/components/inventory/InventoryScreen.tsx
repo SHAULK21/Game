@@ -479,24 +479,26 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
               </button>
               {currentSelected.isEquipped ? (
                 <button
-                  onClick={() => {
-                    unequipItem(currentSelected.type);
-                    setSelectedItem(null);
+                  onClick={async () => {
+                    const result=await unequipItem(currentSelected.type);
+                    setPremiumFeedback(result.message);
+                    if(result.success) setSelectedItem(null);
                   }}
                   className="py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <X className="w-4 h-4" />{localize(" Снять")}</button>
               ) : selectedIsEquipment ? (
                 <button
-                  onClick={() => {
-                    equipItem(currentSelected);
-                    setSelectedItem(null);
+                  onClick={async () => {
+                    const result=await equipItem(currentSelected);
+                    setPremiumFeedback(result.message);
+                    if(result.success) setSelectedItem(null);
                   }}
-                  disabled={currentSelected.level > player.level || currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) || currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel)}
+                  disabled={!['pickaxe','alchemyTool'].includes(currentSelected.type) && currentSelected.level > player.level || currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) || currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel)}
                   className="py-2.5 rounded-xl bg-cyan-600 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {localize(currentSelected.level > player.level ? `Нужен уровень ${currentSelected.level}` : currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) ? 'Недостаточный уровень шахты' : currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel) ? 'Недостаточный уровень алхимии' : 'Экипировать')}
+                  {localize(!['pickaxe','alchemyTool'].includes(currentSelected.type) && currentSelected.level > player.level ? `Нужен уровень ${currentSelected.level}` : currentSelected.type==='pickaxe' && player.miningLevel<(getPickaxeBonus(currentSelected)?.miningLevel||1) ? 'Недостаточный уровень шахты' : currentSelected.type==='alchemyTool' && !getAlchemyToolBonus(currentSelected,player.alchemyLevel) ? 'Недостаточный уровень алхимии' : 'Экипировать')}
                 </button>
               ) : (
                 <button

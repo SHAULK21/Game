@@ -1,10 +1,10 @@
+import { arenaOpponents, type Gladiator } from '../../utils/arena';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { AscensionArena } from './AscensionArena';
 import { PvpArena } from './PvpArena';
 import { nextArenaReset } from '../../utils/gameCadence';
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { ARENA_BOTS } from '../../data/gameData';
 import { Trophy, Swords, Crown } from 'lucide-react';
 
 interface ArenaScreenProps {
@@ -13,13 +13,13 @@ interface ArenaScreenProps {
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) => {
   useLocale();
-  const { player, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
-  const [mode,setMode] = useState<'ascension'|'pve'|'pvp'>('ascension');
+  const { player, combatStats, premium, activeDungeonRun, isInCombat, isCombatEnded, challengeArena } = useGame();
+  const [mode,setMode] = useState<'ascension'|'pve'|'pvp'>('pve');
   const [fightError, setFightError] = useState<string | null>(null);
 
   if (!player) return null;
 
-  const handleChallenge = (opponent: (typeof ARENA_BOTS)[number]) => {
+  const handleChallenge = (opponent: Gladiator) => {
     setFightError(null);
     if (isInCombat && !isCombatEnded) {
       onEnterCombatTab?.();
@@ -46,6 +46,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
       <div className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
       {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p className="text-xs text-slate-400">{localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")}</p>
+      <p className="text-xs text-slate-400">{localize('Арена — опыт героя за билеты. Локации — ресурсы и снаряжение. Выберите сложность: сильнее гладиатор — больше опыта.')}</p>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">
@@ -92,11 +93,11 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
         {fightError && <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-xs text-amber-200">{localize(fightError)}</p>}
         <div className="flex items-center justify-between px-1">
           <span className="font-cinzel text-xs font-bold text-slate-300 uppercase tracking-wider">{localize("Доступные соперники")}</span>
-          <span className="text-[11px] text-slate-400">{localize("Обновление через 15м")}</span>
+          <span className="text-[11px] text-slate-400">{localize("Соперники растут с уровнем героя")}</span>
         </div>
 
         <div className="space-y-2">
-          {ARENA_BOTS.map(opp => {
+          {arenaOpponents(player.level).map(opp => {
             return (
               <div
                 key={opp.id}
@@ -121,8 +122,10 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
                       <span>·</span>
                       <span>{localize("Мощь: ")}<span className="text-amber-300 font-bold">{localize(opp.powerRating)}</span></span>
                       <span>·</span>
-                      <span>{localize(opp.rating)} PTS</span>
+                      <span>{Math.round(opp.expReward * (1 + combatStats.expBonus / 100))} EXP</span>
                     </div>
+                    <p className="mt-1 text-xs text-amber-200">{localize(opp.difficultyLabel)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{localize(opp.tactic)}</p>
                   </div>
                 </div>
 

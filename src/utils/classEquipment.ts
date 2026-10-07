@@ -1,3 +1,4 @@
+import { getItemSpritePath } from './itemSprites';
 import { sharpeningMultiplier } from './sharpening';
 import type { CharacterClassId, GameItem } from '../types/game';
 
@@ -48,6 +49,7 @@ export const applyClassGear = (item: GameItem, targetClass?: CharacterClassId): 
   }
   return { ...item, targetClass: target, stats, baseAttack: caster ? undefined : item.baseAttack,
     name: item.type === 'weapon' ? gear.weapon : gear.armor,
+    image: item.type==='weapon' && item.image ? getItemSpritePath({name:gear.weapon,type:'weapon',weaponClass:gear.weaponClass}) : item.image,
     weaponClass: item.type === 'weapon' ? gear.weaponClass : item.weaponClass,
     armorClass: item.type === 'armor' ? gear.armorClass : item.armorClass,
     icon: item.type === 'armor' ? '🥋' : gear.weaponClass === 'bow' ? '🏹' : gear.weaponClass === 'staff' ? '🪄' : gear.weaponClass === 'dagger' ? '🗡️' : '⚔️'

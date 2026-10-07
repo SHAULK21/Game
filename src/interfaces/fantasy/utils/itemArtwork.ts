@@ -1,5 +1,6 @@
 import { GameItem } from '../../../types/game';
 import { getResourceArtwork } from './resourceArtwork';
+import { getItemSpritePath } from '../../../utils/itemSprites';
 
 const ITEM_SPRITES: Record<Exclude<GameItem['type'], 'ore' | 'material'>, string> = {
   weapon: 'gear/weapon.webp',
@@ -21,7 +22,13 @@ const ITEM_SPRITES: Record<Exclude<GameItem['type'], 'ore' | 'material'>, string
 };
 
 /** Always resolve through the generated sprite catalog, even for older saved item records. */
-export const getItemArtworkPath = (item: Pick<GameItem, 'name' | 'type'>): string => {
+export const getItemArtworkPath = (item: Pick<GameItem, 'name' | 'type'> & Partial<Pick<GameItem,'image'|'weaponClass'>>): string => {
+  if (item.image && (item.type==='pickaxe' || item.type==='alchemyTool' || item.image.startsWith('/assets/fishing/'))) return item.image;
+  if (item.type === 'weapon') {
+    const sprite = getItemSpritePath(item);
+    if (sprite && !sprite.endsWith('/sword.webp')) return sprite;
+  }
+  if (item.type === 'potion') return getItemSpritePath(item)!;
   if (item.type === 'ore' || item.type === 'material') return getResourceArtwork(item.name, item.type);
   return `/assets/sprites/generated/ui/${ITEM_SPRITES[item.type]}`;
 };

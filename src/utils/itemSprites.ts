@@ -28,13 +28,13 @@ export function getResourceSprite(name: string): string | undefined {
   return key ? spritePath(key) : undefined;
 }
 
-export function getItemSpritePath(item: Pick<GameItem,'name'> & {type?: GameItem['type']}): string | undefined {
+export function getItemSpritePath(item: Pick<GameItem,'name'> & {type?: GameItem['type'];weaponClass?:GameItem['weaponClass']}): string | undefined {
   const n = item.name.toLowerCase();
   if (item.type==='ore' || item.type==='material') return getResourceSprite(n);
   if (item.type==='weapon') {
-    if (/кинжал/.test(n)) return spritePath('dagger');
-    if (/лук|арбалет/.test(n)) return spritePath('bow');
-    if (/посох|жезл/.test(n)) return spritePath('staff');
+    if (item.weaponClass==='dagger' || /кинжал|парные клинки/.test(n)) return spritePath('dagger');
+    if (item.weaponClass==='bow' || /лук|арбалет/.test(n)) return spritePath('bow');
+    if (item.weaponClass==='staff' || /посох|жезл/.test(n)) return spritePath('staff');
     if (/топор|секир/.test(n)) return spritePath('axe');
     if (/молот|булав/.test(n)) return spritePath('hammer');
     if (/коса/.test(n)) return undefined;

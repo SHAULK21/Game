@@ -96,6 +96,7 @@ export function getMonsterCombatSkills(monster: Monster): MonsterSkill[] {
 }
 
 export const prepareMonsterForCombat = (monster: Monster): Monster => {
+  if(monster.regionId==='arena' && monster.id.startsWith('gladiator_')) return {...monster,hp:monster.maxHp,mp:monster.maxMp,superCooldown:0,potionCharges:0,skills:getMonsterCombatSkills(monster)};
   if(monster.regionId==='ascension') return {...monster,superCooldown:0,skills:getMonsterCombatSkills(monster)};
   const levelFactor = 1 + Math.min(0.55, monster.level * 0.006);
   const roleFactor = monster.isBoss ? 1.35 : monster.isElite ? 1.18 : 1;

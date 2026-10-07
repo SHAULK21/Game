@@ -10,7 +10,7 @@ import { triggerHaptic } from '../../utils/telegram';
 
 export const FishingScreen: React.FC = () => {
  useLocale();
- const {player,fishingAction,isInCombat,activeDungeonRun,travelState}=useGame();
+ const {player,fishingAction,isInCombat,isCombatEnded,activeDungeonRun,travelState}=useGame();
  const {style}=useInterface();const {setCurrentTab}=useNavigation();
  const [selectedSpot,setSelectedSpot]=useState('river'),[now,setNow]=useState(Date.now()),[section,setSection]=useState<'shore'|'journal'|'recipes'>('shore');
  const [feedback,setFeedback]=useState<string[]>([]);const [lastCatch,setLastCatch]=useState<{name:string;id:string;grams:number}|null>(null);
@@ -20,11 +20,11 @@ export const FishingScreen: React.FC = () => {
  useEffect(()=>{if(!cast)return;const timer=window.setInterval(()=>setNow(Date.now()),200);const refresh=()=>setNow(Date.now());document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh);};},[cast?.id]);
  useEffect(()=>{if(phase==='bite'&&cast&&announced.current!==cast.id){announced.current=cast.id;sound.playFishingBite();triggerHaptic('medium');}},[phase,cast?.id]);
  if(!player)return null;
- const fantasy=style==='fantasy';const panel=fantasy?'bestiary-panel':'ui-panel rounded-xl border border-slate-700';const button=fantasy?'rpg-button rpg-button-primary':'rounded-lg border border-amber-500/50 bg-amber-950/60 text-amber-100';
+ const fantasy=style!=='modern';const panel=fantasy?'bestiary-panel':'ui-panel rounded-xl border border-slate-700';const button=fantasy?'rpg-button rpg-button-primary':'rounded-lg border border-amber-500/50 bg-amber-950/60 text-amber-100';
  const secondary=fantasy?'rpg-button rpg-button-secondary':'rounded-lg border border-slate-700 bg-slate-900 text-slate-200';
  const text=fantasy?'text-[#d8c9aa]':'text-slate-200';const muted=fantasy?'text-[#aaa49a]':'text-slate-400';
  const spot=FISHING_SPOTS.find(s=>s.id===(cast?.spotId||selectedSpot))||FISHING_SPOTS[0];const progress=fishingProgress(fishing);const rod=FISHING_RODS[fishing.rod];const nextRod=FISHING_RODS[fishing.rod+1];
- const busy=isInCombat||!!activeDungeonRun||travelState.isTraveling||!!player.miningExpedition;
+ const busy=isInCombat&&!isCombatEnded||!!activeDungeonRun||travelState.isTraveling||!!player.miningExpedition;
  const act=(action:FishingAction)=>{const result=fishingAction(action,action==='cast'?selectedSpot:cast?.id,cast?.fight?.step);setNow(Date.now());setFeedback(['pull','slack','brace'].includes(action)&&result.success?[]:[result.message]);if(action==='cast'&&result.success)setLastCatch(null);if(result.success&&result.fish)setLastCatch({name:result.fish.name,id:result.fish.templateId!.replace('fish_',''),grams:result.grams!});};
  const kilograms=(grams:number)=>(grams/1000).toLocaleString(intlLocale(),{maximumFractionDigits:2})+' '+localize('кг');
  const fight=cast?.fight;const movement=cast&&fight?fishingMovement(cast):undefined;

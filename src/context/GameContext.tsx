@@ -1,3 +1,4 @@
+import { arenaMonster } from '../utils/arena';
 import { recordFlight, completePenalizedBattle, flightBattlesLeft, FLIGHT_PENALTY_PERCENT } from '../utils/flightPenalty';
 import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat, availableMonsterSkills, advanceMonsterCooldowns } from '../utils/monsterAI';
 import { forecastMonsterAction, monsterReadingAccuracy, type MonsterForecast } from '../utils/monsterForecast';
@@ -20,7 +21,7 @@ import { applyHuntingMode, combatHuntingMode } from '../utils/huntingModes';
 import { ALCHEMY_TOOLS, makeAlchemyTool, getAlchemyToolBonus, alchemyExperience, alchemyExtraYield } from '../utils/alchemy';
 import { ASCENSION_ECHOES, ascensionEcho, ascensionWeek, recordAscensionEcho, initialAscension, migrateAscension, nextAscensionStage, ascendCharacter, ascensionBoss, ascensionBossPhase, ascensionBonuses, fragmentItem, type AscensionPath } from '../data/ascension';
 import { createOperationId } from '../utils/operationId';
-import { PICKAXES, makePickaxe, miningCritChance, rollMiningYield, miningExperience, miningYieldRange } from '../utils/mining';
+import { PICKAXES, getPickaxeBonus, makePickaxe, miningCritChance, rollMiningYield, miningExperience, miningYieldRange } from '../utils/mining';
 import { clanCreationCost } from '../utils/clanEconomy';
 import { refreshGameTimers, utcDay } from '../utils/gameCadence';
 import { selectBulkItems, bulkReward, applyBulkDisposal, pendingBulkKey, type BulkFilters, type BulkAction, type BulkReceipt, type PendingBulkDisposal } from '../utils/bulkInventory';
@@ -125,8 +126,8 @@ interface GameContextType {
   allocateAttribute: (attr: keyof PlayerCharacter['attributes']) => void;
   unlockTalent: (talentId: string) => void;
   resetTalentTree: () => void;
-  equipItem: (item: GameItem) => void;
-  unequipItem: (type: ItemType) => void;
+  equipItem: (item: GameItem) => Promise<{success:boolean;message:string}>;
+  unequipItem: (type: ItemType) => Promise<{success:boolean;message:string}>;
   sellItem: (item: GameItem) => void;
   sellToResidents: (item: GameItem, quantity: number) => Promise<{success: boolean; message: string}>;
   disassembleItem: (item: GameItem) => void;
@@ -1048,7 +1049,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             delete item.disassembleYield?.crystals;
             return item;
           };
-          parsed.player.inventory = (parsed.player.inventory || []).map(migrateSalvage);
+          parsed.player.inventory = (parsed.player.inventory || []).map((item:any)=>{
+            const migrated=migrateSalvage(item);
+            return migrated.isEquipped ? {...migrated,isEquipped:false} : migrated;
+          });
           Object.keys(parsed.player.equipped || {}).forEach(key => {
             parsed.player.equipped[key] = migrateSalvage(parsed.player.equipped[key]);
           });
@@ -1678,69 +1682,60 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player?.userId]);
 
   // Equipment & Inventory management
-  const equipItem = useCallback((item: GameItem) => {
-    if (bulkInventoryBusy.current || marketBusy.current) return;
-    if (item.type === 'pickaxe' && player && player.miningLevel < (PICKAXES.find(p=>p.id===item.templateId)?.miningLevel || 1)) { triggerHaptic('error'); return; }
-    if (item.type === 'alchemyTool' && !getAlchemyToolBonus(item, player?.alchemyLevel || 1)) { triggerHaptic('error'); return; }
+  const equipItem = useCallback(async (requested: GameItem) => {
+    const fail = (message:string) => { triggerHaptic('error'); return {success:false,message}; };
+    if (bulkInventoryBusy.current || marketBusy.current) return fail('Дождитесь завершения операции с предметами.');
+    if (!player) return fail('Сначала создайте персонажа.');
+    const item = player.inventory.find(entry=>entry.id===requested.id);
+    if (!item) return fail('Предмет уже экипирован или отсутствует в сумке.');
+    if (item.type === 'pickaxe') {
+      const tool = getPickaxeBonus(item);
+      if (!tool) return fail('Неизвестная кирка. Выберите инструмент из магазина шахты.');
+      if (player.miningLevel < tool.miningLevel) return fail(`Нужен ${tool.miningLevel} уровень шахты.`);
+    } else if (item.type === 'alchemyTool') {
+      const tool = ALCHEMY_TOOLS.find(t=>t.id===item.templateId || (!item.templateId && t.name===item.name));
+      if (!tool) return fail('Неизвестная реторта. Выберите инструмент из магазина алхимии.');
+      if (player.alchemyLevel < tool.alchemyLevel) return fail(`Нужен ${tool.alchemyLevel} уровень алхимии.`);
+    } else if (item.level > player.level) return fail(`Нужен ${item.level} уровень героя.`);
+    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact','pickaxe','alchemyTool'].includes(item.type)) return fail('Этот предмет нельзя экипировать.');
     if (item.serverOwned) {
-      if (!player || item.level > player.level) return;
-      apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' })
-        .then(() => refreshServerInventory()).catch(error => console.error('Could not equip item:', error));
-      return;
+      try {
+        await apiRequest('/api/items/' + encodeURIComponent(item.id) + '/equip', { method: 'POST', body: '{}' });
+        await refreshServerInventory();
+      } catch(error) { return fail(error instanceof Error ? error.message : 'Не удалось экипировать предмет.'); }
+    } else {
+      setPlayer(prev => {
+        if (!prev || !prev.inventory.some(entry=>entry.id===item.id)) return prev;
+        const currentEquipped = prev.equipped[item.type];
+        const inventory = prev.inventory.filter(entry=>entry.id!==item.id);
+        if (currentEquipped) inventory.push({...currentEquipped,isEquipped:false});
+        return {...prev,inventory,equipped:{...prev.equipped,[item.type]:{...item,isEquipped:true}}};
+      });
     }
-    setPlayer(prev => {
-      if (prev && prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
-      if (!prev || item.isEquipped || item.level > prev.level) return prev;
-      sound.playClick();
-      triggerHaptic('medium');
-
-      const currentEquipped = prev.equipped[item.type];
-      const newInventory = prev.inventory.filter(i => i.id !== item.id);
-      if (currentEquipped) {
-        newInventory.push({ ...currentEquipped, isEquipped: false });
-      }
-
-      return {
-        ...prev,
-        equipped: {
-          ...prev.equipped,
-          [item.type]: { ...item, isEquipped: true }
-        },
-        inventory: newInventory,
-        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
-      };
-    });
+    sound.playClick(); triggerHaptic('medium');
+    return {success:true,message:`Экипировано: ${item.name}.`};
   }, [player, refreshServerInventory]);
 
-  const unequipItem = useCallback((type: ItemType) => {
-    if (bulkInventoryBusy.current || marketBusy.current) return;
-    const equippedItem = player?.equipped[type];
-    if (equippedItem?.serverOwned) {
-      apiRequest('/api/items/' + encodeURIComponent(equippedItem.id) + '/unequip', { method: 'POST', body: '{}' })
-        .then(() => refreshServerInventory()).catch(error => console.error('Could not unequip item:', error));
-      return;
+  const unequipItem = useCallback(async (type: ItemType) => {
+    const fail = (message:string) => { triggerHaptic('error'); return {success:false,message}; };
+    if (bulkInventoryBusy.current || marketBusy.current) return fail('Дождитесь завершения операции с предметами.');
+    const item = player?.equipped[type];
+    if (!player || !item) return fail('В этом слоте нет предмета.');
+    if (player.inventory.length >= player.maxInventorySlots) return fail('Освободите место в сумке.');
+    if (item.serverOwned) {
+      try {
+        await apiRequest('/api/items/' + encodeURIComponent(item.id) + '/unequip', {method:'POST',body:'{}'});
+        await refreshServerInventory();
+      } catch(error) { return fail(error instanceof Error ? error.message : 'Не удалось снять предмет.'); }
+    } else {
+      setPlayer(prev => {
+        if (!prev || prev.inventory.length>=prev.maxInventorySlots || prev.equipped[type]?.id!==item.id) return prev;
+        const equipped={...prev.equipped}; delete equipped[type];
+        return {...prev,equipped,inventory:[...prev.inventory,{...item,isEquipped:false}]};
+      });
     }
-    setPlayer(prev => {
-      if (!prev) return prev;
-      if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
-      const currentEquipped = prev.equipped[type];
-      if (!currentEquipped) return prev;
-      if (prev.inventory.length >= prev.maxInventorySlots) {
-        triggerHaptic('error');
-        return prev;
-      }
-      sound.playClick();
-      triggerHaptic('light');
-      const updatedEquipped = { ...prev.equipped };
-      delete updatedEquipped[type];
-
-      return {
-        ...prev,
-        equipped: updatedEquipped,
-        inventory: [...prev.inventory, { ...currentEquipped, isEquipped: false }],
-        energy: Math.max(0, prev.energy - ENERGY_COSTS.inventory)
-      };
-    });
+    sound.playClick(); triggerHaptic('light');
+    return {success:true,message:`Снято: ${item.name}.`};
   }, [player, refreshServerInventory]);
 
   const sellItem = useCallback((item: GameItem) => {
@@ -2270,7 +2265,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
     const activeMod = combatHuntingMode(monster);
     // Every completed combat has a small consumable roll: 0–3 potions.
-    const potionCount = Math.random() < 0.15 ? 1 : 0;
+    const potionCount = monster.regionId !== 'arena' && Math.random() < 0.15 ? 1 : 0;
     const potionPool: GameItem[] = [
       { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
       { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
@@ -2284,7 +2279,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let lootResult: { items: GameItem[]; gold: number; silver: number };
     try {
-      lootResult = generateCombatLoot({
+      lootResult = monster.regionId === 'arena' ? {items:[],gold:0,silver:0} : generateCombatLoot({
         monster,
         rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
         goldMult: (activeMod.goldMultiplier || 1) * 0.22 * (1 + combatStats.goldBonus / 100),
@@ -3824,7 +3819,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fishingAction = useCallback((action: FishingAction, id?: string, step?: number): FishingResult => {
     const current = fishingPlayerRef.current;
     if (!current) return {success:false,message:'Сначала создайте персонажа.',player:current!};
-    if (isInCombat || travelState.isTraveling || activeDungeonRun) return {success:false,message:'Рыбалка доступна вне боя, путешествия и пещеры.',player:current};
+    if (combatActiveRef.current || isInCombat && !isCombatEnded || travelState.isTraveling || activeDungeonRun || current.miningExpedition) return {success:false,message:'Рыбалка доступна вне боя, путешествия и пещеры.',player:current};
     const result = action === 'cast' ? castFishing(current,id || 'river') : action === 'hook' ? hookFishing(current,id || '')
       : action === 'land' ? landFishing(current,id || '') : action === 'cancel' ? cancelFishing(current) : action === 'upgrade' ? upgradeFishingRod(current) : fightFishing(current,id || '',action,step ?? -1);
     if (result.success) {
@@ -3837,7 +3832,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       else sound.playUpgradeSuccess();
     } else triggerHaptic('error');
     return result;
-  }, [isInCombat,travelState.isTraveling,activeDungeonRun]);
+  }, [isInCombat,isCombatEnded,travelState.isTraveling,activeDungeonRun]);
 
   const craftAlchemy = useCallback((recipeId: string): boolean => {
     if (!player || combatActiveRef.current || isInCombat && !isCombatEnded) return false;
@@ -3971,45 +3966,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   },[player,isInCombat,isCombatEnded,activeDungeonRun,travelState.isTraveling]);
 
   const challengeArena = useCallback((opponent: ArenaOpponent): boolean => {
-    if (!player || player.arenaTickets <= 0 || activeDungeonRun) {
+    if (!player || player.arenaTickets <= 0 || activeDungeonRun || travelState.isTraveling || combatActiveRef.current) {
       triggerHaptic('error');
       sound.playUpgradeFail();
       return false;
     }
     sound.playClick();
     triggerHaptic('heavy');
-    // Convert opponent to monster model for battle engine
-    const oppMonster: Monster = {
-      id: opponent.id,
-      name: `Гладиатор ${opponent.name}`,
-      regionId: 'arena',
-      level: opponent.level,
-      hp: opponent.stats.hp,
-      maxHp: opponent.stats.hp,
-      mp: 100,
-      maxMp: 100,
-      attack: opponent.stats.attack,
-      magicAttack: Math.floor(opponent.stats.attack * 0.7),
-      defense: opponent.stats.defense,
-      magicDefense: Math.floor(opponent.stats.defense * 0.8),
-      speed: opponent.stats.speed,
-      critChance: opponent.stats.critChance,
-      evasion: 10,
-      isBoss: false,
-      avatar: opponent.avatar,
-      expReward: opponent.level * 80,
-      goldReward: opponent.level * 60,
-      drops: [
-        { itemName: 'Жетон чемпиона Арены', type: 'material', rarity: 'epic', chance: 1.0, minQty: 1, maxQty: 2 }
-      ]
-    };
-
+    const oppMonster=arenaMonster(opponent.id,player.level);
+    if (!oppMonster) return false;
     const started = startBattleWithMonster(oppMonster, { chain: false, energyCost: 0 });
     if (started) {
       setPlayer(prev => prev ? { ...prev, arenaTickets: Math.max(0, prev.arenaTickets - 1) } : prev);
     }
     return started;
-  }, [player, activeDungeonRun, startBattleWithMonster]);
+  }, [player, activeDungeonRun, travelState.isTraveling, startBattleWithMonster]);
 
   // Quests & Achievements Claims
   const questClaims = useRef(new Set<string>());
