@@ -34,11 +34,11 @@ export function PickaxePanel({isMining, onFeedback}:{isMining:boolean;onFeedback
       <div className="flex items-center gap-3"><ItemArtwork item={installed} size={46}/><div className="flex-1 text-xs">
         <p>{installedBonus?t('Бонус кирки действует'):t('Бонус этой кирки не распознан')}</p>
         <p>+{installedBonus?.critBonus||0}{t(' п.п. крита · +')}{installedBonus?.expBonus||0}{t('% опыта')}</p>
-      </div><button className={`${button} min-h-11 text-xs disabled:opacity-40`} disabled={busy||player.inventory.length>=player.maxInventorySlots} onClick={()=>void act(()=>unequipItem('pickaxe'))}>{t('Снять')}</button></div>
+      </div><button className={`${button} min-h-11 text-xs disabled:opacity-40`} disabled={busy||player.inventory.length>=player.maxInventorySlots} onClick={async ()=>void act(()=>unequipItem('pickaxe'))}>{t('Снять')}</button></div>
       {player.inventory.length>=player.maxInventorySlots&&<p className="text-xs">{t('Чтобы снять кирку, освободите место в сумке.')}</p>}
     </div>:<p className="rounded-lg border border-amber-600/50 p-3 text-sm font-semibold">{t(bagTools.length?'Кирка куплена, но не установлена. Нажмите «Экипировать».':'Кирка не куплена. Выберите её в магазине ниже.')}</p>}
     {bagTools.map(item=><div key={item.id} className="rounded-lg border border-slate-600/40 p-2">
-      <div className="flex items-center gap-2"><ItemArtwork item={item} size={36}/><div className="flex-1 text-xs"><b>{t(item.name)}</b><p>{t('Куплена · в сумке')}</p></div><button className={`${button} min-h-11 text-xs disabled:opacity-40`} disabled={busy} onClick={()=>void act(()=>equipItem(item))}>{t('Экипировать')}</button></div>
+      <div className="flex items-center gap-2"><ItemArtwork item={item} size={36}/><div className="flex-1 text-xs"><b>{t(item.name)}</b><p>{t('Куплена · в сумке')}</p></div><button className={`${button} min-h-11 text-xs disabled:opacity-40`} disabled={busy} onClick={async ()=>void act(()=>equipItem(item))}>{t('Экипировать')}</button></div>
     </div>)}
     {feedback&&<p role={feedback.success?'status':'alert'} className="rounded-lg border border-slate-500/50 p-3 text-sm font-semibold">{t(feedback.message)}</p>}
     <p className="text-xs">{t('Отдельный слот. Бонусы работают при ручной добыче. Максимум жилы — редкий крит; обычная добыча зависит от жилы.')}</p>
@@ -53,7 +53,7 @@ export function PickaxePanel({isMining, onFeedback}:{isMining:boolean;onFeedback
           <p className="text-xs">{t('Цена: ')}{offer.price.toLocaleString(intlLocale())}{t(' золота')}</p>
           <p className="text-xs font-semibold">{t(equipped?'Установлена · бонус действует':owned?'Куплена · в сумке':'Не куплена')}</p>
           {!equipped&&!owned&&reason&&<p className="text-xs">{t(reason)}</p>}
-          <button className={`${button} min-h-11 w-full text-xs disabled:opacity-50`} disabled={busy||equipped||!owned&&!!reason} onClick={()=>void act(()=>owned?equipItem(owned):buyPickaxe(offer.id))}>{t(equipped?'Установлена':owned?'Установить':`Купить · ${offer.price.toLocaleString(intlLocale())} золота`)}</button>
+          <button className={`${button} min-h-11 w-full text-xs disabled:opacity-50`} disabled={busy||equipped||!owned&&!!reason} onClick={async ()=>void act(async()=>owned?equipItem(owned):await buyPickaxe(offer.id))}>{t(equipped?'Установлена':owned?'Установить':`Купить · ${offer.price.toLocaleString(intlLocale())} золота`)}</button>
         </article>;
       })}</div>
     </details>

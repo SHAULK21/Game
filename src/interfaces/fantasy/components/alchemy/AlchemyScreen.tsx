@@ -26,20 +26,20 @@ export const AlchemyScreen: React.FC = () => {
   const bonus = getAlchemyToolBonus(tool, player.alchemyLevel);
   const nextRecipe = ALCHEMY_RECIPES.filter(recipe=>recipe.levelReq>player.alchemyLevel).sort((a,b)=>a.levelReq-b.levelReq)[0];
 
-  const handleCraft = (recipeId: string) => {
+  const handleCraft = async (recipeId: string) => {
     if (combatLocked) { setCraftFeedback('Варить зелья можно только после боя.'); return; }
     if (craftingLock.current) return;
     craftingLock.current = true;
     setCraftingRecipeId(recipeId);
     try {
-      const success = craftAlchemy(recipeId);
+      const success = await craftAlchemy(recipeId);
       setCraftFeedback(success
         ? 'Зелье успешно сварено и добавлено в вашу сумку! Опыт алхимии начислен.'
         : 'Не удалось сварить: проверьте энергию алхимии, уровень, ингредиенты и место в сумке.');
     } catch (error) {
       setCraftFeedback(error instanceof Error ? error.message : 'Не удалось сварить зелье.');
     } finally {
-      craftTimer.current = window.setTimeout(() => {
+      craftTimer.current = window.setTimeout(async () => {
         craftingLock.current = false;
         setCraftingRecipeId(null);
         craftTimer.current = null;
@@ -82,7 +82,7 @@ export const AlchemyScreen: React.FC = () => {
         <SectionTitle eyebrow="Орудия и мастерство">{localize("Инструмент алхимика")}</SectionTitle>
         {tool ? <div className="flex items-center gap-2"><ItemArtwork item={tool} size={40}/><div className="flex-1 text-xs"><b>{localize(tool.name)}</b><p className="text-[11px] text-slate-400">+{localize(bonus?.expBonus || 0)}{localize("% опыта · ")}{localize(bonus?.extraChance || 0)}{localize("% шанс +1 зелья")}</p></div><button disabled={player.inventory.length>=player.maxInventorySlots} onClick={async()=>setCraftFeedback((await unequipItem('alchemyTool')).message)} className="rounded border border-slate-700 p-2 text-xs disabled:opacity-40">{localize("Снять")}</button></div> : <p className="text-[11px] text-slate-400">{localize("Реторта ускоряет прокачку и иногда даёт дополнительное зелье без расхода дополнительных материалов и энергии. Без инструмента варка тоже доступна.")}</p>}
         {player.inventory.filter(item=>item.type==='alchemyTool').map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><ItemArtwork item={item} size={32}/><span className="flex-1">{localize(item.name)}</span><button onClick={async()=>setCraftFeedback((await equipItem(item)).message)} className="rounded border border-emerald-700 p-2 disabled:opacity-40">{localize("Экипировать")}</button></div>)}
-        <details><summary className="min-h-11 cursor-pointer py-3 text-xs text-[#c5b393]">{localize("Купить реторту · за золото")}</summary><div className="space-y-2">{ALCHEMY_TOOLS.map(offer=><div key={offer.id} className="bestiary-panel space-y-2 p-2 text-xs"><b className={RARITY_COLORS[offer.rarity].text}>{localize(offer.name)} · {localize(RARITY_COLORS[offer.rarity].label)}</b><p className="text-xs text-slate-400">{localize("С ")}{localize(offer.alchemyLevel)}{localize(" ур. алхимии · +")}{localize(offer.expBonus)}{localize("% опыта · ")}{localize(offer.extraChance)}{localize("% шанс +1 зелья")}</p><RpgButton variant="secondary" disabled={craftingRecipeId!==null || player.alchemyLevel<offer.alchemyLevel || player.gold<offer.price} onClick={()=>setCraftFeedback(buyAlchemyTool(offer.id).message)} className="w-full">{localize("Купить · ")}{localize(offer.price.toLocaleString(intlLocale()))}{localize(" золота")}</RpgButton></div>)}</div></details>
+        <details><summary className="min-h-11 cursor-pointer py-3 text-xs text-[#c5b393]">{localize("Купить реторту · за золото")}</summary><div className="space-y-2">{ALCHEMY_TOOLS.map(offer=><div key={offer.id} className="bestiary-panel space-y-2 p-2 text-xs"><b className={RARITY_COLORS[offer.rarity].text}>{localize(offer.name)} · {localize(RARITY_COLORS[offer.rarity].label)}</b><p className="text-xs text-slate-400">{localize("С ")}{localize(offer.alchemyLevel)}{localize(" ур. алхимии · +")}{localize(offer.expBonus)}{localize("% опыта · ")}{localize(offer.extraChance)}{localize("% шанс +1 зелья")}</p><RpgButton variant="secondary" disabled={craftingRecipeId!==null || player.alchemyLevel<offer.alchemyLevel || player.gold<offer.price} onClick={async ()=>setCraftFeedback((await buyAlchemyTool(offer.id)).message)} className="w-full">{localize("Купить · ")}{localize(offer.price.toLocaleString(intlLocale()))}{localize(" золота")}</RpgButton></div>)}</div></details>
       </BestiaryPanel>
 
       {craftFeedback && (
@@ -95,7 +95,7 @@ export const AlchemyScreen: React.FC = () => {
       <div className="space-y-2.5">
         <SectionTitle eyebrow="Рецептурник">{localize("Изученные рецепты")}</SectionTitle>
 
-        <div className="flex gap-2" role="group" aria-label={localize("Фильтр рецептов")}><button aria-pressed={recipeFilter==='all'} onClick={()=>setRecipeFilter('all')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Все рецепты")}</button><button aria-pressed={recipeFilter==='fish'} onClick={()=>setRecipeFilter('fish')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Из улова")}</button></div>
+        <div className="flex gap-2" role="group" aria-label={localize("Фильтр рецептов")}><button aria-pressed={recipeFilter==='all'} onClick={async ()=>setRecipeFilter('all')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Все рецепты")}</button><button aria-pressed={recipeFilter==='fish'} onClick={async ()=>setRecipeFilter('fish')} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs">{localize("Из улова")}</button></div>
 
         <div className="space-y-2">
           {ALCHEMY_RECIPES.filter(rec=>recipeFilter==='all'||rec.id.startsWith('alc_fish_')).map(rec => {
@@ -121,7 +121,7 @@ export const AlchemyScreen: React.FC = () => {
                   </div>
 
                   <RpgButton
-                    onClick={() => handleCraft(rec.id)}
+                    onClick={async () => handleCraft(rec.id)}
                     disabled={combatLocked || craftingRecipeId !== null || player.alchemyLevel < rec.levelReq || player.level < (rec.heroLevelReq || 1) || !hasEnergy}
                     variant="primary"
                     icon="alchemy"

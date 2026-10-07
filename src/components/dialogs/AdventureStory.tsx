@@ -12,8 +12,8 @@ export function AdventureStory() {
   const chapter = STORY_CHAPTERS.find(chapter => chapter.id === pending?.chapter);
   if (!pending || !chapter) return null;
   return <StorySceneViewer chapter={chapter} index={pending.step} onIndexChange={setAdventureStoryStep} error={error} onCancel={dismissAdventureStory}
-    onFinish={() => {
-      if (!finishAdventureStory()) setError(locale === 'uk'
+    onFinish={async () => {
+      if (!await finishAdventureStory()) setError(locale === 'uk'
         ? 'Не вдалося розпочати бій. Перевір енергію та активну експедицію і спробуй ще раз.'
         : 'Не удалось начать бой. Проверь энергию и активную экспедицию и попробуй ещё раз.');
     }} />;

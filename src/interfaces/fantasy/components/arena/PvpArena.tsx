@@ -13,7 +13,7 @@ type Data={profile:{enrolled:boolean;stance:PvpStance;rating:number;tickets:numb
 export const PvpArena:React.FC=()=>{
   useLocale();
   const {player}=useGame();const [data,setData]=useState<Data|null>(null),[stance,setStance]=useState<PvpStance>('balanced'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[result,setResult]=useState<Result|null>(null);
-  const load=async()=>{try{if(player)await apiRequest('/api/profile/sync',{method:'POST',body:JSON.stringify({characterName:player.name,level:player.level,classId:player.classId,arenaRating:player.arenaRating})});const next=await apiRequest<Data>('/api/pvp');setData(next);setStance(next.profile.stance);}catch(e){setError(String(e));}};
+  const load=async()=>{try{const next=await apiRequest<Data>('/api/pvp');setData(next);setStance(next.profile.stance);}catch(e){setError(String(e));}};
   useEffect(()=>{void load();const timer=setInterval(()=>void load(),60000);return()=>clearInterval(timer);},[]);
   const enroll=async()=>{setBusy(true);setError('');try{await apiRequest('/api/pvp/enroll',{method:'POST',body:JSON.stringify({stance,enrolled:!data?.profile.enrolled})});await load();}catch(e){setError(String(e));}finally{setBusy(false);}};
   const fight=async(target:string)=>{

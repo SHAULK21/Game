@@ -129,7 +129,7 @@ export const CraftingScreen: React.FC = () => {
                   </details>
                 </div>
                 <button
-                  onClick={() => setFeedback(craftBasicItem(recipe.id).message)}
+                  onClick={async () => setFeedback((await craftBasicItem(recipe.id)).message)}
                   disabled={!canCraft}
                   className="ui-primary shrink-0 rounded-lg px-2.5 py-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-35"
                 >{localize("Создать")}</button>

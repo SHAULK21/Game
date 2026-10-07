@@ -9,7 +9,7 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
   const bundle = await build({
     stdin: { contents: `import React, {act} from 'react';
       import {createRoot} from 'react-dom/client';
-      import {GameProvider, useGame} from './src/context/GameContext';
+      import {LocalGameProvider as GameProvider, useGame} from './src/context/GameContext';
       import {TalentTree} from './src/components/character/TalentTree';
       function Probe(){window.game=useGame();return window.game.player ? <TalentTree/> : null;}
       window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};

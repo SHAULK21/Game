@@ -7,7 +7,7 @@ async function setup(finishTurn = true) {
   const bundle = await build({ stdin: { contents: `
     import React,{act} from 'react';
     import {createRoot} from 'react-dom/client';
-    import {GameProvider} from './src/context/GameContext';
+    import {LocalGameProvider as GameProvider} from './src/context/GameContext';
     import {BetaHuntDashboard as HuntDashboard} from './src/interfaces/fantasy/components/combat/BetaHuntDashboard';
     import {MONSTERS,REGIONS} from './src/data/gameData';
     import {setLanguage} from './src/i18n/locale';

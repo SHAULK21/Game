@@ -45,6 +45,7 @@ export async function resetPlayerAccount(pool: Pick<Pool, 'connect'>, adminId: n
     const updated = (await client.query(`UPDATE players SET character_name=NULL, level=1, arena_rating=1000,
       class_id='warrior', market_gold=120, clan_id=NULL, reset_version=reset_version+1, reset_at=NOW(), updated_at=NOW()
       WHERE telegram_id=$1 RETURNING reset_version`, [targetId])).rows[0];
+    await client.query('UPDATE character_saves SET state_json=NULL, reset_version=$2, version=version+1, active_session=NULL, session_generation=session_generation+1, migration_until=NULL, updated_at=NOW() WHERE telegram_id=$1', [targetId,updated.reset_version]);
     await client.query('INSERT INTO admin_account_resets (id, admin_id, target_id, reset_version) VALUES ($1,$2,$3,$4)', [operationId, adminId, targetId, updated.reset_version]);
     await client.query('COMMIT');
     return { ok: true, resetVersion: Number(updated.reset_version) };

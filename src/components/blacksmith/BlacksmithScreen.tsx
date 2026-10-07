@@ -41,14 +41,14 @@ export const BlacksmithScreen: React.FC = () => {
 
   const successRatePct = Math.round(quote.chance * 100);
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     if (!currentItem || isUpgrading) return;
     setIsUpgrading(true);
     setUpgradeResultMsg(null);
     sound.playMining();
 
-    setTimeout(() => {
-      const res = upgradeItem(currentItem, useProtection);
+    setTimeout(async () => {
+      const res = await upgradeItem(currentItem, useProtection);
       setUpgradeResultMsg({ text: res.message, success: res.success });
       setIsUpgrading(false);
     }, 450);

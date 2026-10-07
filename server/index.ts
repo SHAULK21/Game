@@ -1,3 +1,8 @@
+import {registerPlayerItems} from './playerItems';
+import {validateTelegramInitData,type AuthUser} from './telegramAuth';
+import {registerCharacterStore} from './characterStore';
+import {internalGameApi} from './internalGameApi';
+import {transactionAwarePool} from './transactionScope';
 import {authenticatePlayer, heartbeatPlayer, communityStatsCache} from './playerSession';
 import { sellToResidents } from './localMarket';
 import { recordTelegramWriteAccess } from './telegramWriteAccess';
@@ -10,7 +15,6 @@ import {createMarketListing, buyMarketListing, returnMarketListing, returnExpire
 import { gameMessagePayload, gameMenuButton, messageLanguage } from './telegramGameMessages';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
 import { canUseVault } from '../src/utils/clanRoles';
-import { disposeBulkItems, BulkDisposalError } from './bulkDisposal';
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
@@ -68,7 +72,8 @@ const createDatabasePool = (useSsl: boolean) => new Pool({
 });
 
 let databaseUsesSsl = process.env.DATABASE_SSL === 'true';
-let pool = createDatabasePool(databaseUsesSsl);
+let rawPool = createDatabasePool(databaseUsesSsl);
+const pool = transactionAwarePool(() => rawPool);
 
 const ensureDatabaseConnection = async () => {
   try {
@@ -78,7 +83,7 @@ const ensureDatabaseConnection = async () => {
     console.warn(`Postgres connection failed with SSL=${databaseUsesSsl}; retrying with SSL=${!databaseUsesSsl}.`, firstError);
     await pool.end().catch(() => undefined);
     databaseUsesSsl = !databaseUsesSsl;
-    pool = createDatabasePool(databaseUsesSsl);
+    rawPool = createDatabasePool(databaseUsesSsl);
     await pool.query('SELECT 1');
     console.log(`Postgres connected after fallback (SSL=${databaseUsesSsl}).`);
   }
@@ -103,55 +108,11 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(compression());
+app.use('/api/game/migrate', express.json({limit:'600kb'}));
 app.use(express.json({ limit: '32kb' }));
 app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
 
-type AuthUser = { id: number; username?: string; displayName: string; allowsWriteToPm?: boolean };
-declare global {
-  namespace Express {
-    interface Request { authUser?: AuthUser }
-  }
-}
-
-const validateTelegramInitData = (initData: string): AuthUser => {
-  if (!initData) throw new Error('Telegram initData is required.');
-
-  const params = new URLSearchParams(initData);
-  const hash = params.get('hash');
-  const authDate = Number(params.get('auth_date') || 0);
-  if (!hash || !authDate) throw new Error('Invalid Telegram initData.');
-  if (Math.abs(Date.now() / 1000 - authDate) > 7 * 86400) throw new Error('Telegram session expired. Reopen the Mini App from the bot.');
-
-  const dataCheckString = [...params.entries()]
-    .filter(([key]) => key !== 'hash')
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => key + '=' + value)
-    .join('\n');
-
-  const secretKey = crypto.createHmac('sha256', 'WebAppData')
-    .update(process.env.TELEGRAM_BOT_TOKEN!)
-    .digest();
-  const calculated = crypto.createHmac('sha256', secretKey)
-    .update(dataCheckString)
-    .digest('hex');
-
-  const a = Buffer.from(calculated, 'hex');
-  const b = Buffer.from(hash, 'hex');
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    throw new Error('Telegram signature verification failed.');
-  }
-
-  const userRaw = params.get('user');
-  if (!userRaw) throw new Error('Telegram user is missing.');
-  const user = JSON.parse(userRaw);
-
-  return {
-    id: Number(user.id),
-    username: user.username,
-    allowsWriteToPm: user.allows_write_to_pm === true,
-    displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок',
-  };
-};
+declare global { namespace Express { interface Request { authUser?: AuthUser } } }
 
 const auth = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
@@ -160,13 +121,16 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
       const id = Number(process.env.DEV_TELEGRAM_ID || 749219401);
       req.authUser = { id, displayName: 'Dev Player', username: 'dev_player' };
     } else {
-      req.authUser = validateTelegramInitData(initData);
+      req.authUser = validateTelegramInitData(initData,process.env.TELEGRAM_BOT_TOKEN!);
     }
 
     const resetVersion = await authenticatePlayer(pool,req.authUser);
     if (!['GET', 'HEAD'].includes(req.method) && Number(req.get('X-Game-Reset-Version') || 0) !== resetVersion) {
       res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion, error: 'Прогресс сброшен администратором. Создайте нового персонажа.' });
       return;
+    }
+    if (!['GET','HEAD'].includes(req.method) && /^\/api\/(profile\/sync|items|market|clan|pvp\/(enroll|challenge)|admin\/premium)/.test(req.path)) {
+      res.status(409).json({code:'SERVER_CHARACTER_REQUIRED',error:'Обновите игру: изменение прогресса выполняется через серверную сессию.'}); return;
     }
     next();
   } catch (error) {
@@ -190,6 +154,7 @@ const requireClan = async (req: express.Request, res: express.Response, next: ex
   next();
 };
 
+registerCharacterStore(app, () => rawPool, auth, internalGameApi(app));
 registerSocialFeatures(app, () => pool, auth, telegramBotApi, publicBaseUrl);
 
 app.get('/api/health', async (_req, res) => {
@@ -448,76 +413,7 @@ const recordVaultEvent = async (client: PoolClient, clanId: string, actor: numbe
   );
 };
 
-app.get('/api/items/owned', auth, async (req, res) => {
-  await returnExpiredMarketListings(pool,req.authUser!.id);
-  const items = await pool.query(
-    `SELECT id, item_json, quantity, locked, bound_clan_id, equipped_slot, origin
-     FROM owned_items WHERE owner_telegram_id = $1 ORDER BY created_at DESC`,
-    [req.authUser!.id]
-  );
-  res.json({ items: items.rows });
-});
-
-app.post('/api/items/:itemId/equip', auth, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const found = await client.query(`SELECT id, item_json, equipped_slot FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
-    const row = found.rows[0];
-    if (!row) throw new Error('Предмет не принадлежит персонажу.');
-    const slot = String(row.item_json.type || '');
-    if (!['weapon','offhand','helmet','armor','pants','gloves','boots','amulet','ring','belt','cloak','artifact','pickaxe','alchemyTool'].includes(slot)) throw new Error('Этот предмет нельзя надеть.');
-    await client.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE owner_telegram_id = $1 AND equipped_slot = $2`, [req.authUser!.id, slot]);
-    await client.query(`UPDATE owned_items SET equipped_slot = $1, updated_at = NOW() WHERE id = $2`, [slot, row.id]);
-    await client.query('COMMIT');
-    res.json({ ok: true });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось надеть предмет.' });
-  } finally { client.release(); }
-});
-
-app.post('/api/items/:itemId/unequip', auth, async (req, res) => {
-  await pool.query(`UPDATE owned_items SET equipped_slot = NULL, updated_at = NOW() WHERE id = $1 AND owner_telegram_id = $2`, [req.params.itemId, req.authUser!.id]);
-  res.json({ ok: true });
-});
-
-app.post('/api/items/:itemId/lock', auth, async (req, res) => {
-  const result = await pool.query(`UPDATE owned_items SET locked = NOT locked, updated_at = NOW() WHERE id = $1 AND owner_telegram_id = $2 RETURNING locked`, [req.params.itemId, req.authUser!.id]);
-  if (!result.rows[0]) return res.status(404).json({ error: 'Предмет не найден.' });
-  res.json({ locked: result.rows[0].locked });
-});
-
-app.post('/api/items/bulk-dispose', auth, async (req, res) => {
-  try { res.json(await disposeBulkItems(pool, req.authUser!.id, req.body)); }
-  catch (error) {
-    if (error instanceof BulkDisposalError) return res.status(error.status).json({error:error.message});
-    throw error;
-  }
-});
-
-app.post('/api/items/:itemId/dispose', auth, async (req, res) => {
-  const action = String(req.body?.action || '');
-  if (!['sell', 'disassemble'].includes(action)) return res.status(400).json({ error: 'Недопустимое действие.' });
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
-    const row = found.rows[0];
-    if (!row || row.locked || row.equipped_slot) throw new Error('Предмет недоступен.');
-    const item = row.item_json;
-    const quantity = Number(row.quantity);
-    const gold = action === 'sell' ? Math.max(0, Math.min(100000, Number(item.sellPrice || 0))) * quantity : 0;
-    const silver = action === 'disassemble' ? Math.max(0, Math.min(100000, Number(item.disassembleYield?.silver || 0))) * quantity : 0;
-    const ore = action === 'disassemble' ? Math.max(0, Math.min(1000, Number(item.disassembleYield?.ore || 0))) * quantity : 0;
-    await client.query('DELETE FROM owned_items WHERE id = $1', [row.id]);
-    await client.query('COMMIT');
-    res.json({ ok: true, gold, silver, ore });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Не удалось обработать предмет.' });
-  } finally { client.release(); }
-});
+registerPlayerItems(app,pool,auth);
 
 app.get('/api/clan/storage', auth, requireClan, async (req, res) => {
   const clanId = res.locals.clan.id;

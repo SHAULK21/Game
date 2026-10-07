@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 
 test('Premium bag expansion shows its price, reports insufficient gold, adds persistent slots and charges the current price', async () => {
   const bundle = await build({
-    stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/components/inventory/InventoryScreen';function Probe(){window.game=useGame();return window.game.player?<InventoryScreen/>:null;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`, resolveDir: process.cwd(), loader: 'tsx' },
+    stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {LocalGameProvider as GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/components/inventory/InventoryScreen';function Probe(){window.game=useGame();return window.game.player?<InventoryScreen/>:null;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`, resolveDir: process.cwd(), loader: 'tsx' },
     bundle: true, write: false, platform: 'browser', format: 'iife',
     define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' },
     plugins: [{ name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }],

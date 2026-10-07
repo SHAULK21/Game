@@ -26,7 +26,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
 }
 
 async function setup(contents: string) {
-  const bundle = await build({ stdin: { contents, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'reload', setup(b) { b.onLoad({filter:/InterfaceContext\.tsx$/},async args=>({contents:(await (await import('node:fs/promises')).readFile(args.path,'utf8')).replace('reload = () => window.location.reload()', 'reload = () => { (window as any).reloadRequested = true; }'),loader:'tsx'})); } }, { name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
+  const bundle = await build({ stdin: { contents, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'reload', setup(b) { b.onLoad({filter:/\/App\.tsx$/},async args=>({contents:(await (await import('node:fs/promises')).readFile(args.path,'utf8')).replace('import {GameProvider}', 'import {LocalGameProvider as GameProvider}'),loader:'tsx'})); b.onLoad({filter:/InterfaceContext\.tsx$/},async args=>({contents:(await (await import('node:fs/promises')).readFile(args.path,'utf8')).replace('reload = () => window.location.reload()', 'reload = () => { (window as any).reloadRequested = true; }'),loader:'tsx'})); } }, { name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;
   w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };
@@ -53,7 +53,7 @@ test('registration switches styles without losing input; both layouts share char
     assert(classButtons.every((node: any) => !/\p{Extended_Pictographic}/u.test(node.textContent)));
     assert.match(w.document.querySelector('[data-skill-details="w_strike"]').textContent, /Шанс за удар: 25%/);
     assert(w.document.querySelector('[data-skill-details="w_charge"]'), 'registration previews advanced class skills too');
-    assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), 'art');
+    assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), '/assets/images/char_warrior_paladin_1790595905774.jpg');
     let input = w.document.querySelector('input[type="text"]');
     await w.act(async () => {
       Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value')!.set!.call(input, 'Новый герой');
@@ -397,7 +397,7 @@ test('uncatalogued fantasy enemies retain their own portrait instead of using a 
 
 
 test('a pre-reset provider cannot save over the cleared account while a current provider can create a new hero', async () => {
-  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {getTelegramUser} from './src/utils/telegram';function Probe(){window.game=useGame();return null;}window.act=act;window.userId=getTelegramUser().id;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`);
+  const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {LocalGameProvider as GameProvider,useGame} from './src/context/GameContext';import {getTelegramUser} from './src/utils/telegram';function Probe(){window.game=useGame();return null;}window.act=act;window.userId=getTelegramUser().id;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`);
   w.fetch = async () => ({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0,isAdmin:false})});
   const saveKey = 'aethelgard_save_v1_data_749219401';
   const versionKey = 'aethelgard_reset_version_' + w.userId;
@@ -446,7 +446,7 @@ test('fantasy pets show live active-first cards, exact reference artwork, ingred
 });
 
 test('fantasy inventory manuscript retains equipment, locks, salvage, sale and resource navigation', async () => {
-  const {dom,w}=await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/interfaces/fantasy/components/inventory/InventoryScreen';window.act=act;window.workshop=0;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen onNavigateToCrafting={()=>window.workshop++}/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
+  const {dom,w}=await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {LocalGameProvider as GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/interfaces/fantasy/components/inventory/InventoryScreen';window.act=act;window.workshop=0;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen onNavigateToCrafting={()=>window.workshop++}/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
   w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true,totalGold:0,isAdmin:false})});
   const settle=async()=>w.act(async()=>{await new Promise(r=>setTimeout(r,40));});
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===text) as any;
@@ -497,7 +497,7 @@ test('intro offers five bilingual scenes, back and skip, then remembers completi
 });
 
 test('modern equipment drawer keeps equip and protection actions and restores focus on Escape', async () => {
-  const {dom,w} = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/components/inventory/InventoryScreen';window.act=act;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
+  const {dom,w} = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {LocalGameProvider as GameProvider,useGame} from './src/context/GameContext';import {InventoryScreen} from './src/components/inventory/InventoryScreen';window.act=act;function Screen(){window.game=useGame();return window.game.player?<InventoryScreen/>:null;}window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Screen/></GameProvider>);};`);
   w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===text) as any;
   try {

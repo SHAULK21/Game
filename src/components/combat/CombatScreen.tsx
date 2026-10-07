@@ -120,7 +120,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
   const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
-  const handleStartBattle = (mon: typeof MONSTERS[string]) => {
+  const handleStartBattle = async (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
     if (player.miningExpedition && !premium.active) {
       setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
@@ -128,14 +128,14 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     }
     const lock = huntLockReason(player, mon, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id);
     if (lock) {setEnergyError(lock);return;}
-    const success = startBattleWithMonster(mon);
+    const success = await startBattleWithMonster(mon);
     if (!success) {
       setEnergyError(`Недостаточно энергии! Требуется ${combatEnergyCost} ⚡, а у вас ${player.energy ?? 0} ⚡.`);
-      setTimeout(() => setEnergyError(null), 5000);
+      setTimeout(async () => setEnergyError(null), 5000);
     }
   };
 
-  const handleAutoBattleClick = () => {
+  const handleAutoBattleClick = async () => {
     if (!premium.active) {
       setPremiumFeedback(null);
       setPremiumPromptOpen(true);
@@ -157,7 +157,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <div className="text-[11px] text-slate-400">{localize("Автобой доступен с Premium")}</div>
             </div>
           </div>
-          <button onClick={() => setPremiumPromptOpen(false)} className="p-1.5 rounded-lg bg-slate-900 text-slate-400">
+          <button onClick={async () => setPremiumPromptOpen(false)} className="p-1.5 rounded-lg bg-slate-900 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -179,7 +179,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             const result = await purchasePremium(preparedPremiumInvoice);
             setPremiumFeedback(result.message);
             setPremiumBusy(false);
-            if (result.success) setTimeout(() => setPremiumPromptOpen(false), 900);
+            if (result.success) setTimeout(async () => setPremiumPromptOpen(false), 900);
           }}
           className="ui-primary mt-4 w-full py-3 rounded-xl disabled:opacity-50 font-cinzel font-bold text-sm active:scale-95"
         >
@@ -202,7 +202,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           <div className="modern-hunt-action flex gap-2">
             <button
               disabled={!selectedMonster || Boolean(selectedLock) || player.level<currentRegion.minLevel || player.energy<combatEnergyCost}
-              onClick={() => {
+              onClick={async () => {
                 if (selectedMonster) handleStartBattle(selectedMonster);
               }}
               className="ui-primary disabled:opacity-40 disabled:cursor-not-allowed flex-1 py-3 px-4 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -212,7 +212,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             </button>
 
             <button
-              onClick={() => setIsSettingsOpen(prev => !prev)}
+              onClick={async () => setIsSettingsOpen(prev => !prev)}
               aria-label={localize("Настройки автобоя")}
               className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 active:scale-95 transition-all"
             >
@@ -261,8 +261,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <div className="text-xs font-bold text-amber-200">{localize("⛏ Персонаж сейчас в шахте")}</div>
               <div className="text-[10px] text-slate-400 mt-1">{localize("Пока идёт экспедиция, вступать в бой нельзя.")}</div>
               <button
-                onClick={() => {
-                  const result = leaveMiningExpedition();
+                onClick={async () => {
+                  const result = await leaveMiningExpedition();
                   setEnergyError(result.message);
                 }}
                 className="mt-2 w-full py-2 rounded-lg bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-bold"
@@ -279,11 +279,11 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               </div>
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => meditateOrRefillEnergy('meditate')}
+                  onClick={async () => meditateOrRefillEnergy('meditate')}
                   className="px-2.5 py-1 bg-emerald-950 border border-emerald-500 rounded text-emerald-200 text-[10px] font-bold"
                 >{localize("🧘 Помедитировать (+10 ⚡)")}</button>
                 <button
-                  onClick={() => meditateOrRefillEnergy('silver')}
+                  onClick={async () => meditateOrRefillEnergy('silver')}
                   className="px-2.5 py-1 bg-amber-950 border border-amber-500 rounded text-amber-200 text-[10px] font-bold"
                 >{localize("🧪 Эликсир (+30 ⚡ / ")}{localize(getEnergyElixirPrice(premium.active))} 🥈){localize(premium.active ? ' · −50% Premium' : '')}
                 </button>
@@ -294,7 +294,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
           {!premium.active && (
             <button
-              onClick={() => setPremiumPromptOpen(true)}
+              onClick={async () => setPremiumPromptOpen(true)}
               className="mt-2 w-full py-2.5 rounded-xl border border-yellow-500/40 bg-yellow-950/25 text-yellow-200 font-bold text-xs flex items-center justify-center gap-2 active:scale-95"
             >
               <Crown className="w-4 h-4" />{localize("Купить Premium · 150 ⭐ / 30 дней")}</button>
@@ -307,7 +307,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="flex items-center justify-between">
               <span className="font-cinzel text-xs font-bold text-purple-300">{localize("Настройки Авто-Боя")}</span>
               <button
-                onClick={() => setIsSettingsOpen(false)}
+                onClick={async () => setIsSettingsOpen(false)}
                 className="text-xs text-slate-400 hover:text-white"
               >{localize("Закрыть")}</button>
             </div>
@@ -394,7 +394,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               return (
                 <div
                   key={mon.id}
-                  onClick={() => setSelectedMonsterId(mon.id)}
+                  onClick={async () => setSelectedMonsterId(mon.id)}
                   onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedMonsterId(mon.id); } }}
                   tabIndex={0}
                   aria-label={localize(mon.name)}
@@ -817,12 +817,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="flex gap-2">
               {activeMonster?.regionId === 'ascension' ? (
                 <button
-                  onClick={() => { exitCombat(); onReturnToArena?.(); }}
+                  onClick={async () => { exitCombat(); onReturnToArena?.(); }}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >{localize("Вернуться на арену")}</button>
               ) : activeDungeonRun ? (
                 <button
-                  onClick={() => { exitCombat(); onContinueDungeon?.(); }}
+                  onClick={async () => { exitCombat(); onContinueDungeon?.(); }}
                   className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white active:scale-95 transition-all"
                 >
                   {localize(activeDungeonRun.completed ? 'Итоги подземелья' : combatOutcome === 'victory' ? 'Продолжить подземелье' : 'Вернуться в подземелье')}
@@ -834,7 +834,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 >{localize("Следующий противник")}</button>
               ) : (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (selectedMonster) handleStartBattle(selectedMonster);
                   }}
                   className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-xs text-white active:scale-95 transition-all"
@@ -854,7 +854,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="grid grid-cols-3 gap-2">
               {/* Attack */}
               <button
-                onClick={() => performPlayerAction('attack')}
+                onClick={async () => performPlayerAction('attack')}
                 disabled={turnPhase !== 'player'}
                 className="ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-cyan-400/40"
               >
@@ -864,7 +864,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Skills Drawer */}
               <button
-                onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
+                onClick={async () => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
                 className="ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-indigo-400/40"
               >
@@ -874,7 +874,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Defend */}
               <button
-                onClick={() => performPlayerAction('defend')}
+                onClick={async () => performPlayerAction('defend')}
                 disabled={turnPhase !== 'player'}
                 className="py-3 px-2 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
               >
@@ -887,7 +887,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="grid grid-cols-3 gap-2">
               {/* Potion */}
               <button
-                onClick={() => setIsPotionsOpen(prev => !prev)}
+                onClick={async () => setIsPotionsOpen(prev => !prev)}
                 disabled={turnPhase !== 'player' || potionCount <= 0}
                 className={`py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
                   potionCount > 0
@@ -901,7 +901,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Flee */}
               <button
-                onClick={() => performPlayerAction('flee')}
+                onClick={async () => performPlayerAction('flee')}
                 disabled={turnPhase !== 'player'}
                 className="py-2 px-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-all"
               >
@@ -914,7 +914,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <div className="bg-slate-900/95 border border-emerald-500/40 rounded-xl p-3 space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs text-emerald-300 font-cinzel font-bold border-b border-slate-800 pb-1">
                   <span>{localize("Выберите зелье")}</span>
-                  <button onClick={() => setIsPotionsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={async () => setIsPotionsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
                   <p className="text-xs">{localize('За ход доступно одно зелье. Следующее — после хода противника.')}</p>
@@ -933,7 +933,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                       <button
                         key={potion.id}
                         disabled={turnPhase !== 'player' || potionUsedThisTurn(potion, usedPotionKinds)}
-                        onClick={() => {
+                        onClick={async () => {
                           performPlayerAction('potion', potion.id);
                           setIsPotionsOpen(false);
                         }}
@@ -957,7 +957,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <div className="bg-slate-900/95 border border-indigo-500/40 rounded-xl p-3 space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs text-indigo-300 font-cinzel font-bold border-b border-slate-800 pb-1">
                   <span>{localize("Выберите заклинание или навык")}</span>
-                  <button onClick={() => setIsSkillsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                  <button onClick={async () => setIsSkillsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-1.5">
@@ -971,7 +971,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                       <button
                         key={skill.id}
                         disabled={!canUse || turnPhase !== 'player'}
-                        onClick={() => {
+                        onClick={async () => {
                           performPlayerAction('skill', skill.id);
                           setIsSkillsOpen(false);
                         }}

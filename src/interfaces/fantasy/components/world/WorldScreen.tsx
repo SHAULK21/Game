@@ -55,12 +55,12 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
   const regionGroups = groupRegionsByLevel(REGIONS, player.level);
   const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
 
-  const handleStartTravel = (regId: string) => {
+  const handleStartTravel = async (regId: string) => {
     setErrorMessage(null);
-    const result = startTravel(regId, selectedModId);
+    const result = await startTravel(regId, selectedModId);
     if (!result.success) {
       setErrorMessage(result.message);
-      setTimeout(() => setErrorMessage(null), 4000);
+      setTimeout(async () => setErrorMessage(null), 4000);
     }
   };
 
@@ -95,7 +95,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             <div className="text-[11px] text-[#d5ba89]">{localize("Побед: ")}{localize(activeDungeonRun.kills || 0)} · HP {localize(activeDungeonRun.savedHp ?? combatStats.maxHp)} · MP {localize(activeDungeonRun.savedMp ?? combatStats.maxMp)}</div>
           </div>
           <button
-            onClick={() => { if (window.confirm(localize('Покинуть подземелье? Прогресс этого захода будет потерян.'))) exitDungeon(); }}
+            onClick={async () => { if (window.confirm(localize('Покинуть подземелье? Прогресс этого захода будет потерян.'))) exitDungeon(); }}
             className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800 border border-slate-700"
           >{localize("Покинуть")}</button>
         </BestiaryPanel>
@@ -168,8 +168,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
               <div className="pt-2">
                 {currentRoom.type === 'combat' || currentRoom.type === 'boss' || currentRoom.type === 'elite' ? (
                   <button
-                    onClick={() => {
-                      if (proceedDungeonRoom('fight')) onEnterCombatTab?.();
+                    onClick={async () => {
+                      if (await proceedDungeonRoom('fight')) onEnterCombatTab?.();
                     }}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
@@ -178,7 +178,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   </button>
                 ) : currentRoom.type === 'treasure' ? (
                   <button
-                    onClick={() => proceedDungeonRoom('open')}
+                    onClick={async () => await proceedDungeonRoom('open')}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <RpgIcon kind="gold" size={17} />
@@ -186,7 +186,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                   </button>
                 ) : (
                   <button
-                    onClick={() => proceedDungeonRoom('pray')}
+                    onClick={async () => await proceedDungeonRoom('pray')}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <RpgIcon kind="skill" size={17} />
@@ -205,7 +205,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     const isCurrent = player.currentRegionId === reg.id;
     const isInspecting = selectedRegionId === reg.id;
     const isLocked = Boolean(regionEntryLockReason(player, reg));
-    const selectRegion = () => {
+    const selectRegion = async () => {
       setSelectedRegionId(reg.id);
       setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
         ? player.activeRegionModId!
@@ -354,7 +354,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
                 <button
                   key={mod.id}
                   disabled={player.level<inspectingRegion.minLevel || Boolean(modeLock)}
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedModId(mod.id);
                     sound.playClick();
                   }}
@@ -386,7 +386,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
         <div className="pt-2">
           {player.currentRegionId === inspectingRegion.id && selectedModId === (player.activeRegionModId || inspectingRegion.defaultModId) && !isFirstDeparture ? (
             <RpgButton
-              onClick={() => {
+              onClick={async () => {
                 if (onEnterCombatTab) onEnterCombatTab();
               }}
               variant="primary"
@@ -396,7 +396,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
           ) : (
             <>
               <RpgButton
-                onClick={() => handleStartTravel(inspectingRegion.id)}
+                onClick={async () => handleStartTravel(inspectingRegion.id)}
                 disabled={Boolean(regionEntryLockReason(player, inspectingRegion))}
                 variant="primary"
                 icon="map"
@@ -432,7 +432,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
             return (
               <div
                 key={cave.id}
-                onClick={() => {
+                onClick={async () => {
                   setSelectedCaveId(cave.id);
                   sound.playClick();
                 }}
