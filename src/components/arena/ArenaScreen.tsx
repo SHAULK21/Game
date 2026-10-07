@@ -46,7 +46,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
       <div className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
       {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p className="text-xs text-slate-400">{localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")}</p>
-      <p className="text-xs text-slate-400">{localize('Арена — опыт героя за билеты. Локации — ресурсы и снаряжение. Выберите сложность: сильнее гладиатор — больше опыта.')}</p>
+      <p className="text-xs text-slate-400">{localize('За победы на арене вы получаете опыт, золото и серебро. Также могут выпасть жетоны чемпиона, снаряжение и зелья. Сильнее гладиатор — больше опыта.')}</p>
       {/* Header Banner */}
       <div className="ui-panel rounded-2xl border p-4">
         <div className="flex items-center justify-between">

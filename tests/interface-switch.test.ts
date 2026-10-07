@@ -307,7 +307,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert.equal(w.document.querySelectorAll('nav [data-shell-frame="active"]').length,1);
     assert(w.document.querySelector('.shell-hud-resources .is-silver'));
     assert(!w.document.querySelector('header').classList.contains('is-compact'));
-    await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/Арен/);
+    await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/арен/i);
     await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
     await click('Охота');
     assert(!w.document.querySelector('header').classList.contains('is-compact'),'returning to Hunt restores full HUD');

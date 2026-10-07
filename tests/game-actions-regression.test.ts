@@ -41,7 +41,11 @@ for(const style of ['modern','fantasy','fantasy-beta']) test(`${style}: actual p
   await w.act(async()=>w.screen('arena'));assert.equal(w.document.querySelectorAll('button').length>=9,true);assert.match(w.document.body.textContent,/EXP/);const tickets=w.game.player.arenaTickets;
   await click('В бой');assert(w.entered);assert.equal(w.game.player.arenaTickets,tickets-1);const enemy=w.game.activeMonster;assert(enemy.id.startsWith('gladiator_'));assert(enemy.hp>0 && enemy.hp<=enemy.maxHp);
   await w.act(async()=>{assert.equal(w.game.challengeArena(arenaOpponents(1)[0]),false);});assert.equal(w.game.player.arenaTickets,tickets-1);
-  w.Math.random=()=>.5;await w.act(async()=>w.game.performPlayerAction('attack'));assert.equal(w.game.combatOutcome,'victory');assert.equal(w.game.lastCombatReward.exp,enemy.expReward);assert.equal(w.game.lastCombatReward.gold,0);assert.equal(w.game.lastCombatReward.silver,0);assert.equal(w.game.lastCombatReward.items.length,0);
+  const beforeGold=w.game.player.gold,beforeSilver=w.game.player.silver;
+  w.Math.random=()=>.1;await w.act(async()=>w.game.performPlayerAction('attack'));assert.equal(w.game.combatOutcome,'victory');const reward=w.game.lastCombatReward;assert.equal(reward.exp,enemy.expReward);assert(reward.gold>0);assert(reward.silver>0);
+  assert.equal(w.game.player.gold,beforeGold+reward.gold);assert.equal(w.game.player.silver,beforeSilver+reward.silver);
+  assert(reward.items.some((item:any)=>item.name==='Жетон чемпиона Арены'));assert(reward.items.some((item:any)=>item.type==='potion'));assert(reward.items.some((item:any)=>item.type==='weapon'||item.type==='armor'||item.type==='helmet'||item.type==='boots'||item.type==='gloves'||item.type==='pants'||item.type==='ring'||item.type==='amulet'||item.type==='belt'||item.type==='cloak'||item.type==='offhand'));
+  for(const item of reward.items)assert(w.game.player.inventory.some((entry:any)=>entry.templateId===item.templateId&&entry.name===item.name),`reward missing from inventory: ${item.name}`);
   // Remain on the completed combat screen state: fishing must still be playable.
   assert(w.game.isInCombat);assert(w.game.isCombatEnded);await w.act(async()=>w.screen('fishing'));
   await click('Журнал улова');assert.match(w.document.body.textContent,/Самый крупный улов/);await click('Рыба и алхимия');await click('Перейти в алхимию');assert.equal(w.nav.currentTab,'alchemy');await click('Берег');
@@ -60,7 +64,7 @@ test('arena scales at every level, preserves class tactics and previews the exac
  for(const level of [1,10,40,100]){
   const opponents=arenaOpponents(level);assert.equal(opponents.length,6);
   assert(opponents.at(-1)!.expReward>opponents[0].expReward);
-  for(const opponent of opponents){const monster=arenaMonster(opponent.id,level)!;assert.equal(monster.level,level);assert.equal(monster.expReward,opponent.expReward);assert.equal(prepareMonsterForCombat(monster).expReward,opponent.expReward);assert.equal(prepareMonsterForCombat(monster).maxHp,monster.maxHp);assert(monster.skills?.length);assert.equal(monster.drops.length,0);assert.equal(monster.goldReward,0);}
+  for(const opponent of opponents){const monster=arenaMonster(opponent.id,level)!;assert.equal(monster.level,level);assert.equal(monster.expReward,opponent.expReward);assert.equal(prepareMonsterForCombat(monster).expReward,opponent.expReward);assert.equal(prepareMonsterForCombat(monster).maxHp,monster.maxHp);assert(monster.skills?.length);assert.equal(monster.drops[0].itemName,'Жетон чемпиона Арены');assert.equal(monster.drops[0].minQty,1);assert.equal(monster.drops[0].maxQty,2);assert.equal(monster.goldReward,level*60);}
  }
  assert.equal(arenaMonster('unknown',1),undefined);
  assert(arenaMonster('opp_3',10)!.magicAttack>arenaMonster('opp_3',10)!.attack);

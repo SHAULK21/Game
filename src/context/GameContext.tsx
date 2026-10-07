@@ -2265,7 +2265,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const arenaRatingGain = monster.regionId === 'arena' ? 25 : 0;
     const activeMod = combatHuntingMode(monster);
     // Every completed combat has a small consumable roll: 0–3 potions.
-    const potionCount = monster.regionId !== 'arena' && Math.random() < 0.15 ? 1 : 0;
+    const potionCount = Math.random() < 0.15 ? 1 : 0;
     const potionPool: GameItem[] = [
       { id: 'drop_potion_hp_' + Date.now(), templateId: 'alc_hp_small', name: 'Малое зелье исцеления', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🧪', description: 'Восстанавливает 120 HP.', stats: { heal: 120 }, sellPrice: 10, disassembleYield: { silver: 4 }, stackCount: 1 },
       { id: 'drop_potion_mp_' + Date.now(), templateId: 'alc_mp_small', name: 'Малое зелье маны', type: 'potion', rarity: 'common', level: 1, upgradeLevel: 0, icon: '💧', description: 'Восстанавливает 80 MP.', stats: { manaRestore: 80 }, sellPrice: 12, disassembleYield: { silver: 4 }, stackCount: 1 }
@@ -2279,7 +2279,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let lootResult: { items: GameItem[]; gold: number; silver: number };
     try {
-      lootResult = monster.regionId === 'arena' ? {items:[],gold:0,silver:0} : generateCombatLoot({
+      lootResult = generateCombatLoot({
         monster,
         rareDropMult: (activeMod.rareDropMultiplier || 1) * 0.65 * (1 + combatStats.dropBonus / 100),
         goldMult: (activeMod.goldMultiplier || 1) * 0.22 * (1 + combatStats.goldBonus / 100),
