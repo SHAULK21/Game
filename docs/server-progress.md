@@ -54,10 +54,11 @@ replace the server hero. The current UI explains that manual recovery is needed.
 A separate, explicitly confirmed recovery/selection workflow is still required if
 self-service selection of that divergent local hero must remain available afterward.
 
-Production testing must also cover the transaction adapter on a real multi-connection
-PostgreSQL service, concurrent market purchases with seller locks, crash boundaries,
-and actual Telegram mobile application termination. The embedded PostgreSQL tests
-serialize connection checkout, so they are not a substitute for those lock-contention tests.
+The follow-up CI runs the progress/store/browser integration on real PostgreSQL 16
+with multiple independent connections and passed. Production testing still needs
+concurrent marketplace purchase scenarios with seller locks, crash boundaries and
+physical Telegram mobile application termination. The default embedded PostgreSQL
+test path serializes connection checkout and does not replace those production tests.
 
 ## Database migration
 

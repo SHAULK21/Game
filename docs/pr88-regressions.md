@@ -48,6 +48,17 @@ fixes four synchronization defects without implementing authoritative gameplay.
 | New donation / old donation retry | New call blocked; confirmed refusal clears old retry and returns game to ready |
 | 503 / lost successful purchase response | Retry stays durable; receipt recovery clears it without re-execution |
 
+Results for implementation commit `5e7371e06d834baee0e6bb89f675409b72d76631`:
+
+- `npm test`: **223 passed, 0 failed**.
+- Focused progress/resource regressions: **20 passed, 0 failed**.
+- PostgreSQL 16 CI integration: **passed**, including all 18 HTTP/store/browser
+  integration tests with independent connections (the other 2 focused tests are
+  resource arithmetic tests).
+- TypeScript and production build: **passed**; existing chunk-size warning remains.
+- `git diff --check`: **passed**.
+- [PostgreSQL CI job](https://github.com/SHAULK21/Game/actions/runs/37669431160/job/112957026893).
+
 Local focused tests use PGlite and the actual HTTP/client progress mechanism.
 The same integration suites support PostgreSQL through `TEST_DATABASE_URL`;
 CI provisions PostgreSQL 16 with independent connections. Actual mobile OS process
