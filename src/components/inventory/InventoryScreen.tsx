@@ -159,7 +159,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const handleInventoryExpansion = async () => {
     if (premium.active) {
-      const result = expandInventory();
+      const result = await expandInventory();
       setPremiumFeedback(result.message);
       return;
     }
@@ -225,7 +225,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       <button
         key={item.id}
         data-inventory-item={item.id}
-        onClick={() => setSelectedItem(item)}
+        onClick={async () => setSelectedItem(item)}
         className={`modern-item-card relative text-left p-2 rounded-xl border min-h-[104px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
       >
         {equipped && (
@@ -253,7 +253,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
   const renderResource = (item: GameItem) => (
     <button
       key={item.id}
-      onClick={() => setSelectedItem(item)}
+      onClick={async () => setSelectedItem(item)}
       className="w-full p-2.5 rounded-xl border border-slate-800 bg-[#0a0f1d] flex items-center gap-3 text-left active:scale-[0.99]"
     >
       <div className="w-10 h-10 shrink-0 flex items-center justify-center">
@@ -272,7 +272,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   return (
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
-      <details className="modern-inventory-equipment ui-panel rounded-2xl p-3"><summary className="cursor-pointer font-cinzel text-sm text-amber-200">{localize("Снаряжение")}</summary><HeroEquipment onSelect={setSelectedItem} /><div className="flex gap-2 mt-3">{(['pickaxe', 'alchemyTool'] as ItemType[]).map(type => { const item = player.equipped[type]; return <button key={type} className="game-section flex-1 rounded-lg p-3 text-xs" onClick={() => item && setSelectedItem(item)}>{localize(TYPE_LABELS[type])}: {localize(item?.name || 'Пусто')}</button>; })}</div></details>
+      <details className="modern-inventory-equipment ui-panel rounded-2xl p-3"><summary className="cursor-pointer font-cinzel text-sm text-amber-200">{localize("Снаряжение")}</summary><HeroEquipment onSelect={setSelectedItem} /><div className="flex gap-2 mt-3">{(['pickaxe', 'alchemyTool'] as ItemType[]).map(type => { const item = player.equipped[type]; return <button key={type} className="game-section flex-1 rounded-lg p-3 text-xs" onClick={async () => item && setSelectedItem(item)}>{localize(TYPE_LABELS[type])}: {localize(item?.name || 'Пусто')}</button>; })}</div></details>
       <div className="flex items-center justify-between">
         <div>
           <span className="font-cinzel text-xs font-bold text-slate-200">{localize("Сумка")}</span>
@@ -310,7 +310,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
         ] as const).map(([id, label, count]) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
+            onClick={async () => setTab(id)}
             className={`py-2 rounded-xl border text-[10px] font-bold flex items-center justify-center gap-1 ${tab === id ? 'bg-cyan-950 border-cyan-500/50 text-cyan-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
           >
             {id === 'equipment' ? <Shield className="w-3.5 h-3.5" /> : id === 'potions' ? <FlaskConical className="w-3.5 h-3.5" /> : <Pickaxe className="w-3.5 h-3.5" />}
@@ -333,7 +333,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
             {potions.map(item => (
               <button
                 key={item.id}
-                onClick={() => setSelectedItem(item)}
+                onClick={async () => setSelectedItem(item)}
                 className="w-full rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-3 flex items-center gap-3 text-left"
               >
                 <div className="w-10 h-10 flex items-center justify-center shrink-0">
@@ -370,7 +370,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       {currentSelected && (
         <div
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-2"
-          onClick={() => setSelectedItem(null)}
+          onClick={async () => setSelectedItem(null)}
         >
           <div
             ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modern-item-title"
@@ -398,7 +398,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>}
                 </div>
               </div>
-              <button onClick={() => setSelectedItem(null)} aria-label={localize("Закрыть")} className="p-1 text-slate-500 hover:text-white">
+              <button onClick={async () => setSelectedItem(null)} aria-label={localize("Закрыть")} className="p-1 text-slate-500 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -472,7 +472,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
-                onClick={() => toggleItemLock(currentSelected.id)}
+                onClick={async () => toggleItemLock(currentSelected.id)}
                 className="py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-amber-200 text-xs font-bold"
               >
                 {localize(currentSelected.isLocked ? '🔓 Отпереть' : '🔒 Запереть')}
@@ -509,7 +509,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {selectedIsEquipment && onNavigateToBlacksmith && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedItem(null);
                     onNavigateToBlacksmith();
                   }}
@@ -520,7 +520,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {!currentSelected.isLocked && ((selectedIsEquipment && !currentSelected.isEquipped) || Boolean(currentSelected.disassembleYield?.silver)) && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     disassembleItem(currentSelected);
                     setSelectedItem(null);
                   }}
@@ -535,7 +535,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {!currentSelected.isEquipped && !currentSelected.isLocked && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     sellItem(currentSelected);
                     setSelectedItem(null);
                   }}

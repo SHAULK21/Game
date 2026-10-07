@@ -23,18 +23,18 @@ import { createTalentTree } from './talents';
 import { CLASS_EQUIPMENT, CLASS_GEAR_IDS } from '../utils/classEquipment';
 
 // Generated assets
-import heroHunterImg from '../assets/images/game_hero_hunter_1790595108742.jpg';
-import bossDragonImg from '../assets/images/game_monster_dragon_1790595120603.jpg';
-import dungeonCaveImg from '../assets/images/game_dungeon_cave_1790595131021.jpg';
-import relicWeaponImg from '../assets/images/game_relic_weapon_1790595141902.jpg';
-import charWarriorImg from '../assets/images/char_warrior_paladin_1790595905774.jpg';
-import charMageImg from '../assets/images/char_mage_sorceress_1790595917068.jpg';
-import charRogueImg from '../assets/images/char_rogue_assassin_1790595929467.jpg';
-import mobWolfImg from '../assets/images/mob_forest_wolf_1790595941216.jpg';
-import mobGoblinImg from '../assets/images/mob_goblin_shaman_1790595953042.jpg';
-import mobDeathKnightImg from '../assets/images/mob_death_knight_1790595963615.jpg';
-import itemRelicShieldImg from '../assets/images/item_relic_shield_1790595973300.jpg';
-import itemRelicHelmImg from '../assets/images/item_relic_helm_1790595985059.jpg';
+const heroHunterImg = '/assets/images/game_hero_hunter_1790595108742.jpg';
+const bossDragonImg = '/assets/images/game_monster_dragon_1790595120603.jpg';
+const dungeonCaveImg = '/assets/images/game_dungeon_cave_1790595131021.jpg';
+const relicWeaponImg = '/assets/images/game_relic_weapon_1790595141902.jpg';
+const charWarriorImg = '/assets/images/char_warrior_paladin_1790595905774.jpg';
+const charMageImg = '/assets/images/char_mage_sorceress_1790595917068.jpg';
+const charRogueImg = '/assets/images/char_rogue_assassin_1790595929467.jpg';
+const mobWolfImg = '/assets/images/mob_forest_wolf_1790595941216.jpg';
+const mobGoblinImg = '/assets/images/mob_goblin_shaman_1790595953042.jpg';
+const mobDeathKnightImg = '/assets/images/mob_death_knight_1790595963615.jpg';
+const itemRelicShieldImg = '/assets/images/item_relic_shield_1790595973300.jpg';
+const itemRelicHelmImg = '/assets/images/item_relic_helm_1790595985059.jpg';
 
 export const ASSETS = {
   heroHunter: heroHunterImg,

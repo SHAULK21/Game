@@ -130,7 +130,7 @@ export const CraftingScreen: React.FC = () => {
                   </details>
                 </div>
                 <RpgButton
-                  onClick={() => setFeedback(craftBasicItem(recipe.id).message)}
+                  onClick={async () => setFeedback((await craftBasicItem(recipe.id)).message)}
                   disabled={!canCraft}
                   variant="primary"
                   icon="forge"

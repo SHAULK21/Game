@@ -1,3 +1,4 @@
+import {interfaceServerFixture} from './interface-server-fixture.ts';
 /** Runs the actual production ESM in an emulated document. No browser paint/Network claim. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,14 +9,16 @@ const modes = ['modern','fantasy','fantasy-beta'];
 const root = path.resolve(process.argv[2] || 'dist');
 const manifest = JSON.parse(await fs.readFile(path.join(root,'.vite/manifest.json'),'utf8'));
 const sleep = ms => new Promise(resolve => setTimeout(resolve,ms));
-export async function boot(style,save,storage={},session={}) {
+export async function boot(style,save,storage={},session={},existingBackend=null) {
   const vc = new VirtualConsole(), errors=[];
   vc.on('jsdomError',e => { if (!/navigation|HTMLMediaElement/.test(e.message)) errors.push(e.message); });
   vc.on('error',(...args) => errors.push(args.map(String).join(' ')));
   const dom = new JSDOM('<html><head></head><body><div id="root"></div></body></html>',{url:'http://game.test/',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});
   const w=dom.window, loaded=new Set();
+  const backend=existingBackend||await interfaceServerFixture(save);
   w.Headers=Headers;w.AbortSignal=AbortSignal;w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){}});
-  w.fetch=async url=>{if(String(url).includes('/assets/')){loaded.add(new URL(url,w.location.href).pathname.slice(1));return {ok:true};}return {ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true,isAdmin:false,clan:null,clans:[],messages:[],players:[],listings:[],opponents:[],members:[],onlinePlayers:0,totalGold:0,notifications:[],settings:{enabled:false,onboardingSeen:true},profile:{enrolled:false},history:[],leaders:[]})};};
+  w.fetch=async (url,options={})=>{if(String(url).includes('/assets/')){loaded.add(new URL(url,w.location.href).pathname.slice(1));return {ok:true};}try{const data=await backend.request(String(url),options);return {ok:true,status:200,text:async()=>JSON.stringify(data)};}catch(e){return {ok:false,status:409,text:async()=>JSON.stringify({error:String(e),code:e.code})};}};
+
   for(const [key,value]of Object.entries(storage))w.localStorage.setItem(key,value);
   for(const [key,value]of Object.entries(session))w.sessionStorage.setItem(key,value);
   w.localStorage.setItem('aethelgard_interface_style',style);w.localStorage.setItem('aethelgard_story_intro_v1_749219401','done');
@@ -23,20 +26,25 @@ export async function boot(style,save,storage={},session={}) {
   const original=w.Node.prototype.appendChild;
   w.Node.prototype.appendChild=function(node){if(node.tagName==='LINK'&&node.href){loaded.add(new URL(node.href).pathname.slice(1));if(node.rel==='stylesheet')queueMicrotask(()=>node.dispatchEvent(new w.Event('load')));}return original.call(this,node);};
   const context=dom.getInternalVMContext(), modules=new Map();
-  async function get(file){if(modules.has(file))return modules.get(file);loaded.add(file);const source=await fs.readFile(path.join(root,file),'utf8');const module=new vm.SourceTextModule(source,{context,identifier:file,initializeImportMeta(meta){meta.url='http://game.test/'+file;},importModuleDynamically:async(specifier,parent)=>{const file=path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier));const child=await get(file);if(child.status==='unlinked')await child.link(linker);if(child.status==='linked')await child.evaluate();return child;}});modules.set(file,module);return module;}
+  async function get(file){
+    if(modules.has(file))return modules.get(file);
+    const pending=(async()=>{loaded.add(file);const source=await fs.readFile(path.join(root,file),'utf8');return new vm.SourceTextModule(source,{context,identifier:file,initializeImportMeta(meta){meta.url='http://game.test/'+file;},importModuleDynamically:async(specifier,parent)=>{const file=path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier));const child=await get(file);if(child.status==='unlinked')await child.link(linker);if(child.status==='linked')await child.evaluate();return child;}});})();
+    modules.set(file,pending);return pending;
+  }
+
   const linker=(specifier,parent)=>get(path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier)));
   for(const file of manifest['index.html'].css||[])loaded.add(file);
   const entry=await get(manifest['index.html'].file);await entry.link(linker);await entry.evaluate();
-  const ready=async()=>{for(let i=0;i<200;i++){await sleep(10);if(w.document.querySelector('.registration-screen,.game-shell')&&![...w.document.querySelectorAll('main [role="status"]')].some(node=>/Загрузка|Завантаження/.test(node.textContent)))return;}throw new Error('Screen did not load: '+style+' '+w.document.body.textContent.slice(0,160)+' '+errors.join(';'));};
+  const ready=async()=>{for(let i=0;i<200;i++){await sleep(10);if(w.document.querySelector('.registration-screen,.game-shell')&&!w.document.querySelector('[inert]')&&![...w.document.querySelectorAll('main [role="status"]')].some(node=>/Загрузка|Завантаження/.test(node.textContent)))return;}throw new Error('Screen did not load: '+style+' '+w.document.body.textContent.slice(0,160)+' '+errors.join(';'));};
   await ready();await sleep(30);
   const exportStorage=store=>Object.fromEntries(Array.from({length:store.length},(_,i)=>{const key=store.key(i);return [key,store.getItem(key)];}));
-  return {w,loaded,errors,ready,close:()=>dom.window.close(),storage:()=>exportStorage(w.localStorage),session:()=>exportStorage(w.sessionStorage)};
+  return {w,loaded,errors,ready,backend,close:async()=>{dom.window.close();if(!existingBackend)await backend.close();},storage:()=>exportStorage(w.localStorage),session:()=>exportStorage(w.sessionStorage)};
 }
 const initial=await boot('modern');
 [...initial.w.document.querySelectorAll('button')].find(b=>b.textContent.includes('Начать путешествие')).click();
-for(let i=0;i<100&&!initial.w.localStorage.getItem('aethelgard_save_v1_data_749219401');i++)await sleep(10);
+for(let i=0;i<200&&!JSON.parse(initial.w.localStorage.getItem('aethelgard_save_v1_data_749219401')||'null')?.player;i++)await sleep(10);
 const seed=JSON.parse(initial.w.localStorage.getItem('aethelgard_save_v1_data_749219401'));assert(seed?.player);
-seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;initial.close();
+seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;await initial.close();
 const stable=p=>JSON.stringify({...p,lastActiveTimestamp:0});
 const results=[];
 for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(const file of [...app.loaded].sort()){if(/\.(js|css)$/.test(file))resources.push({file,bytes:(await fs.stat(path.join(root,file))).size});}results.push({mode,js:resources.filter(r=>r.file.endsWith('.js')).reduce((a,r)=>a+r.bytes,0),css:resources.filter(r=>r.file.endsWith('.css')).reduce((a,r)=>a+r.bytes,0),resources,errors:app.errors});
@@ -67,8 +75,8 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
 
   for(const to of modes.filter(m=>m!==mode)){
    const switchingApp = await boot(mode,seed);
-   const current=JSON.parse(switchingApp.w.localStorage.getItem('aethelgard_save_v1_data_749219401'));const button=[...switchingApp.w.document.querySelectorAll('button')].find(b=>b.textContent.trim()===({modern:'Современный',fantasy:'Фэнтези','fantasy-beta':'Фэнтези — бета'})[to]);assert(button&&!button.disabled,'switch button unavailable');button.click();await sleep(20);assert.equal(switchingApp.w.localStorage.getItem('aethelgard_interface_style'),to);assert.equal(switchingApp.w.document.documentElement.dataset.interface,mode,'no live theme swap');const restored=await boot(to,null,switchingApp.storage(),switchingApp.session());assert.equal(restored.w.document.documentElement.dataset.interface,to);assert.equal(stable(JSON.parse(restored.w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player),stable(current.player));restored.close(); switchingApp.close();
+   const current=JSON.parse(switchingApp.w.localStorage.getItem('aethelgard_save_v1_data_749219401'));const button=[...switchingApp.w.document.querySelectorAll('button')].find(b=>b.textContent.trim()===({modern:'Современный',fantasy:'Фэнтези','fantasy-beta':'Фэнтези — бета'})[to]);assert(button&&!button.disabled,'switch button unavailable');button.click();await sleep(20);assert.equal(switchingApp.w.localStorage.getItem('aethelgard_interface_style'),to);assert.equal(switchingApp.w.document.documentElement.dataset.interface,mode,'no live theme swap');const restored=await boot(to,null,switchingApp.storage(),switchingApp.session(),switchingApp.backend);assert.equal(restored.w.document.documentElement.dataset.interface,to);assert.equal(stable(JSON.parse(restored.w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player),stable(current.player));await restored.close(); await switchingApp.close();
   }
  }
- app.close();}
+ await app.close();}
 console.log(JSON.stringify(results,null,2));

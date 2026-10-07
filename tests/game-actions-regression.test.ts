@@ -11,7 +11,7 @@ import {getItemArtworkPath as fantasyArtwork} from '../src/interfaces/fantasy/ut
 import {applyClassGear} from '../src/utils/classEquipment';
 
 const bundle=build({stdin:{contents:`import React,{act,useState} from 'react';import {createRoot} from 'react-dom/client';
-import {GameProvider,useGame} from './src/context/GameContext';import {InterfaceProvider,useInterface} from './src/context/InterfaceContext';import {NavigationProvider,useNavigation} from './src/context/NavigationContext';
+import {LocalGameProvider as GameProvider,useGame} from './src/context/GameContext';import {InterfaceProvider,useInterface} from './src/context/InterfaceContext';import {NavigationProvider,useNavigation} from './src/context/NavigationContext';
 import {MiningScreen} from './src/components/mining/MiningScreen';import {AlchemyScreen} from './src/components/alchemy/AlchemyScreen';import {ArenaScreen} from './src/components/arena/ArenaScreen';import {FishingScreen} from './src/components/fishing/FishingScreen';
 import {MiningScreen as FantasyMine} from './src/interfaces/fantasy/components/mining/MiningScreen';import {AlchemyScreen as FantasyAlchemy} from './src/interfaces/fantasy/components/alchemy/AlchemyScreen';import {ArenaScreen as FantasyArena} from './src/interfaces/fantasy/components/arena/ArenaScreen';
 import {ModernGameContent} from './src/interfaces/modern/ModernGameContent';import {FantasyGameContent} from './src/interfaces/fantasy/FantasyGameContent';

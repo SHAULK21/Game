@@ -101,7 +101,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
   const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
-  const handleStartBattle = (mon: typeof MONSTERS[string]) => {
+  const handleStartBattle = async (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
     if (player.miningExpedition && !premium.active) {
       setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
@@ -109,14 +109,14 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     }
     const lock = huntLockReason(player, mon, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id);
     if (lock) {setEnergyError(lock);return;}
-    const success = startBattleWithMonster(mon);
+    const success = await startBattleWithMonster(mon);
     if (!success) {
       setEnergyError(`Недостаточно энергии! Для боя нужно ${combatEnergyCost}, сейчас у вас ${player.energy ?? 0}.`);
-      setTimeout(() => setEnergyError(null), 5000);
+      setTimeout(async () => setEnergyError(null), 5000);
     }
   };
 
-  const handleAutoBattleClick = () => {
+  const handleAutoBattleClick = async () => {
     if (!premium.active) {
       setPremiumFeedback(null);
       setPremiumPromptOpen(true);
@@ -130,7 +130,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       <section role="dialog" aria-modal="true" aria-label="Aethelgard Premium" className="dialog-frame w-full max-w-sm p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2"><RpgIcon kind="crown" size={23} className="text-[#c7a365]" /><div><h2 className="section-title">Aethelgard Premium</h2><p className="text-[11px] text-[#918c82]">{localize("Автобой доступен с Premium")}</p></div></div>
-          <button onClick={() => setPremiumPromptOpen(false)} aria-label={localize("Закрыть")} className="rpg-icon-button"><span className="text-xl">×</span></button>
+          <button onClick={async () => setPremiumPromptOpen(false)} aria-label={localize("Закрыть")} className="rpg-icon-button"><span className="text-xl">×</span></button>
         </div>
         <div className="mt-4 space-y-2 text-xs text-[#c5c0b6]">
           <div className="flex items-center gap-2"><RpgIcon kind="attack" size={17} className="text-[#bd8d6e]" />{localize("Автобой и автопродолжение серии")}</div>
@@ -148,7 +148,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           const result = await purchasePremium(preparedPremiumInvoice);
           setPremiumFeedback(result.message);
           setPremiumBusy(false);
-          if (result.success) setTimeout(() => setPremiumPromptOpen(false), 900);
+          if (result.success) setTimeout(async () => setPremiumPromptOpen(false), 900);
         }} className="mt-4 w-full text-sm">{localize(premiumBusy ? 'Открываю оплату…' : 'Купить Premium · 150 Stars')}</RpgButton>
         {premiumFeedback && <div className="mt-2 text-center text-[11px] text-[#c5c0b6]">{localize(premiumFeedback)}</div>}
       </section>
@@ -182,8 +182,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           onUpdateAutoBattle={updateAutoBattleSettings}
           onMeditate={() => meditateOrRefillEnergy('meditate')}
           onBuyElixir={() => meditateOrRefillEnergy('silver')}
-          onLeaveMine={() => {
-            const result = leaveMiningExpedition();
+          onLeaveMine={async () => {
+            const result = await leaveMiningExpedition();
             setEnergyError(result.message);
           }}
         /></Suspense>
@@ -329,12 +329,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="flex gap-2">
               {activeMonster?.regionId === 'ascension' ? (
                 <button
-                  onClick={() => { exitCombat(); onReturnToArena?.(); }}
+                  onClick={async () => { exitCombat(); onReturnToArena?.(); }}
                   className="rpg-button rpg-button-primary flex-1 text-xs"
                 >{localize("Вернуться на арену")}</button>
               ) : activeDungeonRun ? (
                 <button
-                  onClick={() => { exitCombat(); onContinueDungeon?.(); }}
+                  onClick={async () => { exitCombat(); onContinueDungeon?.(); }}
                   className="rpg-button rpg-button-primary flex-1 text-xs"
                 >
                   {localize(activeDungeonRun.completed ? 'Итоги подземелья' : combatOutcome === 'victory' ? 'Продолжить подземелье' : 'Вернуться в подземелье')}
@@ -346,7 +346,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 >{localize("Следующий противник")}</button>
               ) : (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (selectedMonster) handleStartBattle(selectedMonster);
                   }}
                   className="rpg-button rpg-button-primary flex-1 text-xs"
@@ -364,7 +364,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <div className="combat-action-grid grid grid-cols-2 gap-2">
               {/* Attack */}
               <button
-                onClick={() => performPlayerAction('attack')}
+                onClick={async () => performPlayerAction('attack')}
                 disabled={turnPhase !== 'player'}
                 className="combat-action combat-action-attack rpg-button rpg-button-primary min-h-[76px] flex-col text-xs"
               >
@@ -374,7 +374,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Skills Drawer */}
               <button
-                onClick={() => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
+                onClick={async () => { setIsSkillsOpen(prev => !prev); setIsPotionsOpen(false); }}
                 disabled={turnPhase !== 'player'}
                 aria-expanded={isSkillsOpen}
                 aria-controls="combat-skills"
@@ -386,7 +386,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Defend */}
               <button
-                onClick={() => performPlayerAction('defend')}
+                onClick={async () => performPlayerAction('defend')}
                 disabled={turnPhase !== 'player'}
                 className="combat-action combat-action-defend rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs"
               >
@@ -396,7 +396,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
 
               {/* Potion */}
               <button
-                onClick={() => { setIsPotionsOpen(prev => !prev); setIsSkillsOpen(false); }}
+                onClick={async () => { setIsPotionsOpen(prev => !prev); setIsSkillsOpen(false); }}
                 disabled={turnPhase !== 'player' || potionCount <= 0}
                 aria-expanded={isPotionsOpen}
                 aria-controls="combat-potions"
@@ -423,14 +423,14 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             <RpgIcon kind={autoBattle.enabled ? 'skill' : 'settings'} size={15} />
             <span>{localize(premium.active ? (autoBattle.enabled ? 'Авто: ВКЛ' : 'Авто: ВЫКЛ') : 'Автобой · PREMIUM')}</span>
           </button>
-<button onClick={() => performPlayerAction('flee')} disabled={turnPhase !== 'player'} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs text-[#aaa49a]">{localize("Покинуть бой")}</button>
+<button onClick={async () => performPlayerAction('flee')} disabled={turnPhase !== 'player'} className="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs text-[#aaa49a]">{localize("Покинуть бой")}</button>
             </div>
 
             {isPotionsOpen && (
               <section id="combat-potions" aria-label={localize("Выберите зелье")} className="combat-ledger p-3 space-y-2 mt-2">
                 <div className="combat-ledger-heading">
                   <span>{localize("Выберите зелье")}</span>
-                  <button onClick={() => setIsPotionsOpen(false)} aria-label={localize("Закрыть выбор зелий")} className="combat-ledger-close">×</button>
+                  <button onClick={async () => setIsPotionsOpen(false)} aria-label={localize("Закрыть выбор зелий")} className="combat-ledger-close">×</button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 max-h-64 overflow-y-auto">
                   <p className="text-xs">{localize('За ход доступно одно зелье. Следующее — после хода противника.')}</p>
@@ -449,7 +449,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                       <button
                         key={potion.id}
                         disabled={turnPhase !== 'player' || potionUsedThisTurn(potion, usedPotionKinds)}
-                        onClick={() => {
+                        onClick={async () => {
                           performPlayerAction('potion', potion.id);
                           setIsPotionsOpen(false);
                         }}
@@ -473,7 +473,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
               <section id="combat-skills" aria-label={localize("Выберите заклинание или навык")} className="combat-ledger p-3 space-y-2 mt-2">
                 <div className="combat-ledger-heading">
                   <span>{localize("Выберите заклинание или навык")}</span>
-                  <button onClick={() => setIsSkillsOpen(false)} aria-label={localize("Закрыть список навыков")} className="combat-ledger-close">×</button>
+                  <button onClick={async () => setIsSkillsOpen(false)} aria-label={localize("Закрыть список навыков")} className="combat-ledger-close">×</button>
                 </div>
 
                 <CombatSkillList player={player} mana={combatPlayerMp} comboReady={comboReady} playerTurn={turnPhase === 'player'} onUse={id => {

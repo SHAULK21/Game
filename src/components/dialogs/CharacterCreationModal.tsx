@@ -37,9 +37,9 @@ export const CharacterCreationModal: React.FC = () => {
     if (localStorage.getItem(draftKey) !== serialized) throw new Error('Не удалось сохранить имя и класс персонажа.');
   }), [registerDraftSave,draftKey,name,selectedClass]);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!name.trim()) return;
-    createCharacter(name, selectedClass, true);
+    if (await createCharacter(name, selectedClass, true) === false) return;
     localStorage.removeItem(draftKey);
   };
 

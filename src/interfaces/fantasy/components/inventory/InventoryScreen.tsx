@@ -130,7 +130,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const handleInventoryExpansion = async () => {
     if (premium.active) {
-      const result = expandInventory();
+      const result = await expandInventory();
       setPremiumFeedback(result.message);
       return;
     }
@@ -190,7 +190,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const renderItemCard = (item: GameItem) => {
     const equipped = player.equipped[item.type]?.id === item.id;
-    return <button type="button" key={item.id} onClick={() => setSelectedItem(item)}
+    return <button type="button" key={item.id} onClick={async () => setSelectedItem(item)}
       data-inventory-item={item.id} data-rarity={item.rarity} className={`inventory-bag-slot ${equipped ? 'is-equipped' : ''}`}
       aria-label={`${localize(item.name)} · ${localize(RARITY_COLORS[item.rarity].label)} · ${localize('Ур.')} ${item.level}${item.isLocked ? ` · ${localize('Защитить от продажи')}` : ''}`}
       title={localize(item.name)}>
@@ -273,7 +273,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
       {currentSelected && (
         <div
           className="bottom-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center"
-          onClick={() => setSelectedItem(null)}
+          onClick={async () => setSelectedItem(null)}
         >
           <section
             ref={dialogRef}
@@ -305,7 +305,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                   </div>}
                 </div>
               </div>
-              <button onClick={() => setSelectedItem(null)} aria-label={localize("Закрыть описание предмета")} className="rpg-icon-button">
+              <button onClick={async () => setSelectedItem(null)} aria-label={localize("Закрыть описание предмета")} className="rpg-icon-button">
                 <span className="text-xl leading-none">×</span>
               </button>
             </div>
@@ -379,7 +379,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
-                onClick={() => toggleItemLock(currentSelected.id)}
+                onClick={async () => toggleItemLock(currentSelected.id)}
                 className="rpg-button rpg-button-secondary min-h-11 text-xs"
               >
                 {localize(currentSelected.isLocked ? 'Разблокировать' : 'Защитить от продажи')}
@@ -414,7 +414,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {selectedIsEquipment && onNavigateToBlacksmith && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedItem(null);
                     onNavigateToBlacksmith();
                   }}
@@ -425,7 +425,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {!currentSelected.isLocked && !currentSelected.isEquipped && (selectedIsEquipment || Boolean(currentSelected.disassembleYield?.silver)) && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     disassembleItem(currentSelected);
                     setSelectedItem(null);
                   }}
@@ -440,7 +440,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
               {!currentSelected.isEquipped && !currentSelected.isLocked && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     sellItem(currentSelected);
                     setSelectedItem(null);
                   }}

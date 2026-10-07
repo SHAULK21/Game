@@ -19,7 +19,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
   if (!player) return null;
 
-  const handleChallenge = (opponent: Gladiator) => {
+  const handleChallenge = async (opponent: Gladiator) => {
     setFightError(null);
     if (isInCombat && !isCombatEnded) {
       onEnterCombatTab?.();
@@ -37,13 +37,13 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
       setFightError('Билеты закончились. Они восстановятся завтра в 00:00 UTC.');
       return;
     }
-    if (challengeArena(opponent)) onEnterCombatTab?.();
+    if (await challengeArena(opponent)) onEnterCombatTab?.();
     else setFightError('Не удалось начать бой. Попробуйте ещё раз.');
   };
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <div className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
+      <div className="grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} onClick={async ()=>setMode(m)} className={`rounded-xl p-3 text-xs border ${mode===m?'bg-amber-950 text-amber-200':'bg-slate-950 text-slate-400'}`}>{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
       {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p className="text-xs text-slate-400">{localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")}</p>
       <p className="text-xs text-slate-400">{localize('За победы на арене вы получаете опыт, золото и серебро. Также могут выпасть жетоны чемпиона, снаряжение и зелья. Сильнее гладиатор — больше опыта.')}</p>
@@ -129,7 +129,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
                 <button
                   disabled={player.arenaTickets<1}
-                  onClick={() => handleChallenge(opp)}
+                  onClick={async () => handleChallenge(opp)}
                   className="ui-primary shrink-0 ml-2 min-h-11 px-3 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs active:scale-95 transition-all flex items-center gap-1.5"
                 >
                   <Swords className="w-3.5 h-3.5" />

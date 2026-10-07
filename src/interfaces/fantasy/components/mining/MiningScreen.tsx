@@ -75,7 +75,7 @@ export const MiningScreen: React.FC = () => {
   const currentLevelNeed = Math.max(175, nextLevelExp - previousLevelExp);
   const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
-  const handleMine = (nodeId: string) => {
+  const handleMine = async (nodeId: string) => {
     if (miningLock.current) return;
     miningLock.current = true;
     setIsMining(true);
@@ -83,7 +83,7 @@ export const MiningScreen: React.FC = () => {
     // Complete the action in the click event. Embedded desktop clients can
     // throttle delayed callbacks; the timer only controls the visual cooldown.
     try {
-      const result = mineNode(nodeId);
+      const result = await mineNode(nodeId);
       setMiningLog(prev => [
         result.success
           ? `${result.isCrit ? 'КРИТ · ' : ''}Получено: ${result.yieldCount} × ${result.oreName}`
@@ -93,7 +93,7 @@ export const MiningScreen: React.FC = () => {
     } catch (error) {
       setMiningLog(prev => [`Ошибка добычи: ${error instanceof Error ? error.message : 'попробуйте снова'}.`, ...prev.slice(0, 8)]);
     } finally {
-      miningTimer.current = window.setTimeout(() => {
+      miningTimer.current = window.setTimeout(async () => {
         miningLock.current = false;
         setIsMining(false);
         setActiveMiningNodeId(null);
@@ -102,8 +102,8 @@ export const MiningScreen: React.FC = () => {
     }
   };
 
-  const handleClaim = () => {
-    const result = claimMiningExpedition();
+  const handleClaim = async () => {
+    const result = await claimMiningExpedition();
     setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
   };
 
@@ -166,7 +166,7 @@ export const MiningScreen: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleMine(node.id)}
+                  onClick={async () => handleMine(node.id)}
                   disabled={locked || isMining || player.stamina < node.staminaCost}
                   className="mining-extract quest-claim"
                 >
@@ -239,8 +239,8 @@ export const MiningScreen: React.FC = () => {
               <RpgButton variant="primary" icon="inventory" onClick={handleClaim} className="mt-3 w-full">{localize("Забрать добычу")}</RpgButton>
             ) : (
               <RpgButton
-                onClick={() => {
-                  const result = leaveMiningExpedition();
+                onClick={async () => {
+                  const result = await leaveMiningExpedition();
                   setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
                 }}
                 variant="danger"
@@ -259,8 +259,8 @@ export const MiningScreen: React.FC = () => {
             {EXPEDITIONS.map(option => (
               <RpgButton
                 key={option.hours}
-                onClick={() => {
-                  const result = startMiningExpedition(option.hours);
+                onClick={async () => {
+                  const result = await startMiningExpedition(option.hours);
                   setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
                 }}
                 variant="secondary"

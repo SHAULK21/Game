@@ -73,7 +73,7 @@ export const MiningScreen: React.FC = () => {
   const currentLevelNeed = Math.max(175, nextLevelExp - previousLevelExp);
   const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
-  const handleMine = (nodeId: string) => {
+  const handleMine = async (nodeId: string) => {
     if (miningLock.current) return;
     miningLock.current = true;
     setIsMining(true);
@@ -81,7 +81,7 @@ export const MiningScreen: React.FC = () => {
     // Complete the action in the click event. Embedded desktop clients can
     // throttle delayed callbacks; the timer only controls the visual cooldown.
     try {
-      const result = mineNode(nodeId);
+      const result = await mineNode(nodeId);
       setMiningLog(prev => [
         result.success
           ? `${result.isCrit ? '⚡ КРИТ! ' : '⛏️ '}Получено: ${result.yieldCount} × ${result.oreName}`
@@ -91,7 +91,7 @@ export const MiningScreen: React.FC = () => {
     } catch (error) {
       setMiningLog(prev => [`❌ Ошибка добычи: ${error instanceof Error ? error.message : 'попробуйте снова'}.`, ...prev.slice(0, 8)]);
     } finally {
-      miningTimer.current = window.setTimeout(() => {
+      miningTimer.current = window.setTimeout(async () => {
         miningLock.current = false;
         setIsMining(false);
         setActiveMiningNodeId(null);
@@ -100,8 +100,8 @@ export const MiningScreen: React.FC = () => {
     }
   };
 
-  const handleClaim = () => {
-    const result = claimMiningExpedition();
+  const handleClaim = async () => {
+    const result = await claimMiningExpedition();
     setMiningLog(prev => [result.success ? `📦 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
   };
 
@@ -170,7 +170,7 @@ export const MiningScreen: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleMine(node.id)}
+                  onClick={async () => handleMine(node.id)}
                   disabled={locked || isMining || player.stamina < node.staminaCost}
                   className="px-3 py-1.5 rounded-lg bg-amber-600 disabled:opacity-35 text-slate-950 font-bold text-xs active:scale-95"
                 >
@@ -244,8 +244,8 @@ export const MiningScreen: React.FC = () => {
                 <PackageCheck className="w-4 h-4" />{localize(" Забрать добычу")}</button>
             ) : (
               <button
-                onClick={() => {
-                  const result = leaveMiningExpedition();
+                onClick={async () => {
+                  const result = await leaveMiningExpedition();
                   setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
                 }}
                 className="mt-3 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs"
@@ -263,8 +263,8 @@ export const MiningScreen: React.FC = () => {
             {EXPEDITIONS.map(option => (
               <button
                 key={option.hours}
-                onClick={() => {
-                  const result = startMiningExpedition(option.hours);
+                onClick={async () => {
+                  const result = await startMiningExpedition(option.hours);
                   setMiningLog(prev => [result.success ? `🕯️ ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
                 }}
                 className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-cyan-500/40 active:scale-[0.99]"

@@ -113,8 +113,8 @@ export const PetsScreen: React.FC = () => {
               <div className="mt-3">
                 {isOwned ? (
                   <button
-                    onClick={() => {
-                      const ok = setActivePet(pet.id);
+                    onClick={async () => {
+                      const ok = await setActivePet(pet.id);
                       setFeedback(ok ? `${pet.name} выбран.` : 'Не удалось выбрать питомца.');
                     }}
                     className={`w-full py-2 rounded-lg text-[10px] font-bold ${active ? 'bg-teal-500 text-slate-950' : 'bg-slate-800 text-slate-200'}`}
@@ -123,8 +123,8 @@ export const PetsScreen: React.FC = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      const result = craftPet(pet.id);
+                    onClick={async () => {
+                      const result = await craftPet(pet.id);
                       setFeedback(result.message);
                     }}
                     disabled={!levelReady}

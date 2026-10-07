@@ -1,9 +1,15 @@
+import {isCloudOperation,routeCloudOperation} from './cloudTransport';
 import {beginGameOperation,isGameMutation} from './gameOperations';
 import { getLanguage } from '../i18n/locale';
 import { getTelegramWebApp, getTelegramUser } from './telegram';
 import { readResetVersion } from './accountReset';
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (isCloudOperation(path,options.method)) return routeCloudOperation(path,options) as Promise<T>;
+  return rawApiRequest<T>(path,options);
+}
+
+export async function rawApiRequest<T>(path:string,options:RequestInit={}):Promise<T> {
   const tg = getTelegramWebApp();
   const userId = getTelegramUser().id;
   const headers = new Headers(options.headers);
@@ -38,8 +44,10 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
       window.dispatchEvent(new CustomEvent('aethelgard-account-reset', { detail: { resetVersion: data.resetVersion } }));
     }
     const message = data?.error || data?.message || response.statusText || 'Ошибка сервера';
-    throw new Error(`${message} (HTTP ${response.status})`);
+    throw new GameApiError(`${message} (HTTP ${response.status})`,data?.code,response.status);
   }
   return data as T;
   } finally { finish(); }
 }
+
+export class GameApiError extends Error {constructor(message:string,public code?:string,public status?:number){super(message);}}

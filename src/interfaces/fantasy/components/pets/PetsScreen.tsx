@@ -73,10 +73,10 @@ export const PetsScreen: React.FC = () => {
             </div>;
           })}</div>
         </div>}
-        {isOwned?<RpgButton variant={active?'primary':'secondary'} className={`pet-codex-action ${active?'is-active':''}`} onClick={()=>{
-          const ok=setActivePet(pet.id);setFeedback(ok?`${pet.name} выбран.`:'Не удалось выбрать питомца.');
+        {isOwned?<RpgButton variant={active?'primary':'secondary'} className={`pet-codex-action ${active?'is-active':''}`} onClick={async ()=>{
+          const ok=await setActivePet(pet.id);setFeedback(ok?`${pet.name} выбран.`:'Не удалось выбрать питомца.');
         }}>{active&&<Check size={20} aria-hidden="true"/>}{localize(active?'Активен':'Выбрать питомца')}</RpgButton>:
-          <RpgButton icon="forge" variant="primary" className="pet-codex-action" disabled={!levelReady} onClick={()=>setFeedback(craftPet(pet.id).message)}>{localize('Создать питомца')}</RpgButton>}
+          <RpgButton icon="forge" variant="primary" className="pet-codex-action" disabled={!levelReady} onClick={async ()=>setFeedback((await craftPet(pet.id)).message)}>{localize('Создать питомца')}</RpgButton>}
       </div>
     </BestiaryPanel>;
   };

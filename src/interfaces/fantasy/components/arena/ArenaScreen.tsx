@@ -22,7 +22,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
   if (!player) return null;
 
-  const handleChallenge = (opponent: Gladiator) => {
+  const handleChallenge = async (opponent: Gladiator) => {
     setFightError(null);
     if (isInCombat && !isCombatEnded) {
       onEnterCombatTab?.();
@@ -40,13 +40,13 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
       setFightError('Билеты закончились. Они восстановятся завтра в 00:00 UTC.');
       return;
     }
-    if (challengeArena(opponent)) onEnterCombatTab?.();
+    if (await challengeArena(opponent)) onEnterCombatTab?.();
     else setFightError('Не удалось начать бой. Попробуйте ещё раз.');
   };
 
   return (
     <FolioPage className="beta-arena-page space-y-3 pt-3">
-      <div role="tablist" className="beta-arena-modes grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} role="tab" aria-selected={mode===m} onClick={()=>setMode(m)} className={`min-h-11 rounded-lg border px-1 text-xs ${mode===m?'border-[#9d8459] bg-[#302c24] text-amber-200':'border-slate-800 bg-slate-950 text-slate-400'}`}>{style === 'fantasy-beta' && <RpgIcon kind={m==='ascension'?'crown':m==='pve'?'attack':'arena'} size={34}/>}{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
+      <div role="tablist" className="beta-arena-modes grid grid-cols-3 gap-2">{(['ascension','pve','pvp'] as const).map(m=><button key={m} role="tab" aria-selected={mode===m} onClick={async ()=>setMode(m)} className={`min-h-11 rounded-lg border px-1 text-xs ${mode===m?'border-[#9d8459] bg-[#302c24] text-amber-200':'border-slate-800 bg-slate-950 text-slate-400'}`}>{style === 'fantasy-beta' && <RpgIcon kind={m==='ascension'?'crown':m==='pve'?'attack':'arena'} size={34}/>}{localize(m==='ascension'?'Вознесение':m==='pve'?'Тренировка':'PvP — игроки')}</button>)}</div>
       {mode === 'ascension' ? <AscensionArena onEnterCombatTab={onEnterCombatTab}/> : mode === 'pvp' ? <PvpArena /> : <>
       <p title={localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")} className="line-clamp-2 text-xs text-slate-400">{localize("В 00:00 UTC запас пополняется до 5; лишние билеты сохраняются. С боссов: 25% шанс билета, до 3 в сутки.")}</p>
       <p className="text-xs text-slate-400">{localize('За победы на арене вы получаете опыт, золото и серебро. Также могут выпасть жетоны чемпиона, снаряжение и зелья. Сильнее гладиатор — больше опыта.')}</p>
@@ -131,7 +131,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
                 <button
                   disabled={player.arenaTickets<1}
-                  onClick={() => handleChallenge(opp)}
+                  onClick={async () => handleChallenge(opp)}
                   className="rpg-button rpg-button-primary ml-2 min-h-11 shrink-0 px-3 disabled:opacity-40"
                 >
                   <RpgIcon kind="attack" size={16} />
