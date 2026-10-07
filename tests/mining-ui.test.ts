@@ -15,8 +15,8 @@ test('real mining UI buys and equips a pickaxe, uses the vein maximum only on a 
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.gold=200000;seed.player.miningLevel=80;seed.player.miningExp=14000;
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));seed.player.gold=200000;seed.player.miningLevel=80;seed.player.miningExp=14000;
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_1',JSON.stringify(seed));await w.act(async()=>w.mount());
   assert.ok(w.document.body.textContent.includes('Максимум жилы — редкий крит'));
   let bought:any;await w.act(async()=>{bought=w.game.buyPickaxe('pickaxe_legendary');});assert.equal(bought.success,true);assert.equal(w.game.player.gold,50000);
   const tool=w.game.player.inventory.find((i:any)=>i.type==='pickaxe');assert.ok(tool);

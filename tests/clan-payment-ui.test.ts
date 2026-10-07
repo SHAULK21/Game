@@ -16,15 +16,15 @@ test('character wallet reserves clan payment once, resumes a lost response and r
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/100/);});assert.equal(calls.length,0);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.gold=120000;
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.gold=120000;
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/Нет соединения/);});
-  assert.equal(w.game.player.gold,20000);assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.gold,20000);
+  assert.equal(w.game.player.gold,20000);assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.gold,20000);
   const operation=calls[0].operationId;mode='ok';
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());
   assert.equal(calls.length,2);assert.equal(calls[1].operationId,operation);assert.equal(w.game.player.gold,20000);assert.equal(w.game.player.lastClanCreationOperation,operation);
   assert.equal(w.localStorage.getItem('aethelgard_clan_creation_pending_'+w.game.player.userId),null);
-  premium=true;mode='rejected';await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  premium=true;mode='rejected';await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/занят/);});assert.equal(calls[2].expectedPriceGold,50000);assert.equal(w.game.player.gold,120000);
   mode='ok';await w.act(async()=>w.game.createClan({name:'Следопыты',tag:'RNG',description:''}));assert.equal(w.game.player.gold,70000);
  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}

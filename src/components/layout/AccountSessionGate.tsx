@@ -7,6 +7,7 @@ import { applyAccountReset, readResetVersion, resetVersionKey } from '../../util
 export const AccountSessionGate: React.FC<React.PropsWithChildren> = ({ children }) => {
   useLocale();
   const userId = getTelegramUser().id;
+  const [acceptedUser,setAcceptedUser]=useState<string | null>(null);
   const [version, setVersion] = useState<number | null>(null);
   const [wasReset, setWasReset] = useState(false);
   useEffect(() => {
@@ -15,11 +16,12 @@ export const AccountSessionGate: React.FC<React.PropsWithChildren> = ({ children
       if (!alive || !Number.isSafeInteger(next) || next < 0 || next < readResetVersion(userId)) return;
       const reset = applyAccountReset(userId, next);
       if (reset) setWasReset(true);
-      setVersion(previous => Math.max(previous ?? 0, next));
+      setAcceptedUser(String(userId));
+      setVersion(next);
     };
     const check = async () => {
       try { const result = await apiRequest<{ resetVersion: number }>('/api/profile/state', { signal: AbortSignal.timeout(10000) }); accept(result.resetVersion); }
-      catch { if (alive) setVersion(previous => previous ?? readResetVersion(userId)); }
+      catch { if (alive) { setAcceptedUser(String(userId));setVersion(readResetVersion(userId)); } }
     };
     const onReset = (event: Event) => accept((event as CustomEvent<{ resetVersion: number }>).detail.resetVersion);
     const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
@@ -31,8 +33,8 @@ export const AccountSessionGate: React.FC<React.PropsWithChildren> = ({ children
     document.addEventListener('visibilitychange', onVisible);
     return () => { alive = false; window.clearInterval(timer); window.removeEventListener('aethelgard-account-reset', onReset); window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible); };
   }, [userId]);
-  if (version === null) return <div role="status" className="p-6 text-center">{localize("Загрузка персонажа…")}</div>;
-  return <React.Fragment key={version}>
+  if (version === null || acceptedUser !== String(userId)) return <div role="status" className="p-6 text-center">{localize("Загрузка персонажа…")}</div>;
+  return <React.Fragment key={`${userId}:${version}`}>
     {wasReset && <div role="status" className="fixed inset-x-3 top-2 z-[60] rounded-xl border border-amber-400 bg-slate-950 p-3 text-center text-sm text-amber-100">{localize("Администратор сбросил прогресс. Создайте нового персонажа.")}<button onClick={() => setWasReset(false)} className="ml-2 min-h-11 px-3 underline">{localize("Понятно")}</button>
     </div>}
     {children}

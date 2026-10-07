@@ -28,10 +28,10 @@ test('Premium bag expansion shows its price, reports insufficient gold, adds per
     assert.match(w.document.body.textContent, /Недостаточно золота/);
     assert.equal(w.game.player.maxInventorySlots, 40);
     assert.equal(w.game.player.gold, startingGold);
-    const save = JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    const save = JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
     save.player.gold = 5500;
     await w.act(async () => w.root.unmount());
-    w.localStorage.setItem('aethelgard_save_v1_data', JSON.stringify(save));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401', JSON.stringify(save));
     await w.act(async () => w.mount());
     await w.act(async () => expansionButton().click());
     assert.equal(w.game.player.maxInventorySlots, 45);

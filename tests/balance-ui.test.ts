@@ -18,10 +18,10 @@ test('actual character applies gear attributes, rewards, full pet stats and hard
   const initialSessions=posts.flatMap(p=>p.events).filter((e:any)=>e.kind==='session');
   assert(initialSessions.some((e:any)=>e.startLevel===1&&e.maxLevel===1));
   assert(initialSessions.some((e:any)=>e.screen==='fishing'),'shared navigation is captured for both interfaces');
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   seed.player.equipped.ring={id:'test_ring',name:'Кольцо',type:'ring',rarity:'rare',level:1,upgradeLevel:0,icon:'',stats:{strength:10,expBonus:20,goldBonus:25,dropBonus:30},sellPrice:0,disassembleYield:{}};
   seed.player.activePet=w.pets.find((p:any)=>p.id==='pet_golem');
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   const after=w.game.combatStats;
   assert.equal(after.expBonus,20);assert.equal(after.goldBonus-before.goldBonus,25);assert.equal(after.dropBonus-before.dropBonus,30);
   assert.equal(after.maxHp-before.maxHp,180);assert.ok(after.defense>before.defense+30);assert.ok(after.attack>before.attack);

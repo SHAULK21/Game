@@ -22,10 +22,10 @@ test('Premium inventory bulk controls sell only confirmed matching gear and keep
  w.eval(bundle.outputFiles[0].text);
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Испытатель','warrior'));
-  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   const gear=(id:string,extra:any={})=>({id,templateId:'gear',name:id,type:'gloves',rarity:'common',level:1,upgradeLevel:0,icon:'',stats:{},sellPrice:10,disassembleYield:{silver:3,ore:1},...extra});
   save.player.inventory=[gear('ordinary'),gear('uncommon',{rarity:'uncommon'}),gear('rare',{rarity:'rare'}),gear('pants',{type:'pants'}),gear('locked',{isLocked:true}),gear('upgraded',{upgradeLevel:1})];save.player.equipped={};save.player.gold=100;
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));await w.act(async()=>w.mount());
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));await w.act(async()=>w.mount());
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text) as any;
   await w.act(async()=>button('👑 Массовая продажа и разбор+').click());
   await w.act(async()=>button('Необычные').click());
@@ -41,7 +41,7 @@ test('Premium inventory bulk controls sell only confirmed matching gear and keep
   assert.equal(disposalCalls,2);assert.equal(w.game.player.gold,120);
   assert.deepEqual(w.game.player.inventory.map((i:any)=>i.id).sort().join(','),'locked,pants,rare,upgraded');
   assert.equal(w.localStorage.getItem('aethelgard_bulk_pending_'+w.game.player.userId),null);
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.gold,120);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.gold,120);
   assert.equal(w.document.querySelector('[role="dialog"]'),null);
   assert.ok(w.document.body.textContent.includes('Продано вещей: 2'));
   // A free account cannot invoke the operation through the context either.

@@ -5,7 +5,7 @@ import { registerClanProjects } from './clanProjects';
 import { clanRaidHealth, clanRaidReward, clanRaidItem } from '../src/utils/clanProjects';
 import { leavePlayerClan } from './clanLeave';
 import { createPaidClan } from './clanCreation';
-import {createMarketListing} from './marketListings';
+import {createMarketListing, buyMarketListing, returnMarketListing, returnExpiredMarketListings} from './marketListings';
 import { gameMessagePayload, gameMenuButton, messageLanguage } from './telegramGameMessages';
 import { registerSocialFeatures, queueNotification, startNotificationWorker } from './socialFeatures';
 import { canUseVault } from '../src/utils/clanRoles';
@@ -21,7 +21,6 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { calculateMarketSale } from '../src/utils/marketEconomy';
 import { CLASS_EQUIPMENT } from '../src/utils/classEquipment';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -477,6 +476,7 @@ const recordVaultEvent = async (client: PoolClient, clanId: string, actor: numbe
 };
 
 app.get('/api/items/owned', auth, async (req, res) => {
+  await returnExpiredMarketListings(pool,req.authUser!.id);
   const items = await pool.query(
     `SELECT id, item_json, quantity, locked, bound_clan_id, equipped_slot, origin
      FROM owned_items WHERE owner_telegram_id = $1 ORDER BY created_at DESC`,
@@ -568,7 +568,7 @@ app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res
     await vaultRole(client, clanId, req.authUser!.id);
     const found = await client.query(`SELECT * FROM owned_items WHERE id = $1 AND owner_telegram_id = $2 FOR UPDATE`, [req.params.itemId, req.authUser!.id]);
     const row = found.rows[0];
-    if (!row || row.locked || row.equipped_slot || row.quantity < quantity || (row.bound_clan_id && row.bound_clan_id !== clanId)) throw new Error('Предмет недоступен для вклада.');
+    if (!row || row.origin === 'legacy_market_return' || row.locked || row.equipped_slot || row.quantity < quantity || (row.bound_clan_id && row.bound_clan_id !== clanId)) throw new Error('Предмет недоступен для вклада.');
     if (row.quantity === quantity) {
       await client.query(`UPDATE owned_items SET owner_telegram_id = NULL, clan_id = $1, bound_clan_id = $1, updated_at = NOW() WHERE id = $2`, [clanId, row.id]);
     } else {
@@ -723,7 +723,7 @@ app.get('/api/market/listings', auth, async (req, res) => {
   const result = await pool.query(
     `SELECT l.id, l.seller_telegram_id, l.item_json, l.quantity, l.price_gold, l.created_at, COALESCE(NULLIF(BTRIM(p.character_name), ''), 'Игрок') AS display_name
      FROM market_listings l JOIN players p ON p.telegram_id = l.seller_telegram_id
-     WHERE l.status = 'active' AND l.expires_at > NOW() ${typeFilter}
+     WHERE l.status = 'active' AND l.verified AND l.expires_at > NOW() ${typeFilter}
      ORDER BY l.created_at DESC LIMIT 100`, params
   );
   res.json({ listings: result.rows });
@@ -736,45 +736,28 @@ app.post('/api/market/residents', auth, async (req, res) => {
 
 app.post('/api/market/list', auth, async (req, res) => {
   try {
-    const listing = await createMarketListing(pool,req.authUser!.id,req.body);
+    const listing = await createMarketListing(pool,req.authUser!.id,req.body,Number(req.get('X-Game-Reset-Version') || 0));
     const profile = await pool.query("SELECT COALESCE(NULLIF(BTRIM(character_name), ''), 'Игрок') AS display_name FROM players WHERE telegram_id=$1", [req.authUser!.id]);
     res.status(201).json({listing:{...listing,display_name:profile.rows[0]?.display_name || 'Игрок'}});
   } catch(error) {res.status(400).json({error:error instanceof Error?error.message:'Не удалось выставить предмет.'});}
 });
 
 app.get('/api/market/income', auth, async (req, res) => {
-  const result = await pool.query(
-    `SELECT COALESCE(SUM(seller_net_gold), 0) AS total_gold FROM market_listings
-     WHERE seller_telegram_id = $1 AND status = 'sold'
-       AND (sold_at > (SELECT reset_at FROM players WHERE telegram_id=$1)
-         OR (SELECT reset_at FROM players WHERE telegram_id=$1) IS NULL)`, [req.authUser!.id]
-  );
-  res.json({ totalGold: Number(result.rows[0].total_gold) });
+  const result = await pool.query('SELECT market_gold FROM players WHERE telegram_id=$1',[req.authUser!.id]);
+  res.json({ balanceGold:Number(result.rows[0].market_gold) });
 });
-
+app.get('/api/market/mine', auth, async (req, res) => {
+  await returnExpiredMarketListings(pool,req.authUser!.id);
+  const result = await pool.query("SELECT id,item_json,quantity,price_gold,expires_at,verified FROM market_listings WHERE seller_telegram_id=$1 AND status='active' ORDER BY created_at DESC",[req.authUser!.id]);
+  res.json({listings:result.rows});
+});
+app.post('/api/market/:listingId/return', auth, async (req, res) => {
+  try { res.json(await returnMarketListing(pool,req.authUser!.id,String(req.params.listingId),Number(req.get('X-Game-Reset-Version') || 0))); }
+  catch(error) { res.status(400).json({error:error instanceof Error?error.message:'Возврат не удался.'}); }
+});
 app.post('/api/market/:listingId/buy', auth, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const listing = await client.query(`SELECT * FROM market_listings WHERE id = $1 AND status = 'active' AND expires_at > NOW() FOR UPDATE`, [req.params.listingId]);
-    if (!listing.rows[0]) throw new Error('Лот уже продан или снят.');
-    if (Number(listing.rows[0].seller_telegram_id) === req.authUser!.id) throw new Error('Нельзя купить собственный лот.');
-    const sellerStatus = await client.query(
-      `SELECT (premium_until IS NOT NULL AND premium_until > NOW()) AS is_premium
-       FROM players WHERE telegram_id = $1`, [listing.rows[0].seller_telegram_id]
-    );
-    const sale = calculateMarketSale(Number(listing.rows[0].price_gold), Boolean(sellerStatus.rows[0]?.is_premium));
-    await client.query(
-      `UPDATE market_listings SET status = 'sold', sale_tax_gold = $2, seller_net_gold = $3, sold_at = NOW() WHERE id = $1`,
-      [req.params.listingId, sale.taxGold, sale.sellerGold]
-    );
-    await queueNotification(client, listing.rows[0].seller_telegram_id, 'market_' + req.params.listingId, 'market', `🪙 На рынке купили ${listing.rows[0].item_json.name} ×${listing.rows[0].quantity}. Выручка после налога: ${sale.sellerGold} золота.`);
-    await client.query('COMMIT');
-    res.json({ ok: true, item: listing.rows[0].item_json, quantity: listing.rows[0].quantity, priceGold: listing.rows[0].price_gold, seller: listing.rows[0].seller_telegram_id, ...sale });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Покупка не удалась.' });
-  } finally { client.release(); }
+  try { res.json(await buyMarketListing(pool,req.authUser!.id,String(req.params.listingId),req.body,Number(req.get('X-Game-Reset-Version') || 0))); }
+  catch(error) { res.status(400).json({error:error instanceof Error?error.message:'Покупка не удалась.'}); }
 });
 
 app.get('/api/premium/status', auth, async (req, res) => {

@@ -9,18 +9,18 @@ import { runNotificationBatch, registerSocialFeatures } from '../server/socialFe
 const button = (w: any, label: string) => [...w.document.querySelectorAll('button')].find((el: any) => el.textContent.trim() === label) as any;
 async function completeFirstDeparture(w:any, plusLabel:string) {
   w.Math.random=()=>.5; // Exercise the ordinary successful route, without an ambush.
-  while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
+  while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.statPoints > 0) {
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,60);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
   assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
   assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
   const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться в путь|Вирушити в дорогу/.test(n.textContent)) as any;
   assert(travel,'first destination is preselected but travel mode remains selectable');
   await w.act(async()=>travel.click());
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,55);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,55);
   await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.firstJourneyDeparture,false);
   const hunt=[...w.document.querySelectorAll('nav button')].find((n:any)=>n.textContent.trim()===(plusLabel.startsWith('Під')?'Полювання':'Охота')) as any;
   await w.act(async()=>hunt.click());
 }
@@ -46,7 +46,7 @@ async function app(language = 'uk-UA', stored?: string) {
 test('language selection is visible only at registration; its saved locale survives both layouts and combat', async () => {
   const { dom, w, requests, settle } = await app();
   const click = async (label: string) => { const target = button(w, label); assert(target, `missing button: ${label}`); await w.act(async () => target.click()); await settle(); };
-  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   try {
     await w.act(async () => w.mount()); await settle();
     assert.equal(w.document.documentElement.lang, 'uk');
@@ -181,8 +181,8 @@ test('market search accepts Ukrainian names after a live language switch and kee
     const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
     const w: any = dom.window;
     w.localStorage.setItem('aethelgard_language', 'ru');
-    const item = { id: 'meat-canonical-id', name: 'Мясо вепря', type: 'material', rarity: 'common', level: 1, stackCount: 3, stats: {} };
-    w.gameData = { player: { classId: 'warrior', gold: 1000, maxInventorySlots: 20, inventory: [item], equipped: {} }, premium: { active: false }, refreshMarketIncome: async () => {} };
+    const item = { serverOwned:true, id: 'meat-canonical-id', name: 'Мясо вепря', type: 'material', rarity: 'common', level: 1, stackCount: 3, stats: {} };
+    w.gameData = { player: { classId: 'warrior', gold: 1000, maxInventorySlots: 20, inventory: [item], equipped: {} }, premium: { active: false }, refreshMarketIncome: async () => {}, refreshServerInventory: async () => {} };
     w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ listings: [] }) });
     w.Headers = Headers; w.IS_REACT_ACT_ENVIRONMENT = true;
     w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };

@@ -297,3 +297,19 @@ CREATE TABLE IF NOT EXISTS balance_activity (
 ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_language TEXT CHECK (preferred_language IN ('ru', 'uk'));
 
 ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_interface TEXT CHECK (preferred_interface IN ('modern', 'fantasy', 'fantasy-beta'));
+
+-- Public trading accepts only server-issued items and uses its own authoritative wallet.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS market_gold BIGINT NOT NULL DEFAULT 120 CHECK (market_gold >= 0);
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS seller_reset_version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS buyer_telegram_id BIGINT REFERENCES players(telegram_id);
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS purchased_item_id UUID;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS returned_item_id UUID;
+CREATE TABLE IF NOT EXISTS market_purchase_requests (
+  id UUID PRIMARY KEY,
+  telegram_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,
+  listing_id UUID NOT NULL REFERENCES market_listings(id),
+  reset_version INTEGER NOT NULL,
+  result_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

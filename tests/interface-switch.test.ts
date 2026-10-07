@@ -6,18 +6,18 @@ import { getMonsterArtworkPath } from '../src/interfaces/fantasy/utils/monsterAr
 
 async function completeFirstDeparture(w:any, plusLabel:string) {
   w.Math.random=()=>.5; // Exercise the ordinary successful route, without an ambush.
-  while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.statPoints > 0) {
+  while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.statPoints > 0) {
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,60);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
   assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
   assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
   const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться в путь|Вирушити в дорогу/.test(n.textContent)) as any;
   assert(travel,'first destination is preselected but travel mode remains selectable');
   await w.act(async()=>travel.click());
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.energy,55);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,55);
   await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
-  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.firstJourneyDeparture,false);
+  assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.firstJourneyDeparture,false);
   const hunt=[...w.document.querySelectorAll('nav button')].find((n:any)=>n.textContent.trim()===(plusLabel.startsWith('Під')?'Полювання':'Охота')) as any;
   await w.act(async()=>hunt.click());
 }
@@ -41,7 +41,7 @@ test('registration switches styles without losing input; both layouts share char
   w.fetch = async (url: string,options:any) => {if(url==='/api/preferences/language')preferences.push(JSON.parse(options.body));return { ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], clan: null, clans: [], messages: [], players: [], listings: [], opponents: [], members: [], ok: true, totalGold: 0, isAdmin: false }) };};
   const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 40)); });
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === text) as any;
-  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   try {
     await w.act(async () => w.mount()); await settle();
     assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
@@ -213,7 +213,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy'); assert.equal(save().player.id, original.id);
     serverVersion = 1;
     await w.act(async () => w.dispatchEvent(new w.CustomEvent('aethelgard-account-reset', { detail: { resetVersion: 1 } }))); await settle();
-    assert.equal(w.localStorage.getItem('aethelgard_save_v1_data'), null); assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
+    assert.equal(w.localStorage.getItem('aethelgard_save_v1_data_749219401'), null); assert.match(w.document.body.textContent, /Выберите свой интерфейс/);
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy');
     assert(button('Русский')); assert(button('Українська'));
     assert(w.document.querySelector('[data-skill-details="w_strike"]'));
@@ -222,7 +222,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(save().resetVersion, 1);
     // A previous client can have stored the new character without this field.
     const legacy = save(); delete legacy.resetVersion;
-    w.localStorage.setItem('aethelgard_save_v1_data', JSON.stringify(legacy));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401', JSON.stringify(legacy));
     for (let visit = 0; visit < 2; visit++) {
       await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
       assert.equal(save().player.id, recreated.id);
@@ -231,7 +231,7 @@ test('registration switches styles without losing input; both layouts share char
     }
     serverVersion = 2;
     await w.act(async () => w.dispatchEvent(new w.CustomEvent('aethelgard-account-reset', { detail: { resetVersion: 2 } }))); await settle();
-    assert.equal(w.localStorage.getItem('aethelgard_save_v1_data'), null);
+    assert.equal(w.localStorage.getItem('aethelgard_save_v1_data_749219401'), null);
     assert(w.document.querySelector('.registration-screen'), 'a new admin reset still applies');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
@@ -299,7 +299,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
     await completeFirstDeparture(w,'Повысить: Сила');await settle();
-    const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
+    const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
     assert.equal(w.document.querySelectorAll('header').length,1);
     assert.equal(w.document.querySelectorAll('nav').length,1);
     assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);
@@ -337,9 +337,9 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     await w.act(async()=>compactEnergy.click());
     assert(w.document.querySelector('[role="dialog"]'),'energy stays accessible in compact HUD');
     await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
-    const before=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
+    const before=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player;
     await w.act(async () => aria('Повысить: Сила').click()); await settle();
-    const after=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player;
+    const after=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player;
     assert.equal(after.attributes.strength,before.attributes.strength+1);assert.equal(after.statPoints,before.statPoints-1);
     await click('Снаряжение');
     await w.act(async () => aria('Сменить: Оружие').click()); await settle();
@@ -360,11 +360,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert.equal(w.document.querySelector('[data-reference-region="frame"] image').getAttribute('href'),'/assets/sprites/reference/hero-codex.jpg');
     await click('Современный');
     assert.equal(w.document.querySelector('.hero-codex'),null,'modern retains its own character layout');
-    assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.id,before.id);
+    assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.id,before.id);
     await w.act(async()=>w.root.unmount());
-    const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
     save.player.level=25;save.player.currentRegionId='reg_plains';
-    w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
     w.localStorage.setItem('aethelgard_interface_style','fantasy');
     await w.act(async()=>w.mount());await settle();await click('Мир');
     assert.match(w.document.querySelector('.atlas-node[aria-pressed="true"]').textContent,/ВЫ ЗДЕСЬ/,'world keeps actual location even above its recommended level');
@@ -394,7 +394,7 @@ test('uncatalogued fantasy enemies retain their own portrait instead of using a 
 test('a pre-reset provider cannot save over the cleared account while a current provider can create a new hero', async () => {
   const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {getTelegramUser} from './src/utils/telegram';function Probe(){window.game=useGame();return null;}window.act=act;window.userId=getTelegramUser().id;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`);
   w.fetch = async () => ({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0,isAdmin:false})});
-  const saveKey = 'aethelgard_save_v1_data';
+  const saveKey = 'aethelgard_save_v1_data_749219401';
   const versionKey = 'aethelgard_reset_version_' + w.userId;
   try {
     await w.act(async () => w.mount());

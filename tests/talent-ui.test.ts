@@ -29,15 +29,15 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
     await w.act(async () => w.mount());
     await w.act(async () => w.game.createCharacter('Испытатель', 'archer'));
     assert.equal(w.game.player.talents.filter((t:any)=>t.branch==='damage').length,10);
-    const save = JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    const save = JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
     save.player.level=100;save.player.talentPoints=100;save.player.silver=5000;
     await w.act(async()=>w.root.unmount());
-    w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
     await w.act(async()=>w.mount());
     const button = (text:string) => [...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text) as any;
     await w.act(async()=>button('Изучить · 1 очк.').click());
     assert.equal(w.game.player.talentPoints,99);
-    assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data')).player.talentPoints,99);
+    assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.talentPoints,99);
     assert.equal(w.document.querySelectorAll('article').length,2);
     const tierSummary=[...w.document.querySelectorAll('summary')].find((s:any)=>s.textContent.startsWith('Уровни 21–40')) as any;
     await w.act(async()=>tierSummary.click());
@@ -55,7 +55,7 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
     save.player.talents.find((t:any)=>t.id==='archer_damage_5').currentRank=1;
     save.player.talents.find((t:any)=>t.id==='archer_class_5').currentRank=1;
     await w.act(async()=>w.root.unmount());
-    w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(save));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
     await w.act(async()=>w.mount());
     w.Math.random=()=>0; // deterministic hits/crits for the combat assertions
     const monster={id:'test_target',name:'Манекен',regionId:'arena',level:1,hp:100000,maxHp:100000,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:1,goldReward:1,drops:[]};
@@ -73,14 +73,14 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
 
     // Shield specialization: stronger/longer shield, then a real block follow-up.
     await w.act(async()=>w.root.unmount());
-    w.localStorage.removeItem('aethelgard_save_v1_data');
+    w.localStorage.removeItem('aethelgard_save_v1_data_749219401');
     await w.act(async()=>w.mount());
     await w.act(async()=>w.game.createCharacter('Защитник','knight'));
-    const knightSave=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    const knightSave=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
     knightSave.player.level=100;
     for (const id of ['knight_survival_5','knight_survival_8','knight_class_5']) knightSave.player.talents.find((t:any)=>t.id===id).currentRank=1;
     await w.act(async()=>w.root.unmount());
-    w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(knightSave));
+    w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(knightSave));
     await w.act(async()=>w.mount());
     await w.act(async()=>w.game.startBattleWithMonster({...monster,attack:10},{chain:false,energyCost:0}));
     await w.act(async()=>w.game.performPlayerAction('skill','k_bastion'));

@@ -21,11 +21,11 @@ async function setup(style = 'modern') {
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], ok: true, isAdmin: false }) });
   w.eval(bundle.outputFiles[0].text);
   const settle = () => w.act(async () => { await new Promise(r => setTimeout(r,20)); });
-  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+  const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   const reload = async (mutate?: (save: any) => void) => {
     const snapshot = save();
     await w.act(async () => w.root.unmount());
-    if (mutate) { mutate(snapshot); w.localStorage.setItem('aethelgard_save_v1_data', JSON.stringify(snapshot)); }
+    if (mutate) { mutate(snapshot); w.localStorage.setItem('aethelgard_save_v1_data_749219401', JSON.stringify(snapshot)); }
     await w.act(async () => w.mount()); await settle();
   };
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((b:any) => b.textContent.trim() === text) as any;

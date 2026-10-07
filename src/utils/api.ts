@@ -4,6 +4,7 @@ import { readResetVersion } from './accountReset';
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const tg = getTelegramWebApp();
+  const userId = getTelegramUser().id;
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
   headers.set('X-Game-Language', getLanguage());
@@ -30,7 +31,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   }
 
   if (!response.ok) {
-    if (data?.code === 'ACCOUNT_RESET' && Number.isSafeInteger(data.resetVersion)) {
+    if (String(userId) === String(getTelegramUser().id) && data?.code === 'ACCOUNT_RESET' && Number.isSafeInteger(data.resetVersion)) {
       window.dispatchEvent(new CustomEvent('aethelgard-account-reset', { detail: { resetVersion: data.resetVersion } }));
     }
     const message = data?.error || data?.message || response.statusText || 'Ошибка сервера';

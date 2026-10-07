@@ -16,8 +16,8 @@ test('real provider: free restoration preserves effects and cooldowns; throws us
  const pot=(id:string,stats:any)=>({id,templateId:id,name:id==='restore'?'Настой':'Огненная склянка',type:'potion',rarity:'common',level:1,upgradeLevel:0,icon:'',stats,stackCount:2,sellPrice:1,disassembleYield:{silver:1}});
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Алхимик','rogue'));w.Math.random=()=>.5;
-  let seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.inventory.push(pot('restore',{heal:10,manaRestore:10}),pot('bomb',{fireDamage:90}));
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  let seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.inventory.push(pot('restore',{heal:10,manaRestore:10}),pot('bomb',{fireDamage:90}));
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   let crafted=false;await w.act(async()=>{crafted=w.game.craftAlchemy('alc_throw_fire');});assert(crafted);assert.equal(w.game.player.inventory.find((i:any)=>i.templateId==='alc_throw_fire').stats.fireDamage,90);
   const poisoned={...target,skills:[{id:'poison',name:'Яд',damageType:'poison',damageMultiplier:1,manaCost:0,cooldown:3,currentCooldown:0,effect:'poison',effectDuration:3,effectPower:8}]};
   await w.act(async()=>w.game.startBattleWithMonster(poisoned,{chain:false,energyCost:0}));
@@ -31,11 +31,11 @@ test('real provider: free restoration preserves effects and cooldowns; throws us
   const hp=w.game.activeMonster.hp;await w.act(async()=>{w.game.performPlayerAction('potion','bomb');w.game.performPlayerAction('potion','bomb');});assert.equal(hp-w.game.activeMonster.hp,113);assert.equal(w.game.turnPhase,'monster');assert.equal(w.game.player.inventory.find((i:any)=>i.id==='bomb').stackCount,1);
   await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster({...target,hp:30,maxHp:30},{chain:false,energyCost:0}));await w.act(async()=>w.game.performPlayerAction('potion','bomb'));assert.equal(w.game.combatOutcome,'victory');assert.equal(w.game.activeMonster.hp,0);assert(!w.game.player.inventory.some((i:any)=>i.id==='bomb'));
   await w.act(async()=>w.game.exitCombat());
-  seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.classId='warrior';seed.player.inventory.push(pot('bomb',{fireDamage:90}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.classId='warrior';seed.player.inventory.push(pot('bomb',{fireDamage:90}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>w.game.startBattleWithMonster({...target,resistances:{fire:50}},{chain:false,energyCost:0}));const resistantHp=w.game.activeMonster.hp;await w.act(async()=>w.game.performPlayerAction('potion','bomb'));assert.equal(resistantHp-w.game.activeMonster.hp,45);
   await w.act(async()=>w.game.exitCombat());await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
   await w.act(async()=>w.game.exitCombat());
-  seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.inventory.push(pot('venom',{poisonDamage:220}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.inventory.push(pot('venom',{poisonDamage:220}));await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
   const venomStartHp=w.game.activeMonster.hp;
   await w.act(async()=>w.game.performPlayerAction('potion','venom'));

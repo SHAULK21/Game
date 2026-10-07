@@ -1,3 +1,4 @@
+import {gameSaveKey, readAccountSave, removeAccountSave} from '../utils/accountReset';
 import { arenaMonster } from '../utils/arena';
 import { recordFlight, completePenalizedBattle, flightBattlesLeft, FLIGHT_PENALTY_PERCENT } from '../utils/flightPenalty';
 import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat, availableMonsterSkills, advanceMonsterCooldowns } from '../utils/monsterAI';
@@ -168,6 +169,7 @@ interface GameContextType {
   fishingAction: (action: FishingAction, id?: string, step?: number) => FishingResult;
   listMarketItem: (item: GameItem, quantity: number, priceGold: number) => Promise<{ success: boolean; message: string }>;
   refreshMarketIncome: () => Promise<void>;
+  returnMarketListing: (listingId:string) => Promise<{success:boolean;message:string}>;
   buyMarketListing: (listingId: string, expectedPriceGold?: number) => Promise<{ success: boolean; message: string }>;
   buyBasicConsumable: (templateId: string, priceGold: number) => boolean;
   craftBasicItem: (recipeId: string) => { success: boolean; message: string };
@@ -520,7 +522,7 @@ const isCurrentUserAdmin = () => {
   return Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
 };
 
-const SAVE_KEY = 'aethelgard_save_v1_data';
+
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -884,6 +886,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!operation) {
       const current = player.inventory.find(i => i.id === item.id);
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
+      if (!current.serverOwned || current.marketTradable === false) return {success:false,message:'Этот предмет можно продать местным жителям. Рынок принимает только подтверждённые сервером вещи.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
       if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
       operation={operationId:createOperationId(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
@@ -921,41 +924,57 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshMarketIncome = useCallback(async () => {
     if (!player) return;
     const userId = player.userId;
-    const income = await apiRequest<{ totalGold: number }>('/api/market/income');
-    setPlayer(prev => {
-      if (!prev || prev.userId !== userId) return prev;
-      const received = prev.marketIncomeReceived || 0;
-      const delta = Math.max(0, income.totalGold - received);
-      if (!delta) return prev;
-      return { ...prev, gold: prev.gold + delta, marketIncomeReceived: income.totalGold };
-    });
+    const epoch=readResetVersion(userId);
+    const income = await apiRequest<{ balanceGold: number }>('/api/market/income');
+    setPlayer(prev => prev && String(prev.userId) === String(userId) && String(userId) === String(getTelegramUser().id) && epoch === readResetVersion(userId) ? {...prev,marketGold:income.balanceGold} : prev);
   }, [player?.userId]);
 
-  const buyMarketListing = useCallback(async (listingId: string, expectedPriceGold?: number) => {
-    if (!player) return { success: false, message: 'Персонаж не создан.' };
-    if (expectedPriceGold !== undefined && player.gold < expectedPriceGold) return { success: false, message: 'Недостаточно золота.' };
+  const buyMarketListing = useCallback(async (listingId: string, _expectedPriceGold?: number) => {
+    if (!player || String(player.userId) !== String(getTelegramUser().id)) return {success:false,message:'Персонаж не создан.'};
+    if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
+    const userId = player.userId;
+    const epoch = readResetVersion(userId);
+    const key = 'aethelgard_market_purchase_pending_' + userId;
+    let pending: {operationId:string;listingId:string;resetVersion:number} | null = null;
+    try { pending = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
+    if (pending && pending.resetVersion !== epoch) { localStorage.removeItem(key); pending=null; }
+    if (pending && pending.listingId !== listingId) return {success:false,message:'Сначала восстановите предыдущую покупку, нажав её кнопку повторно.'};
+    pending ??= {operationId:createOperationId(),listingId,resetVersion:epoch};
+    localStorage.setItem(key,JSON.stringify(pending));
+    marketBusy.current=true;
+    serverInventoryVersion.current+=1;
     try {
-      const result = await apiRequest<{ item: Partial<GameItem>; quantity: number; priceGold: number }>('/api/market/' + listingId + '/buy', { method: 'POST', body: '{}' });
-      if (!player) return { success: false, message: 'Персонаж не создан.' };
-      if (player.gold < result.priceGold) return { success: false, message: 'Недостаточно золота.' };
-      const raw = result.item;
-      const rawMarketItem: GameItem = {
-        id: String(raw.id || 'market_' + Date.now()), templateId: String(raw.templateId || 'market_item'), name: String(raw.name || 'Предмет'),
-        targetClass: raw.targetClass,
-        type: (raw.type || 'material') as ItemType, rarity: (raw.rarity || 'common') as ItemRarity, level: Number(raw.level || 1),
-        upgradeLevel: Number(raw.upgradeLevel || 0), icon: String(raw.icon || '📦'), description: raw.description,
-        armorClass: raw.armorClass, weaponClass: raw.weaponClass,
-        baseAttack: raw.baseAttack, baseDefense: raw.baseDefense, baseMagicDef: raw.baseMagicDef,
-        stats: raw.stats || {}, sellPrice: Number(raw.sellPrice || 1), disassembleYield: raw.disassembleYield || {}, stackCount: result.quantity
-      };
-      const item = applyClassGear(rawMarketItem);
-      item.name = getLeveledEquipmentName(item.name, item.type, item.level, item.targetClass);
-      const added = addOrStackInventoryItem(player.inventory, item, player.maxInventorySlots);
-      if (!added.added) return { success: false, message: 'В инвентаре нет места.' };
-      setPlayer(prev => prev ? { ...prev, gold: prev.gold - result.priceGold, inventory: added.inventory } : prev);
-      return { success: true, message: 'Покупка завершена.' };
-    } catch (e) { return { success: false, message: e instanceof Error ? e.message : 'Покупка не удалась.' }; }
+      await apiRequest('/api/market/' + pending.listingId + '/buy',{method:'POST',body:JSON.stringify({operationId:pending.operationId})});
+      if (String(userId) !== String(getTelegramUser().id) || readResetVersion(userId) !== epoch) return {success:false,message:'Аккаунт изменился. Перезапустите игру.'};
+      localStorage.removeItem(key); // Delivery is already durable in owned_items.
+      return {success:true,message:'Покупка сохранена в серверном инвентаре.'};
+    } catch(error) {
+      const message=error instanceof Error?error.message:'Покупка не удалась.';
+      if (/HTTP 400|HTTP 403|HTTP 409/.test(message)) localStorage.removeItem(key);
+      return {success:false,message};
+    } finally {
+      marketBusy.current=false;
+      window.dispatchEvent(new Event('aethelgard-market-inventory-refresh'));
+    }
   }, [player]);
+  useEffect(() => {
+    if (!player) return;
+    try {
+      const pending=JSON.parse(localStorage.getItem('aethelgard_market_purchase_pending_'+player.userId) || 'null');
+      if (pending) void buyMarketListing(pending.listingId);
+    } catch { /* Corrupt retry state is discarded by the callback. */ }
+  }, [player?.userId]);
+
+  const returnMarketListing = useCallback(async (listingId:string) => {
+    if (!player || String(player.userId) !== String(getTelegramUser().id)) return {success:false,message:'Аккаунт изменился.'};
+    if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
+    marketBusy.current=true;serverInventoryVersion.current+=1;
+    try {
+      await apiRequest('/api/market/'+listingId+'/return',{method:'POST',body:'{}'});
+      return {success:true,message:'Предмет возвращён в серверный инвентарь.'};
+    } catch(error) { return {success:false,message:error instanceof Error?error.message:'Возврат не удался.'}; }
+    finally { marketBusy.current=false;window.dispatchEvent(new Event('aethelgard-market-inventory-refresh')); }
+  },[player]);
 
   const buyBasicConsumable = useCallback((templateId: string, priceGold: number) => {
     if (!player || player.gold < priceGold) return false;
@@ -1004,8 +1023,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load saved state or check Telegram User
   useEffect(() => {
-    const raw = localStorage.getItem(SAVE_KEY);
     const tgUser: TelegramUser = getTelegramUser();
+    const raw = readAccountSave(tgUser.id);
     
     if (raw) {
       try {
@@ -1162,7 +1181,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       chatMessages: chatMessages.slice(-50),
       activeDungeonRun
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
+    if (String(player.userId) !== String(getTelegramUser().id)) return;
+    localStorage.setItem(gameSaveKey(player.userId), JSON.stringify(saveState));
     localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
     const clanPendingKey='aethelgard_clan_creation_pending_'+player.userId;
     try {const pending=JSON.parse(localStorage.getItem(clanPendingKey)||'null');if(pending?.operationId===player.lastClanCreationOperation)localStorage.removeItem(clanPendingKey);}catch{localStorage.removeItem(clanPendingKey);}
@@ -1518,7 +1538,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const resetCharacter = useCallback(() => {
-    localStorage.removeItem(SAVE_KEY);
+    removeAccountSave(getTelegramUser().id);
     setPlayer(null);
     setIsInCombat(false);
     setActiveMonster(null);
@@ -1607,17 +1627,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshServerInventory = useCallback(async () => {
     if (bulkInventoryBusy.current || marketBusy.current) return;
+    const userId=getTelegramUser().id;
+    const epoch=readResetVersion(userId);
     const version = ++serverInventoryVersion.current;
-    const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null }> }>('/api/items/owned');
-    if (version !== serverInventoryVersion.current) return;
+    const response = await apiRequest<{ items: Array<{ id: string; item_json: GameItem; quantity: number; locked: boolean; bound_clan_id: string | null; equipped_slot: ItemType | null; origin?:string }> }>('/api/items/owned');
+    if (version !== serverInventoryVersion.current || String(userId) !== String(getTelegramUser().id) || epoch !== readResetVersion(userId)) return;
     const canonical = response.items.map(row => ({
       ...row.item_json, id: row.id, stackCount: row.quantity, isLocked: row.locked,
       name: getLeveledEquipmentName(row.item_json.name, row.item_json.type, row.item_json.level, row.item_json.targetClass),
-      boundToClan: row.bound_clan_id || undefined, serverOwned: true,
+      boundToClan: row.bound_clan_id || undefined, serverOwned: true, marketTradable:row.origin !== 'legacy_market_return',
       isEquipped: Boolean(row.equipped_slot), slot: row.equipped_slot
     }));
     setPlayer(prev => {
-      if (!prev) return prev;
+      if (!prev || String(prev.userId) !== String(userId)) return prev;
       const inventory = prev.inventory.filter(item => !item.serverOwned);
       const equipped = { ...prev.equipped };
       for (const [slot, item] of Object.entries(equipped)) if (item?.serverOwned) delete equipped[slot as ItemType];
@@ -1635,6 +1657,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!player?.userId) return;
     refreshServerInventory().catch(() => undefined);
   }, [player?.userId, refreshServerInventory]);
+
+  useEffect(() => {
+    const refresh=() => { void refreshServerInventory().catch(() => undefined); void refreshMarketIncome().catch(() => undefined); };
+    window.addEventListener('aethelgard-market-inventory-refresh',refresh);
+    return () => window.removeEventListener('aethelgard-market-inventory-refresh',refresh);
+  }, [refreshServerInventory,refreshMarketIncome]);
 
   const bulkDisposeItems = useCallback(async (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => {
     if (!player || bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Обработка уже выполняется.'};
@@ -4199,6 +4227,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       listMarketItem,
       refreshMarketIncome,
       buyMarketListing,
+      returnMarketListing,
       buyBasicConsumable,
       craftBasicItem,
       refreshPremiumStatus,

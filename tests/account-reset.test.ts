@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import express from 'express';
 import { PGlite } from '@electric-sql/pglite';
 import { resetPlayerAccount, registerAccountReset } from '../server/accountReset';
-import { applyAccountReset, GAME_SAVE_KEY, resetVersionKey } from '../src/utils/accountReset';
+import { applyAccountReset, GAME_SAVE_KEY, gameSaveKey, resetVersionKey } from '../src/utils/accountReset';
 
 test('selected account resets transactionally, preserving Premium and other players; retries do not reset twice', async () => {
   const db = new PGlite();
@@ -88,12 +88,12 @@ test('server reset clears legacy local saves and pending rewards, retaining inte
       assert.equal(JSON.parse(entries.get(GAME_SAVE_KEY)!).player.level, 3);
       assert.equal(entries.get('aethelgard_market_pending_2'), 'new-operation');
     }
-    entries.set(GAME_SAVE_KEY, JSON.stringify({ resetVersion: 1, player: { level: 3 } }));
+    entries.set(GAME_SAVE_KEY, JSON.stringify({ resetVersion: 1, player: { userId: 2, level: 3 } }));
     entries.delete(resetVersionKey(2));
     assert.equal(applyAccountReset(2, 1), false, 'an annotated new save recovers a missing acknowledgement');
     assert.equal(entries.get(resetVersionKey(2)), '1');
     assert.equal(applyAccountReset(2, 0), false); assert.equal(entries.get(resetVersionKey(2)), '1');
-    assert.equal(entries.has(GAME_SAVE_KEY), true);
+    assert.equal(entries.has(gameSaveKey(2)), true);
     assert.equal(applyAccountReset(2, 2), true);
   } finally { if (previous) Object.defineProperty(globalThis, 'localStorage', previous); else delete (globalThis as any).localStorage; }
 });

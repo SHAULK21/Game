@@ -27,10 +27,10 @@ for(const style of ['modern','fantasy','fantasy-beta']) test(`${style}: actual p
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Тест','warrior'));
   assert.equal(w.document.querySelector('[data-pickaxe-status]').dataset.pickaxeStatus,'missing');assert(button('Купить · 250 золота').disabled);assert.match(w.document.querySelector('[data-pickaxe-offer=pickaxe_common]').textContent,/нужно 250, у вас 120/);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;seed.player.gold=200000;seed.player.miningLevel=80;seed.player.alchemyLevel=80;seed.player.attributes.strength=1000000;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;seed.player.gold=200000;seed.player.miningLevel=80;seed.player.alchemyLevel=80;seed.player.attributes.strength=1000000;
   // Old saves can have a stale equipped flag, missing template IDs, and a tool level above hero level.
   const pick=makePickaxe('pickaxe_legendary','legacy_pick'),retort=makeAlchemyTool('retort_legendary','legacy_retort');delete (pick as any).templateId;delete (retort as any).templateId;pick.isEquipped=true;retort.isEquipped=true;pick.level=80;retort.level=80;seed.player.inventory.push(pick,retort);
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   const weapon=w.game.player.equipped.weapon.id;
   const offer=()=>w.document.querySelector('[data-pickaxe-offer=pickaxe_common]');const gold=w.game.player.gold;
   const buy=button('Купить · 250 золота');await w.act(async()=>{buy.click();buy.click();});assert.equal(w.game.player.gold,gold-250);assert.equal(w.game.player.inventory.filter((i:any)=>i.templateId==='pickaxe_common').length,1);assert.match(offer().textContent,/Куплена · в сумке/);assert.match(w.document.querySelector('[data-pickaxe-status] [role=status]').textContent,/Куплена/);
@@ -93,8 +93,8 @@ test('all game chapters in three interfaces render enabled buttons with working 
  }};
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Проверка','warrior'));
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
   for(const style of ['modern','fantasy','fantasy-beta']){
    await w.act(async()=>w.theme.setStyle(style));
    for(const tab of ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more']){

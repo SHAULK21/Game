@@ -33,7 +33,7 @@ test('Postgres schema, canonical market transfers, PvP, clan roles and referral 
   await query('UPDATE owned_items SET locked=TRUE WHERE id=$1',[owned.id]);
   await assert.rejects(()=>createMarketListing(pool,1,{...body,operationId:'00000000-0000-4000-8000-000000000022'}));
   assert.equal((await query('SELECT quantity FROM owned_items WHERE id=$1',[owned.id])).rows[0].quantity,3);
-  const legacy=await createMarketListing(pool,1,{operationId:'00000000-0000-4000-8000-000000000023',item:{...item,id:'herb',type:'material',stats:{heal:20}},quantity:1,price_gold:15});assert.equal(legacy.item_json.stats.heal,20);
+  await assert.rejects(createMarketListing(pool,1,{operationId:'00000000-0000-4000-8000-000000000023',item:{...item,id:'herb',type:'material',stats:{heal:20}},quantity:1,price_gold:15}),/серверного реестра/);
   await call('POST','/api/pvp/enroll',1,{stance:'balanced',enrolled:true});await call('POST','/api/pvp/enroll',2,{stance:'guard',enrolled:true});
   const state=await call('GET','/api/pvp',1);assert.equal(state.status,200);assert.equal(state.body.opponents.length,1);assert.equal(state.body.starsEnabled,false);
   const fight={targetId:2,matchId:'00000000-0000-4000-8000-000000000024'};

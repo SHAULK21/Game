@@ -111,6 +111,7 @@ export interface GameItem {
   targetClass?: CharacterClassId;
   boundToClan?: string;
   serverOwned?: boolean;
+  marketTradable?: boolean;
 }
 
 export interface CharacterAttributes {
@@ -570,6 +571,7 @@ export interface PlayerCharacter {
   inventory: GameItem[];
   maxInventorySlots: number;
   marketIncomeReceived?: number;
+  marketGold?: number;
 
   talents: Talent[];
   skills: Skill[];

@@ -36,10 +36,10 @@ test('provider enforces per-turn potion kinds, combat crafting lock, persistent 
   const count=(id:string)=>w.game.player.inventory.find((i:any)=>i.id===id)?.stackCount;
   try {
     await act(()=>w.mount());await act(()=>w.game.createCharacter('Правила','warrior'));w.Math.random=()=>.5;
-    const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));
+    const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
     seed.player.inventory.push(potion('hp',{heal:10}),potion('hp-large',{heal:50}),potion('mp',{manaRestore:10}),potion('bomb',{fireDamage:90}));
     for(const name of ['Уголь','Медная руда']) seed.player.inventory.push({...potion(name,{}),type:'material',name,stackCount:30});
-    await act(()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await act(()=>w.mount());
+    await act(()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await act(()=>w.mount());
     let crafted=false;await act(()=>{crafted=w.game.craftAlchemy('alc_throw_fire')});assert(crafted,'craft works outside combat');
     let sameEventCraft=true;await act(()=>{w.game.startBattleWithMonster(enemy,{chain:false,energyCost:0});sameEventCraft=w.game.craftAlchemy('alc_throw_fire')});assert(!sameEventCraft,'starting combat locks crafting before the next render');
     const inventory=JSON.stringify(w.game.player.inventory), energy=w.game.player.alchemyEnergy;

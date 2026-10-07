@@ -28,9 +28,9 @@ test('alchemy UI buys, equips, crafts once, preserves other items and XP; combat
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Алхимик','warrior'));
   assert.equal(w.game.buyAlchemyTool('retort_legendary').success,false);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data'));seed.player.gold=200000;seed.player.alchemyLevel=80;seed.player.alchemyExp=80*220-1;seed.player.attributes.strength=1000000;seed.player.inventory.find((item:any)=>item.name==='Уголь').stackCount=20;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.gold=200000;seed.player.alchemyLevel=80;seed.player.alchemyExp=80*220-1;seed.player.attributes.strength=1000000;seed.player.inventory.find((item:any)=>item.name==='Уголь').stackCount=20;
   seed.player.inventory.push({id:'keep',name:'Памятная вещь',type:'material',rarity:'common',level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{}});
-  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data',JSON.stringify(seed));await w.act(async()=>w.mount());
+  await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   const baseline=JSON.parse(JSON.stringify(w.game.combatStats));let result:any;
   await w.act(async()=>{result=w.game.buyAlchemyTool('retort_legendary');});assert.equal(result.success,true);assert.equal(w.game.player.gold,50000);
   const tool=w.game.player.inventory.find((i:any)=>i.type==='alchemyTool');const weapon=w.game.player.equipped.weapon.id;
