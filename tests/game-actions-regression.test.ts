@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -16,7 +17,7 @@ import {MiningScreen} from './src/components/mining/MiningScreen';import {Alchem
 import {MiningScreen as FantasyMine} from './src/interfaces/fantasy/components/mining/MiningScreen';import {AlchemyScreen as FantasyAlchemy} from './src/interfaces/fantasy/components/alchemy/AlchemyScreen';import {ArenaScreen as FantasyArena} from './src/interfaces/fantasy/components/arena/ArenaScreen';
 import {ModernGameContent} from './src/interfaces/modern/ModernGameContent';import {FantasyGameContent} from './src/interfaces/fantasy/FantasyGameContent';
 function Probe(){const [full,setFull]=useState(false);window.full=setFull;window.game=useGame();window.theme=useInterface();window.nav=useNavigation();const [screen,setScreen]=useState('mine');window.screen=setScreen;const fantasy=window.theme.style!=='modern';const Screen=screen==='mine'?(fantasy?FantasyMine:MiningScreen):screen==='alchemy'?(fantasy?FantasyAlchemy:AlchemyScreen):screen==='arena'?(fantasy?FantasyArena:ArenaScreen):FishingScreen;if(full)return fantasy?<FantasyGameContent/>:<ModernGameContent/>;return window.game.player?<Screen onEnterCombatTab={()=>{window.entered=true;}}/>:null;}
-window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><InterfaceProvider><NavigationProvider><Probe/></NavigationProvider></InterfaceProvider></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><InterfaceProvider><NavigationProvider><Probe/></NavigationProvider></InterfaceProvider></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[localProgressPlugin,{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
 
 for(const style of ['modern','fantasy','fantasy-beta']) test(`${style}: actual profession and fishing buttons, legacy tools, finished combat and gladiator rewards`,async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'}),w:any=dom.window;

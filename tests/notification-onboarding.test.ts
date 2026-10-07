@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -5,7 +6,7 @@ import { JSDOM } from 'jsdom';
 import { recordTelegramWriteAccess } from '../server/telegramWriteAccess';
 
 async function setup(settings: Record<string,boolean> = {}, granted = true, botStarted = false) {
-  const bundle = await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {NotificationOnboarding} from './src/components/notifications/NotificationOnboarding';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.render=()=>window.root.render(<NotificationOnboarding/>);window.render();};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"'},plugins:[{name:'game-state',setup(b){b.onResolve({filter:/context\/GameContext$/},()=>({path:'game-state',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const useGame=()=>window.gameState;',loader:'js'}));}}]});
+  const bundle = await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {NotificationOnboarding} from './src/components/notifications/NotificationOnboarding';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.render=()=>window.root.render(<NotificationOnboarding/>);window.render();};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"'},plugins:[localProgressPlugin,{name:'game-state',setup(b){b.onResolve({filter:/context\/GameContext$/},()=>({path:'game-state',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const useGame=()=>window.gameState;',loader:'js'}));}}]});
   const dom = new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});
   const w:any=dom.window;w.Headers=Headers;w.IS_REACT_ACT_ENVIRONMENT=true;w.gameState={player:{},offlineReport:null};
   w.MessageChannel=class {port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};

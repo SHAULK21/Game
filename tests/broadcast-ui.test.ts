@@ -1,9 +1,10 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 test('admin chooses a ready template, previews recipients and retries without a duplicate operation',async()=>{
- const bundle=await build({stdin:{contents:`import React,{act}from'react';import{createRoot}from'react-dom/client';import{AdminBroadcasts}from'./src/components/admin/AdminBroadcasts';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<AdminBroadcasts/>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"'}});
+ const bundle=await build({plugins:[localProgressPlugin],stdin:{contents:`import React,{act}from'react';import{createRoot}from'react-dom/client';import{AdminBroadcasts}from'./src/components/admin/AdminBroadcasts';window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<AdminBroadcasts/>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"'}});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'}),w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as null|(()=>void)};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};
  w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.crypto.randomUUID=()=>crypto.randomUUID();

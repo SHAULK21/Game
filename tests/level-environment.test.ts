@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -28,7 +29,7 @@ test('map highlights suitable regions; spoilers keep earlier and future travel o
   const bundle = await build({
     stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {WorldScreen} from './src/components/world/WorldScreen';import {REGIONS} from './src/data/gameData';window.regions=REGIONS;window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<WorldScreen/>);};`, resolveDir: process.cwd(), loader: 'tsx' },
     bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"' },
-    plugins: [{ name: 'test-context', setup(b) {
+    plugins: [localProgressPlugin,{ name: 'test-context', setup(b) {
       b.onLoad({ filter: /context\/GameContext\.tsx$/ }, () => ({ contents: 'export const useGame=()=>window.game;', loader: 'js' }));
       b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' }));
     } }],

@@ -1,3 +1,6 @@
+import {addOrStackInventoryItem} from '../utils/inventoryStacks';
+import {MAX_TRADE_QUANTITY} from '../utils/stackRules';
+import {queueProgress,canChangeProgress,confirmedProgress,progressStatus,waitForProgress,useProgressStatus} from '../utils/serverProgress';
 import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
 import {gameSaveKey, readAccountSave, removeAccountSave} from '../utils/accountReset';
@@ -291,28 +294,6 @@ const calculateTypedDamage = ({
   );
 };
 
-const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots: number) => {
-  const existingIndex = inventory.findIndex(i =>
-    i.templateId === item.templateId &&
-    i.type === item.type &&
-    i.name === item.name &&
-    i.rarity === item.rarity
-  );
-
-  const stackable = item.type === 'material' || item.type === 'ore' || item.type === 'potion';
-  if (existingIndex >= 0 && stackable) {
-    const next = [...inventory];
-    next[existingIndex] = {
-      ...next[existingIndex],
-      stackCount: (next[existingIndex].stackCount || 1) + (item.stackCount || 1)
-    };
-    return { inventory: next, added: true };
-  }
-
-  if (inventory.length >= maxSlots) return { inventory, added: false };
-  return { inventory: [...inventory, item], added: true };
-};
-
 const MINING_EXPEDITION_POOLS: Array<{
   name: string;
   icon: string;
@@ -531,10 +512,12 @@ const isCurrentUserAdmin = () => {
 const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const saveStatus=useProgressStatus();
   const accountResetVersion = useRef(readResetVersion(getTelegramUser().id));
   const [player, setPlayerState] = useState<PlayerCharacter | null>(null);
   const setPlayer = useCallback<React.Dispatch<React.SetStateAction<PlayerCharacter | null>>>(action => {
     setPlayerState(previous => {
+      if(['offline','conflict','readonly'].includes(progressStatus()))return previous;
       const next = typeof action === 'function' ? action(previous) : action;
       return previous && next && next !== previous ? anchorSpentResources(previous, next) : next;
     });
@@ -548,7 +531,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const flightHandled = useRef(false);
   const combatActiveRef = useRef(false);
   const resetPotionTurn = () => { usedPotionsRef.current = []; setUsedPotionKinds([]); };
-  useEffect(resetPotionTurn, [combatRound]);
+  const recoveredPotionRound=useRef<number|null>(null);
+  useEffect(()=>{if(recoveredPotionRound.current===combatRound){recoveredPotionRound.current=null;return;}resetPotionTurn();}, [combatRound]);
   const markPotionUsed = (item: GameItem) => {
     usedPotionsRef.current = [...new Set([...usedPotionsRef.current, ...potionKinds(item)])];
     setUsedPotionKinds(usedPotionsRef.current);
@@ -658,6 +642,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     maxBattles: 50
   });
 
+  const travelTimers=useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(()=>()=>{for(const timer of travelTimers.current){clearTimeout(timer);clearInterval(timer);}travelTimers.current.clear();},[]);
   const [travelState, setTravelState] = useState<TravelState>({
     isTraveling: false,
     targetRegionId: '',
@@ -827,18 +813,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(key,JSON.stringify(pending));
     }
     const operation = pending;
-    if (player.reservedClanCreationOperation !== operation.operationId) {
-      if (player.gold < operation.expectedPriceGold) throw new Error('Недостаточно золота для завершения создания клана.');
-      setPlayer(prev => !prev || prev.userId !== player.userId || prev.reservedClanCreationOperation === operation.operationId ? prev : {...prev,gold:prev.gold-operation.expectedPriceGold,reservedClanCreationOperation:operation.operationId});
-    }
     clanCreationBusy.current = true;
     try {
-      await apiRequest('/api/clan/create',{method:'POST',body:JSON.stringify(operation)});
-      setPlayer(prev => prev && prev.userId === player.userId ? {...prev,lastClanCreationOperation:operation.operationId,reservedClanCreationOperation:undefined} : prev);
+      const receipt=await apiRequest<{priceGold:number}>('/api/clan/create',{method:'POST',body:JSON.stringify(operation)});
+      setPlayer(prev => prev && prev.userId === player.userId && prev.lastClanCreationOperation!==operation.operationId ? {...prev,gold:prev.gold-receipt.priceGold,lastClanCreationOperation:operation.operationId,reservedClanCreationOperation:undefined} : prev);
     } catch (error) {
       // An HTTP 400 is a confirmed rollback; transport failures retain the receipt for retry.
       if (error instanceof Error && error.message.endsWith('(HTTP 400)')) {
-        setPlayer(prev => prev && prev.userId === player.userId && prev.reservedClanCreationOperation === operation.operationId ? {...prev,gold:prev.gold+operation.expectedPriceGold,reservedClanCreationOperation:undefined} : prev);
         localStorage.removeItem(key);
       }
       throw error;
@@ -862,7 +843,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const current = player.inventory.find(i => i.id === item.id);
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
-      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(MAX_TRADE_QUANTITY,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
       operation={operationId:createOperationId(),item:current,quantity};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;
@@ -899,7 +880,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (!current.serverOwned || current.marketTradable === false) return {success:false,message:'Этот предмет можно продать местным жителям. Рынок принимает только подтверждённые сервером вещи.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
-      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(MAX_TRADE_QUANTITY,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
       operation={operationId:createOperationId(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;
@@ -1013,7 +994,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load saved state or check Telegram User
   useEffect(() => {
     const tgUser: TelegramUser = getTelegramUser();
-    const raw = readAccountSave(tgUser.id);
+    const serverSave = confirmedProgress()?.save;
+    const raw = serverSave ? JSON.stringify(serverSave) : null;
     
     if (raw) {
       try {
@@ -1024,7 +1006,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const elapsedMs = now - (parsed.player.lastActiveTimestamp || now);
           const elapsedMins = Math.floor(elapsedMs / (1000 * 60));
           
-          if (elapsedMins >= 2) {
+          if (false && elapsedMins >= 2) {
             setPendingOfflineMinutes(Math.min(elapsedMins, 480));
           }
           parsed.player.lastEnergyRegenTimestamp ??= parsed.player.lastActiveTimestamp || now;
@@ -1105,6 +1087,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           if (parsed.achievements) setAchievements(parsed.achievements);
           if (parsed.chatMessages) setChatMessages(parsed.chatMessages);
+          if (parsed.combat) {
+            const c=parsed.combat;
+            setActiveMonster(c.activeMonster);setCombatChain(c.combatChain);setBattleLog(c.battleLog || []);
+            recoveredPotionRound.current=c.combatRound || 1;setCombatRound(c.combatRound || 1);setUsedPotionKinds(c.usedPotionKinds || []);usedPotionsRef.current=c.usedPotionKinds || [];
+            setLastCombatReward(c.lastCombatReward);setPendingChainRewards(c.pendingChainRewards || {gold:0,silver:0,exp:0});setPendingChainItems(c.pendingChainItems || []);
+            setIsInCombat(c.isInCombat);setIsCombatEnded(c.isCombatEnded);setCombatOutcome(c.combatOutcome);
+            setCombatPlayerHp(c.combatPlayerHp);setCombatPlayerMp(c.combatPlayerMp);setTurnPhase(c.turnPhase || 'player');
+            setPlayerEffects(c.playerEffects || []);setMonsterEffects(c.monsterEffects || []);setMonsterIntent(c.monsterIntent || null);
+            setWarriorMomentum(c.warriorMomentum || 0);setRogueFocus(c.rogueFocus || false);setLastCast(c.lastCast);
+            combatActiveRef.current=c.isInCombat&&!c.isCombatEnded;flightHandled.current=Boolean(c.isCombatEnded);arenaDefeatHandled.current=c.isCombatEnded&&c.combatOutcome==='defeat';talentFollowup.current=c.talentFollowup || 0;
+          }
+          // Interrupted travel is cancelled at the source; its confirmed energy cost remains spent.
+          // No destination, ambush roll or travel quest reward is awarded on recovery.
+          if (parsed.travelState?.isTraveling) setTravelState({...parsed.travelState,isTraveling:false,progress:0,message:'Путешествие прервано. Потраченная энергия не возвращается.'});
+
           if (parsed.activeDungeonRun && !parsed.activeDungeonRun.completed) {
             const run: DungeonRun = parsed.activeDungeonRun;
             const cave = CAVES[run.dungeonId];
@@ -1161,39 +1158,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [,commitSaveSnapshot] = useState(0);
   const commitSwitchSnapshot = useCallback(() => { flushSync(() => commitSaveSnapshot(value => value + 1)); }, []);
-  const saveSnapshot = useRef({resetVersion:accountResetVersion.current,player,quests,achievements,chatMessages,activeDungeonRun});
-  saveSnapshot.current = {resetVersion:accountResetVersion.current,player,quests,achievements,chatMessages,activeDungeonRun};
+  const snapshot = {resetVersion:accountResetVersion.current,player,quests,achievements,activeDungeonRun,travelState,
+    combat: {activeMonster,combatChain,battleLog: battleLog.slice(-100),combatRound,usedPotionKinds,lastCombatReward,pendingChainRewards,pendingChainItems,
+      isInCombat,isCombatEnded,combatOutcome,combatPlayerHp,combatPlayerMp,turnPhase,playerEffects,monsterEffects,monsterIntent,warriorMomentum,rogueFocus,lastCast,talentFollowup:talentFollowup.current}};
+  const saveSnapshot = useRef(snapshot);
+  saveSnapshot.current = snapshot;
   const flushProgress = useCallback(() => {
-    const snapshot = saveSnapshot.current, {player} = snapshot;
-    if (!player) return;
-    const saveState = {...snapshot,player:{...player,lastActiveTimestamp:Date.now()},chatMessages: snapshot.chatMessages.slice(-50)};
-    if (String(player.userId) !== String(getTelegramUser().id) || snapshot.resetVersion !== readResetVersion(getTelegramUser().id)) throw new Error('Аккаунт изменился. Дождитесь загрузки персонажа.');
-    const serialized = JSON.stringify(saveState);
-    localStorage.setItem(gameSaveKey(player.userId), serialized);
-    if (localStorage.getItem(gameSaveKey(player.userId)) !== serialized) throw new Error('Не удалось сохранить прогресс. Переключение отменено.');
-    localStorage.setItem('aethelgard_market_income_' + player.userId, String(player.marketIncomeReceived || 0));
-    const clanPendingKey='aethelgard_clan_creation_pending_'+player.userId;
-    try {const pending=JSON.parse(localStorage.getItem(clanPendingKey)||'null');if(pending?.operationId===player.lastClanCreationOperation)localStorage.removeItem(clanPendingKey);}catch{localStorage.removeItem(clanPendingKey);}
-    const residentKey='aethelgard_residents_pending_'+player.userId;
-    try {if(JSON.parse(localStorage.getItem(residentKey)||'null')?.operationId===player.lastResidentSaleOperation)localStorage.removeItem(residentKey);}catch{localStorage.removeItem(residentKey);}
-    const marketPendingKey='aethelgard_market_pending_'+player.userId;
-    try {const operation=JSON.parse(localStorage.getItem(marketPendingKey)||'null');if(operation?.operationId===player.lastMarketListingOperation)localStorage.removeItem(marketPendingKey);}catch{localStorage.removeItem(marketPendingKey);}
-    // Remove the retry record only after the awarded state has been persisted.
-    const pending = localStorage.getItem(pendingBulkKey(player.userId));
-    if (pending) {
-      try { if (JSON.parse(pending).operationId === player.lastBulkDisposalId) localStorage.removeItem(pendingBulkKey(player.userId)); }
-      catch { localStorage.removeItem(pendingBulkKey(player.userId)); }
-    }
+    const save=saveSnapshot.current;
+    if (!save.player) return;
+    if (String(save.player.userId)!==String(getTelegramUser().id) || save.resetVersion!==readResetVersion(getTelegramUser().id)) throw new Error('Аккаунт изменился.');
+    queueProgress({...save,player:{...save.player,lastActiveTimestamp:Date.now()}});
   }, []);
-  // Receipts and pending-operation cleanup use the same durable write as switching.
-  useEffect(() => {
-    if (accountResetVersion.current !== readResetVersion(getTelegramUser().id)) return;
-    try { flushProgress(); } catch (error) { console.error('Could not persist game progress:', error); }
-  }, [player, quests, achievements, chatMessages, activeDungeonRun, flushProgress]);
+  useEffect(() => { if(accountResetVersion.current===readResetVersion(getTelegramUser().id))flushProgress(); }, [player,quests,achievements,activeDungeonRun,travelState,activeMonster,combatChain,battleLog,combatRound,usedPotionKinds,lastCombatReward,
+    pendingChainRewards,pendingChainItems,isInCombat,isCombatEnded,combatOutcome,combatPlayerHp,combatPlayerMp,turnPhase,playerEffects,monsterEffects,monsterIntent,warriorMomentum,rogueFocus,lastCast,flushProgress]);
   const getInterfaceSwitchBlockReason = useCallback(() => {
     if (accountResetVersion.current !== readResetVersion(getTelegramUser().id) || player && String(player.userId) !== String(getTelegramUser().id)) return 'Аккаунт изменился. Дождитесь загрузки персонажа.';
     if (isInCombat && !isCombatEnded) return 'Нельзя сменить интерфейс во время незавершённого боя.';
     if (travelState.isTraveling) return 'Дождитесь завершения путешествия.';
+    if (progressStatus() !== 'ready') return 'Дождитесь подтверждения серверного сохранения.';
     if (hasGameOperation() || bulkInventoryBusy.current || marketBusy.current || clanCreationBusy.current) return 'Дождитесь завершения операции с предметами или валютой.';
     return '';
   }, [isInCombat,isCombatEnded,travelState.isTraveling,player?.userId]);
@@ -1539,10 +1521,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const resetCharacter = useCallback(() => {
-    removeAccountSave(getTelegramUser().id);
-    setPlayer(null);
-    setIsInCombat(false);
-    setActiveMonster(null);
+    // Administrative reset is the only supported deletion of a server character.
+    triggerHaptic('error');
   }, []);
 
   const setActivePet = useCallback((petId: string): boolean => {
@@ -1684,7 +1664,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     serverInventoryVersion.current += 1;
     const pending = operation;
     try {
-      const receipt = await apiRequest<BulkReceipt>('/api/items/bulk-dispose', {method:'POST',body:JSON.stringify({operationId:pending.operationId,action:pending.action,filters:pending.filters,itemIds:pending.serverIds})});
+      const receipt = await apiRequest<BulkReceipt>('/api/items/bulk-dispose', {method:'POST',body:JSON.stringify({operationId:pending.operationId,action:pending.action,filters:pending.filters,itemIds:pending.serverIds,localItemIds:pending.localIds})});
       if (receipt.operationId !== pending.operationId || !Array.isArray(receipt.itemIds)) throw new Error('Некорректный ответ игрового сервера.');
       const localIds = new Set(pending.localIds);
       const local = bulkReward(selectBulkItems(player,pending.filters).filter(item=>!item.serverOwned&&localIds.has(item.id)),pending.action);
@@ -2122,7 +2102,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player?.adventureJournal?.pending, startBattleWithMonster]);
 
   const startNextCombatBattle = useCallback((): boolean => {
-    if (!player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
+    if (!canChangeProgress() || !player || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return false;
     const nextMonster = combatChain.queue[0];
     const remaining = combatChain.queue.length - 1;
     setCombatChain(prev => prev ? { ...prev, queue: prev.queue.slice(1) } : prev);
@@ -2152,6 +2132,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, isInCombat, isCombatEnded, combatOutcome, combatChain, combatStats.maxMp]);
 
 
+  const delayedTravel=(callback:()=>void,delay:number)=>{
+    const schedule=(wait:number)=>{
+      const timer=setTimeout(()=>{travelTimers.current.delete(timer);if(canChangeProgress())callback();else schedule(300);},wait);
+      travelTimers.current.add(timer);return timer;
+    };
+    return schedule(delay);
+  };
   const startTravel = useCallback((targetRegionId: string, modId?: string) => {
     const targetReg = REGIONS.find(r => r.id === targetRegionId);
     if (!targetReg) return { success: false, message: 'Локация не найдена' };
@@ -2196,6 +2183,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let currentProg = 15;
     const interval = setInterval(() => {
+      if(!canChangeProgress())return;
       currentProg += 25;
       if (currentProg < 85) {
         sound.playTravelStep();
@@ -2205,7 +2193,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           message: currentProg >= 40 && currentProg < 70 ? 'Вглядываетесь в чащу... Впереди подозрительное затишье...' : 'Вы уже близко к цели...'
         }));
       } else {
-        clearInterval(interval);
+        clearInterval(interval);travelTimers.current.delete(interval);
         // Ambush roll
         const ambushChance = activeMod.ambushChance;
         const isAmbush = Math.random() < ambushChance;
@@ -2220,7 +2208,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             message: '⚠️ ВНЕЗАПНАЯ ЗАСАДА! Из тени выскочил разъяренный монстр!'
           }));
 
-          setTimeout(() => {
+          const arrivalTimer=delayedTravel(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
             setQuests(previous=>completeTravelQuests(previous,targetRegionId));
             const ordinary = targetReg.monsters.filter(id => !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
@@ -2241,6 +2229,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               goldReward: Math.round(baseMob.goldReward * 1.5)
             }, { chain: false, energyCost: 0, huntingModeId:selectedModId });
           }, 650);
+          travelTimers.current.add(arrivalTimer);
         } else {
           sound.playVictory();
           triggerHaptic('success');
@@ -2250,7 +2239,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             message: `Вы благополучно добрались до ${targetReg.name}!`
           }));
 
-          setTimeout(() => {
+          const arrivalTimer=delayedTravel(() => {
             setTravelState(prev => ({ ...prev, isTraveling: false }));
             setQuests(previous=>completeTravelQuests(previous,targetRegionId));
             setPlayer(prev => prev ? {
@@ -2260,9 +2249,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               activeRegionModId: selectedModId
             } : prev);
           }, 800);
+          travelTimers.current.add(arrivalTimer);
         }
       }
     }, 650);
+    travelTimers.current.add(interval);
 
     return { success: true, message: 'Путешествие началось!' };
   }, [player, travelState.isTraveling, startBattleWithMonster, isInCombat, isCombatEnded, activeDungeonRun, premium.active]);
@@ -3055,7 +3046,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCombatNarration(lines);
     }
     const plan = monsterPlan.current;
+    if(!canChangeProgress())return;
     const timer = setTimeout(() => {
+      if(!canChangeProgress())return;
       const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
       const activeMod = combatHuntingMode(activeMonster);
@@ -3170,12 +3163,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...newLogs]);
     }, Math.max(0, plan.preparationDeadline - Date.now()));
     return () => clearTimeout(timer);
-  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
+  }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun, autoBattle.enabled,saveStatus]);
 
   // Delayed monster skill execution. The warning above is intentionally visible first.
   useEffect(() => {
     if (!monsterIntent || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'monster') return;
+    if(!canChangeProgress())return;
     const timer = setTimeout(() => {
+      if(!canChangeProgress())return;
       const skill = monsterIntent;
       const currentTurn = combatRound;
       const activeMod = combatHuntingMode(activeMonster);
@@ -3255,7 +3250,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setBattleLog(prev => [...prev, ...logs]);
     }, Math.max(0, (monsterPlan.current?.deadline || Date.now()) - Date.now()));
     return () => clearTimeout(timer);
-  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, monsterEffects, activeDungeonRun, autoBattle.enabled]);
+  }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, monsterEffects, activeDungeonRun, autoBattle.enabled,saveStatus]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   useEffect(() => {
@@ -3266,7 +3261,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Auto-battle loop (operates only on player's turn)
   useEffect(() => {
-    if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player || player.flightPenalty?.warningPending) return;
+    if (!canChangeProgress() || !autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player || player.flightPenalty?.warningPending) return;
 
     const timer = setTimeout(() => {
       const decision = chooseAutoBattleAction({player:{...player,inventory:player.inventory.filter(item => item.type !== 'potion' || !potionUsedThisTurn(item, usedPotionsRef.current))},monster:activeMonster,stats:combatStats,hp:combatPlayerHp,mp:combatPlayerMp,
@@ -3328,13 +3323,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    if (player?.firstJourney !== 'battle') return;
+    if (!canChangeProgress() || player?.firstJourney !== 'battle') return;
     if (isCombatEnded) {
       setPlayer(prev => prev?.firstJourney === 'battle' ? {...prev,firstJourney:'briefing',royalBriefingStep:0} : prev);
     } else if (!isInCombat) {
       startBattleWithMonster(getRegionMonster(MONSTERS.m_wolf, REGIONS[0]), {chain:false,energyCost:0,huntingModeId:'mod_standard'});
     }
-  }, [player?.firstJourney, isInCombat, isCombatEnded, startBattleWithMonster]);
+  }, [player?.firstJourney, isInCombat, isCombatEnded, startBattleWithMonster,saveStatus]);
 
   // Exploration & Regions
   const setCurrentRegion = useCallback((regionId: string) => {
@@ -4151,6 +4146,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     triggerHaptic('success');
   }, []);
 
+  const booleanActions=new Set(['setActivePet','startBattleWithMonster','startNextCombatBattle','proceedDungeonRoom','craftAlchemy','buyBasicConsumable','challengeArena','finishAdventureStory']);
+  const receiptActions=new Set(['craftPet','expandInventory','upgradeItem','startTravel','buyPickaxe','buyAlchemyTool','startMiningExpedition','claimMiningExpedition','leaveMiningExpedition','craftBasicItem','challengeAscension','ascend','fishingAction','mineNode']);
+  const asyncActions=new Set(['equipItem','unequipItem','sellToResidents','bulkDisposeItems','listMarketItem','buyMarketListing','returnMarketListing','purchasePremium']);
+  const actionWrappers=useRef(new WeakMap<Function,Function>());
+  const safeAction=<T extends (...args:any[])=>any>(name:string,action:T):T=>{
+    const cached=actionWrappers.current.get(action);if(cached)return cached as T;
+    const wrapper=((...args:any[])=>{
+    if(!canChangeProgress()){
+      const denied={success:false,message:'Дождитесь серверного подтверждения прогресса.',yieldCount:0,isCrit:false,oreName:''};
+      if(asyncActions.has(name))return Promise.resolve(denied);
+      if(receiptActions.has(name))return denied;
+      if(booleanActions.has(name))return false;
+      return undefined;
+    }
+    return action(...args);
+    }) as T;
+    actionWrappers.current.set(action,wrapper);return wrapper;
+  };
   return (
     <GameContext.Provider value={{
       commitSwitchSnapshot, flushProgress, getInterfaceSwitchBlockReason,
@@ -4160,7 +4173,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       battleLog,
       combatRound,
       usedPotionKinds,
-      dismissFlightWarning,
+      dismissFlightWarning: safeAction('dismissFlightWarning',dismissFlightWarning),
       lastCombatReward,
       isInCombat,
       isCombatEnded,
@@ -4184,72 +4197,72 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       offlineReport,
       travelState,
       premium,
-      createCharacter,
-      acknowledgeFirstJourney,
-      advanceRoyalBriefing,
-      setAdventureStoryStep,
-      finishAdventureStory,
-      dismissAdventureStory,
-      resetCharacter,
-      allocateAttribute,
-      unlockTalent,
-      resetTalentTree,
-      equipItem,
-      unequipItem,
-      sellItem,
-      sellToResidents,
-      disassembleItem,
-      bulkDisposeItems,
-      toggleItemLock,
+      createCharacter: safeAction('createCharacter',createCharacter),
+      acknowledgeFirstJourney: safeAction('acknowledgeFirstJourney',acknowledgeFirstJourney),
+      advanceRoyalBriefing: safeAction('advanceRoyalBriefing',advanceRoyalBriefing),
+      setAdventureStoryStep: safeAction('setAdventureStoryStep',setAdventureStoryStep),
+      finishAdventureStory: safeAction('finishAdventureStory',finishAdventureStory),
+      dismissAdventureStory: safeAction('dismissAdventureStory',dismissAdventureStory),
+      resetCharacter: safeAction('resetCharacter',resetCharacter),
+      allocateAttribute: safeAction('allocateAttribute',allocateAttribute),
+      unlockTalent: safeAction('unlockTalent',unlockTalent),
+      resetTalentTree: safeAction('resetTalentTree',resetTalentTree),
+      equipItem: safeAction('equipItem',equipItem),
+      unequipItem: safeAction('unequipItem',unequipItem),
+      sellItem: safeAction('sellItem',sellItem),
+      sellToResidents: safeAction('sellToResidents',sellToResidents),
+      disassembleItem: safeAction('disassembleItem',disassembleItem),
+      bulkDisposeItems: safeAction('bulkDisposeItems',bulkDisposeItems),
+      toggleItemLock: safeAction('toggleItemLock',toggleItemLock),
       refreshServerInventory,
-      expandInventory,
-      upgradeItem,
-      meditateOrRefillEnergy,
-      claimRegionCompletion,
-      setActiveRegionMod,
-      setActivePet,
-      craftPet,
-      startBattleWithMonster,
-      startNextCombatBattle,
-      performPlayerAction,
+      expandInventory: safeAction('expandInventory',expandInventory),
+      upgradeItem: safeAction('upgradeItem',upgradeItem),
+      meditateOrRefillEnergy: safeAction('meditateOrRefillEnergy',meditateOrRefillEnergy),
+      claimRegionCompletion: safeAction('claimRegionCompletion',claimRegionCompletion),
+      setActiveRegionMod: safeAction('setActiveRegionMod',setActiveRegionMod),
+      setActivePet: safeAction('setActivePet',setActivePet),
+      craftPet: safeAction('craftPet',craftPet),
+      startBattleWithMonster: safeAction('startBattleWithMonster',startBattleWithMonster),
+      startNextCombatBattle: safeAction('startNextCombatBattle',startNextCombatBattle),
+      performPlayerAction: safeAction('performPlayerAction',performPlayerAction),
       toggleAutoBattle,
       updateAutoBattleSettings,
-      exitCombat,
-      setCurrentRegion,
-      startTravel,
-      enterDungeon,
-      proceedDungeonRoom,
-      exitDungeon,
-      buyPickaxe,
-      buyAlchemyTool,
-      mineNode,
-      startMiningExpedition,
-      claimMiningExpedition,
-      leaveMiningExpedition,
-      craftAlchemy,
-      fishingAction,
-      createClan,
-      listMarketItem,
+      exitCombat: safeAction('exitCombat',exitCombat),
+      setCurrentRegion: safeAction('setCurrentRegion',setCurrentRegion),
+      startTravel: safeAction('startTravel',startTravel),
+      enterDungeon: safeAction('enterDungeon',enterDungeon),
+      proceedDungeonRoom: safeAction('proceedDungeonRoom',proceedDungeonRoom),
+      exitDungeon: safeAction('exitDungeon',exitDungeon),
+      buyPickaxe: safeAction('buyPickaxe',buyPickaxe),
+      buyAlchemyTool: safeAction('buyAlchemyTool',buyAlchemyTool),
+      mineNode: safeAction('mineNode',mineNode),
+      startMiningExpedition: safeAction('startMiningExpedition',startMiningExpedition),
+      claimMiningExpedition: safeAction('claimMiningExpedition',claimMiningExpedition),
+      leaveMiningExpedition: safeAction('leaveMiningExpedition',leaveMiningExpedition),
+      craftAlchemy: safeAction('craftAlchemy',craftAlchemy),
+      fishingAction: safeAction('fishingAction',fishingAction),
+      createClan: safeAction('createClan',createClan),
+      listMarketItem: safeAction('listMarketItem',listMarketItem),
       refreshMarketIncome,
-      buyMarketListing,
-      returnMarketListing,
-      buyBasicConsumable,
-      craftBasicItem,
+      buyMarketListing: safeAction('buyMarketListing',buyMarketListing),
+      returnMarketListing: safeAction('returnMarketListing',returnMarketListing),
+      buyBasicConsumable: safeAction('buyBasicConsumable',buyBasicConsumable),
+      craftBasicItem: safeAction('craftBasicItem',craftBasicItem),
       refreshPremiumStatus,
       preparePremiumInvoice,
-      purchasePremium,
-      challengeAscension,
-      ascend,
-      challengeArena,
-      claimQuestReward,
-      claimAchievementReward,
+      purchasePremium: safeAction('purchasePremium',purchasePremium),
+      challengeAscension: safeAction('challengeAscension',challengeAscension),
+      ascend: safeAction('ascend',ascend),
+      challengeArena: safeAction('challengeArena',challengeArena),
+      claimQuestReward: safeAction('claimQuestReward',claimQuestReward),
+      claimAchievementReward: safeAction('claimAchievementReward',claimAchievementReward),
       sendChatMessage,
       dismissOfflineReport,
-      adminAddGold,
-      adminAddSilver,
-      adminLevelUp,
-      adminSpawnLegendaryItem,
-      adminHealAll
+      adminAddGold: safeAction('adminAddGold',adminAddGold),
+      adminAddSilver: safeAction('adminAddSilver',adminAddSilver),
+      adminLevelUp: safeAction('adminLevelUp',adminLevelUp),
+      adminSpawnLegendaryItem: safeAction('adminSpawnLegendaryItem',adminSpawnLegendaryItem),
+      adminHealAll: safeAction('adminHealAll',adminHealAll)
     }}>
       {children}
     </GameContext.Provider>

@@ -1,3 +1,10 @@
+import {MAX_TRADE_QUANTITY} from '../src/utils/stackRules';
+import {unavailableClanDonation} from './clanDonation';
+import {validateTelegramInitData} from './telegramAuth';
+import { progressAwarePool,guardProgressTransaction,isProgressApiMutation } from './progressTransactions';
+import {ProgressError} from './progressValidation';
+import {ProgressStore} from './progressStore';
+import { registerProgress } from './progressRoutes';
 import {authenticatePlayer, heartbeatPlayer, communityStatsCache} from './playerSession';
 import { sellToResidents } from './localMarket';
 import { recordTelegramWriteAccess } from './telegramWriteAccess';
@@ -28,11 +35,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT || 10000);
 const isProduction = process.env.NODE_ENV === 'production';
+const devAuthEnabled = !isProduction && process.env.ALLOW_DEV_AUTH === 'true';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required for production.');
 }
-if (isProduction && !process.env.TELEGRAM_BOT_TOKEN) {
+if (!devAuthEnabled && !process.env.TELEGRAM_BOT_TOKEN) {
   throw new Error('TELEGRAM_BOT_TOKEN is required in production.');
 }
 
@@ -59,13 +67,13 @@ const telegramBotApi = async <T = unknown>(method: string, payload: Record<strin
   return data.result as T;
 };
 
-const createDatabasePool = (useSsl: boolean) => new Pool({
+const createDatabasePool = (useSsl: boolean) => progressAwarePool(new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: Number(process.env.DB_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-});
+}));
 
 let databaseUsesSsl = process.env.DATABASE_SSL === 'true';
 let pool = createDatabasePool(databaseUsesSsl);
@@ -103,7 +111,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(compression());
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json({ limit: '1100kb' }));
 app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
 
 type AuthUser = { id: number; username?: string; displayName: string; allowsWriteToPm?: boolean };
@@ -113,54 +121,15 @@ declare global {
   }
 }
 
-const validateTelegramInitData = (initData: string): AuthUser => {
-  if (!initData) throw new Error('Telegram initData is required.');
-
-  const params = new URLSearchParams(initData);
-  const hash = params.get('hash');
-  const authDate = Number(params.get('auth_date') || 0);
-  if (!hash || !authDate) throw new Error('Invalid Telegram initData.');
-  if (Math.abs(Date.now() / 1000 - authDate) > 7 * 86400) throw new Error('Telegram session expired. Reopen the Mini App from the bot.');
-
-  const dataCheckString = [...params.entries()]
-    .filter(([key]) => key !== 'hash')
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => key + '=' + value)
-    .join('\n');
-
-  const secretKey = crypto.createHmac('sha256', 'WebAppData')
-    .update(process.env.TELEGRAM_BOT_TOKEN!)
-    .digest();
-  const calculated = crypto.createHmac('sha256', secretKey)
-    .update(dataCheckString)
-    .digest('hex');
-
-  const a = Buffer.from(calculated, 'hex');
-  const b = Buffer.from(hash, 'hex');
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    throw new Error('Telegram signature verification failed.');
-  }
-
-  const userRaw = params.get('user');
-  if (!userRaw) throw new Error('Telegram user is missing.');
-  const user = JSON.parse(userRaw);
-
-  return {
-    id: Number(user.id),
-    username: user.username,
-    allowsWriteToPm: user.allows_write_to_pm === true,
-    displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок',
-  };
-};
 
 const auth = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const initData = String(req.headers['x-telegram-init-data'] || '');
-    if (!initData && !isProduction) {
+    if (!initData && devAuthEnabled) {
       const id = Number(process.env.DEV_TELEGRAM_ID || 749219401);
       req.authUser = { id, displayName: 'Dev Player', username: 'dev_player' };
     } else {
-      req.authUser = validateTelegramInitData(initData);
+      req.authUser = validateTelegramInitData(initData,telegramBotToken);
     }
 
     const resetVersion = await authenticatePlayer(pool,req.authUser);
@@ -168,8 +137,10 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
       res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion, error: 'Прогресс сброшен администратором. Создайте нового персонажа.' });
       return;
     }
+    if (isProgressApiMutation(req.path,req.method)) {await guardProgressTransaction(pool,req,res,next);return;}
     next();
   } catch (error) {
+    if(error instanceof ProgressError){const latest=await new ProgressStore(pool).load(req.authUser!.id,String(req.get('X-Game-Session')||''));res.status(error.status).json({code:error.code,error:error.message,latest,resetVersion:latest.resetVersion});return;}
     console.error('Telegram auth failed:', error);
     res.status(401).json({ error: error instanceof Error ? error.message : 'Unauthorized' });
   }
@@ -190,6 +161,7 @@ const requireClan = async (req: express.Request, res: express.Response, next: ex
   next();
 };
 
+registerProgress(app, () => pool, auth);
 registerSocialFeatures(app, () => pool, auth, telegramBotApi, publicBaseUrl);
 
 app.get('/api/health', async (_req, res) => {
@@ -240,22 +212,8 @@ app.get('/api/admin/status', auth, async (req, res) => {
   });
 });
 
-app.post('/api/profile/sync', auth, async (req, res) => {
-  const rawLevel = Number(req.body?.level || 1);
-  const level = Number.isFinite(rawLevel) ? Math.max(1, Math.min(120, Math.floor(rawLevel))) : 1;
-  const arenaRating = Math.max(0, Math.min(2147483647, Math.floor(Number(req.body?.arenaRating ?? 1000))));
-  const characterName = typeof req.body?.characterName === 'string' ? req.body.characterName.trim() || null : null;
-  const updated = await pool.query(
-    'UPDATE players SET level = $1, arena_rating = $2, character_name = COALESCE($3, character_name), updated_at = NOW() WHERE telegram_id = $4 AND reset_version=$5',
-    [level, arenaRating, characterName, req.authUser!.id, Number(req.get('X-Game-Reset-Version') || 0)]
-  );
-  if (!updated.rowCount) {
-    const current = (await pool.query('SELECT reset_version FROM players WHERE telegram_id=$1', [req.authUser!.id])).rows[0];
-    res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion: Number(current.reset_version), error: 'Прогресс сброшен администратором.' }); return;
-  }
-  if (Object.hasOwn(CLASS_EQUIPMENT, String(req.body?.classId))) await pool.query('UPDATE players SET class_id = $1 WHERE telegram_id = $2 AND reset_version=$3', [req.body.classId,req.authUser!.id,Number(req.get('X-Game-Reset-Version') || 0)]);
-  res.json({ ok: true });
-});
+// Profile columns are projections of the versioned character, never a second save API.
+app.post('/api/profile/sync', auth, async (_req, res) => res.json({ok:true}));
 
 const getCommunityStats=communityStatsCache(()=>pool);
 app.post('/api/profile/heartbeat',auth,async(req,res)=>{
@@ -358,11 +316,7 @@ app.post('/api/clan/leave', auth, requireClan, async (req, res) => {
   catch(error){res.status(400).json({error:error instanceof Error?error.message:'Ошибка выхода из клана.'});}
 });
 
-app.post('/api/clan/donate', auth, requireClan, async (req, res) => {
-  const amount = Math.floor(Number(req.body?.amount));
-  if (!Number.isInteger(amount) || amount < 100 || amount > 100000) return res.status(400).json({ error: 'Сумма должна быть от 100 до 100000.' });
-  res.status(501).json({ error: 'Казна будет подключена к серверному кошельку персонажа на следующем этапе.' });
-});
+app.post('/api/clan/donate', auth, unavailableClanDonation);
 
 app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
   let damage = 450 + crypto.randomInt(0, 251);
@@ -534,7 +488,7 @@ app.get('/api/clan/storage', auth, requireClan, async (req, res) => {
 app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res) => {
   const clanId = res.locals.clan.id;
   const quantity = Number(req.body?.quantity || 1);
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) return res.status(400).json({ error: 'Неверное количество.' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -560,7 +514,7 @@ app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res
 app.post('/api/clan/storage/:itemId/withdraw', auth, requireClan, async (req, res) => {
   const clanId = res.locals.clan.id;
   const quantity = Number(req.body?.quantity || 1);
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) return res.status(400).json({ error: 'Неверное количество.' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

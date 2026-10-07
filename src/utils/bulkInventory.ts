@@ -1,3 +1,4 @@
+import {addStackCounts,MAX_STACK_COUNT} from './stackRules';
 import type { GameItem, ItemRarity, ItemType, PlayerCharacter } from '../types/game';
 
 export const BULK_EQUIPMENT_TYPES: ItemType[] = ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'];
@@ -24,7 +25,7 @@ export function selectBulkItems(player: PlayerCharacter, filters: BulkFilters): 
 }
 export function bulkReward(items: GameItem[], action: BulkAction): BulkReward {
   return items.reduce((sum, item) => {
-    const quantity = nonNegativeAmount(item.stackCount ?? 1, 999);
+    const quantity = nonNegativeAmount(item.stackCount ?? 1, MAX_STACK_COUNT);
     return {
       count: sum.count + quantity,
       gold: sum.gold + (action === 'sell' ? nonNegativeAmount(item.sellPrice) * quantity : 0),
@@ -43,7 +44,7 @@ export function applyBulkDisposal(player: PlayerCharacter, operation: PendingBul
   const ore = localReward.ore + receipt.ore;
   if (ore > 0) {
     const existing = inventory.find(item => item.type === 'ore' && item.templateId === 'iron_ore' && item.name === 'Железная руда' && !item.serverOwned);
-    if (existing) existing.stackCount = (existing.stackCount || 1) + ore;
+    if (existing) existing.stackCount = addStackCounts(existing.stackCount || 1,ore);
     else inventory.push({ id: 'bulk_ore_' + operation.operationId, templateId:'iron_ore',name:'Железная руда',type:'ore',rarity:'common',level:1,upgradeLevel:0,icon:'⚪',stats:{},sellPrice:12,disassembleYield:{ore:1},stackCount:ore,description:'Руда, полученная разбором снаряжения.' });
   }
   return { ...player, inventory, gold: player.gold + localReward.gold + receipt.gold, silver: player.silver + localReward.silver + receipt.silver, lastBulkDisposalId: operation.operationId };

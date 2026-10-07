@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -14,7 +15,7 @@ test('crit, powerful hit, guarded powerful hit and periodic damage have distinct
 });
 
 test('all impacts in a turn render even after system logs; independent expiry without another action',async()=>{
- const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {CombatDamageFeedback} from './src/components/combat/CombatDamageFeedback';window.act=act;window.root=createRoot(document.getElementById('root'));window.render=(battleLog)=>window.root.render(<React.StrictMode><CombatDamageFeedback battleLog={battleLog}/></React.StrictMode>);`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife',platform:'browser',define:{'process.env.NODE_ENV':'"development"'}});
+ const bundle=await build({plugins:[localProgressPlugin],stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {CombatDamageFeedback} from './src/components/combat/CombatDamageFeedback';window.act=act;window.root=createRoot(document.getElementById('root'));window.render=(battleLog)=>window.root.render(<React.StrictMode><CombatDamageFeedback battleLog={battleLog}/></React.StrictMode>);`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife',platform:'browser',define:{'process.env.NODE_ENV':'"development"'}});
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.IS_REACT_ACT_ENVIRONMENT=true;w.eval(bundle.outputFiles[0].text);
  const entries:any[]=[{id:'bleed',impact:{target:'monster',amount:12,periodic:'bleed'}},{id:'poison',impact:{target:'monster',amount:23,periodic:'poison'}},{id:'hit',impact:{target:'player',amount:41,empowered:true,blocked:80}},{id:'system',text:'system'}];
  try {

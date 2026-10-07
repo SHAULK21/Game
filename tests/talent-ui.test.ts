@@ -1,3 +1,4 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -16,7 +17,7 @@ test('real UI learns, resets and migrates; combat skills apply extra strikes and
       window.act=act;`, resolveDir: process.cwd(), loader: 'tsx' },
     bundle: true, write: false, platform: 'browser', format: 'iife',
     define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' },
-    plugins: [{ name: 'stub-artwork', setup(b) { b.onLoad({filter:/\.(jpg|webp)$/}, () => ({contents:'export default "artwork";',loader:'js'})); } }],
+    plugins: [localProgressPlugin,{ name: 'stub-artwork', setup(b) { b.onLoad({filter:/\.(jpg|webp)$/}, () => ({contents:'export default "artwork";',loader:'js'})); } }],
   });
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;

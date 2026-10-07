@@ -1,7 +1,8 @@
+import {localProgressPlugin} from './helpers/localProgressPlugin';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-const bundle = await build({ stdin: { contents: `export {skillDetails} from './src/utils/skillDetails';export {CLASSES} from './src/data/gameData';export {CLASS_SKILLS,HIDDEN_SKILLS} from './src/data/classEvolution';export {ascensionSkills,initialAscension} from './src/data/ascension';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art"',loader:'js'}));}}]});
+const bundle = await build({ stdin: { contents: `export {skillDetails} from './src/utils/skillDetails';export {CLASSES} from './src/data/gameData';export {CLASS_SKILLS,HIDDEN_SKILLS} from './src/data/classEvolution';export {ascensionSkills,initialAscension} from './src/data/ascension';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',plugins:[localProgressPlugin,{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art"',loader:'js'}));}}]});
 const { skillDetails, CLASSES, CLASS_SKILLS, HIDDEN_SKILLS, ascensionSkills, initialAscension }: typeof import('../src/utils/skillDetails') & typeof import('../src/data/gameData') & typeof import('../src/data/classEvolution') & typeof import('../src/data/ascension') = await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 
 const find = (id: string) => [...Object.values(CLASSES).flatMap(c=>c.startingSkills), ...Object.values(CLASS_SKILLS).flat()].find(s=>s.id===id)!;
