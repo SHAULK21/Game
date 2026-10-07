@@ -1,3 +1,4 @@
+import {beginGameOperation,isGameMutation} from './gameOperations';
 import { getLanguage } from '../i18n/locale';
 import { getTelegramWebApp, getTelegramUser } from './telegram';
 import { readResetVersion } from './accountReset';
@@ -11,6 +12,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   headers.set('X-Game-Reset-Version', String(readResetVersion(getTelegramUser().id)));
   if (tg?.initData) headers.set('X-Telegram-Init-Data', tg.initData);
 
+  const finish = isGameMutation(path,options.method) ? beginGameOperation() : () => {};
+  try {
   let response: Response;
   try {
     response = await fetch(path, { ...options, headers });
@@ -38,4 +41,5 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     throw new Error(`${message} (HTTP ${response.status})`);
   }
   return data as T;
+  } finally { finish(); }
 }

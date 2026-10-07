@@ -1,0 +1,10 @@
+/* One viewport contract for Safari, Telegram WebView and all three layouts. */
+html[data-interface="fantasy"] .fantasy-shell-header,html[data-interface="fantasy"] .fantasy-shell-header.is-compact { padding-top:calc(12px + var(--app-safe-top)); }
+
+/* Existing full-screen sheets share visible geometry, including search keyboards. */
+/* Registration is the scrolling screen itself; do not nest two scrollers. */
+
+/* Book geometry follows the actual header rather than a hard-coded 70px. */
+
+/* Beta uses the shared searchable picker too; it needs a real scrollable sheet. */
+/* WebKit can shrink an aspect-ratio button with only absolute children to 0×0. */

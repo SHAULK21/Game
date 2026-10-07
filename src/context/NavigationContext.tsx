@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
+import {getTelegramUser} from '../utils/telegram';
+import {readResetVersion} from '../utils/accountReset';
+import React, { createContext, useContext, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from './GameContext';
 import type { GameTabId } from '../types/navigation';
 
@@ -13,8 +15,13 @@ interface NavigationState {
 const NavigationContext = createContext<NavigationState | null>(null);
 
 export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [currentTab, updateTab] = useState<GameTabId>('hunter');
-  const [isCharacterSheetOpen, updateSheet] = useState(false);
+  const userId = getTelegramUser().id;
+  const navigationKey = 'aethelgard_navigation_' + userId + '_' + readResetVersion(userId);
+  const [saved] = useState(() => { try { return JSON.parse(sessionStorage.getItem(navigationKey) || 'null'); } catch { return null; } });
+  const tabs = ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more'];
+  const [currentTab, updateTab] = useState<GameTabId>(tabs.includes(saved?.tab) ? saved.tab : 'hunter');
+  const [isCharacterSheetOpen, updateSheet] = useState(saved?.sheet === true);
+  useLayoutEffect(() => { try { sessionStorage.setItem(navigationKey,JSON.stringify({tab:currentTab,sheet:isCharacterSheetOpen})); } catch {} }, [navigationKey,currentTab,isCharacterSheetOpen]);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const tabRef = useRef(currentTab), sheetRef = useRef(isCharacterSheetOpen);
   const setCurrentTab = useCallback<NavigationState['setCurrentTab']>(action => {

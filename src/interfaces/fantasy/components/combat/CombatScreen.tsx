@@ -1,22 +1,23 @@
 import { FlightPenaltyNotice } from '../../../../components/combat/FlightPenaltyNotice';
 import { useInterface } from '../../../../context/InterfaceContext';
-import { BetaHuntDashboard } from './BetaHuntDashboard';
 import { potionActionLabel, potionUsedThisTurn } from '../../../../utils/combatPotions';
 import { useMonsterStrike } from '../../../../hooks/useMonsterStrike';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { MONSTERS, REGIONS, CAVES, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
 import { getBattleScene } from '../../../../components/combat/BattleBackdrop';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
-import { HuntDashboard } from './HuntDashboard';
 import { CombatArena } from './CombatArena';
 import { CombatSkillList } from './CombatSkillList';
 import { RpgButton } from '../ui/BestiaryUI';
+
+const HuntDashboard = lazy(() => import('./HuntDashboard').then(module => ({default:module.HuntDashboard})));
+const BetaHuntDashboard = lazy(() => import('./BetaHuntDashboard').then(module => ({default:module.BetaHuntDashboard})));
 
 export const getPredictedMonsterSkill = predictedMonsterSkill;
 
@@ -160,7 +161,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       <>
         {localize(premiumModal)}
         <FlightPenaltyNotice />
-        <Dashboard
+        <Suspense fallback={<div role="status">{localize("Загрузка раздела…")}</div>}><Dashboard
           player={player}
           currentRegion={currentRegion}
           regionMonsters={regionMonsters}
@@ -185,7 +186,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
             const result = leaveMiningExpedition();
             setEnergyError(result.message);
           }}
-        />
+        /></Suspense>
       </>
     );
   }

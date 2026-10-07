@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import {lazy,Suspense} from 'react';
+import {useInterface} from '../../../../context/InterfaceContext';
+import type {RpgIconKind} from './RpgIcon';
 import { RpgIcon } from './RpgIcon';
 
 // Original raster fragments displayed through SVG viewports, without redrawing.
@@ -13,9 +15,13 @@ export const HERO_REFERENCE_REGIONS = {
   plus:'620 512 39 39', tabActive:'332 409 180 51', tab:'510 409 174 51'
 } as const;
 export type HeroReferenceRegion = keyof typeof HERO_REFERENCE_REGIONS;
-export function HeroReferenceArt({ region, className='', stretch=false }: { region:HeroReferenceRegion; className?:string; stretch?:boolean }) {
-  const [failed,setFailed]=useState(false);
-  return <span className={`hero-reference-art ${className}`} aria-hidden="true" data-reference-region={region}>
-    {failed ? <RpgIcon kind="character" size={24}/> : <svg viewBox={HERO_REFERENCE_REGIONS[region]} preserveAspectRatio={stretch?'none':'xMidYMid meet'} width="100%" height="100%"><image href="/assets/sprites/reference/hero-codex.jpg" width="1280" height="1152" onError={()=>setFailed(true)}/></svg>}
-  </span>;
+const ClassicHeroReferenceArt = lazy(() => import('./ClassicHeroReferenceArt'));
+export function HeroReferenceArt(props:{region:HeroReferenceRegion;className?:string;stretch?:boolean}) {
+  const {style} = useInterface();
+  if (style !== 'fantasy-beta') return <Suspense fallback={null}><ClassicHeroReferenceArt {...props}/></Suspense>;
+  const {region,className=''} = props;
+  if (['frame','title','paper','castle','tab','tabActive'].includes(region)) return null;
+  if (region === 'necromancer') return <span className={`hero-reference-art ${className}`} aria-hidden="true"><img src="/assets/sprites/generated/heroes/necromancer.webp" alt=""/></span>;
+  const icons:Partial<Record<HeroReferenceRegion,RpgIconKind>> = {strength:'attack',agility:'hunt',intelligence:'skill',vitality:'hp',luck:'crown',spirit:'skill',willpower:'defend',hp:'hp',mana:'skill',attack:'attack',magic:'skill',defense:'defend',magicDefense:'defend',critical:'attack',accuracy:'hunt',recovery:'hp',rewards:'gold',close:'leave',plus:'refresh'};
+  return <span className={`hero-reference-art ${className}`} aria-hidden="true"><RpgIcon kind={icons[region]||'character'} size={24}/></span>;
 }

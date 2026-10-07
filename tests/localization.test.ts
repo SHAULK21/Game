@@ -1,3 +1,4 @@
+const stablePlayerState = (player:any) => JSON.stringify({...player,lastActiveTimestamp:0});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -26,7 +27,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
 }
 
 async function app(language = 'uk-UA', stored?: string) {
-  const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';import {readLanguage,setLanguage,getLanguage} from './src/i18n/locale';import {localizeDuelLog} from './src/i18n/duelLog';window.act=act;window.readLanguage=readLanguage;window.setLanguage=setLanguage;window.getLanguage=getLanguage;window.duelLog=localizeDuelLog;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
+  const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';import {readLanguage,setLanguage,getLanguage} from './src/i18n/locale';import {localizeDuelLog} from './src/i18n/duelLog';window.act=act;window.readLanguage=readLanguage;window.setLanguage=setLanguage;window.getLanguage=getLanguage;window.duelLog=localizeDuelLog;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'reload', setup(b) { b.onLoad({filter:/InterfaceContext\.tsx$/},async args=>({contents:(await (await import('node:fs/promises')).readFile(args.path,'utf8')).replace('reload = () => window.location.reload()', 'reload = () => { (window as any).reloadRequested = true; }'),loader:'tsx'})); } }, { name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
   const dom = new JSDOM('<html><body><div id="root"></div></body></html>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;
   Object.defineProperty(w.navigator, 'language', { value: language, configurable: true });
@@ -39,7 +40,7 @@ async function app(language = 'uk-UA', stored?: string) {
     return { ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], ok: true, totalGold: 0, isAdmin: false }) };
   };
   w.eval(bundle.outputFiles[0].text);
-  const settle = () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
+  const settle = () => w.act(async () => { if(w.reloadRequested){w.reloadRequested=false;w.root.unmount();w.mount();} await new Promise(resolve => setTimeout(resolve, 50)); });
   return { dom, w, requests, settle };
 }
 
@@ -73,14 +74,14 @@ test('language selection is visible only at registration; its saved locale survi
     assert.match(w.document.body.textContent,/Перший бій позаду/);
     await completeFirstDeparture(w,'Підвищити: Сила');await settle();
     assert.equal(save().player.name, 'Золото');
-    const original = JSON.stringify(save().player);
+    const original = stablePlayerState(save().player);
     assert.equal(button(w, 'Русский'), undefined); assert.equal(button(w, 'Українська'), undefined);
     assert.match(w.document.body.textContent, /Бестіарій/);
     await click('Сумка');
     const active = () => w.document.querySelector('nav button[aria-current="page"]')?.textContent.trim();
-    await w.act(async () => w.setLanguage('ru')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
+    await w.act(async () => w.setLanguage('ru')); assert.equal(active(), 'Сумка'); assert.equal(stablePlayerState(save().player), original);
     await click('Современный'); assert.equal(active(), 'Сумка');
-    await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(JSON.stringify(save().player), original);
+    await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(stablePlayerState(save().player), original);
     await click('Фентезі'); await click('Ще'); await click('Герой'); await click('Сучасний');
     assert.match(w.document.querySelector('main').textContent, /Золото/);
     assert.equal(w.document.querySelector('main [data-player-name]')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
@@ -88,9 +89,9 @@ test('language selection is visible only at registration; its saved locale survi
     const hunt = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.includes('Почати полювання')) as any;
     assert(hunt); await w.act(async () => hunt.click()); await settle();
     assert(button(w, 'Атака')); assert(button(w, 'Захист (+25 MP)'));
-    const inBattle = JSON.stringify(save().player);
-    await w.act(async () => w.setLanguage('ru')); assert(button(w, 'Защита (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
-    await click('Фэнтези'); await w.act(async () => w.setLanguage('uk')); assert(button(w, 'Захист (+25 MP)')); assert.equal(JSON.stringify(save().player), inBattle);
+    const inBattle = stablePlayerState(save().player);
+    await w.act(async () => w.setLanguage('ru')); assert(button(w, 'Защита (+25 MP)')); assert.equal(stablePlayerState(save().player), inBattle);
+    await click('Фэнтези'); await w.act(async () => w.setLanguage('uk')); assert(button(w, 'Захист (+25 MP)')); assert.equal(stablePlayerState(save().player), inBattle);
     assert.match(w.document.body.textContent, /У бій вступає/);
     assert.equal(w.localStorage.getItem('aethelgard_language'), 'uk');
     assert.equal(w.document.documentElement.lang, 'uk');
@@ -170,7 +171,7 @@ test('language preference validates locale, scopes the update to the authenticat
 });
 
 test('market search accepts Ukrainian names after a live language switch and keeps canonical item IDs and names', async () => {
-  const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {MarketScreen as ModernMarket} from './src/components/market/MarketScreen';import {MarketScreen as FantasyMarket} from './src/interfaces/fantasy/components/market/MarketScreen';import {LanguageSwitcher} from './src/components/ui/LanguageSwitcher';window.act=act;window.mount=(fantasy)=>{window.root=createRoot(document.getElementById('root'));window.root.render(<><LanguageSwitcher/>{fantasy?<FantasyMarket/>:<ModernMarket/>}</>);};`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"' }, plugins: [
+  const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {MarketScreen as ModernMarket} from './src/components/market/MarketScreen';import {MarketScreen as FantasyMarket} from './src/interfaces/fantasy/components/market/MarketScreen';import {LanguageSwitcher} from './src/components/ui/LanguageSwitcher';window.act=act;window.mount=(fantasy)=>{window.root=createRoot(document.getElementById('root'));window.root.render(<><LanguageSwitcher/>{fantasy?<FantasyMarket/>:<ModernMarket/>}</>);};`, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"' }, plugins: [
     { name: 'fixture-game', setup(b) {
       b.onResolve({ filter: /\/context\/GameContext$/ }, () => ({ path: 'fixture', namespace: 'test-game' }));
       b.onLoad({ filter: /.*/, namespace: 'test-game' }, () => ({ contents: 'export const useGame=()=>window.gameData;', loader: 'js' }));

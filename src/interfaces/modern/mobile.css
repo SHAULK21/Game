@@ -1,0 +1,26 @@
+/* One viewport contract for Safari, Telegram WebView and all three layouts. */
+html[data-interface="modern"] .game-header { padding-top:calc(8px + var(--app-safe-top)); }
+html[data-interface="modern"] .modern-shell main { padding-bottom:calc(8px + var(--app-safe-bottom)); }
+
+/* Existing full-screen sheets share visible geometry, including search keyboards. */
+/* Registration is the scrolling screen itself; do not nest two scrollers. */
+
+/* Book geometry follows the actual header rather than a hard-coded 70px. */
+@media (max-width:390px) {
+  html[data-interface="modern"] .modern-resources { grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+  html[data-interface="modern"] .modern-resource { min-width:0; flex-wrap:wrap; gap:3px; padding:6px 3px; font-size:12px; overflow-wrap:anywhere; }
+  html[data-interface="modern"] .modern-resource b { min-width:0; }
+  html[data-interface="modern"] .modern-profile { gap:7px; }
+  html[data-interface="modern"] .modern-profile strong { max-width:calc(100vw - 145px); }
+  html[data-interface="modern"] .modern-exp { max-width:100%; }
+}
+@media (max-height:500px) and (orientation:landscape) {
+  html[data-interface="modern"] .modern-brand { display:none; }
+  html[data-interface="modern"] .modern-resources { margin-top:5px; }
+}
+
+/* Beta uses the shared searchable picker too; it needs a real scrollable sheet. */
+@media (hover:none) and (pointer:coarse) {
+  html[data-interface="modern"] .modern-item-details button[aria-label] { min-width:44px; min-height:44px; }
+}
+/* WebKit can shrink an aspect-ratio button with only absolute children to 0×0. */

@@ -1,3 +1,4 @@
+const stablePlayerState = (player:any) => JSON.stringify({...player,lastActiveTimestamp:0});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -6,7 +7,9 @@ import { getMonsterArtworkPath } from '../src/interfaces/fantasy/utils/monsterAr
 
 async function completeFirstDeparture(w:any, plusLabel:string) {
   w.Math.random=()=>.5; // Exercise the ordinary successful route, without an ambush.
+  let attempts=0;
   while(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.statPoints > 0) {
+    assert(attempts++<12,'attribute allocation must make progress');
     await w.act(async()=>w.document.querySelector(`[aria-label="${plusLabel}"]`).click());
   }
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
@@ -23,7 +26,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
 }
 
 async function setup(contents: string) {
-  const bundle = await build({ stdin: { contents, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
+  const bundle = await build({ stdin: { contents, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"', 'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""' }, plugins: [{ name: 'reload', setup(b) { b.onLoad({filter:/InterfaceContext\.tsx$/},async args=>({contents:(await (await import('node:fs/promises')).readFile(args.path,'utf8')).replace('reload = () => window.location.reload()', 'reload = () => { (window as any).reloadRequested = true; }'),loader:'tsx'})); } }, { name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }] });
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', runScripts: 'outside-only' });
   const w: any = dom.window;
   w.MessageChannel = class { port1 = { onmessage: null as any }; port2 = { postMessage: () => setTimeout(() => this.port1.onmessage?.(), 0) }; };
@@ -39,7 +42,7 @@ test('registration switches styles without losing input; both layouts share char
   let serverVersion = 0;
   const preferences:any[]=[];
   w.fetch = async (url: string,options:any) => {if(url==='/api/preferences/language')preferences.push(JSON.parse(options.body));return { ok: true, status: 200, text: async () => JSON.stringify(url === '/api/profile/state' ? { resetVersion: serverVersion } : { active: false, items: [], clan: null, clans: [], messages: [], players: [], listings: [], opponents: [], members: [], ok: true, totalGold: 0, isAdmin: false }) };};
-  const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 40)); });
+  const settle = async () => w.act(async () => { if(w.reloadRequested){w.reloadRequested=false;w.root.unmount();w.mount();} await new Promise(resolve => setTimeout(resolve, 40)); });
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === text) as any;
   const save = () => JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
   try {
@@ -51,7 +54,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.match(w.document.querySelector('[data-skill-details="w_strike"]').textContent, /Шанс за удар: 25%/);
     assert(w.document.querySelector('[data-skill-details="w_charge"]'), 'registration previews advanced class skills too');
     assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), 'art');
-    const input = w.document.querySelector('input[type="text"]');
+    let input = w.document.querySelector('input[type="text"]');
     await w.act(async () => {
       Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value')!.set!.call(input, 'Новый герой');
       input.dispatchEvent(new w.Event('input', { bubbles: true }));
@@ -63,7 +66,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(w.document.querySelector('input[type=text]'),input);
     assert.equal(input.value,'Новый герой');
     const fantasy = [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.startsWith('Фэнтези')) as any;
-    await w.act(async () => fantasy.click());
+    await w.act(async () => fantasy.click()); await settle(); input = w.document.querySelector('input[type="text"]');
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy'); assert.equal(input.value, 'Новый герой');
     assert.equal(w.document.querySelector('.registration-screen img').getAttribute('src'), '/assets/sprites/generated/heroes/warrior.webp');
     assert.equal(w.document.querySelectorAll('.registration-class-portrait').length,10);
@@ -88,7 +91,7 @@ test('registration switches styles without losing input; both layouts share char
     await completeFirstDeparture(w,'Повысить: Сила');await settle();
     assert.equal(save().player.name, 'Новый герой'); assert.match(w.document.body.textContent, /Бестиарий/);
     const original = save().player;
-    const stablePlayer = JSON.stringify(original);
+    const stablePlayer = stablePlayerState(original);
     assert(w.document.querySelector('.bestiary-dossier'), 'fantasy keeps the pre-PR85 dossier');
     assert.equal(w.document.querySelector('.bestiary-record-grid'), null);
     await w.act(async () => button('Фэнтези — бета').click()); await settle();
@@ -96,10 +99,10 @@ test('registration switches styles without losing input; both layouts share char
     assert.deepEqual(JSON.parse(JSON.stringify(preferences.at(-1))),{language:'ru',interfaceStyle:'fantasy-beta'},'beta and language are synced to the server');
     assert(w.document.querySelector('.bestiary-record-grid'), 'beta uses the new PR85 bestiary');
     assert.equal(w.document.querySelector('.bestiary-dossier'), null);
-    assert.equal(JSON.stringify(save().player), stablePlayer);
+    assert.equal(stablePlayerState(save().player), stablePlayer);
     await w.act(async () => w.document.querySelector('.bestiary-record:not(.is-locked)').click());
     assert(w.document.querySelector('.bestiary-dossier-screen'));
-    assert.equal(JSON.stringify(save().player), stablePlayer, 'browsing beta enemies keeps the same character');
+    assert.equal(stablePlayerState(save().player), stablePlayer, 'browsing beta enemies keeps the same character');
     await w.act(async () => w.document.querySelector('.beta-content-turn .beta-turn-leaf')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
     await w.act(async () => w.document.querySelector('.dossier-back').click());
     for (const [label,page] of [['Мир','world'],['Арена','arena'],['Сумка','inventory']]) {
@@ -189,14 +192,16 @@ test('registration switches styles without losing input; both layouts share char
     assert(hunt.compareDocumentPosition([...w.document.querySelectorAll('h2')].find((node: any) => node.textContent === 'Бестиарий')) & w.Node.DOCUMENT_POSITION_FOLLOWING);
     await w.act(async () => hunt.click()); await settle();
     assert(button('Атака')); assert.equal(save().player.energy, original.energy - 2);
-    const activeBattle = JSON.stringify(save().player);
+    const activeBattle = stablePlayerState(save().player);
     await w.act(async () => button('Фэнтези — бета').click()); await settle();
-    assert(button('Атака'), 'beta retains the active battle');
+    assert(button('Фэнтези — бета').disabled,'unfinished combat blocks a reload');
+    assert.equal(w.document.documentElement.dataset.interface,'fantasy');
+    assert(button('Атака'), 'blocked switch retains the active battle');
     assert(w.document.querySelector('.fantasy-shell-header').hidden, 'beta HUD also hides during combat');
-    assert.equal(JSON.stringify(save().player), activeBattle);
+    assert.equal(stablePlayerState(save().player), activeBattle);
     await w.act(async () => button('Фэнтези').click()); await settle();
     assert(button('Атака'), 'switching back retains the active battle');
-    assert.equal(JSON.stringify(save().player), activeBattle);
+    assert.equal(stablePlayerState(save().player), activeBattle);
     assert.equal(w.document.querySelector('.combat-player-art img').getAttribute('src'),'/assets/sprites/generated/heroes/combat/warrior.webp');
     assert(w.document.querySelector('.combat-player-breathe'),'hero has presentation-only idle motion');
     assert(w.document.querySelector('header').hidden,'large fantasy HUD is hidden during battle');
@@ -282,7 +287,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
   const { dom, w } = await setup(`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import App from './src/App';import {MONSTERS} from './src/data/gameData';window.catalog=Object.values(MONSTERS);window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<App/>);};`);
   w.localStorage.setItem('aethelgard_interface_style', 'fantasy');
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], listings: [], players: [], messages: [], clans: [], clan: null, onlinePlayers: 0, profile: { enrolled: false, stance: 'balanced', rating: 1000, tickets: 5, wins: 0, losses: 0 }, opponents: [], leaders: [], history: [], resetAt: new Date().toISOString(), ok: true, totalGold: 0, isAdmin: false }) });
-  const settle = async () => w.act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
+  const settle = async () => w.act(async () => { if(w.reloadRequested){w.reloadRequested=false;w.root.unmount();w.mount();} await new Promise(resolve => setTimeout(resolve, 50)); });
   const button = (label: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === label) as any;
   const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.game-section')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
   const aria = (label: string) => w.document.querySelector(`[aria-label="${label}"]`);

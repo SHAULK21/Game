@@ -96,7 +96,7 @@ test('all game chapters in three interfaces render enabled buttons with working 
   const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
   for(const style of ['modern','fantasy','fantasy-beta']){
-   await w.act(async()=>w.theme.setStyle(style));
+   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_interface_style',style);await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
    for(const tab of ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more']){
     await w.act(async()=>w.nav.setCurrentTab(tab));await settle();assert(w.document.querySelector('main')?.textContent.trim(),`${style}/${tab} rendered`);check();
     // Actually activate local tab controls, not just inspect their presence.

@@ -105,3 +105,9 @@ button:disabled:active { transform: none; }
 .combat-damage-pop.is-burn { color:#ffc180;border-color:#e78f3b; }
 @keyframes combat-damage-rise { 0% {opacity:0;transform:translateY(12px) scale(.9)} 12%,65% {opacity:1;transform:translateY(0) scale(1)} 100% {opacity:0;transform:translateY(-22px)} }
 @media (prefers-reduced-motion:reduce) { .combat-damage-pop { animation:none; } }
+
+/* Neutral bootstrap, shared by all interfaces; no interface artwork. */
+.interface-loading { min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; background:#101215; color:#e5e4e0; text-align:center; }
+.interface-loading button { padding:12px 20px; border:1px solid #9d8459; border-radius:8px; background:#232321; color:#e5e4e0; }
+.interface-spinner { width:24px; height:24px; border:2px solid #e5e4e040; border-top-color:#c3a775; border-radius:50%; animation:interface-spin 1s linear infinite; }
+@keyframes interface-spin { to { transform:rotate(360deg); } }

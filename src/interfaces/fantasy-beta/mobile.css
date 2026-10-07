@@ -1,0 +1,44 @@
+/* One viewport contract for Safari, Telegram WebView and all three layouts. */
+html[data-interface="fantasy-beta"] .fantasy-shell-header { padding-top:calc(6px + var(--app-safe-top)); }
+
+/* Existing full-screen sheets share visible geometry, including search keyboards. */
+/* Registration is the scrolling screen itself; do not nest two scrollers. */
+
+/* Book geometry follows the actual header rather than a hard-coded 70px. */
+html[data-interface="fantasy-beta"] { --beta-book-top:calc(70px + var(--app-safe-top)); --beta-book-bottom:calc(var(--shell-nav-height) + var(--app-safe-bottom)); }
+html[data-interface="fantasy-beta"] :is(.beta-page-turn,.beta-book-page::before) { top:var(--beta-book-top); bottom:var(--beta-book-bottom); }
+html[data-interface="fantasy-beta"] .bestiary-dossier-screen { top:var(--beta-book-top); bottom:var(--beta-book-bottom); }
+html[data-interface="fantasy-beta"] :is(.beta-book-page,.hunt-codex) { min-height:calc(var(--app-visible-height) - var(--beta-book-top) - var(--beta-book-bottom)); }
+html[data-interface="fantasy-beta"] .hunt-book-surface {
+  top:var(--beta-book-top); height:calc(var(--app-visible-height) - var(--beta-book-top) - var(--beta-book-bottom));
+  margin-bottom:calc(var(--beta-book-top) + var(--beta-book-bottom) - var(--app-visible-height));
+}
+@media (max-width:390px) {
+  html[data-interface="fantasy-beta"] .bestiary-book-heading { grid-template-columns:minmax(0,1fr); gap:8px; }
+  html[data-interface="fantasy-beta"] .bestiary-region-card { justify-self:stretch; }
+  html[data-interface="fantasy-beta"] .bestiary-filter-tabs button { min-width:0; padding-inline:3px; gap:3px; }
+  html[data-interface="fantasy-beta"] .bestiary-filter-tabs button span { overflow-wrap:anywhere; }
+  html[data-interface="fantasy-beta"] .dossier-loot-grid { grid-template-columns:minmax(0,1fr); }
+}
+
+/* Beta uses the shared searchable picker too; it needs a real scrollable sheet. */
+html[data-interface="fantasy-beta"] .selection-trigger { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; min-height:44px; }
+html[data-interface="fantasy-beta"] .selection-trigger > span:first-child { min-width:0; flex:1; overflow-wrap:anywhere; }
+html[data-interface="fantasy-beta"] .selection-backdrop { position:fixed; left:0; right:0; z-index:130; display:flex; align-items:flex-end; justify-content:center; background:#080704d9; }
+html[data-interface="fantasy-beta"] .selection-dialog { width:min(100%,520px); display:flex; flex-direction:column; gap:10px; padding:16px; border:2px solid #997347; border-radius:4px; background:#dfcba5 url('/assets/sprites/generated/ui/parchment-grain-512-0ad6d934fd03.webp'); color:#39291b; }
+html[data-interface="fantasy-beta"] .selection-dialog header { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+html[data-interface="fantasy-beta"] .selection-dialog h2 { min-width:0; overflow-wrap:anywhere; font:700 18px Georgia,serif; }
+html[data-interface="fantasy-beta"] .selection-dialog header button { flex:none; width:44px; height:44px; border:1px solid #997347; font-size:24px; }
+html[data-interface="fantasy-beta"] .selection-dialog input { width:100%; min-height:44px; padding:10px; border:1px solid #997347; background:#f3e5c4; color:#39291b; font-size:16px; }
+html[data-interface="fantasy-beta"] .selection-options { display:grid; gap:8px; overflow-y:auto; }
+html[data-interface="fantasy-beta"] .selection-option { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:48px; padding:10px; border:1px solid #997347; background:#f1dfb955; color:#39291b; text-align:left; font-size:14px; }
+html[data-interface="fantasy-beta"] .selection-option > span:first-child { min-width:0; flex:1; overflow-wrap:anywhere; }
+html[data-interface="fantasy-beta"] .selection-option[aria-selected="true"] { border:2px solid #876126; background:#cbb07c; }
+html[data-interface="fantasy-beta"] .selection-option:disabled { opacity:.45; }
+html[data-interface="fantasy-beta"] .selection-count { font-size:12px; }
+html[data-interface="fantasy-beta"] .selection-item { display:flex; gap:8px; align-items:center; }
+html[data-interface="fantasy-beta"] .selection-item-copy { min-width:0; }
+html[data-interface="fantasy-beta"] .selection-check { flex:none; }
+html[data-interface="fantasy-beta"] .game-shell .beta-book-heading h1 { color:#38291d; }
+/* WebKit can shrink an aspect-ratio button with only absolute children to 0×0. */
+html[data-interface="fantasy-beta"] .bestiary-record { width:100%; justify-self:stretch; }

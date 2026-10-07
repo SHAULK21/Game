@@ -1,11 +1,9 @@
+import {useInterface} from '../../context/InterfaceContext';
 import { useStoryReplay } from './StoryIntro';
-import { ClassPortraitIcon } from '../../interfaces/fantasy/components/ui/ClassPortraitIcon';
-import { SkillCodexCard } from '../../interfaces/fantasy/components/ui/SkillCodexCard';
 import { t as localize, useLocale } from '../../i18n/locale';
-import { useInterface } from '../../context/InterfaceContext';
-import { getFantasyHeroArtwork } from '../../interfaces/fantasy/utils/heroArtwork';
+import {useRegistrationPresentation} from '../../context/InterfacePresentationContext';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CharacterClassId } from '../../types/game';
 import { CLASSES, ASSETS } from '../../data/gameData';
@@ -24,15 +22,28 @@ export const CharacterCreationModal: React.FC = () => {
   const { createCharacter } = useGame();
   const tgUser = getTelegramUser();
 
-  const [name, setName] = useState<string>(tgUser.first_name || 'Теневой Странник');
-  const [selectedClass, setSelectedClass] = useState<CharacterClassId>('warrior');
+  const draftKey = 'aethelgard_registration_draft_' + tgUser.id;
+  const [draft] = useState(() => { try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch { return null; } });
+  const [name, updateName] = useState<string>(typeof draft?.name === 'string' ? draft.name : tgUser.first_name || 'Теневой Странник');
+  const [selectedClass, updateClass] = useState<CharacterClassId>(Object.hasOwn(CLASSES,draft?.classId) ? draft.classId : 'warrior');
+  const setName = (value:string) => { updateName(value); try { localStorage.setItem(draftKey,JSON.stringify({name:value,classId:selectedClass})); } catch {} };
+  const setSelectedClass = (classId:CharacterClassId) => { updateClass(classId); try { localStorage.setItem(draftKey,JSON.stringify({name,classId})); } catch {} };
+
+
+  const {registerDraftSave} = useInterface();
+  useLayoutEffect(() => registerDraftSave(() => {
+    const serialized = JSON.stringify({name,classId:selectedClass});
+    localStorage.setItem(draftKey,serialized);
+    if (localStorage.getItem(draftKey) !== serialized) throw new Error('Не удалось сохранить имя и класс персонажа.');
+  }), [registerDraftSave,draftKey,name,selectedClass]);
 
   const handleStart = () => {
     if (!name.trim()) return;
     createCharacter(name, selectedClass, true);
+    localStorage.removeItem(draftKey);
   };
 
-  const { style } = useInterface();
+  const {ClassPortrait,SkillCard,heroArtwork} = useRegistrationPresentation();
   const classList = Object.values(CLASSES);
   const activeClassDef = CLASSES[selectedClass];
 
@@ -54,7 +65,7 @@ export const CharacterCreationModal: React.FC = () => {
         {/* Hero Visual Card */}
         <div className="registration-hero-art relative shrink-0 rounded-2xl overflow-hidden border border-slate-700 h-40 bg-gradient-to-t from-[#0a0f1d] to-transparent">
           <img
-            src={style !== 'modern' ? getFantasyHeroArtwork(selectedClass) : activeClassDef?.image || ASSETS.heroHunter}
+            src={heroArtwork ? heroArtwork(selectedClass) : activeClassDef?.image || ASSETS.heroHunter}
             alt={localize(activeClassDef?.name || 'Hero')}
             className="w-full h-full object-cover object-top opacity-85 transition-opacity duration-300"
             referrerPolicy="no-referrer"
@@ -101,7 +112,7 @@ export const CharacterCreationModal: React.FC = () => {
                       : 'border-slate-800 bg-[#0a0f1d] text-slate-400 hover:border-slate-700'
                   }`}
                 >
-                  {style !== 'modern' ? <ClassPortraitIcon classId={c.id} className="registration-class-portrait" /> : <ClassIcon classId={c.id} className="h-6 w-6 mb-1" />}
+                  {ClassPortrait ? <ClassPortrait classId={c.id} className="registration-class-portrait" /> : <ClassIcon classId={c.id} className="h-6 w-6 mb-1" />}
                   <span className="font-cinzel text-[11px] font-bold">{localize(c.name)}</span>
                   <span className="text-[8px] text-slate-400 truncate w-full text-center">
                     {localize(c.role.split('/')[0])}
@@ -137,7 +148,7 @@ export const CharacterCreationModal: React.FC = () => {
             <details className="registration-skills rounded-lg border border-slate-700 p-2">
               <summary className="cursor-pointer font-semibold text-slate-200">{localize('Навыки класса и условия применения')}</summary>
               <div className="mt-2 space-y-3">
-                {[...activeClassDef.startingSkills, ...CLASS_SKILLS[selectedClass]].map(skill => style !== 'modern' ? <SkillCodexCard key={skill.id} skill={skill} /> : <section key={skill.id}>
+                {[...activeClassDef.startingSkills, ...CLASS_SKILLS[selectedClass]].map(skill => SkillCard ? <SkillCard key={skill.id} skill={skill} /> : <section key={skill.id}>
                   <h3 className="flex items-center gap-2 font-semibold text-slate-200"><Swords className="h-4 w-4" aria-hidden="true" />{localize(skill.name)}</h3>
                   <SkillDetails skill={skill} />
                 </section>)}
