@@ -1,7 +1,9 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 import {getTelegramUser} from '../../utils/telegram';
-import {readAccountSave,readResetVersion,applyAccountReset} from '../../utils/accountReset';
+import {applyAccountReset,readResetVersion} from '../../utils/accountReset';
 import {acceptProgress,acquireProgress,loadProgress,migrateProgress,setProgressStatus,useProgressStatus,retryProgress,confirmedProgress,recoverProgress,progressStatus} from '../../utils/serverProgress';
+import {preserveMigrationCandidate,readMigrationCandidate,finishMigrationChoice} from '../../utils/migrationCandidate';
+import {captureProgressRequest,isProgressRequestCurrent} from '../../utils/serverProgress';
 import {apiRequest} from '../../utils/api';
 import type {ProgressEnvelope} from '../../../server/progressStore';
 import type {ProgressSave} from '../../../server/progressValidation';
@@ -16,59 +18,58 @@ export const AccountSessionGate:React.FC<React.PropsWithChildren>=({children})=>
  const [revision,setRevision]=useState(0);
  const [notice,setNotice]=useState('');
  const state=useProgressStatus();
+ const bootAttempt=useRef(0);
  const boot=async()=>{
+  const attempt=++bootAttempt.current;
+  const obsolete=()=>attempt!==bootAttempt.current||String(userId)!==String(getTelegramUser().id);
   setReady(false);setError('');
   try{
-   const raw=readAccountSave(userId);
-   const local=raw?JSON.parse(raw):null;
-   const deviceEpoch=readResetVersion(userId);
-   if(local && local.resetVersion===undefined)local.resetVersion=deviceEpoch;
-   let remote=await loadProgress();
+   let remote=await loadProgress();if(obsolete())return;
+   const known=confirmedProgress();if(remote.resetVersion<readResetVersion(userId)||known?.ownerId===String(userId)&&remote.resetVersion===known.resetVersion&&(remote.version<known.version||remote.sessionGeneration<known.sessionGeneration))throw new Error('Получен устаревший ответ. Повторите загрузку.');
    if(remote.ownerId!==String(userId))throw new Error('Неверный владелец сохранения.');
+   // Persist BEFORE reset handling or session acquisition can replace the cache.
+   const localCandidate=preserveMigrationCandidate(userId,remote.resetVersion)?.save??null;
    applyAccountReset(userId,remote.resetVersion);
-   setEnvelope(remote);
-   // A confirmed cache is never an import candidate.
-   const localCandidate=local?.player && !Number.isSafeInteger(local.confirmedVersion) && String(local.player.userId)===String(userId)
-     && (local.resetVersion ?? 0)===remote.resetVersion ? local : null;
-   setCandidate(localCandidate);
+   setEnvelope(remote);setCandidate(localCandidate);
    if(!remote.activeHere){
-    try{remote=await acquireProgress(remote);setEnvelope(remote);}
-    catch(e){setError(e instanceof Error?e.message:String(e));return;}
+    try{remote=await acquireProgress(remote);if(obsolete())return;setEnvelope(remote);}
+    catch(e){if(obsolete())return;setError(e instanceof Error?e.message:String(e));return;}
    }else acceptProgress(remote);
    if(localCandidate){
-    localStorage.setItem('aethelgard_migration_backup_'+userId+'_'+Date.now(),raw!);
     setReady(false);return;
    }
    setReady(true);setRevision(v=>v+1);
-  }catch(e){setError(e instanceof Error?e.message:String(e));setProgressStatus('offline');}
+  }catch(e){if(obsolete())return;setError(e instanceof Error?e.message:String(e));setProgressStatus('offline');}
  };
  useEffect(()=>{
   void boot();
-  const reload=(event:Event)=>{const data=(event as CustomEvent<ProgressEnvelope>).detail;setEnvelope(data);setNotice('Сохранение изменилось или активная сессия перенесена. Загружены последние подтверждённые данные.');setRevision(v=>v+1);setReady(data.activeHere);};
+  const reload=(event:Event)=>{const data=(event as CustomEvent<ProgressEnvelope>).detail;setEnvelope(data);setNotice('Сохранение изменилось или активная сессия перенесена. Загружены последние подтверждённые данные.');setRevision(v=>v+1);setCandidate(readMigrationCandidate(userId,data.resetVersion)?.save??null);setReady(data.activeHere&&!readMigrationCandidate(userId,data.resetVersion));};
   const online=()=>{if(confirmedProgress())void retryProgress();else void boot();};
   const offline=()=>setProgressStatus('offline');
   const reset=()=>void boot();
   const verify=async()=>{
     if(!confirmedProgress() || ['saving','loading','offline'].includes(progressStatus()))return;
-    try{const next=await apiRequest<ProgressEnvelope>('/api/progress');const before=confirmedProgress();
-      if(before && (next.version!==before.version || next.resetVersion!==before.resetVersion || next.activeHere!==before.activeHere))acceptProgress(next,true);
-    }catch{setProgressStatus('offline');}
+    const request=captureProgressRequest();
+    try{const next=await apiRequest<ProgressEnvelope>('/api/progress');if(!isProgressRequestCurrent(request)||['saving','loading','offline'].includes(progressStatus()))return;const before=confirmedProgress();
+      if(before && (next.version!==before.version || next.resetVersion!==before.resetVersion || next.activeHere!==before.activeHere || next.sessionGeneration!==before.sessionGeneration))acceptProgress(next,true);
+    }catch{if(isProgressRequestCurrent(request))setProgressStatus('offline');}
   };
   const timer=setInterval(()=>{if(document.visibilityState==='visible')void verify();},15000);
   window.addEventListener('focus',verify);
   const visible=()=>{if(document.visibilityState==='visible')void verify();};document.addEventListener('visibilitychange',visible);
   window.addEventListener('aethelgard-progress-reload',reload);window.addEventListener('online',online);window.addEventListener('offline',offline);window.addEventListener('aethelgard-account-reset',reset);
-  return()=>{clearInterval(timer);window.removeEventListener('focus',verify);document.removeEventListener('visibilitychange',visible);window.removeEventListener('aethelgard-progress-reload',reload);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('aethelgard-account-reset',reset);};
+  return()=>{bootAttempt.current++;clearInterval(timer);window.removeEventListener('focus',verify);document.removeEventListener('visibilitychange',visible);window.removeEventListener('aethelgard-progress-reload',reload);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('aethelgard-account-reset',reset);};
  },[userId]);
  const choose=async(local:boolean)=>{
   try{
    if(local && candidate){const data=await migrateProgress(candidate,Boolean(envelope?.save));setEnvelope(data);}
-   else if(envelope)acceptProgress(envelope);
+   else if(envelope){const latest=await loadProgress();if(!latest.activeHere)throw new Error('Перенесите активную сессию перед выбором.');if(!acceptProgress(latest))throw new Error('Сохранение изменилось. Повторите выбор.');setEnvelope(latest);}
+   if(envelope)finishMigrationChoice(userId,envelope.resetVersion);
    setCandidate(null);setReady(true);setRevision(v=>v+1);setError('');
   }catch(e){setError(e instanceof Error?e.message:String(e));}
  };
  const transfer=async()=>{
-  try{const latest=await loadProgress();const data=await acquireProgress(latest,true);setEnvelope(data);setError('');if(!candidate || data.save){setReady(true);setRevision(v=>v+1);}}
+  try{const latest=await loadProgress();const data=await acquireProgress(latest,true);setEnvelope(data);setError('');if(!candidate){setReady(true);setRevision(v=>v+1);}}
   catch(e){setError(e instanceof Error?e.message:String(e));}
  };
  const panel=(content:React.ReactNode)=><div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/95 p-6 text-slate-100"><div className="max-w-md space-y-4 text-center" role="status">{content}{error&&<p role="alert">{error}</p>}</div></div>;

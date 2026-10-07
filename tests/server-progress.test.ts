@@ -1,3 +1,4 @@
+import {progressDatabase} from './helpers/progressDatabase';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -16,17 +17,7 @@ function save(id=1,name='ПК',epoch=0):any {
  combat:{isInCombat:false,isCombatEnded:false,combatPlayerHp:123,combatPlayerMp:45,usedPotionKinds:[]}};
 }
 async function database() {
- const db=new PGlite();
- const query=async(sql:string,args:any[]=[])=>{const r=await db.query<any>(sql,args);return {...r,rowCount:r.affectedRows??r.rows.length};};
- // One embedded PostgreSQL connection: emulate its connection checkout queue so
- // concurrent transactions cannot accidentally share a connection in these tests.
- let tail=Promise.resolve();
- const base:any={query,connect:async()=>{
-  const before=tail;let unlock!:()=>void;tail=new Promise<void>(r=>unlock=r);await before;
-  return {query,release:unlock};
- }};
- await db.exec((await fs.readFile('server/schema.sql','utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;',''));
- await db.exec(await fs.readFile('server/migrations/20261007_character_progress.sql','utf8'));
+ const {db,base,query}=await progressDatabase();
  await query("INSERT INTO players(telegram_id,display_name) VALUES(1,'A'),(2,'B'),(3,'Admin')");
  return {db,query,base,pool:progressAwarePool(base)};
 }
@@ -150,4 +141,41 @@ test('claimed rewards cannot be rolled back by a newer checkpoint',async()=>{
   await assert.rejects(store.write(1,token,body(rollback,1),'checkpoint'),(e:any)=>e.code==='PROGRESS_REGRESSION');
   assert.equal((await store.load(1,token)).save!.player.gold,120);
  }finally{await db.close();}
+});
+
+test('998, 999, 1000 and a large stock survive create/checkpoint/load/migrate and ledger projection exactly',async()=>{
+ const {db,pool,query}=await database();const store=new ProgressStore(pool),token=uuid();
+ try{
+  await store.acquire(1,token,0,false);
+  const item=(count:number,id='resource')=>({id,templateId:'iron_ore',name:'Железная руда',type:'ore',rarity:'common',level:1,upgradeLevel:0,stats:{},stackCount:count});
+  let latest:any;
+  for(const quantity of [998,999,1000,1000000]){
+   const data=save();data.player.inventory=[item(quantity)];
+   latest=await store.write(1,token,body(data,latest?.version??0),latest?'checkpoint':'create');
+   assert.equal((await store.load(1,token)).save!.player.inventory[0].stackCount,quantity);
+   assert.equal(latest.save.player.inventory.reduce((n:number,i:any)=>n+i.stackCount,0),quantity);
+  }
+  await query("INSERT INTO owned_items(owner_telegram_id,item_json,origin,quantity) VALUES(1,$1::jsonb,'test',1000000)",[JSON.stringify(item(1,'ignored'))]);
+  assert.equal((await store.load(1,token)).save!.player.inventory.filter(i=>i.serverOwned)[0].stackCount,1000000);
+  const second=uuid();await store.acquire(2,second,0,false);
+  const legacy=save(2);legacy.player.inventory=[item(1000000)];
+  const migrated=await store.write(2,second,body(legacy,0),'migrate');assert.equal(migrated.save!.player.inventory[0].stackCount,1000000);
+  assert.equal((await store.write(2,second,body(legacy,1),'checkpoint')).save!.player.inventory[0].stackCount,1000000);
+ }finally{await db.close();}
+});
+
+test('unavailable donation returns a machine-readable final refusal and rolls back without a receipt or wallet debit',async()=>{
+ const {unavailableClanDonation}=await import('../server/clanDonation');
+ const {db,pool,query}=await database();const store=new ProgressStore(pool),token=uuid();
+ await store.acquire(1,token,0,false);await store.write(1,token,body(save(),0),'create');
+ const app=express();app.use(express.json());
+ app.use(async(req,res,next)=>{req.authUser={id:1,displayName:'User'};try{await guardProgressTransaction(pool,req,res,next);}catch(e){next(e);}});
+ app.post('/api/clan/donate',unavailableClanDonation);
+ const server=app.listen(0);await new Promise<void>(r=>server.once('listening',r));
+ try{
+  const r=await fetch('http://127.0.0.1:'+(server.address() as any).port+'/api/clan/donate',{method:'POST',headers:{'Content-Type':'application/json','X-Game-Session':token,'X-Game-Save-Version':'1','X-Game-Reset-Version':'0','X-Game-Operation':uuid()},body:'{"amount":100}'});
+  assert.equal(r.status,501);const denied:any=await r.json();assert.equal(denied.code,'FEATURE_UNAVAILABLE');assert.equal(denied.outcome,'rejected');
+  const latest=await store.load(1,token);assert.equal(latest.version,1);assert.equal(latest.save!.player.gold,120);
+  assert.equal((await query('SELECT count(*)::int AS n FROM progress_api_operations')).rows[0].n,0);
+ }finally{await new Promise<void>(r=>server.close(()=>r()));await db.close();}
 });

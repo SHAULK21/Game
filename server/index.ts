@@ -1,3 +1,5 @@
+import {MAX_TRADE_QUANTITY} from '../src/utils/stackRules';
+import {unavailableClanDonation} from './clanDonation';
 import {validateTelegramInitData} from './telegramAuth';
 import { progressAwarePool,guardProgressTransaction,isProgressApiMutation } from './progressTransactions';
 import {ProgressError} from './progressValidation';
@@ -314,11 +316,7 @@ app.post('/api/clan/leave', auth, requireClan, async (req, res) => {
   catch(error){res.status(400).json({error:error instanceof Error?error.message:'Ошибка выхода из клана.'});}
 });
 
-app.post('/api/clan/donate', auth, requireClan, async (req, res) => {
-  const amount = Math.floor(Number(req.body?.amount));
-  if (!Number.isInteger(amount) || amount < 100 || amount > 100000) return res.status(400).json({ error: 'Сумма должна быть от 100 до 100000.' });
-  res.status(501).json({ error: 'Казна будет подключена к серверному кошельку персонажа на следующем этапе.' });
-});
+app.post('/api/clan/donate', auth, unavailableClanDonation);
 
 app.post('/api/clan/raid/attack', auth, requireClan, async (req, res) => {
   let damage = 450 + crypto.randomInt(0, 251);
@@ -490,7 +488,7 @@ app.get('/api/clan/storage', auth, requireClan, async (req, res) => {
 app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res) => {
   const clanId = res.locals.clan.id;
   const quantity = Number(req.body?.quantity || 1);
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) return res.status(400).json({ error: 'Неверное количество.' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -516,7 +514,7 @@ app.post('/api/clan/storage/:itemId/deposit', auth, requireClan, async (req, res
 app.post('/api/clan/storage/:itemId/withdraw', auth, requireClan, async (req, res) => {
   const clanId = res.locals.clan.id;
   const quantity = Number(req.body?.quantity || 1);
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) return res.status(400).json({ error: 'Неверное количество.' });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) return res.status(400).json({ error: 'Неверное количество.' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

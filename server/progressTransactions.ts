@@ -1,3 +1,4 @@
+import {addStackCounts,validStackCount} from '../src/utils/stackRules';
 import {bulkReward,matchesBulkItem} from '../src/utils/bulkInventory';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
@@ -81,7 +82,8 @@ export async function guardProgressTransaction(pool:Pool,req:Request,res:Respons
     if(req.path==='/api/market/residents'||req.path==='/api/items/bulk-dispose'||/^\/api\/items\/[^/]+\/dispose$/.test(req.path)){
      save.player.gold+=Number(body.gold||0)+localBulk.gold;save.player.silver+=Number(body.silver||0)+localBulk.silver;
      const ore=Number(body.ore||0)+localBulk.ore;
-     if(ore>0){const item=save.player.inventory.find((i:any)=>i.templateId==='iron_ore'&&!i.serverOwned);if(item && (item.stackCount||1)+ore<=999)item.stackCount=(item.stackCount||1)+ore;else save.player.inventory.push({id:crypto.randomUUID(),templateId:'iron_ore',name:'Железная руда',type:'ore',rarity:'common',level:1,upgradeLevel:0,icon:'⚪',stats:{},sellPrice:12,disassembleYield:{ore:1},stackCount:ore});}
+     if(ore>0&&!validStackCount(ore))throw new ProgressError('RESOURCE_LIMIT','Превышен допустимый запас ресурса. Операция не выполнена.',400);
+     if(ore>0){const item=save.player.inventory.find((i:any)=>i.templateId==='iron_ore'&&!i.serverOwned);if(item)item.stackCount=addStackCounts(item.stackCount||1,ore);else save.player.inventory.push({id:crypto.randomUUID(),templateId:'iron_ore',name:'Железная руда',type:'ore',rarity:'common',level:1,upgradeLevel:0,icon:'⚪',stats:{},sellPrice:12,disassembleYield:{ore:1},stackCount:ore});}
     }
     if(req.path==='/api/clan/create'){
      if(save.player.gold<Number(body.priceGold))throw new ProgressError('NO_GOLD','Недостаточно серверного золота.',400);

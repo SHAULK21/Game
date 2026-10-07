@@ -1,9 +1,10 @@
+import {MAX_TRADE_QUANTITY} from '../src/utils/stackRules';
 import type { Pool } from 'pg';
 import { localBuyoutGold } from '../src/utils/localMarket';
 export async function sellToResidents(pool: Pool, userId: number, resetVersion: number, body: any) {
   const { operationId, item, itemId, quantity } = body || {};
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(operationId || '') ||
-      !item || typeof item.id !== 'string' || !Number.isInteger(quantity) || quantity < 1 || quantity > 999) throw new Error('Проверьте предмет и количество.');
+      !item || typeof item.id !== 'string' || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) throw new Error('Проверьте предмет и количество.');
   const request = { action: 'residents', itemId: itemId || item.id, quantity, resetVersion };
   const client = await pool.connect();
   try {

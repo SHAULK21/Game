@@ -294,6 +294,7 @@ export const ClanScreen: React.FC = () => {
             </div>
             <div className="text-xs text-slate-400">{localize("Вносить можно вещи с подтверждённым сервером происхождением. Старые локальные трофеи остаются личными.")}</div>
             <div className="text-xs text-amber-300">{localize("Казна: ")}{localize(Number(clan.treasury_gold || 0))}{localize(" золота · ")}{localize(Number((clan as Clan & { treasury_silver?: number }).treasury_silver || 0))}{localize(" серебра · ")}{localize(Number((clan as Clan & { treasury_ore?: number }).treasury_ore || 0))}{localize(" руды")}</div>
+            <p className="text-xs text-slate-400">{localize("Пожертвования временно недоступны. Казна ещё не подключена к серверному кошельку.")}</p>
             <div className="space-y-1.5 max-h-44 overflow-y-auto">
               <div className="text-[11px] uppercase text-slate-500">{localize("Мои серверные вещи")}</div>
               {personalItems.filter(i => !i.locked && !i.equipped_slot && (!i.bound_clan_id || i.bound_clan_id === clan.id)).map(item => (

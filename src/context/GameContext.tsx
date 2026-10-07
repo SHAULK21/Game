@@ -1,3 +1,5 @@
+import {addOrStackInventoryItem} from '../utils/inventoryStacks';
+import {MAX_TRADE_QUANTITY} from '../utils/stackRules';
 import {queueProgress,canChangeProgress,confirmedProgress,progressStatus,waitForProgress,useProgressStatus} from '../utils/serverProgress';
 import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
@@ -290,28 +292,6 @@ const calculateTypedDamage = ({
     1,
     Math.round(raw * (1 - mitigation) * (1 - resistance / 100) * extraDamageMultiplier)
   );
-};
-
-const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots: number) => {
-  const existingIndex = inventory.findIndex(i =>
-    i.templateId === item.templateId &&
-    i.type === item.type &&
-    i.name === item.name &&
-    i.rarity === item.rarity
-  );
-
-  const stackable = item.type === 'material' || item.type === 'ore' || item.type === 'potion';
-  if (existingIndex >= 0 && stackable) {
-    const next = [...inventory];
-    next[existingIndex] = {
-      ...next[existingIndex],
-      stackCount: (next[existingIndex].stackCount || 1) + (item.stackCount || 1)
-    };
-    return { inventory: next, added: true };
-  }
-
-  if (inventory.length >= maxSlots) return { inventory, added: false };
-  return { inventory: [...inventory, item], added: true };
 };
 
 const MINING_EXPEDITION_POOLS: Array<{
@@ -863,7 +843,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const current = player.inventory.find(i => i.id === item.id);
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
-      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(MAX_TRADE_QUANTITY,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
       operation={operationId:createOperationId(),item:current,quantity};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;
@@ -900,7 +880,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (!current.serverOwned || current.marketTradable === false) return {success:false,message:'Этот предмет можно продать местным жителям. Рынок принимает только подтверждённые сервером вещи.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
-      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
+      if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(MAX_TRADE_QUANTITY,current.stackCount||1) || !Number.isInteger(priceGold) || priceGold<1 || priceGold>100000000) return {success:false,message:'Проверьте целое количество и цену.'};
       operation={operationId:createOperationId(),item:current,quantity,priceGold};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;

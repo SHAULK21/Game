@@ -1,3 +1,4 @@
+import {MAX_TRADE_QUANTITY} from '../../utils/stackRules';
 import { ItemSelector } from '../ui/ItemSelector';
 import { ResidentSalePanel } from './ResidentSalePanel';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
@@ -87,7 +88,7 @@ export const MarketScreen: React.FC = () => {
   const submitListing = async () => {
     if (!listingItem || busy) return;
     const count = Number(quantity);
-    const maximum = Math.min(999, listingItem.stackCount || 1);
+    const maximum = Math.min(MAX_TRADE_QUANTITY, listingItem.stackCount || 1);
     if (!Number.isInteger(count) || count < 1 || count > maximum) {
       setError(`Введите целое количество от 1 до ${maximum}.`);
       return;

@@ -64,7 +64,9 @@ serialize connection checkout, so they are not a substitute for those lock-conte
 `server/migrations/20261007_character_progress.sql` is idempotent and also included
 at the end of `server/schema.sql`, which startup already executes. It does not delete
 existing players, wallets or items. Back up the PostgreSQL database before deployment.
-No production database migration has been run from this branch.
+The follow-up `server/migrations/20261007_resource_stacks.sql` removes the inventory
+999-unit constraint, retaining the market lot constraint. Both migrations are
+idempotent and included in startup schema SQL. No production migration has been run.
 
 The added tables hold operation receipts, migration backups, ledger ID history and
 legacy economic API receipts. Do not purge receipts while requests from their reset
@@ -72,12 +74,15 @@ epoch can still be retried. Do not restore a backup across a newer reset epoch.
 
 ## Validation
 
-The full suite passed: **211 tests, 0 failures**. The focused authentication and
-progress suite passed 10 tests: real two-browser transfer and stale writer protection,
-failed initial reads, PostgreSQL CAS, request replay, explicit migration choice/backups,
-SQL item projection, authenticated ownership, atomic legacy economic writes/rollback,
-validation, claim-regression rejection and Telegram signature/ID/expiry rejection.
-TypeScript (`npm run lint`) and the production build (`npm run build`) passed.
-Existing Vite chunk-size warnings remain. `git diff --check` passed.
-Gameplay UI fixtures use an explicit test-only local persistence adapter; the real
-progress UI tests use the actual coordinator, actual gate and embedded PostgreSQL API.
+The baseline suite passed 211 tests. Follow-up regressions exercise the actual
+browser coordinator and session gate without the local gameplay adapter. They cover
+persistent migration decisions, reload/application-close recovery, failed transfer
+and import, a committed migration whose response is lost, exact resource quantities,
+ordered responses, pending GET/save invalidation, final feature refusal and unknown
+purchase outcomes. See `docs/pr88-regressions.md` for the follow-up results.
+
+`TEST_DATABASE_URL` switches these integration tests to a real PostgreSQL service
+with up to six independent connections and an isolated schema per test. The
+`postgres-progress` CI job provisions PostgreSQL 16 and runs the same tests. Without
+that variable they run against PGlite with serialized connection checkout.
+Gameplay UI fixtures retain their explicit local adapter; the new regressions do not.

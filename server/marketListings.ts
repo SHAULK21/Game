@@ -1,3 +1,4 @@
+import {MAX_TRADE_QUANTITY} from '../src/utils/stackRules';
 import type { Pool, PoolClient } from 'pg';
 import { calculateMarketSale } from '../src/utils/marketEconomy';
 import { queueNotification } from './socialFeatures';
@@ -14,7 +15,7 @@ async function transaction<T>(pool: Pool, run: (client: PoolClient) => Promise<T
 export async function createMarketListing(pool: Pool, userId: number, body: any, resetVersion = 0) {
   const { quantity, price_gold: price, operationId, itemId } = body || {};
   if (!uuid(operationId) || !uuid(itemId)) throw new Error('На рынок можно выставлять только предметы из серверного реестра.');
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) throw new Error('Количество: 1–999.');
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TRADE_QUANTITY) throw new Error('Количество: 1–999.');
   if (!Number.isInteger(price) || price < 1 || price > 100000000) throw new Error('Цена: 1–100000000 золота.');
   const request = { itemId, quantity, price, resetVersion };
   return transaction(pool, async client => {

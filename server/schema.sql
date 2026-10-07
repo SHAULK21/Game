@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS owned_items (
   clan_id UUID REFERENCES clans(id) ON DELETE CASCADE,
   bound_clan_id UUID REFERENCES clans(id) ON DELETE SET NULL,
   item_json JSONB NOT NULL,
-  quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity BETWEEN 1 AND 999),
+  quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity BETWEEN 1 AND 2147483647),
   equipped_slot VARCHAR(20),
   locked BOOLEAN NOT NULL DEFAULT FALSE,
   origin VARCHAR(32) NOT NULL,
@@ -358,3 +358,7 @@ CREATE TABLE IF NOT EXISTS progress_api_operations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (telegram_id,operation_id)
 );
+
+-- Inventory holdings are independent of the 999-unit market lot limit.
+ALTER TABLE owned_items DROP CONSTRAINT IF EXISTS owned_items_quantity_check;
+ALTER TABLE owned_items ADD CONSTRAINT owned_items_quantity_check CHECK (quantity BETWEEN 1 AND 2147483647);

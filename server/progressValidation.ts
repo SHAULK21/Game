@@ -1,3 +1,4 @@
+import {validStackCount} from '../src/utils/stackRules';
 import type { PlayerCharacter, Quest, Achievement, DungeonRun, TravelState } from '../src/types/game';
 
 export interface ProgressSave {
@@ -38,7 +39,7 @@ export function validateProgress(input: any, owner: number, epoch: number, migra
   if (p.energy > p.maxEnergy || !object(p.attributes) || !Array.isArray(p.skills) || !Array.isArray(p.inventory) || !object(p.equipped) || !Array.isArray(input.quests) || !Array.isArray(input.achievements)) throw new ProgressError('INVALID_SAVE', 'Неполная структура сохранения.', 400);
   const ids = new Set<string>();
   for (const item of [...p.inventory, ...Object.values(p.equipped).filter(Boolean)] as any[]) {
-    if (!object(item) || typeof item.id !== 'string' || !item.id || !object(item.stats) || !Number.isSafeInteger(item.level) || item.level < 1 || item.level > 120 || !Number.isSafeInteger(item.stackCount ?? 1) || (item.stackCount ?? 1) < 1 || (item.stackCount ?? 1) > 999) throw new ProgressError('INVALID_SAVE', 'Некорректный предмет.', 400);
+    if (!object(item) || typeof item.id !== 'string' || !item.id || !object(item.stats) || !Number.isSafeInteger(item.level) || item.level < 1 || item.level > 120 || !validStackCount(item.stackCount ?? 1)) throw new ProgressError('INVALID_SAVE', 'Некорректный предмет.', 400);
     if (ids.has(item.id)) throw new ProgressError('INVALID_SAVE', 'Предмет повторяется в сохранении.', 400);
     ids.add(item.id);
   }

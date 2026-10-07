@@ -1,3 +1,4 @@
+import {addStackCounts,MAX_STACK_COUNT} from './stackRules';
 import type { AlchemyRecipe, GameItem, ItemRarity, PlayerCharacter } from '../types/game';
 
 export type FishingFightAction = 'pull' | 'slack' | 'brace';
@@ -104,9 +105,10 @@ export function landFishing(player:PlayerCharacter,castId:string,now=Date.now())
  if(fishingPhase(cast,now)!=='land')return fail(player,'Сначала подсеките и подтяните рыбу.');
  const definition=FISH.find(f=>f.id===cast.fishId)!;
  const item:GameItem={id:'fish_'+cast.id,templateId:'fish_'+definition.id,name:definition.name,type:'material',rarity:definition.rarity as ItemRarity,level:1,upgradeLevel:0,icon:'',image:'/assets/fishing/'+definition.id+'.webp',stats:{},stackCount:1,sellPrice:definition.price,disassembleYield:{silver:Math.max(1,Math.floor(definition.price/4))},description:'Рыбный ингредиент для особых алхимических зелий. Вес и рекорды хранятся в журнале рыболова.'};
- const index=player.inventory.findIndex(i=>i.templateId===item.templateId&&i.type==='material');
+ const index=player.inventory.findIndex(i=>!i.serverOwned&&i.templateId===item.templateId&&i.type==='material');
  if(index<0&&player.inventory.length>=player.maxInventorySlots)return fail(player,'Освободите место в сумке: улов ждёт на крючке.');
- const inventory=player.inventory.map(i=>({...i}));if(index>=0)inventory[index].stackCount=(inventory[index].stackCount||1)+1;else inventory.push(item);
+ if(index>=0&&(player.inventory[index].stackCount??1)>=MAX_STACK_COUNT)return fail(player,'Превышен допустимый запас рыбы. Улов остаётся на крючке.');
+ const inventory=player.inventory.map(i=>({...i}));if(index>=0)inventory[index].stackCount=addStackCounts(inventory[index].stackCount||1,1);else inventory.push(item);
  const previous=fishing.collection[definition.id]||{count:0,recordGrams:0};
  const spot=FISHING_SPOTS.find(s=>s.id===cast.spotId)!;
  const exp=fishing.exp+30+Math.floor(spot.level/2)+(definition.rarity==='rare'?20:definition.rarity==='uncommon'?10:0);
