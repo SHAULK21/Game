@@ -1,3 +1,4 @@
+import { getLanguage } from '../i18n/locale';
 import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
 import {gameSaveKey, readAccountSave, removeAccountSave} from '../utils/accountReset';
@@ -12,7 +13,7 @@ import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
 import { readResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction } from '../utils/autoBattle';
-import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant, monsterEnrageMultiplier } from '../utils/pveBalance';
+import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant, monsterEnrageMultiplier, monsterEnragePressureDamage, MONSTER_ENRAGE_ROUND, MONSTER_RELENTLESS_ROUND } from '../utils/pveBalance';
 import { claimRegionalReward, regionCompleted, regionEntryLockReason, huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
 import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
@@ -613,7 +614,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (turnPhase !== 'player') return;
     const key = `${activeMonster.id}:${combatRound}`;
     if (monsterDecision.current?.key !== key) {
-      const skill = chooseMonsterSkill(activeMonster, monsterEffects);
+      const skill = chooseMonsterSkill(activeMonster, monsterEffects, Math.random, combatRound);
       monsterDecision.current = { key, skill, readRoll: Math.random(), errorRoll: Math.random() };
     }
     const decision = monsterDecision.current;
@@ -3045,7 +3046,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const key = `${activeMonster.id}:${combatRound}`;
     if (!monsterPlan.current || monsterPlan.current.key !== key) {
-      const decision = monsterDecision.current?.key === key ? monsterDecision.current : { skill: chooseMonsterSkill(activeMonster, monsterEffects) };
+      const decision = monsterDecision.current?.key === key ? monsterDecision.current : { skill: chooseMonsterSkill(activeMonster, monsterEffects, Math.random, combatRound) };
       const skill = decision.skill && availableMonsterSkills(activeMonster, monsterEffects).some(s => s.id === decision.skill!.id) ? decision.skill : null;
       const delay = sampleMonsterDelay(activeMonster, monsterActionKind(skill), autoBattle.enabled);
       const now = Date.now();
@@ -3059,7 +3060,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
       const activeMod = combatHuntingMode(activeMonster);
-      if (currentTurn === 26 && monsterEnrageMultiplier(activeMonster, currentTurn) > 1) newLogs.push({id:'monster_enrage_'+Date.now(),turn:currentTurn,text:`${activeMonster.name} впадает в ярость: затяжной бой постепенно усиливает его атаки.`,type:'system'});
+      if (currentTurn === MONSTER_ENRAGE_ROUND) newLogs.push({id:'monster_enrage_'+Date.now(),turn:currentTurn,text:getLanguage() === 'uk' ? `${activeMonster.name} впадає в лють: затяжний бій швидко посилює його атаки.` : `${activeMonster.name} впадает в ярость: затяжной бой быстро усиливает его атаки.`,type:'system'});
       const monsterTick = tickStatusEffects(monsterEffects);
       setMonsterEffects(monsterTick.effects);
 
@@ -3088,7 +3089,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (workingHp !== activeMonster.hp) setActiveMonster(prev => prev ? { ...prev, hp: workingHp } : null);
 
-      if (monsterTick.skipTurn) {
+      if (monsterTick.skipTurn && currentTurn >= MONSTER_RELENTLESS_ROUND) newLogs.push({id:'enrage_control_'+Date.now(),turn:currentTurn,text:getLanguage() === 'uk' ? 'Лють монстра більше не дозволяє зупинити його контролем.' : 'Ярость монстра больше не позволяет остановить его контролем.',type:'system'});
+      if (monsterTick.skipTurn && currentTurn < MONSTER_RELENTLESS_ROUND) {
         newLogs.push({ id: 'monster_cc_' + Date.now(), turn: currentTurn, text: `🌀 [Контроль] ${activeMonster.name} пропускает ход.`, type: 'status' });
         setActiveMonster(prev => prev ? { ...advanceMonsterCooldowns(prev), hp: workingHp } : null);
         setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
@@ -3140,14 +3142,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (talents.blockMana) setCombatPlayerMp(mp => Math.min(combatStats.maxMp, mp + Math.round(combatStats.maxMp * talents.blockMana / 100)));
         talentFollowup.current = Math.max(talentFollowup.current, talents.blockFollowup || 0);
       }
+      const enragePressure = monsterEnragePressureDamage(currentTurn, combatStats.maxHp, monsterFinalDmg);
+      if (enragePressure > 0) newLogs.push({id:'enrage_pressure_'+Date.now(),turn:currentTurn,text:getLanguage() === 'uk' ? `Лютий натиск: ${activeMonster.name} пробиває захист і завдає ще ${enragePressure} шкоди.` : `Яростный натиск: ${activeMonster.name} пробивает защиту и наносит ещё ${enragePressure} урона.`,type:'monster-attack',impact:{target:'player',amount:enragePressure}});
+      const totalMonsterDamage = monsterFinalDmg + enragePressure;
       if (player.classId === 'warrior' && monsterFinalDmg > 0) setWarriorMomentum(n => Math.min(4, n + 1));
       if (attackRoll.evaded) sound.playDodge(); else if (blockedByShield > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(monsterDamageType);
       const impactNarration = monsterImpact(activeMonster.name, monsterFinalDmg, blockedByShield, attackRoll.evaded, !!playerMods.invulnerable);
+      if (enragePressure > 0) impactNarration.push(getLanguage() === 'uk' ? `Лютий натиск пробиває захист: ще ${enragePressure} шкоди.` : `Яростный натиск пробивает защиту: ещё ${enragePressure} урона.`);
       setCombatNarration(impactNarration);
       newLogs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
       newLogs.push({ id: 'm_atk_' + Date.now(), turn: currentTurn, text: attackRoll.evaded ? `💨 Вы уклонились от атаки ${activeMonster.name}.` : playerMods.invulnerable ? `✨ [Неуязвимость] ${activeMonster.name} не нанес урона.` : `${attackRoll.critical ? '💥 Крит! ' : ''}🩸 ${activeMonster.name} наносит ${monsterFinalDmg} ${monsterDamageType.toUpperCase()} урона${blockedByShield ? ` (щит поглотил ${blockedByShield})` : ''}.`, type: playerMods.invulnerable ? 'heal' : 'monster-attack', impact:{target:'player',amount:monsterFinalDmg,critical:attackRoll.critical,blocked:blockedByShield,evaded:attackRoll.evaded} });
       setCombatPlayerHp(prevHp => {
-        const nextHp = Math.max(0, prevHp - monsterFinalDmg);
+        const nextHp = Math.max(0, prevHp - totalMonsterDamage);
         if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
           setActiveDungeonRun(run => run ? { ...run, resurrectionUsed: true } : run);
           newLogs.push({ id: 'resurrection_' + Date.now(), turn: currentTurn, text: '👻 Некромант воскрес с 30% HP. Воскрешение за поход использовано.', type: 'heal' });
@@ -3224,14 +3230,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logs.push({ id: 'monster_effect_' + Date.now(), turn: currentTurn, text: `✨ ${activeMonster.name} накладывает [${skill.effect}]!`, type: 'status' });
       }
       if (attackRoll.evaded) sound.playDodge(); else if (blocked > 0) sound.playDefend(); else if (!playerMods.invulnerable) sound.playMonsterAttack(skill.damageType);
+      const enragePressure = monsterEnragePressureDamage(currentTurn, combatStats.maxHp, damage);
+      if (enragePressure > 0) logs.push({id:'enrage_pressure_'+Date.now(),turn:currentTurn,text:getLanguage() === 'uk' ? `Лютий натиск: ${activeMonster.name} пробиває захист і завдає ще ${enragePressure} шкоди.` : `Яростный натиск: ${activeMonster.name} пробивает защиту и наносит ещё ${enragePressure} урона.`,type:'monster-attack',impact:{target:'player',amount:enragePressure}});
+      const totalMonsterDamage = damage + enragePressure;
       const defensive = monsterActionKind(skill) === 'defend' && skill.damageMultiplier === 0;
       const impactNarration = defensive ? [`${activeMonster.name} укрепляет защиту: «${skill.name}».`] : monsterImpact(activeMonster.name, damage, blocked, attackRoll.evaded, !!playerMods.invulnerable);
       if (!defensive) impactNarration.unshift(`${monsterActionKind(skill) === 'potion' ? 'Бросок зелья' : 'Особый приём'}: «${skill.name}».`);
+      if (enragePressure > 0) impactNarration.push(getLanguage() === 'uk' ? `Лютий натиск пробиває захист: ще ${enragePressure} шкоди.` : `Яростный натиск пробивает защиту: ещё ${enragePressure} урона.`);
       setCombatNarration(impactNarration);
       logs.push({id:'enemy_narration_'+Date.now(),turn:currentTurn,text:impactNarration.join(' '),type:'system'});
       if (!defensive) logs.push({ id: 'monster_skill_damage_' + Date.now(), turn: currentTurn, text: playerMods.invulnerable ? '✨ Неуязвимость полностью поглощает особый приём.' : `💥 Особый приём наносит ${damage} ${skill.damageType.toUpperCase()} урона${blocked ? ` (щит поглотил ${blocked})` : ''}.`, type: 'monster-attack',impact:{target:'player',amount:damage,critical:attackRoll.critical,empowered:skill.damageMultiplier > 1,blocked,evaded:attackRoll.evaded} });
       setCombatPlayerHp(prevHp => {
-        const nextHp = Math.max(0, prevHp - damage);
+        const nextHp = Math.max(0, prevHp - totalMonsterDamage);
         if (nextHp <= 0 && activeDungeonRun && player.classId === 'necromancer' && !activeDungeonRun.resurrectionUsed) {
           setActiveDungeonRun(run => run ? { ...run, resurrectionUsed: true } : run);
           logs.push({ id: 'resurrection_' + Date.now(), turn: currentTurn, text: '👻 Некромант воскрес с 30% HP.', type: 'heal' });

@@ -31,8 +31,20 @@ export function incomingArmorConstant(monster: Monster, type: DamageType): numbe
   return base + (monster.regionId === 'arena' || monster.regionId === 'ascension' ? 0 : Math.max(0, (monster.level || 1) - 3) * 1.2);
 }
 
-/** Prevent indefinite shield/heal stalemates while leaving normal-length fights alone. */
-export function monsterEnrageMultiplier(monster: Monster, round: number): number {
-  if (monster.regionId === 'arena' || monster.regionId === 'ascension') return 1;
-  return 1 + Math.min(1, Math.max(0, round - 25) * .04);
+export const MONSTER_ENRAGE_ROUND = 26;
+export const MONSTER_RELENTLESS_ROUND = 40;
+
+/** Normal fights are unchanged; prolonged PvE attacks grow without the old x2 ceiling. */
+export function monsterEnrageMultiplier(_monster: Monster, round: number): number {
+  const extra = Math.max(0, round - MONSTER_ENRAGE_ROUND + 1);
+  return 1 + extra * .12 + extra * extra * .015;
+}
+
+/** Late fury guarantees a growing HP floor after all defenses, misses and immunity.
+ * This is a monster hit, not a timeout defeat: the player can still win before it.
+ */
+export function monsterEnragePressureDamage(round: number, maxHp: number, dealt: number): number {
+  if (round < MONSTER_RELENTLESS_ROUND) return 0;
+  const floor = Math.max(1, Math.ceil(maxHp * (round - MONSTER_RELENTLESS_ROUND + 1) * .05));
+  return Math.max(0, floor - dealt);
 }

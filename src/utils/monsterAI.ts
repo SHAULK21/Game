@@ -1,3 +1,4 @@
+import { MONSTER_RELENTLESS_ROUND } from './pveBalance';
 import type { Monster, MonsterSkill, StatusEffect } from '../types/game';
 
 export type MonsterActionKind = 'attack' | 'super' | 'defend' | 'potion';
@@ -40,8 +41,8 @@ export function advanceMonsterCooldowns(monster: Monster, used?: MonsterSkill): 
       ? superUsed ? Math.max(3, skill.cooldown || 0) : skill.cooldown
       : Math.max(0, (skill.currentCooldown || 0) - 1) })) };
 }
-export function chooseMonsterSkill(monster: Monster, effects: StatusEffect[], random = Math.random): MonsterSkill | null {
-  const ready = availableMonsterSkills(monster, effects);
+export function chooseMonsterSkill(monster: Monster, effects: StatusEffect[], random = Math.random, round = 1): MonsterSkill | null {
+  const ready = availableMonsterSkills(monster, effects).filter(skill => round < MONSTER_RELENTLESS_ROUND || (monsterActionKind(skill) !== 'defend' && skill.damageMultiplier > 0));
   // Player opponents and rank trials keep their priority among available skills.
   if (monster.regionId === 'arena' || monster.regionId === 'ascension') return ready
     .sort((a,b) => (b.damageMultiplier + (b.effect ? .2 : 0)) - (a.damageMultiplier + (a.effect ? .2 : 0)))[0] || null;

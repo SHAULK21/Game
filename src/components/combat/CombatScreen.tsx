@@ -1,3 +1,4 @@
+import { MonsterEnrageNotice } from './MonsterEnrageNotice';
 import { FlightPenaltyNotice } from '../../components/combat/FlightPenaltyNotice';
 import { RegionCompletionReward } from './RegionCompletionReward';
 import { getMonsterArtworkPath } from '../../interfaces/fantasy/utils/monsterArtwork';
@@ -198,6 +199,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
         {localize(premiumModal)}
         <FlightPenaltyNotice />
+        <MonsterEnrageNotice />
         {selectedMonster && <HuntStage region={currentRegion} monsters={regionMonsters} selected={selectedMonster} onSelect={setSelectedMonsterId} />}
           <div className="modern-hunt-action flex gap-2">
             <button
@@ -473,6 +475,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     <div className="p-3 space-y-3 max-w-lg mx-auto pb-24">
       {localize(premiumModal)}
         <FlightPenaltyNotice />
+        <MonsterEnrageNotice />
       {/* 1. TOP 1/3 SCREEN BATTLE SHOWCASE (HERO VS MONSTER IMAGERY) */}
       <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none">
         <BattleBackdrop scene={battleScene} dungeonId={battleDungeon?.id} />

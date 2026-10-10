@@ -1,3 +1,4 @@
+import { MonsterEnrageNotice } from '../../../../components/combat/MonsterEnrageNotice';
 import { FlightPenaltyNotice } from '../../../../components/combat/FlightPenaltyNotice';
 import { useInterface } from '../../../../context/InterfaceContext';
 import { potionActionLabel, potionUsedThisTurn } from '../../../../utils/combatPotions';
@@ -161,6 +162,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
       <>
         {localize(premiumModal)}
         <FlightPenaltyNotice />
+        <MonsterEnrageNotice />
         <Suspense fallback={<div role="status">{localize("Загрузка раздела…")}</div>}><Dashboard
           player={player}
           currentRegion={currentRegion}
@@ -202,6 +204,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     <div className="folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3">
       {localize(premiumModal)}
         <FlightPenaltyNotice />
+        <MonsterEnrageNotice />
       <CombatArena
         player={player}
         monster={activeMonster}

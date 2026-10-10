@@ -7,7 +7,7 @@ import type { Monster } from '../src/types/game';
 import { chooseMonsterSkill, getMonsterCombatSkills, monsterActionKind, monsterActionWeights, monsterDelayRange, sampleMonsterDelay, prepareMonsterForCombat, advanceMonsterCooldowns } from '../src/utils/monsterAI';
 import { forecastMonsterAction, monsterReadingAccuracy } from '../src/utils/monsterForecast';
 import { createTalentTree, learnTalent, migrateTalents, resetTalents } from '../src/data/talents';
-import { incomingArmorConstant, pveThreatMultiplier, monsterEnrageMultiplier } from '../src/utils/pveBalance';
+import { incomingArmorConstant, pveThreatMultiplier, monsterEnrageMultiplier, monsterEnragePressureDamage } from '../src/utils/pveBalance';
 
 const enemy = (level = 1): Monster => ({id:'m_bandit',name:'Разбойник',regionId:'reg_plains',level,hp:10000,maxHp:10000,mp:100,maxMp:100,attack:42,magicAttack:0,defense:18,magicDefense:10,speed:18,critChance:0,evasion:0,avatar:'',expReward:0,goldReward:0,drops:[]});
 
@@ -73,9 +73,9 @@ test('low levels use fewer special actions; mana, cooldown, active protection an
   assert(incomingArmorConstant(enemy(80),'physical')>incomingArmorConstant(enemy(2),'physical'));
   assert.equal(pveThreatMultiplier({...enemy(80),regionId:'arena'},1),1);
   assert.equal(monsterEnrageMultiplier(enemy(),25),1);
-  assert.equal(monsterEnrageMultiplier(enemy(),26),1.04);
-  assert.equal(monsterEnrageMultiplier(enemy(),200),2);
-  assert.equal(monsterEnrageMultiplier({...enemy(),regionId:'ascension'},200),1);
+  assert.equal(monsterEnrageMultiplier(enemy(),26),1.135);
+  assert(monsterEnrageMultiplier(enemy(),200)>100);
+  assert(monsterEnrageMultiplier({...enemy(),regionId:'ascension'},200)>100);
 });
 
 test('actual combat applies defense without an attack, throws a limited flask, honors deadlines and cancels exited turns',async()=>{
@@ -123,4 +123,48 @@ test('actual combat applies defense without an attack, throws a limited flask, h
     }
     assert(casts>4);assert(Object.keys(perSkill).length===2);
   } finally {await w.act(async()=>w.root.unmount());dom.window.close();}
+});
+
+test('late fury breaks zero damage, defensive loops and perpetual healing without changing short fights',()=>{
+  for (const regionId of ['reg_plains','arena','ascension']) {
+    const m=prepareMonsterForCombat({...enemy(80),regionId});
+    assert.equal(monsterEnrageMultiplier(m,20),1);
+    assert(monsterEnrageMultiplier(m,40)>monsterEnrageMultiplier(m,30));
+    assert.equal(monsterEnragePressureDamage(39,1000,0),0);
+    assert.equal(monsterEnragePressureDamage(40,1000,0),50);
+    assert.equal(monsterEnragePressureDamage(40,1000,90),0);
+    assert.equal(monsterEnragePressureDamage(41,1000,10),90);
+    assert.equal(monsterEnragePressureDamage(59,1000,0),1000);
+    for(let roll=0;roll<1;roll+=.02)assert.notEqual(monsterActionKind(chooseMonsterSkill(m,[],()=>roll,40)),'defend');
+    const guardOnly={...m,skills:m.skills!.filter(s=>monsterActionKind(s)==='defend')};
+    assert.equal(chooseMonsterSkill(guardOnly,[],()=>0,40),null);
+  }
+});
+
+test('real encounters end through late hits despite huge armor, shields, control and full healing every round',async()=>{
+ const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {GameProvider,useGame} from './src/context/GameContext';import {MonsterEnrageNotice} from './src/components/combat/MonsterEnrageNotice';function Probe(){window.game=useGame();return <MonsterEnrageNotice/>;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<GameProvider><Probe/></GameProvider>);};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'harness',setup(b){b.onLoad({filter:/GameContext\.tsx$/},async args=>({contents:(await readFile(args.path,'utf8')).replace(/const timer = setTimeout\(\(\) => \{\n      (const currentTurn = combatRound;|const skill = monsterIntent;)/g,'const timer = (window as any).__combatSetTimeout(() => {\n      $1').replace('const [player, setPlayerState] = useState<PlayerCharacter | null>(null);','const [player, setPlayerState] = useState<PlayerCharacter | null>(null); (window as any).__setPlayer=setPlayerState;').replace('const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);','const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]); (window as any).__setMonsterEffects=setMonsterEffects;').replace('const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]);','const [playerEffects, setPlayerEffects] = useState<StatusEffect[]>([]); (window as any).__setPlayerEffects=setPlayerEffects;'),loader:'tsx'}));b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+ const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'}),w:any=dom.window;
+ w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true})});
+ let id=100000;const timers=new Map<number,()=>void>(),clear=w.clearTimeout.bind(w);w.__combatSetTimeout=(fn:()=>void)=>{timers.set(++id,fn);return id;};w.clearTimeout=(n:number)=>{if(!timers.delete(n))clear(n);};w.eval(bundle.outputFiles[0].text);
+ const flush=async()=>{const next=timers.entries().next().value;assert(next);timers.delete(next[0]);await w.act(async()=>next[1]());};
+ try{
+  await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','knight'));await w.act(async()=>w.game.exitCombat());
+  for(const regionId of ['reg_plains','arena','ascension']){
+   await w.act(async()=>w.__setPlayer((p:any)=>({...p,firstJourney:'done',inventory:[{id:'full_heal',name:'Полное исцеление',type:'potion',rarity:'common',level:1,upgradeLevel:0,icon:'',stats:{healFull:1},sellPrice:0,disassembleYield:{},stackCount:100}],equipped:{armor:{id:'test_armor',name:'Броня',type:'armor',level:1,upgradeLevel:0,rarity:'common',stats:{defense:1e9,magicDefense:1e9,evasion:100},sellPrice:0,disassembleYield:{}}}})));
+   const target={...enemy(80),id:'stalemate_'+regionId,regionId,hp:1e12,maxHp:1e12,attack:1,magicAttack:1,skills:[{id:'guard',name:'Щит',icon:'',manaCost:0,cooldown:0,damageMultiplier:0,damageType:'physical',actionKind:'defend',effect:'fortify',effectDuration:1,effectPower:90}]};
+   if(regionId==='ascension')target.skills.push({id:'hit',name:'Удар',icon:'',manaCost:0,cooldown:3,damageMultiplier:1.5,damageType:'physical',actionKind:'super'} as any);
+   w.Math.random=()=>0;await w.act(async()=>w.game.startBattleWithMonster(target,{chain:false,energyCost:0}));
+   for(let round=1;round<=59;round++){
+    assert(!w.game.isCombatEnded,`${regionId} should survive until round 59 with full healing`);assert.equal(w.game.combatRound,round);
+    if(w.game.combatPlayerHp<w.game.combatStats.maxHp)await w.act(async()=>w.game.performPlayerAction('potion','full_heal'));
+    if(round>=40)await w.act(async()=>{w.__setPlayerEffects([{type:'invulnerable',name:'Неуязвимость',duration:3,value:1},{type:'shield',name:'Щит',duration:3,value:1e9}]);w.__setMonsterEffects([{type:'stun',name:'Оглушение',duration:3,value:1}]);});
+    await w.act(async()=>w.game.performPlayerAction('defend'));await flush();if(w.game.monsterIntent)await flush();
+    if(round===25)assert(!w.game.battleLog.some((l:any)=>l.id.startsWith('monster_enrage_')));
+    if(round===26)assert.equal(w.game.battleLog.filter((l:any)=>l.id.startsWith('monster_enrage_')).length,1);
+    if(round===40){assert.match(w.document.body.textContent,/Неудержимая ярость/);assert(w.game.combatPlayerHp<=w.game.combatStats.maxHp*.95);assert(w.game.battleLog.some((l:any)=>l.id.startsWith('enrage_control_')));}
+   }
+   if(regionId==='ascension')assert(w.game.battleLog.some((l:any)=>l.turn>=40&&l.id.startsWith('monster_skill_damage_')),'late skill casts also apply pressure');
+   assert.equal(w.game.combatOutcome,'defeat');assert.equal(w.game.combatPlayerHp,0);assert(!w.document.body.textContent.includes('Неудержимая ярость'));await w.act(async()=>w.game.exitCombat());
+  }
+ }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
 });
