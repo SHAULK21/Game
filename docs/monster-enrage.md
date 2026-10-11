@@ -1,7 +1,7 @@
 # Long PvE encounters
 
-Ordinary fights retain the previous damage through round 25. From round 26,
-monster damage grows by `1 + n * 0.12 + n² * 0.015`, where `n = round - 25`.
+Ordinary fights retain the previous damage through round 29. From round 30,
+monster damage grows by `1 + n * 0.12 + n² * 0.015`, where `n = round - 29`.
 The previous 2× ceiling is removed. Normal hits, super attacks and throwing
 potions all use this multiplier. The rule covers regional monsters, dungeon
 monsters, NPC gladiators and rank trials; server PvP is unchanged.

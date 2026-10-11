@@ -31,7 +31,7 @@ export function incomingArmorConstant(monster: Monster, type: DamageType): numbe
   return base + (monster.regionId === 'arena' || monster.regionId === 'ascension' ? 0 : Math.max(0, (monster.level || 1) - 3) * 1.2);
 }
 
-export const MONSTER_ENRAGE_ROUND = 26;
+export const MONSTER_ENRAGE_ROUND = 30;
 export const MONSTER_RELENTLESS_ROUND = 40;
 
 /** Normal fights are unchanged; prolonged PvE attacks grow without the old x2 ceiling. */

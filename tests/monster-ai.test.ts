@@ -72,8 +72,8 @@ test('low levels use fewer special actions; mana, cooldown, active protection an
   assert.equal(pveThreatMultiplier(enemy(8),1),2.1);assert.equal(pveThreatMultiplier(enemy(8),8),1);
   assert(incomingArmorConstant(enemy(80),'physical')>incomingArmorConstant(enemy(2),'physical'));
   assert.equal(pveThreatMultiplier({...enemy(80),regionId:'arena'},1),1);
-  assert.equal(monsterEnrageMultiplier(enemy(),25),1);
-  assert.equal(monsterEnrageMultiplier(enemy(),26),1.135);
+  assert.equal(monsterEnrageMultiplier(enemy(),29),1);
+  assert.equal(monsterEnrageMultiplier(enemy(),30),1.135);
   assert(monsterEnrageMultiplier(enemy(),200)>100);
   assert(monsterEnrageMultiplier({...enemy(),regionId:'ascension'},200)>100);
 });
@@ -159,8 +159,8 @@ test('real encounters end through late hits despite huge armor, shields, control
     if(w.game.combatPlayerHp<w.game.combatStats.maxHp)await w.act(async()=>w.game.performPlayerAction('potion','full_heal'));
     if(round>=40)await w.act(async()=>{w.__setPlayerEffects([{type:'invulnerable',name:'Неуязвимость',duration:3,value:1},{type:'shield',name:'Щит',duration:3,value:1e9}]);w.__setMonsterEffects([{type:'stun',name:'Оглушение',duration:3,value:1}]);});
     await w.act(async()=>w.game.performPlayerAction('defend'));await flush();if(w.game.monsterIntent)await flush();
-    if(round===25)assert(!w.game.battleLog.some((l:any)=>l.id.startsWith('monster_enrage_')));
-    if(round===26)assert.equal(w.game.battleLog.filter((l:any)=>l.id.startsWith('monster_enrage_')).length,1);
+    if(round===29)assert(!w.game.battleLog.some((l:any)=>l.id.startsWith('monster_enrage_')));
+    if(round===30)assert.equal(w.game.battleLog.filter((l:any)=>l.id.startsWith('monster_enrage_')).length,1);
     if(round===40){assert.match(w.document.body.textContent,/Неудержимая ярость/);assert(w.game.combatPlayerHp<=w.game.combatStats.maxHp*.95);assert(w.game.battleLog.some((l:any)=>l.id.startsWith('enrage_control_')));}
    }
    if(regionId==='ascension')assert(w.game.battleLog.some((l:any)=>l.turn>=40&&l.id.startsWith('monster_skill_damage_')),'late skill casts also apply pressure');
