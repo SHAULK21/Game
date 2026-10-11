@@ -71,7 +71,7 @@ export const CraftingScreen: React.FC = () => {
         </details>
       </BestiaryPanel>
 
-      <label className="block text-xs text-slate-300">{localize("Локация рецептов")}<SelectionField
+      <label className="block text-xs text-slate-300">{localize("Локация рецептов")}<SelectionField aria-label={localize("Локация рецептов")}
           value={selectedRegionId}
           onChange={event => { setRegionId(event.target.value); setFeedback(null); }}
           className="mt-1 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-slate-100"
@@ -81,13 +81,13 @@ export const CraftingScreen: React.FC = () => {
       </label>
 
       {feedback && <div role="status" className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-2 text-xs text-amber-200">{localize(feedback)}</div>}
-      <label className="block text-xs text-slate-300">{localize("Класс снаряжения")}<SelectionField value={selectedClass} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm">
+      <label className="block text-xs text-slate-300">{localize("Класс снаряжения")}<SelectionField aria-label={localize("Класс снаряжения")} value={selectedClass} onChange={event => setClassFilter(event.target.value as CharacterClassId | 'all')} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm">
           <option value="all">{localize("Все классы — любые вещи можно носить по уровню")}</option>
           {CLASS_GEAR_IDS.map(id => <option key={id} value={id}>{localize(CLASS_EQUIPMENT[id].label)}{localize(id === player.classId ? ' · ваш герой' : '')}</option>)}
         </SelectionField>
       </label>
 
-      <label className="block text-xs text-slate-300">{localize("Уровень рецептов")}<SelectionField value={levelFilter} onChange={event => setLevelFilter(event.target.value as 'available' | 'all')} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm">
+      <label className="block text-xs text-slate-300">{localize("Уровень рецептов")}<SelectionField aria-label={localize("Уровень рецептов")} value={levelFilter} onChange={event => setLevelFilter(event.target.value as 'available' | 'all')} className="mt-1 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm">
           <option value="available">{localize("Доступные по уровню · до ")}{localize(player.level)}{localize(" ур.")}</option>
           <option value="all">{localize("Все уровни · включая будущие рецепты")}</option>
         </SelectionField>

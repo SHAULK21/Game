@@ -1,4 +1,5 @@
 import './fantasy.css';
+import './fantasy-selection.css';
 import './mobile.css';
 import {GameScreens} from '../../GameScreens';
 import {InterfacePresentationContext} from '../../context/InterfacePresentationContext';

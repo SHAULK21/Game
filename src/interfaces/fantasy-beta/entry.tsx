@@ -1,5 +1,6 @@
 import '../fantasy/fantasy-beta.css';
 import '../fantasy/fantasy-chapters.css';
+import '../fantasy/fantasy-selection.css';
 import '../fantasy/fantasy-combat-shared.css';
 import './mobile.css';
 import {GameScreens} from '../../GameScreens';

@@ -1,0 +1,21 @@
+/* Shared searchable picker. Each fantasy entry loads this independently. */
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-trigger { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:48px; padding:8px 12px; border:1px solid #967344; border-radius:6px; background:linear-gradient(#e9d6ad,#c8aa79); color:#392a1c; text-align:left; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-trigger > span:first-child { flex:1; min-width:0; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-backdrop { z-index:110; display:flex; align-items:center; justify-content:center; padding:16px; background:#070807b8; backdrop-filter:blur(4px); }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-dialog { width:100%; max-width:480px; display:flex; flex-direction:column; min-height:0; padding:16px; color:#392a1c; background:linear-gradient(135deg,#f0e2c3,#cfb180); border:3px double #8d693e; border-radius:8px; box-shadow:0 16px 60px #0008; font-family:Georgia,serif; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-dialog header { display:flex; align-items:center; gap:10px; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid #a48356; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-dialog h2 { font-size:20px; font-weight:700; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-dialog header button { min-width:44px; min-height:44px; border:1px solid #997447; border-radius:5px; font-size:25px; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-dialog input { margin-top:12px; padding:10px; width:100%; min-height:44px; border:1px solid #9d7a4b; background:#f8ecd3; color:#392a1c; border-radius:5px; font-size:16px; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-count { padding:8px 0; font-size:12px; color:#70583c; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-options { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-option { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:56px; padding:12px 8px; text-align:left; border-bottom:1px solid #a4835670; color:#392a1c; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-option > span:first-child { min-width:0; flex:1; overflow-wrap:anywhere; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-option[aria-selected="true"] { background:#805c2925; box-shadow:inset 3px 0 #805c29; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-option:disabled { opacity:.5; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-item { display:flex; align-items:center; gap:10px; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-item-copy { min-width:0; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-item-copy :is(strong,small) { display:block; white-space:normal; overflow-wrap:anywhere; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-item-copy small { color:#6d5235; font-size:12px; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-empty { padding:20px; text-align:center; }
+html:is([data-interface="fantasy"],[data-interface="fantasy-beta"]) .selection-backdrop { position:fixed; left:0; right:0; z-index:130; }
