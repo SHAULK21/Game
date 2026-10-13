@@ -150,7 +150,7 @@ html:not([data-interface="modern"]) .world-action-sheet .reference-primary{backg
 @media(max-width:360px){.world-action-sheet .world-sheet-heading h2{font-size:22px}.world-action-sheet .world-sheet-facts>span{gap:2px 3px;padding:6px 3px;grid-template-columns:18px minmax(0,1fr)}.world-action-sheet .world-sheet-facts .reference-icon{width:18px!important;height:18px!important}.world-action-sheet .world-sheet-facts strong{font-size:11px}.world-action-sheet .world-loot-artwork{gap:4px}.world-action-sheet .world-loot-artwork li{font-size:10px}.world-action-sheet .world-sheet-footer{padding:7px 12px}.world-action-sheet .world-sheet-footer .world-mode-select{font-size:13px}.world-action-sheet .world-sheet-footer .world-cost-risk{font-size:11px}}
 
 /* The modal owns an opaque HUD/atlas surface: scrolled page text never bleeds through. */
-.world-sheet-stage{position:absolute;inset:0;width:100%;max-width:660px;margin:auto;background:#151a17;color:#e8ddc5;overflow:hidden}
+.world-sheet-stage{position:absolute;inset:0;bottom:calc(var(--reference-nav-height) + var(--reference-safe-bottom));width:100%;max-width:660px;margin:auto;background:#151a17;color:#e8ddc5;overflow:hidden}
 html[data-interface="fantasy-beta"] .world-sheet-stage{max-width:430px}
 .world-sheet-stage .world-sheet-map-context{position:relative;top:auto;left:auto;right:auto;margin:0;max-width:none}
 .world-sheet-context-hud{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:78px;padding:10px 12px;box-sizing:border-box;border-bottom:1px solid #958154;background:#161b18;color:#e5d9bd}
