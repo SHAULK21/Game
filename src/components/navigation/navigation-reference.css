@@ -100,3 +100,4 @@ html[data-interface="modern"] .game-shell main .world-hub :is(.world-heading h1,
 .game-shell[data-reference-page="menu"] .mechanics-page .mechanics-group h2{color:#30281e!important;font:700 20px/1.2 Georgia,serif}
 .game-shell[data-reference-page="menu"] .mechanics-page .mechanics-heading h1{color:#e4dac6;font:700 38px/1.1 Georgia,serif}
 .reference-bottom-nav .reference-nav-items>button>.reference-icon,.reference-bottom-nav .reference-nav-items>button>.reference-icon~span{transform:none}
+html[data-interface="fantasy-beta"] .reference-bottom-nav{max-width:430px!important}

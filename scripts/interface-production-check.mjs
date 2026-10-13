@@ -63,6 +63,7 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   await click('Мир');
   const badge=app.w.document.querySelector('.world-current-badge');assert(badge,'current-location badge');
   assert.equal(badge.querySelectorAll('img').length,0,'badge uses bounded vector artwork');
+  assert.equal(app.w.getComputedStyle(app.w.document.querySelector('.reference-bottom-nav')).maxWidth,mode==='fantasy-beta'?'430px':'760px','navigation matches the theme canvas width');
   assert.equal(app.w.getComputedStyle(badge.querySelector('.reference-icon')).width,'16px','actual emitted CSS keeps the icon small');
   assert.equal(app.w.getComputedStyle(badge).width,'max-content');
   const inactive=app.w.document.querySelector('.world-tabs [aria-selected=false]');
