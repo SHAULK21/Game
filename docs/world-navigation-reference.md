@@ -40,3 +40,11 @@
 ### Иллюстрация карты
 
 `public/assets/world/aethelgard-atlas-v1.webp`: отдельная карта без текста и элементов интерфейса, создана встроенным imagegen; WebP — сжатая версия исходной PNG. Запрос: «Hand-painted medieval fantasy atlas landscape, bird’s-eye view; muted olive woods, green plains, old gold desert, slate mountains, mist and winding blue river. Upper left ominous woods/mountains, upper right dragon mountains, lower left peaceful plains, lower middle marsh/crypt ruins, lower right desert. Terrain only; no text, labels, markers, numbers, buttons, portraits, panels, borders or watermark.» Названия и игровые правила накладываются компонентом из данных игры.
+
+## Исправление по скриншоту панели локации
+
+- У части монстров `avatar` содержит эмодзи, а не URL. Список врагов теперь использует существующий резолвер игровых портретов и компонент Portrait; при отказе загрузки показана резервная иконка, а не сломанное изображение. Регрессионная проверка подтверждает наличие соответствующих файлов в public.
+- Заголовок и закрытие исключены из сжатия flex. Сжимается и прокручивается только содержимое. Высота панели учитывает видимую область приложения и безопасные отступы Telegram; фокусировка не прокручивает экран.
+- Условие блокировки и ошибка действия закреплены рядом с кнопкой, чтобы игрок видел причину недоступности даже после прокрутки списка.
+
+Отдельные проверки панели: 10/10. TypeScript и production-сборка проходят. Проверка production-разделов трёх оформлений проходит. Визуальное подтверждение нового расположения на устройстве по-прежнему требует повторного скриншота работающей версии.
