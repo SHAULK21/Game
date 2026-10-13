@@ -3,7 +3,7 @@ import {useInterface} from '../../context/InterfaceContext';
 import {t,useLocale} from '../../i18n/locale';
 import {sound} from '../../utils/audio';
 import {triggerHaptic} from '../../utils/telegram';
-import {RpgIcon,type RpgIconKind} from '../../interfaces/fantasy/components/ui/RpgIcon';
+import {RpgIcon,type RpgIconKind} from './ReferenceIcon';
 import type {GameTabId} from '../../types/navigation';
 export interface BottomNavigationProps {currentTab:GameTabId;onSelectTab:(tab:GameTabId)=>void;unreadChatCount?:number;availableQuestsCount?:number}
 const primary:{id:GameTabId;label:string;icon:RpgIconKind}[]=[{id:'hunter',label:'Охота',icon:'hunt'},{id:'world',label:'Мир',icon:'map'},{id:'character',label:'Герой',icon:'character'},{id:'inventory',label:'Сумка',icon:'inventory'}];

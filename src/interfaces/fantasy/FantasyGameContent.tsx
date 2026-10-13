@@ -1,3 +1,4 @@
+import {BetaTopHeader} from './components/layout/BetaTopHeader';
 import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll';
 import {GameSectionMenu} from '../../components/navigation/GameSectionMenu';
 import type {GameTabId} from '../../types/navigation';
@@ -37,12 +38,13 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
     return <CharacterCreationModal />;
   }
 
+  const ScreenHeader = currentTab === 'world' || currentTab === 'menu' ? BetaTopHeader : Header;
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div ref={shellRef} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
+    <div ref={shellRef} data-reference-page={currentTab==='world'||currentTab==='menu'?currentTab:undefined} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
-      <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
+      <ScreenHeader hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {decoration}
       {/* Main View Area */}

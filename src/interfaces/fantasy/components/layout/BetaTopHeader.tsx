@@ -2,7 +2,7 @@ import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../../../context/GameContext';
-import { RpgIcon } from '../ui/RpgIcon';
+import { RpgIcon } from '../../../../components/navigation/ReferenceIcon';
 import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
 import { getFantasyHeroArtwork } from '../../utils/heroArtwork';
 import { RpgButton, DialogFrame } from '../ui/BestiaryUI';

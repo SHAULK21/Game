@@ -1,4 +1,4 @@
-/** Runs the actual production ESM in an emulated document. No browser paint/Network claim. */
+/** Runs the actual production ESM and stylesheets in an emulated document. No browser paint/Network claim. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -21,11 +21,13 @@ export async function boot(style,save,storage={},session={}) {
   w.localStorage.setItem('aethelgard_interface_style',style);w.localStorage.setItem('aethelgard_story_intro_v1_749219401','done');
   if(save)w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
   const original=w.Node.prototype.appendChild;
-  w.Node.prototype.appendChild=function(node){if(node.tagName==='LINK'&&node.href){loaded.add(new URL(node.href).pathname.slice(1));if(node.rel==='stylesheet')queueMicrotask(()=>node.dispatchEvent(new w.Event('load')));}return original.call(this,node);};
+  const styles=new Map();
+  const attachStyle=file=>{if(styles.has(file))return styles.get(file);const pending=fs.readFile(path.join(root,file),'utf8').then(css=>{const node=w.document.createElement('style');node.dataset.bundle=file;node.textContent=css;original.call(w.document.head,node);});styles.set(file,pending);return pending;};
+  w.Node.prototype.appendChild=function(node){if(node.tagName==='LINK'&&node.href){loaded.add(new URL(node.href).pathname.slice(1));if(node.rel==='stylesheet'){const file=new URL(node.href).pathname.slice(1);attachStyle(file).then(()=>node.dispatchEvent(new w.Event('load')),error=>{errors.push(String(error));node.dispatchEvent(new w.Event('error'));});}}return original.call(this,node);};
   const context=dom.getInternalVMContext(), modules=new Map();
   async function get(file){if(modules.has(file))return modules.get(file);loaded.add(file);const source=await fs.readFile(path.join(root,file),'utf8');const module=new vm.SourceTextModule(source,{context,identifier:file,initializeImportMeta(meta){meta.url='http://game.test/'+file;},importModuleDynamically:async(specifier,parent)=>{const file=path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier));const child=await get(file);if(child.status==='unlinked')await child.link(linker);if(child.status==='linked')await child.evaluate();return child;}});modules.set(file,module);return module;}
   const linker=(specifier,parent)=>get(path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier)));
-  for(const file of manifest['index.html'].css||[])loaded.add(file);
+  for(const file of manifest['index.html'].css||[]){loaded.add(file);await attachStyle(file);}
   const entry=await get(manifest['index.html'].file);await entry.link(linker);await entry.evaluate();
   const ready=async()=>{for(let i=0;i<200;i++){await sleep(10);if(w.document.querySelector('.registration-screen,.game-shell')&&![...w.document.querySelectorAll('main [role="status"]')].some(node=>/Загрузка|Завантаження/.test(node.textContent)))return;}throw new Error('Screen did not load: '+style+' '+w.document.body.textContent.slice(0,160)+' '+errors.join(';'));};
   await ready();await sleep(30);
@@ -51,12 +53,21 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
     if (!button) {
       const more = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === 'Меню');
       assert(more,'More navigation'); more.click(); await sleep(20);
+      const groupTitle=app.w.document.querySelector('.mechanics-group h2');assert(groupTitle);assert.equal(app.w.getComputedStyle(groupTitle).color,mode==='modern'?'rgb(226, 232, 238)':'rgb(48, 40, 30)','catalogue titles stay readable on the actual card surface');
       button = [...app.w.document.querySelectorAll('.mechanics-entry > button:first-child')].find(b => b.textContent.trim().startsWith(label));
     }
     assert(button,'Missing section '+mode+'/'+label); button.click(); await app.ready();
     assert(app.w.document.querySelector('main').textContent.trim(),'Empty section '+mode+'/'+label);
   };
   for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Задания','Охота']) await click(label);
+  await click('Мир');
+  const badge=app.w.document.querySelector('.world-current-badge');assert(badge,'current-location badge');
+  assert.equal(badge.querySelectorAll('img').length,0,'badge uses bounded vector artwork');
+  assert.equal(app.w.getComputedStyle(badge.querySelector('.reference-icon')).width,'16px','actual emitted CSS keeps the icon small');
+  assert.equal(app.w.getComputedStyle(badge).width,'max-content');
+  const inactive=app.w.document.querySelector('.world-tabs [aria-selected=false]');
+  assert.equal(app.w.getComputedStyle(inactive).backgroundColor,mode==='modern'?'rgb(32, 40, 50)':'rgb(29, 31, 29)','inactive tabs stay dark after theme CSS loads');
+  if(mode==='fantasy-beta')assert.equal(app.w.document.querySelector('[data-beta-book-page="world"]'),null);
   assert.equal(app.errors.length,0,app.errors.join(';'));
   if(mode==='fantasy-beta') {
     assert(!app.w.document.querySelector('image[href="/assets/sprites/reference/hero-codex.jpg"]'));

@@ -109,7 +109,7 @@ test('registration switches styles without losing input; both layouts share char
       const before=save().player.energy;
       if(page==='arena')await w.act(async()=>button('Меню').click());
       await w.act(async () => (button(label)||[...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.startsWith(label))).click()); await settle();
-      assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
+      if(page==='world'){assert(w.document.querySelector('.world-hub'));assert.equal(w.document.querySelector('[data-beta-book-page="world"]'),null,'world uses the reference canvas instead of the book binding');}else assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
       assert(w.document.querySelector('.beta-page-turn.is-forwards'), 'forward navigation turns a page');
       if(page==='world') {
         assert(w.document.querySelector('.world-land-list .world-land-card'));
