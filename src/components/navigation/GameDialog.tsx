@@ -1,7 +1,7 @@
 import React,{useEffect,useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {t} from '../../i18n/locale';
-export function GameDialog({title,onClose,children,className=''}:React.PropsWithChildren<{title:string;onClose:()=>void;className?:string}>){
+export function GameDialog({title,onClose,children,className='',backdropClassName='',backdropContent}:React.PropsWithChildren<{title:string;onClose:()=>void;className?:string;backdropClassName?:string;backdropContent?:React.ReactNode}>){
  const panel=useRef<HTMLElement>(null),closeRef=useRef(onClose);closeRef.current=onClose;
  useEffect(()=>{
   const previous=document.activeElement as HTMLElement|null;const overflow=document.body.style.overflow;
@@ -12,5 +12,5 @@ export function GameDialog({title,onClose,children,className=''}:React.PropsWith
   document.addEventListener('keydown',key);
   return()=>{document.body.style.overflow=overflow;siblings.forEach((el,i)=>el.inert=inert[i]);document.removeEventListener('keydown',key);if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[]);
- return createPortal(<div className="game-dialog-backdrop" onClick={onClose}><section ref={panel} className={`game-reference-dialog ${className}`} role="dialog" aria-modal="true" aria-label={t(title)} onClick={e=>e.stopPropagation()}>{children}</section></div>,document.body);
+ return createPortal(<div className={`game-dialog-backdrop ${backdropClassName}`} onClick={onClose}>{backdropContent&&<div className="game-dialog-context" aria-hidden="true">{backdropContent}</div>}<section ref={panel} className={`game-reference-dialog ${className}`} role="dialog" aria-modal="true" aria-label={t(title)} onClick={e=>e.stopPropagation()}>{children}</section></div>,document.body);
 }

@@ -4,6 +4,12 @@ import type {PlayerCharacter} from '../../types/game';
 import type {RegionDefinition} from '../../data/gameData';
 // Display coordinates only: access and travel costs come from game data/handlers.
 const pins=[[18,76],[19,48],[40,76],[42,38],[64,76],[81,56],[63,34],[44,11],[82,14]];
+// Non-interactive context above an open sheet. The actual map/list remains untouched.
+export function WorldMapBackdrop({regions,selectedId,section='land'}:{regions:RegionDefinition[];selectedId:string;section?:'land'|'dungeon'}){
+ useLocale();const index=Math.max(0,regions.findIndex(r=>r.id===selectedId));
+ const nearby=regions.slice(Math.max(0,Math.min(index-1,regions.length-3)),Math.max(3,index+2));
+ return <div className="world-sheet-map-context"><img src="/assets/world/aethelgard-atlas-v1.webp" alt=""/><h2>{t('Мир')}</h2><div className="world-sheet-map-tabs"><span className={section==='land'?'is-selected':''}>{t('Земли')}</span><span className={section==='dungeon'?'is-selected':''}>{t('Подземелья')}</span><span>{t('Занятия')}</span></div><div className="world-sheet-map-labels">{nearby.slice(0,3).map(r=><span key={r.id} className={r.id===selectedId?'is-selected':''}><i aria-hidden="true">◇</i><strong>{t(r.name).split(':')[0]}</strong><small>{t(r.levelRange)}</small></span>)}</div></div>;
+}
 export function WorldMap({regions,currentId,selectedId,player,onSelect}:{regions:RegionDefinition[];currentId:string;selectedId:string;player:PlayerCharacter;onSelect:(id:string)=>void}){
  useLocale();return <details className="world-map-panel"><summary>{t('Карта мира')}</summary><div className="world-map" role="group" aria-label={t('Земли')}>
  <img className="world-map-art" src="/assets/world/aethelgard-atlas-v1.webp" alt="" loading="lazy" draggable={false}/>

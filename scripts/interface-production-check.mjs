@@ -69,6 +69,14 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   const inactive=app.w.document.querySelector('.world-tabs [aria-selected=false]');
   assert.equal(app.w.getComputedStyle(inactive).backgroundColor,mode==='modern'?'rgb(32, 40, 50)':'rgb(29, 31, 29)','inactive tabs stay dark after theme CSS loads');
   if(mode==='fantasy-beta')assert.equal(app.w.document.querySelector('[data-beta-book-page="world"]'),null);
+  app.w.document.querySelector('.world-land-card').click();await app.ready();
+  const sheet=app.w.document.querySelector('.world-action-sheet');assert(sheet);
+  assert(app.w.document.querySelector('.world-sheet-map-context'),'atlas remains above the location sheet');
+  assert(sheet.querySelector('.world-sheet-footer .world-mode-select'),'mode stays beside confirmed action');
+  assert.equal(app.w.getComputedStyle(sheet.querySelector('.reference-close')).borderTopWidth,'0px','close control has no inherited square frame');
+  assert.equal(app.w.getComputedStyle(sheet).borderBottomLeftRadius,'0','sheet meets bottom navigation');
+  if(mode==='fantasy-beta')assert.equal(app.w.getComputedStyle(sheet).maxWidth,'430px');
+  sheet.querySelector('.reference-close').click();await app.ready();
   assert.equal(app.errors.length,0,app.errors.join(';'));
   if(mode==='fantasy-beta') {
     assert(!app.w.document.querySelector('image[href="/assets/sprites/reference/hero-codex.jpg"]'));

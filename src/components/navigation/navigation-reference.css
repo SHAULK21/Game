@@ -101,3 +101,50 @@ html[data-interface="modern"] .game-shell main .world-hub :is(.world-heading h1,
 .game-shell[data-reference-page="menu"] .mechanics-page .mechanics-heading h1{color:#e4dac6;font:700 38px/1.1 Georgia,serif}
 .reference-bottom-nav .reference-nav-items>button>.reference-icon,.reference-bottom-nav .reference-nav-items>button>.reference-icon~span{transform:none}
 html[data-interface="fantasy-beta"] .reference-bottom-nav{max-width:430px!important}
+
+/* A location is a bottom sheet over the atlas, rather than a detached modal. */
+.world-sheet-backdrop{background:#0005;backdrop-filter:none;padding-left:0;padding-right:0;padding-bottom:calc(var(--reference-nav-height) + var(--reference-safe-bottom));isolation:isolate}
+.game-dialog-context{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.world-sheet-map-context{position:absolute;top:80px;left:0;right:0;margin:auto;max-width:660px;height:300px;overflow:hidden;background:#192322;color:#ebdfc4;box-shadow:inset 0 0 45px #0008}
+.world-sheet-map-context>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.65)}
+.world-sheet-map-context>h2{position:relative;margin:12px 18px 8px;font:700 32px/1.1 Georgia,serif;color:#f1e4c6;text-shadow:0 2px 4px #000}
+.world-sheet-map-tabs{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 16px;border:1px solid #9a8254;border-radius:4px;overflow:hidden;background:#191c1dde;font:14px Georgia,serif;text-align:center}
+.world-sheet-map-tabs>*{padding:10px 3px;border-right:1px solid #79674b}
+.world-sheet-map-tabs>.is-selected{background:#ded0a7;color:#30281e}
+.world-sheet-map-labels{position:relative;display:flex;justify-content:space-around;gap:8px;margin:25px 12px 0;align-items:flex-start}
+.world-sheet-map-labels>span{display:flex;flex-direction:column;align-items:center;max-width:32%;text-align:center;font:12px/1.2 Georgia,serif;color:#e2d1a9}
+.world-sheet-map-labels i{font-style:normal;font-size:23px;line-height:1;margin-bottom:5px}
+.world-sheet-map-labels strong,.world-sheet-map-labels small{display:block;width:100%;background:#1a211be6;padding:4px;border:1px solid #8f7847;overflow-wrap:anywhere}
+.world-sheet-map-labels small{border-top:0;padding-top:0;font-size:11px}
+.world-sheet-map-labels .is-selected{margin-top:20px;color:#30281e}
+.world-sheet-map-labels .is-selected i{color:#e3bf66}
+.world-sheet-map-labels .is-selected :is(strong,small){background:#e6d5ab}
+.world-sheet-backdrop .world-action-sheet{position:relative;height:calc(var(--app-visible-height,100dvh) - var(--reference-nav-height) - var(--reference-safe-bottom) - max(160px,25vh));max-height:calc(var(--app-visible-height,100dvh) - var(--reference-nav-height) - var(--reference-safe-bottom) - max(env(safe-area-inset-top,0px),var(--app-tg-content-top,0px),var(--app-tg-safe-top,0px)) - 12px);border-radius:22px 22px 0 0;box-shadow:0 -6px 24px #0005}
+html[data-interface="fantasy-beta"] :is(.world-sheet-map-context,.world-sheet-backdrop .world-action-sheet){max-width:430px}
+.world-action-sheet .world-sheet-heading{padding:8px 16px 10px}
+.world-action-sheet .world-sheet-heading h2{font:700 26px/1.12 Georgia,serif;color:inherit;margin:0}
+.world-action-sheet .world-sheet-heading p{margin-top:5px;font:15px/1.2 Georgia,serif}
+.world-action-sheet .reference-close{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px;padding:0;border:0;background:transparent;box-shadow:none;align-self:flex-start;font:32px/1 Georgia,serif;color:inherit}
+.world-action-sheet .world-sheet-art{height:auto;aspect-ratio:4/1;max-height:115px;border-radius:6px;margin-bottom:8px}
+.world-action-sheet .world-sheet-facts>span{padding:7px 5px;grid-template-columns:23px minmax(0,1fr);gap:2px 5px}
+.world-action-sheet .world-sheet-facts strong{font:700 13px Georgia,serif}
+.world-action-sheet .world-sheet-facts small{grid-column:2;font:11px/1.2 sans-serif}
+.world-action-sheet .world-sheet-scroll h3{margin:10px 0 7px;font:700 16px/1.2 Georgia,serif}
+.world-action-sheet .world-enemies>div{padding:4px 6px;background:#b09b7620;min-height:52px}
+.world-action-sheet .world-enemies strong{font:700 14px/1.2 Georgia,serif}
+.world-action-sheet .world-enemies small{font:12px/1.2 sans-serif}
+.world-action-sheet .world-additional-enemies{margin:6px 0;border-bottom:1px solid #9b855944}
+.world-action-sheet .world-additional-enemies>summary{min-height:44px;display:flex;align-items:center;gap:6px;cursor:pointer;font:12px/1.2 sans-serif;list-style:none;color:var(--world-muted,#675946)}
+.world-action-sheet .world-additional-enemies>summary::after{content:'⌄';margin-left:auto;font-size:18px}
+.world-action-sheet .world-additional-enemies[open]>summary::after{content:'⌃'}
+.world-action-sheet .world-loot-preview{border-top:1px solid #9b855944;margin-top:10px}
+.world-action-sheet .world-loot-artwork{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));list-style:none;gap:7px;margin:0 0 10px;padding:0}
+.world-action-sheet .world-loot-artwork li{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;text-align:center;font:11px/1.2 sans-serif;overflow-wrap:anywhere}
+.world-action-sheet .world-loot-artwork img{width:52px;height:52px;max-width:100%;border:1px solid #8f794e;background:#19231f;border-radius:4px;object-fit:contain}
+.world-action-sheet .world-sheet-footer{padding:8px 16px 10px;background:transparent}
+.world-action-sheet .world-sheet-footer .world-mode-select{margin:0 0 8px;gap:8px;font:700 15px Georgia,serif}
+.world-action-sheet .world-sheet-footer .world-cost-risk{font:12px/1.3 sans-serif;margin-bottom:8px;gap:6px}
+html:not([data-interface="modern"]) .world-action-sheet .reference-primary{background:linear-gradient(#24382f,#172820);border:3px double #af985e;color:#efe2c4;box-shadow:inset 0 0 18px #0003;min-height:48px;font:700 18px/1.2 Georgia,serif;justify-content:center;padding:7px 10px;margin-top:0}
+.world-action-sheet .reference-secondary{min-height:44px;margin-top:6px;font:14px/1.2 Georgia,serif;background:#ae997624;box-shadow:none}
+@media(max-height:760px){.world-sheet-backdrop .world-action-sheet{height:calc(var(--app-visible-height,100dvh) - var(--reference-nav-height) - var(--reference-safe-bottom) - max(100px,16vh))}.world-sheet-map-context{top:64px}.world-sheet-map-context>h2{font-size:24px;margin:6px 14px}.world-sheet-map-tabs{font-size:12px}.world-sheet-map-labels{margin-top:10px}.world-action-sheet .world-sheet-art{aspect-ratio:4.5/1}.world-action-sheet .world-sheet-heading h2{font-size:24px}.world-action-sheet .world-sheet-heading{padding-top:5px;padding-bottom:6px}}
+@media(max-width:360px){.world-action-sheet .world-sheet-heading h2{font-size:22px}.world-action-sheet .world-sheet-facts>span{gap:2px 3px;padding:6px 3px;grid-template-columns:18px minmax(0,1fr)}.world-action-sheet .world-sheet-facts .reference-icon{width:18px!important;height:18px!important}.world-action-sheet .world-sheet-facts strong{font-size:11px}.world-action-sheet .world-loot-artwork{gap:4px}.world-action-sheet .world-loot-artwork li{font-size:10px}.world-action-sheet .world-sheet-footer{padding:7px 12px}.world-action-sheet .world-sheet-footer .world-mode-select{font-size:13px}.world-action-sheet .world-sheet-footer .world-cost-risk{font-size:11px}}
