@@ -1,3 +1,4 @@
+import { residentDemand } from '../src/utils/localMarket';
 import {authenticatePlayer, heartbeatPlayer, communityStatsCache} from './playerSession';
 import { sellToResidents } from './localMarket';
 import { recordTelegramWriteAccess } from './telegramWriteAccess';
@@ -702,6 +703,8 @@ app.get('/api/market/listings', auth, async (req, res) => {
   );
   res.json({ listings: result.rows });
 });
+
+app.get('/api/market/residents/demand', auth, (_req,res) => {res.set('Cache-Control','no-store');res.json(residentDemand());});
 
 app.post('/api/market/residents', auth, async (req, res) => {
   try { res.json(await sellToResidents(pool, req.authUser!.id, Number(req.get('X-Game-Reset-Version') || 0), req.body)); }

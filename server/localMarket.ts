@@ -1,10 +1,10 @@
 import type { Pool } from 'pg';
-import { localBuyoutGold } from '../src/utils/localMarket';
-export async function sellToResidents(pool: Pool, userId: number, resetVersion: number, body: any) {
-  const { operationId, item, itemId, quantity } = body || {};
+import { localBuyoutGold, residentMarketDay } from '../src/utils/localMarket';
+export async function sellToResidents(pool: Pool, userId: number, resetVersion: number, body: any, now = new Date()) {
+  const { operationId, item, itemId, quantity, demandDay } = body || {};
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(operationId || '') ||
       !item || typeof item.id !== 'string' || !Number.isInteger(quantity) || quantity < 1 || quantity > 999) throw new Error('Проверьте предмет и количество.');
-  const request = { action: 'residents', itemId: itemId || item.id, quantity, resetVersion };
+  const request = { action: 'residents', itemId: itemId || item.id, quantity, resetVersion, ...(demandDay!==undefined?{demandDay}:{}) };
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -16,6 +16,8 @@ export async function sellToResidents(pool: Pool, userId: number, resetVersion: 
       if (String(old.telegram_id) !== String(userId) || Object.entries(request).some(([k,v]) => old.request_json[k] !== v)) throw new Error('Параметры повторного запроса не совпадают.');
       await client.query('COMMIT'); return old.result_json;
     }
+    const day=residentMarketDay(now);
+    if(demandDay!==undefined&&demandDay!==day)throw new Error('Спрос жителей изменился. Обновите цену и подтвердите продажу снова.');
     let current = item;
     if (itemId) {
       const row = (await client.query('SELECT * FROM owned_items WHERE id=$1 AND owner_telegram_id=$2 FOR UPDATE', [itemId,userId])).rows[0];
@@ -24,7 +26,8 @@ export async function sellToResidents(pool: Pool, userId: number, resetVersion: 
       if (Number(row.quantity) === quantity) await client.query('DELETE FROM owned_items WHERE id=$1', [itemId]);
       else await client.query('UPDATE owned_items SET quantity=quantity-$1 WHERE id=$2', [quantity,itemId]);
     } else if (item.serverOwned || item.isEquipped || item.isLocked || item.boundToClan || quantity > (item.stackCount || 1)) throw new Error('Предмет недоступен для продажи.');
-    const result = { gold: localBuyoutGold(current.sellPrice, quantity), quantity, operationId };
+    const result = { gold: localBuyoutGold(current, quantity, day), quantity, operationId, demandDay:day };
+    if(result.gold<=0)throw new Error('Этот предмет нельзя продать жителям.');
     await client.query('INSERT INTO inventory_bulk_disposals (id,telegram_id,request_json,result_json) VALUES ($1,$2,$3::jsonb,$4::jsonb)', [operationId,userId,JSON.stringify(request),JSON.stringify(result)]);
     await client.query('COMMIT'); return result;
   } catch (error) { await client.query('ROLLBACK'); throw error; }

@@ -137,7 +137,7 @@ interface GameContextType {
   equipItem: (item: GameItem) => Promise<{success:boolean;message:string}>;
   unequipItem: (type: ItemType) => Promise<{success:boolean;message:string}>;
   sellItem: (item: GameItem) => void;
-  sellToResidents: (item: GameItem, quantity: number) => Promise<{success: boolean; message: string}>;
+  sellToResidents: (item: GameItem, quantity: number, demandDay?: string) => Promise<{success: boolean; message: string}>;
   disassembleItem: (item: GameItem) => void;
   bulkDisposeItems: (filters: BulkFilters, action: BulkAction, confirmedIds?: string[]) => Promise<{success: boolean; message: string}>;
   toggleItemLock: (itemId: string) => void;
@@ -853,11 +853,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (pending) {try {void createClan(JSON.parse(pending)).catch(()=>{});} catch {}}
   },[player?.userId]);
 
-  const sellToResidents = useCallback(trackOperation(async (item: GameItem, quantity: number) => {
+  const sellToResidents = useCallback(trackOperation(async (item: GameItem, quantity: number, demandDay?:string) => {
     if (!player) return { success: false, message: 'Персонаж не создан.' };
     if (bulkInventoryBusy.current || marketBusy.current) return {success:false,message:'Дождитесь завершения операции.'};
     const key = 'aethelgard_residents_pending_' + player.userId;
-    let operation: {operationId:string;item:GameItem;quantity:number} | null = null;
+    let operation: {operationId:string;item:GameItem;quantity:number;demandDay?:string} | null = null;
     try { operation = JSON.parse(localStorage.getItem(key) || 'null'); } catch { localStorage.removeItem(key); }
     if (operation?.operationId === player.lastResidentSaleOperation) {localStorage.removeItem(key);operation=null;}
     if (!operation) {
@@ -865,13 +865,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!current || current.isEquipped || Object.values(player.equipped).some(i=>i?.id===item.id)) return {success:false,message:'Предмет отсутствует или надет.'};
       if (current.isLocked || current.boundToClan) return {success:false,message:'Запертый или клановый предмет нельзя выставить на рынок.'};
       if (!Number.isInteger(quantity) || quantity<1 || quantity>Math.min(999,current.stackCount||1)) return {success:false,message:'Проверьте целое количество.'};
-      operation={operationId:createOperationId(),item:current,quantity};localStorage.setItem(key,JSON.stringify(operation));
+      operation={operationId:createOperationId(),item:current,quantity,demandDay};localStorage.setItem(key,JSON.stringify(operation));
     }
     marketBusy.current=true;serverInventoryVersion.current+=1;
     const pending=operation;
     const startingResetVersion=readResetVersion(player.userId);
     try {
-      const receipt = await apiRequest<{gold:number}>('/api/market/residents',{method:'POST',body:JSON.stringify({operationId:pending.operationId,item:pending.item,itemId:pending.item.serverOwned?pending.item.id:undefined,quantity:pending.quantity})});
+      const receipt = await apiRequest<{gold:number}>('/api/market/residents',{method:'POST',body:JSON.stringify({operationId:pending.operationId,item:pending.item,itemId:pending.item.serverOwned?pending.item.id:undefined,quantity:pending.quantity,demandDay:pending.demandDay})});
       setPlayer(prev => {
         if(!prev || prev.userId!==player.userId || readResetVersion(player.userId)!==startingResetVersion || prev.lastResidentSaleOperation===pending.operationId)return prev;
         const inventory=prev.inventory.flatMap(i=>{
