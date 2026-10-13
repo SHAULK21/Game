@@ -16,7 +16,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
   assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
   assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
-  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться в путь|Вирушити в дорогу/.test(n.textContent)) as any;
+  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться ·|Вирушити ·/.test(n.textContent)) as any;
   assert(travel,'first destination is preselected but travel mode remains selectable');
   await w.act(async()=>travel.click());
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,55);
@@ -82,7 +82,7 @@ test('language selection is visible only at registration; its saved locale survi
     await w.act(async () => w.setLanguage('ru')); assert.equal(active(), 'Сумка'); assert.equal(stablePlayerState(save().player), original);
     await click('Современный'); assert.equal(active(), 'Сумка');
     await w.act(async () => w.setLanguage('uk')); assert.equal(active(), 'Сумка'); assert.equal(stablePlayerState(save().player), original);
-    await click('Фентезі'); await click('Ще'); await click('Герой'); await click('Сучасний');
+    await click('Фентезі'); await click('Меню'); await click('Герой'); await click('Сучасний');
     assert.match(w.document.querySelector('main').textContent, /Золото/);
     assert.equal(w.document.querySelector('main [data-player-name]')?.textContent, 'Золото', 'player nickname is never translated even when it matches a dictionary key');
     await click('Полювання');

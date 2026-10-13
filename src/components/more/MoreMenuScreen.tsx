@@ -1,3 +1,4 @@
+import {useSectionTarget,JOURNAL_SECTIONS,type JournalSection} from '../../components/navigation/gameSections';
 import { AdventureJournal } from './AdventureJournal';
 import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
@@ -29,7 +30,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   const [premiumFeedback, setPremiumFeedback] = useState<string | null>(null);
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications' | 'journal'>('quests');
+  const [activeSection, setActiveSection] = useSectionTarget<JournalSection>('journal',JOURNAL_SECTIONS,'quests');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
 
   return (
     <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+      <button className="min-h-11 px-3" aria-pressed={activeSection==='settings'} onClick={()=>setActiveSection('settings')}>{localize('Настройки')}</button>
       {/* Navigation Sub-Tabs */}
       <div className="grid grid-cols-3 gap-1.5 text-[10px] font-cinzel font-bold">
         <button
@@ -108,6 +110,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {activeSection === 'journal' && <AdventureJournal />}
       <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
+      {activeSection === 'settings' && <section className="world-paper p-4"><h2>{localize('Настройки')}</h2><p>{localize('Звук и оповещения на этом устройстве')}</p><NotificationsPanel/></section>}
 
       {/* QUESTS SECTION */}
       {activeSection === 'quests' && (

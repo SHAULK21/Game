@@ -51,7 +51,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
         ) : (
           <Surface page={currentTab}>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
-            {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
+            {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'character' && <CharacterScreen onClose={() => setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}

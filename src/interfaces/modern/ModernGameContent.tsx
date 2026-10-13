@@ -49,7 +49,7 @@ export const ModernGameContent: React.FC = () => {
         ) : (
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
-            {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
+            {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
@@ -70,7 +70,7 @@ export const ModernGameContent: React.FC = () => {
 
       {/* Bottom Thumb Navigation Bar */}
       <BottomNavigation
-        currentTab={currentTab}
+        currentTab={isCharacterSheetOpen ? 'character' : currentTab}
         onSelectTab={tab => {
           setIsCharacterSheetOpen(false);
           setCurrentTab(tab);

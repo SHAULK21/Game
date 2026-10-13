@@ -21,8 +21,9 @@ for (const fantasy of [false,true]) test(`${fantasy?'fantasy':'modern'}: complet
   await w.act(async()=>w.game.claimRegionCompletion('reg_plains'));assert.equal(w.game.player.gold,210);
   await w.act(async()=>w.game.finishAdventureStory());assert.ok(w.game.player.adventureJournal.unlocked.includes('plains-complete'));
   let result:any;await w.act(async()=>{result=w.game.startTravel('reg_whisper_woods');});assert.equal(result.success,false);
-  const road=w.document.querySelector('[data-hunting-mode=mod_dense_fog]');assert.ok(road);await w.act(async()=>road.click());assert.equal(w.game.player.activeRegionModId,'mod_standard','selection does not teleport');
-  assert.ok(button('Отправиться в путь'));await w.act(async()=>button('Отправиться в путь').click());assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.player.energy,94);
+  await w.act(async()=>w.document.querySelector('[aria-label*="Пастбища Новичков"]').click());
+  const road=w.document.querySelector('[data-hunting-mode=mod_dense_fog]');assert.ok(road);await w.act(async()=>{const select=road.closest('select');select.value='mod_dense_fog';select.dispatchEvent(new w.Event('change',{bubbles:true}));});assert.equal(w.game.player.activeRegionModId,'mod_standard','selection does not teleport');
+  assert.ok(button('Отправиться ·'));await w.act(async()=>button('Отправиться ·').click());assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.player.energy,94);
   for(let i=0;i<3;i++)await w.act(async()=>interval!());await w.act(async()=>timers.shift()!());assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.activeRegionModId,'mod_dense_fog');
   const dummy={id:'test_road',name:'Цель',regionId:'reg_plains',level:2,hp:1,maxHp:1,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:0,goldReward:0,drops:[]};
   const count=()=>w.game.player.inventory.filter((i:any)=>i.templateId==='ascension_fragment').reduce((n:number,i:any)=>n+(i.stackCount||1),0);

@@ -1,3 +1,4 @@
+import {useSectionTarget,JOURNAL_SECTIONS,type JournalSection} from '../../../../components/navigation/gameSections';
 import { AdventureJournal } from '../../../../components/more/AdventureJournal';
 import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
@@ -21,7 +22,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
   const [premiumBusy, setPremiumBusy] = useState(false);
   const [preparedPremiumInvoice, setPreparedPremiumInvoice] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
-  const [activeSection, setActiveSection] = useState<'quests' | 'achievements' | 'stats' | 'leaderboard' | 'premium' | 'notifications' | 'journal'>('quests');
+  const [activeSection, setActiveSection] = useSectionTarget<JournalSection>('journal',JOURNAL_SECTIONS,'quests');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
         <div className="flex items-center gap-2 text-xs text-[#aaa49a]"><RpgIcon kind="settings" size={17} /><span>{localize("Настройки звука")}</span></div>
         <button className="rpg-button rpg-button-secondary min-h-10 px-3 text-xs" onClick={() => setIsMuted(sound.toggleMute())}>{localize(isMuted ? 'Звук выключен' : 'Звук включён')}</button>
       </div>
+      <button className="min-h-11 px-3" aria-pressed={activeSection==='settings'} onClick={()=>setActiveSection('settings')}>{localize('Настройки')}</button>
       {/* Navigation Sub-Tabs */}
       <div className="journal-tabs grid grid-cols-3 gap-1.5 text-[11px] font-cinzel font-bold">
         <button
@@ -104,6 +106,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {activeSection === 'journal' && <AdventureJournal />}
       <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
+      {activeSection === 'settings' && <section className="world-paper p-4"><h2>{localize('Настройки')}</h2><p>{localize('Звук и оповещения на этом устройстве')}</p><NotificationsPanel/></section>}
 
       {/* Quest manuscript uses the same reward actions and live quest data. */}
       {activeSection === 'quests' && (

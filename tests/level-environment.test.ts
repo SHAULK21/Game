@@ -42,9 +42,9 @@ test('map highlights suitable regions; spoilers keep earlier and future travel o
   w.eval(bundle.outputFiles[0].text);
   try {
     await w.act(async () => w.mount());
-    assert.match(w.document.body.textContent, /Земли опытных героев/);
-    const preview = w.document.querySelector('h3');
-    assert.equal(preview.textContent, w.regions.find((region: any) => region.id === 'reg_swamp').name);
+    assert.match(w.document.body.textContent, /По вашему уровню/);
+    assert(w.document.querySelector('.world-current h2').textContent.includes(w.regions[0].name));
+    assert(w.document.querySelector('[role=tabpanel]').textContent.includes(w.regions.find((region:any)=>region.id==='reg_swamp').name));
     const summaries = [...w.document.querySelectorAll('summary')] as any[];
     assert.equal(summaries.length, 2);
     for (const summary of summaries) {
@@ -53,15 +53,16 @@ test('map highlights suitable regions; spoilers keep earlier and future travel o
       assert.equal(summary.parentElement.open, true);
     }
     // A future region remains inspectable, while its original level gate stays enforced.
-    const dragon = [...w.document.querySelectorAll('span')].find((node: any) => node.textContent === w.regions.at(-1).name) as any;
-    await w.act(async () => dragon.closest('div.cursor-pointer').click());
-    let travel = [...w.document.querySelectorAll('button')].find((button: any) => button.textContent.includes('Отправиться в путь')) as any;
+    const dragon = [...w.document.querySelectorAll('.world-land-card strong')].find((node: any) => node.textContent === w.regions.at(-1).name) as any;
+    await w.act(async () => dragon.closest('button').click());
+    let travel = [...w.document.querySelectorAll('button')].find((button: any) => button.textContent.includes('Отправиться ·')) as any;
     assert.equal(travel.disabled, true);
     assert.equal(trips.length, 0);
     // Use the suitable region explicitly after inspecting the locked one.
-    const suitable = [...w.document.querySelectorAll('span')].find((node: any) => node.textContent === w.regions.find((region: any) => region.id === 'reg_swamp').name) as any;
-    await w.act(async () => suitable.closest('div.cursor-pointer').click());
-    travel = [...w.document.querySelectorAll('button')].find((button: any) => button.textContent.includes('Отправиться в путь')) as any;
+    await w.act(async()=>w.document.querySelector('[aria-label="Закрыть выбор локации"]').click());
+    const suitable = [...w.document.querySelectorAll('.world-land-card strong')].find((node: any) => node.textContent === w.regions.find((region: any) => region.id === 'reg_swamp').name) as any;
+    await w.act(async () => suitable.closest('button').click());
+    travel = [...w.document.querySelectorAll('button')].find((button: any) => button.textContent.includes('Отправиться ·')) as any;
     await w.act(async () => travel.click());
     assert.deepEqual(trips, [['reg_swamp', 'mod_standard']]);
     assert.equal(w.game.player.currentRegionId, 'reg_plains', 'visual selection never relocates the player');

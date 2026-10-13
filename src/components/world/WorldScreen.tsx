@@ -1,85 +1,33 @@
-import { SelectionField } from '../ui/SelectionField';
-import { ModernLandscape } from '../../interfaces/modern/ModernLandscape';
-import { t as localize, useLocale } from '../../i18n/locale';
-import { regionEntryLockReason, huntingModeLockReason } from '../../utils/regionalProgress';
-import { DUNGEON_DIFFICULTIES } from '../../utils/dungeonRewards';
-import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
-import { REGIONS, CAVES, ASSETS, REGION_MODIFIERS } from '../../data/gameData';
-import { 
-  Compass, 
-  MapPin, 
-  Skull, 
-  Flame, 
-  Sparkles, 
-  ChevronRight, 
-  ArrowLeft,
-  Crown,
-  Key,
-  Shield,
-  Zap,
-  AlertTriangle,
-  Footprints,
-  Clock
-} from 'lucide-react';
-import { sound } from '../../utils/audio';
-import { groupRegionsByLevel } from '../../utils/levelEnvironment';
-import { LevelEnvironment } from '../ui/LevelEnvironment';
+import {WorldExplorer} from './WorldExplorer';
+import type {GameTabId} from '../../types/navigation';
+import {t as localize,useLocale} from '../../i18n/locale';
+import React from 'react';
+import {useGame} from '../../context/GameContext';
+import {ASSETS} from '../../data/gameData';
+import {Skull,Sparkles,Crown,Key,AlertTriangle,Footprints} from 'lucide-react';
 
 interface WorldScreenProps {
   onEnterCombatTab?: () => void;
+  onNavigate?: (tab:GameTabId) => void;
 }
 
-export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) => {
+export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNavigate }) => {
   useLocale();
   const {
     player,
     combatStats,
     activeDungeonRun,
     travelState,
-    startTravel,
-    enterDungeon,
     proceedDungeonRoom,
     exitDungeon,
-    isInCombat,
-    isCombatEnded,
-    premium
   } = useGame();
 
-  const [selectedCaveId, setSelectedCaveId] = useState<string>('cave_bat');
-  const [difficulty, setDifficulty] = useState<'normal' | 'hard' | 'nightmare' | 'hell'>('normal');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
-    const suitable = groupRegionsByLevel(REGIONS, player?.level || 1).recommended;
-    return suitable.find(region => region.id === player?.currentRegionId)?.id || suitable[0]?.id || 'reg_plains';
-  });
-  const [selectedModId, setSelectedModId] = useState<string>(() => {
-    const selected = REGIONS.find(region => region.id === selectedRegionId)!;
-    return selected.id === player?.currentRegionId && selected.availableMods.includes(player.activeRegionModId || '')
-      ? player.activeRegionModId! : selected.defaultModId;
-  });
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   if (!player) return null;
-
-  const isFirstDeparture = Boolean(player.firstJourneyDeparture && player.firstJourney === 'done' && player.statPoints === 0);
-  const currentRegion = REGIONS.find(r => r.id === player.currentRegionId) || REGIONS[0];
-  const inspectingRegion = isFirstDeparture ? REGIONS[0] : REGIONS.find(r => r.id === selectedRegionId) || currentRegion;
-  const regionGroups = groupRegionsByLevel(REGIONS, player.level);
-  const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
-
-  const handleStartTravel = (regId: string) => {
-    setErrorMessage(null);
-    const result = startTravel(regId, selectedModId);
-    if (!result.success) {
-      setErrorMessage(result.message);
-      setTimeout(() => setErrorMessage(null), 4000);
-    }
-  };
 
   // 1. TRAVEL OVERLAY MODAL (Journey & Ambush)
   if (travelState.isTraveling) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+      <div className="world-travel-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
         <div className={`max-w-sm w-full rounded-2xl p-6 border text-center  transition-all ${
           travelState.isAmbush 
             ? 'bg-rose-950/80 border-rose-500'
@@ -249,287 +197,5 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab }) =>
     );
   }
 
-  const renderRegion = (reg: (typeof REGIONS)[number]) => {
-    const isCurrent = player.currentRegionId === reg.id;
-    const isInspecting = selectedRegionId === reg.id;
-    const isLocked = Boolean(regionEntryLockReason(player, reg));
-
-    return (
-      <div
-        key={reg.id}
-        onClick={() => {
-          setSelectedRegionId(reg.id);
-          setSelectedModId(reg.id === currentRegion.id && reg.availableMods.includes(player.activeRegionModId || '')
-            ? player.activeRegionModId!
-            : reg.defaultModId);
-          sound.playClick();
-        }}
-        className={`p-3 rounded-xl border transition-all cursor-pointer ${
-          isInspecting
-            ? 'border-cyan-400 bg-cyan-950/40 shadow-md '
-            : isLocked
-            ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
-            : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-              {localize(reg.icon)}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-cinzel text-xs font-bold text-slate-100">
-                  {localize(reg.name)}
-                </span>
-                {reg.isStarter && (
-                  <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold">{localize("СТАРТ")}</span>
-                )}
-                {isCurrent && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold">{localize("ВЫ ЗДЕСЬ")}</span>
-                )}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
-                {localize(reg.levelRange)} · {localize(reg.monsters.length)}{localize(" видов монстров")}</div>
-            </div>
-          </div>
-
-          <div className="text-right">
-            {isLocked ? (
-              <span className="text-[10px] font-mono text-rose-400 font-bold">{localize(player.level < reg.minLevel ? `Треб. ур. ${reg.minLevel}` : "Нужен ранг D")}
-              </span>
-            ) : (
-              <ChevronRight className={`w-5 h-5 ${isInspecting ? 'text-[#d5ba89]' : 'text-slate-500'}`} />
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // 3. MAIN WORLD EXPLORATION VIEW
-  return (
-    <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
-      <section className="modern-world-banner"><ModernLandscape regionId={selectedRegionId} /><div><p>{localize("Карта Аэтельгарда")}</p><h1>{localize(REGIONS.find(region => region.id === selectedRegionId)?.name || currentRegion.name)}</h1></div></section>
-      {!isFirstDeparture && <>
-      {/* Header Banner */}
-      <div className="ui-panel rounded-2xl border p-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-[#d5ba89]">
-            <Compass className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="font-cinzel text-lg font-bold text-slate-100">{localize("Карта Аэтельгарда")}</h2>
-            <p className="text-xs text-slate-300">{localize("Локации вашего уровня — на первом плане. Выберите место для охоты.")}</p>
-          </div>
-        </div>
-
-        <LevelEnvironment level={player.level} />
-        <p className="mt-2 text-[11px] text-slate-400">{localize("Вы находитесь: ")}{localize(currentRegion.name)}</p>
-
-        {/* Error message */}
-        {errorMessage && (
-          <div className="mt-3 p-2.5 bg-rose-950/80 border border-rose-500/50 rounded-lg text-rose-200 text-xs flex items-center gap-2 animate-shake">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{localize(errorMessage)}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Regions List with Starter Locations Badge */}
-      <div className="space-y-2">
-        <div className="text-xs font-mono text-[#d5ba89] uppercase tracking-wider px-1">{localize("Подходят вашему уровню:")}</div>
-
-        <div className="space-y-2">
-          {localize(regionGroups.recommended.map(renderRegion))}
-          {regionGroups.recommended.length === 0 && <p className="text-xs text-slate-400">{localize("Выберите локацию в соседних этапах.")}</p>}
-        </div>
-        {([
-          { key: 'earlier', title: 'Локации низких уровней' },
-          { key: 'future', title: 'Локации будущих уровней' },
-        ] as const).map(group => regionGroups[group.key].length > 0 && (
-          <details key={group.key} className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-            <summary className="cursor-pointer text-xs text-slate-400">
-              {localize(group.title)} · {localize(regionGroups[group.key].length)}
-              {localize(regionGroups[group.key].some(region => region.id === currentRegion.id) && ' · Вы здесь')}
-            </summary>
-            <div className="mt-3 space-y-2">{localize(regionGroups[group.key].map(renderRegion))}</div>
-          </details>
-        ))}
-      </div>
-
-      </>}
-
-      {/* Selected Region & Mode Control Card */}
-      {isFirstDeparture && errorMessage && <p role="alert" className="text-sm text-rose-300">{localize(errorMessage)}</p>}
-      <div className="rounded-2xl border border-indigo-500/30 bg-[#090d18] p-4 space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800">
-              {localize(inspectingRegion.icon)}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-cinzel text-sm font-bold text-slate-100">
-                  {localize(inspectingRegion.name)}
-                </h3>
-                {inspectingRegion.isStarter && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300 text-[9px] font-mono font-bold">{localize("СТАРТОВАЯ")}</span>
-                )}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
-                {localize(inspectingRegion.levelRange)} · {localize(inspectingRegion.description)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Region Mode / Modifier Selector */}
-        <div className="pt-2 border-t border-slate-800/80">
-          <div className="flex items-center justify-between text-xs font-mono text-[#d5ba89] mb-2">
-            <span>{localize("Режим охоты:")}</span>
-            <span className="text-[10px] text-amber-300">{localize("Расход: ")}{localize(activeMod.energyCost)} ⚡</span>
-          </div>
-
-          <p data-ambush-chance={Math.round(activeMod.ambushChance * 100)} className="text-xs font-semibold text-amber-300 mb-2">{localize("Шанс засады: ")}{localize(Math.round(activeMod.ambushChance * 100))}%</p>
-
-          <div className="grid grid-cols-2 gap-2">
-            {(inspectingRegion.availableMods || ['mod_standard']).map(mId => {
-              const mod = REGION_MODIFIERS[mId];
-              if (!mod) return null;
-              const isSelected = selectedModId === mod.id;
-              const modeLock = huntingModeLockReason(player, inspectingRegion, mod.id);
-
-              return (
-                <button
-                  key={mod.id}
-                  disabled={player.level<inspectingRegion.minLevel || Boolean(modeLock)}
-                  onClick={() => {
-                    setSelectedModId(mod.id);
-                    sound.playClick();
-                  }}
-                  aria-pressed={isSelected}
-                  data-hunting-mode={mod.id}
-                  className={`p-2 rounded-xl border text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
-                    isSelected 
-                      ? 'border-[#9d8459] bg-[#302c24]'
-                      : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span>{localize(mod.icon)}</span>
-                    <span className="font-cinzel text-[11px] font-bold text-slate-200 truncate">
-                      {localize(mod.name)}
-                    </span>
-                  </div>
-                  {modeLock && <p className="text-[9px] text-amber-300 mb-1">🔒 {localize(modeLock)}</p>}
-                  <div className="text-[9px] text-slate-400 leading-tight">
-                    HP ×{localize(mod.hpMultiplier||1)}{localize(" · Урон ×")}{localize(mod.damageMultiplier)}<br/>{localize("Защита ×")}{localize(mod.defenseMultiplier||1)}{localize(" · Дроп: x")}{localize(mod.rareDropMultiplier)}<br/>{localize("Засада: ")}{localize(Math.round(mod.ambushChance * 100))}%
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Active Mode Description Box */}
-          <div className="mt-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
-            <span className="font-bold text-amber-300">{localize(activeMod.name)}: </span>
-            {localize(activeMod.description)}
-          </div>
-        </div>
-
-        {regionEntryLockReason(player, inspectingRegion) && <p role="status" className="text-xs text-amber-200">{localize(regionEntryLockReason(player, inspectingRegion)!)}</p>}
-        {/* Travel / Action Button */}
-        <div className="pt-2">
-          {player.currentRegionId === inspectingRegion.id && selectedModId === (player.activeRegionModId || inspectingRegion.defaultModId) && !isFirstDeparture ? (
-            <button
-              onClick={() => {
-                if (onEnterCombatTab) onEnterCombatTab();
-              }}
-              className="ui-primary w-full py-2.5 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <span>{localize("⚔️ Перейти к охоте на монстров")}</span>
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => handleStartTravel(inspectingRegion.id)}
-                disabled={Boolean(regionEntryLockReason(player, inspectingRegion))}
-                className="ui-primary w-full py-2.5 rounded-xl disabled:opacity-50 font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Footprints className="w-4 h-4" />
-                <span>{localize("Отправиться в путь (3 сек, ")}{localize(activeMod.energyCost)} ⚡)</span>
-              </button>
-              {player.level < inspectingRegion.minLevel && (
-                <p className="mt-2 text-center text-xs text-rose-300">{localize("Локация откроется на ")}{localize(inspectingRegion.minLevel)}{localize("-м уровне. Сейчас её можно только посмотреть.")}</p>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {!isFirstDeparture && <>
-      {/* Caves & Dungeons Section */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="text-xs font-mono text-purple-400 uppercase tracking-wider">{localize("Древние пещеры и подземелья:")}</div>
-          <span className="text-[11px] text-slate-400">
-            {localize(Object.keys(CAVES).length)}{localize(" локаций")}</span>
-        </div>
-
-        <label className="block text-xs text-purple-200">{localize("Сложность похода")}<SelectionField aria-label={localize("Сложность похода")} value={difficulty} onChange={e=>setDifficulty(e.target.value as typeof difficulty)} className="mt-1 w-full rounded-lg border border-purple-800 bg-slate-950 p-2">
-            <option value="normal">{localize("Обычная · награда ×1")}</option><option value="hard">{localize("Сложная · награда ×1,5")}</option><option value="nightmare">{localize("Кошмар · награда ×2")}</option><option value="hell">{localize("Ад · награда ×3")}</option>
-          </SelectionField>
-          <span className="mt-1 block text-slate-400">{localize("HP врагов ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].hp)}{localize(" · урон ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].damage)}{localize(" · защита ×")}{localize(DUNGEON_DIFFICULTIES[difficulty].defense)}{localize(". Множитель награды относится к завершению похода.")}</span>
-        </label>
-
-        <div className="space-y-2">
-          {Object.values(CAVES).map(cave => {
-            const isSelected = selectedCaveId === cave.id;
-            const canEnter = player.energy >= 15 && !(isInCombat && !isCombatEnded) && !(player.miningExpedition && !premium.active);
-            return (
-              <div
-                key={cave.id}
-                onClick={() => {
-                  setSelectedCaveId(cave.id);
-                  sound.playClick();
-                }}
-                className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'border-purple-400 bg-purple-950/40 shadow-md '
-                    : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl p-2 bg-slate-900 rounded-lg border border-slate-800">
-                      {localize(cave.icon)}
-                    </span>
-                    <div>
-                      <span className="font-cinzel text-xs font-bold text-slate-100">
-                        {localize(cave.name)}
-                      </span>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {localize(cave.roomsCount)}{localize(" комнат · Рекомендуемый ур. ")}{localize(cave.minLevel)}{localize(" · Вход 15 ⚡")}</div>
-                    </div>
-                  </div>
-
-                  <button
-                    disabled={!canEnter}
-                    onClick={e => {
-                      e.stopPropagation();
-                      enterDungeon(cave.id, difficulty);
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white active:scale-95 transition-transform"
-                  >{localize("Войти")}</button>
-                </div>
-              </div>
-            );
-          })}
-          <p className="text-[10px] text-slate-400">{localize("Все подземелья открыты с начала игры. Сложность врагов сохраняется. Для входа нужно 15 энергии и завершённый бой; во время шахтёрской экспедиции вход доступен только с Premium.")}</p>
-        </div>
-      </div>
-      </>}
-    </div>
-  );
+  return <WorldExplorer onEnterCombatTab={onEnterCombatTab} onNavigate={onNavigate}/>;
 };

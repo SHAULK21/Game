@@ -47,17 +47,16 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   assert.equal(app.errors.length,0,app.errors.join(';'));
   // Exercise every lazy game section with the emitted production modules.
   const click = async label => {
-    if(mode==='modern') label=({Создание:'Крафт',Спутники:'Питомцы',Журнал:'Квесты'})[label]||label;
     let button = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === label);
     if (!button) {
-      const more = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === 'Ещё');
+      const more = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === 'Меню');
       assert(more,'More navigation'); more.click(); await sleep(20);
-      button = [...app.w.document.querySelectorAll('.game-section')].find(b => b.textContent.trim().startsWith(label));
+      button = [...app.w.document.querySelectorAll('.mechanics-entry > button:first-child')].find(b => b.textContent.trim().startsWith(label));
     }
     assert(button,'Missing section '+mode+'/'+label); button.click(); await app.ready();
     assert(app.w.document.querySelector('main').textContent.trim(),'Empty section '+mode+'/'+label);
   };
-  for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал','Охота']) await click(label);
+  for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Задания','Охота']) await click(label);
   assert.equal(app.errors.length,0,app.errors.join(';'));
   if(mode==='fantasy-beta') {
     assert(!app.w.document.querySelector('image[href="/assets/sprites/reference/hero-codex.jpg"]'));

@@ -25,6 +25,7 @@ test('unfinished combat and travel block both controls and direct switch calls',
  const h=await setup(),w=h.w;try{
   await w.act(async()=>w.game.startBattleWithMonster({id:'guard',regionId:'arena',name:'Цель',level:1,hp:100,maxHp:100,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,expReward:1,goldReward:1,drops:[]},{energyCost:0}));
   await w.act(async()=>assert.equal(w.theme.setStyle('fantasy'),false));assert.match(w.theme.blockReason,/боя/);assert.equal(w.reloads,0);assert([...w.document.querySelectorAll('button')].filter((b:any)=>!b.lang && b.getAttribute('aria-pressed')==='false').every((b:any)=>b.disabled));
+  w.Math.random=()=>.5; // This scenario requires a successful flee, not a random failure.
   await w.act(async()=>w.game.performPlayerAction('flee'));assert(w.game.isCombatEnded);
   await w.act(async()=>{const r=w.game.startTravel('reg_plains');assert(r.success,r.message);});
   await w.act(async()=>assert.equal(w.theme.setStyle('fantasy'),false));assert.match(w.theme.blockReason,/путешествия/);assert.equal(w.reloads,0);

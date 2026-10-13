@@ -15,7 +15,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
   assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
   assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
-  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться в путь|Вирушити в дорогу/.test(n.textContent)) as any;
+  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться ·|Вирушити ·/.test(n.textContent)) as any;
   assert(travel,'first destination is preselected but travel mode remains selectable');
   await w.act(async()=>travel.click());
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,55);
@@ -107,13 +107,15 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => w.document.querySelector('.dossier-back').click());
     for (const [label,page] of [['Мир','world'],['Арена','arena'],['Сумка','inventory']]) {
       const before=save().player.energy;
-      await w.act(async () => button(label).click()); await settle();
+      if(page==='arena')await w.act(async()=>button('Меню').click());
+      await w.act(async () => (button(label)||[...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.startsWith(label))).click()); await settle();
       assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
       assert(w.document.querySelector('.beta-page-turn.is-forwards'), 'forward navigation turns a page');
       if(page==='world') {
-        assert(w.document.querySelector('.beta-world-grid .beta-world-tile'));
-        await w.act(async()=>w.document.querySelector('.beta-world-tile').click());
-        assert.equal(w.document.querySelector('.beta-world-tile').getAttribute('aria-pressed'),'true');
+        assert(w.document.querySelector('.world-land-list .world-land-card'));
+        await w.act(async()=>w.document.querySelector('.world-land-card').click());
+        assert(w.document.querySelector('.world-action-sheet[role=dialog]'));
+        await w.act(async()=>w.document.querySelector('[aria-label="Закрыть выбор локации"]').click());
       }
       if(page==='arena') {
         await w.act(async()=>button('Тренировка').click());
@@ -133,9 +135,9 @@ test('registration switches styles without losing input; both layouts share char
       await w.act(async()=>w.document.querySelector('.beta-page-turn > div')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
       assert(!w.document.querySelector('.beta-page-turn'), 'page turn is removed after its animation');
     }
-    for (const [label,page] of [['Герой','character'],['Создание','crafting'],['Кузница','blacksmith'],['Алхимия','alchemy'],['Рыбалка','fishing'],['Шахта','mine'],['Рынок','market'],['Клан','clan'],['Спутники','pets'],['Чат','chat'],['Рейтинг','leaderboard'],['Журнал','more']]) {
-      await w.act(async()=>button('Ещё').click());
-      const link = [...w.document.querySelectorAll('.game-drawer .game-section')].find((node:any)=>node.textContent.trim().startsWith(label)) as any;
+    for (const [label,page] of [['Герой','character'],['Создание','crafting'],['Кузница','blacksmith'],['Алхимия','alchemy'],['Рыбалка','fishing'],['Шахта','mine'],['Рынок','market'],['Клан','clan'],['Спутники','pets'],['Чат','chat'],['Рейтинг','leaderboard'],['Задания','more']]) {
+      await w.act(async()=>button('Меню').click());
+      const link = [...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((node:any)=>node.textContent.trim().startsWith(label)) as any;
       assert(link, `${label} is reachable from navigation`);
       await w.act(async()=>link.click()); await settle();
       assert(w.document.querySelector(`main [data-beta-book-page="${page}"]`), `${label} uses a functional book chapter`);
@@ -164,9 +166,9 @@ test('registration switches styles without losing input; both layouts share char
       await w.act(async () => button('Фэнтези').click()); await settle();
       assert.equal(activeTab(), label, 'fantasy keeps the selected section');
     }
-    await w.act(async () => button('Ещё').click());
+    await w.act(async () => button('Меню').click());
     await w.act(async () => button('Герой').click()); await settle();
-    assert.equal(activeTab(), 'Ещё');
+    assert.equal(activeTab(), 'Герой');
     await w.act(async () => button('Современный').click()); await settle();
     assert(w.document.querySelector('main').textContent.includes('Новый герой'), 'modern renders the fantasy hero tab');
     assert.equal(w.document.querySelectorAll('[data-modern-equipment-slot]').length,12);
@@ -174,7 +176,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(activeTab(), 'Герой');
     assert.equal([...w.document.querySelectorAll('button')].some((node: any) => node.textContent.includes('Начать охоту')), false);
     await w.act(async () => button('Фэнтези').click()); await settle();
-    assert.equal(activeTab(), 'Ещё');
+    assert.equal(activeTab(), 'Герой');
     await w.act(async () => button('Охота').click()); await settle();
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'modern'); assert.equal(save().player.id, original.id); assert.equal(save().player.gold, original.gold);
@@ -289,7 +291,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], listings: [], players: [], messages: [], clans: [], clan: null, onlinePlayers: 0, profile: { enrolled: false, stance: 'balanced', rating: 1000, tickets: 5, wins: 0, losses: 0 }, opponents: [], leaders: [], history: [], resetAt: new Date().toISOString(), ok: true, totalGold: 0, isAdmin: false }) });
   const settle = async () => w.act(async () => { if(w.reloadRequested){w.reloadRequested=false;w.root.unmount();w.mount();} await new Promise(resolve => setTimeout(resolve, 50)); });
   const button = (label: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === label) as any;
-  const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.game-section')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
+  const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
   const aria = (label: string) => w.document.querySelector(`[aria-label="${label}"]`);
   try {
     await w.act(async () => w.mount()); await settle();
@@ -307,13 +309,13 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
     assert.equal(w.document.querySelectorAll('header').length,1);
     assert.equal(w.document.querySelectorAll('nav').length,1);
-    assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);
+    assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Герой','Сумка','Меню']);
     assert(w.document.querySelector('header [data-shell-frame="hud"]'));
-    assert.equal(w.document.querySelectorAll('nav [data-shell-frame="active"]').length,1);
+    assert.equal(w.document.querySelectorAll('nav button[aria-current="page"]').length,1);
     assert(w.document.querySelector('.shell-hud-resources .is-silver'));
     assert(!w.document.querySelector('header').classList.contains('is-compact'));
-    await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/арен/i);
-    await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
+    await click('Меню');await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/арен/i);
+    await click('Меню');await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
     await click('Охота');
     assert(!w.document.querySelector('header').classList.contains('is-compact'),'returning to Hunt restores full HUD');
     const dossier=w.document.querySelector('.bestiary-dossier');
@@ -351,8 +353,8 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert.equal(w.document.querySelector('nav button[aria-current="page"]').textContent.trim(),'Сумка');
     await w.act(async () => aria('Открыть лист персонажа').click()); await settle();await click('Спутник');await click('Выбрать ›');
     assert.match(w.document.querySelector('main').textContent,/Спутник|Питом|СПУТНИК/i);
-    for (const label of ['Кузница','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал']) {
-      await click('Ещё');await click(label);
+    for (const label of ['Кузница','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Задания']) {
+      await click('Меню');await click(label);
       assert(w.document.querySelector('main').textContent.trim().length>0,`${label} renders`);
       if (label === 'Арена') { await click('PvP — игроки'); assert.match(w.document.querySelector('main').textContent,/1000/); }
       assert.equal(w.document.querySelector('[aria-label="Другие разделы"]'),null);
@@ -372,7 +374,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
     w.localStorage.setItem('aethelgard_interface_style','fantasy');
     await w.act(async()=>w.mount());await settle();await click('Мир');
-    assert.match(w.document.querySelector('.atlas-node[aria-pressed="true"]').textContent,/ВЫ ЗДЕСЬ/,'world keeps actual location even above its recommended level');
+    assert.match(w.document.querySelector('.world-current').textContent,/Вы здесь/,'world keeps actual location even above its recommended level');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
 
