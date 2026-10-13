@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 const stablePlayerState = (player:any) => JSON.stringify({...player,lastActiveTimestamp:0});
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +16,7 @@ async function completeFirstDeparture(w:any, plusLabel:string) {
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,60);
   assert.equal(w.document.querySelectorAll('[data-hunting-mode]').length,3);
   assert.equal(w.document.querySelector('[data-hunting-mode="mod_dense_fog"]').disabled,true);
-  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться ·|Вирушити ·/.test(n.textContent)) as any;
+  const travel=[...w.document.querySelectorAll('button')].find((n:any)=>/Отправиться (?:·|в путь)|Вирушити (?:·|в дорогу)/.test(n.textContent)) as any;
   assert(travel,'first destination is preselected but travel mode remains selectable');
   await w.act(async()=>travel.click());
   assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.energy,55);
@@ -107,15 +108,15 @@ test('registration switches styles without losing input; both layouts share char
     await w.act(async () => w.document.querySelector('.dossier-back').click());
     for (const [label,page] of [['Мир','world'],['Арена','arena'],['Сумка','inventory']]) {
       const before=save().player.energy;
-      if(page==='arena')await w.act(async()=>button('Меню').click());
+      if(page==='arena')await fixturePlace(w,'settlement');
       await w.act(async () => (button(label)||[...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.startsWith(label))).click()); await settle();
-      if(page==='world'){assert(w.document.querySelector('.world-hub'));assert.equal(w.document.querySelector('[data-beta-book-page="world"]'),null,'world uses the reference canvas instead of the book binding');}else assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
+      if(page==='world'){assert(w.document.querySelector('.world-codex'));assert(w.document.querySelector('[data-beta-book-page="world"]'),'the original world is a book chapter');}else assert(w.document.querySelector(`[data-beta-book-page="${page}"]`), `${label} is a book leaf`);
       assert(w.document.querySelector('.beta-page-turn.is-forwards'), 'forward navigation turns a page');
       if(page==='world') {
-        assert(w.document.querySelector('.world-land-list .world-land-card'));
-        await w.act(async()=>w.document.querySelector('.world-land-card').click());
-        assert(w.document.querySelector('.world-action-sheet[role=dialog]'));
-        await w.act(async()=>w.document.querySelector('[aria-label="Закрыть выбор локации"]').click());
+        assert(w.document.querySelector('.atlas-node'));
+        await w.act(async()=>w.document.querySelector('.atlas-node').click());
+        assert(w.document.querySelector('.region-dispatch'));
+        assert.equal(w.document.querySelector('.world-action-sheet'),null);
       }
       if(page==='arena') {
         await w.act(async()=>button('Тренировка').click());
@@ -136,15 +137,15 @@ test('registration switches styles without losing input; both layouts share char
       assert(!w.document.querySelector('.beta-page-turn'), 'page turn is removed after its animation');
     }
     for (const [label,page] of [['Герой','character'],['Создание','crafting'],['Кузница','blacksmith'],['Алхимия','alchemy'],['Рыбалка','fishing'],['Шахта','mine'],['Рынок','market'],['Клан','clan'],['Спутники','pets'],['Чат','chat'],['Рейтинг','leaderboard'],['Задания','more']]) {
-      await w.act(async()=>button('Меню').click());
-      const link = [...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((node:any)=>node.textContent.trim().startsWith(label)) as any;
+      await w.act(async()=>button('Ещё').click());
+      const link = [...w.document.querySelectorAll('.game-drawer button')].find((node:any)=>node.textContent.trim().startsWith(label==='Задания'?'Журнал':label)) as any;
       assert(link, `${label} is reachable from navigation`);
       await w.act(async()=>link.click()); await settle();
       assert(w.document.querySelector(`main [data-beta-book-page="${page}"]`), `${label} uses a functional book chapter`);
       await w.act(async()=>w.document.querySelector('.beta-page-turn > div')?.dispatchEvent(new w.Event('animationend',{bubbles:true})));
     }
-    await w.act(async()=>button('Охота').click()); await settle();
-    assert(w.document.querySelector('.beta-page-turn.is-backwards'), 'returning to the first tab turns backwards');
+    await fixturePlace(w,'field');await settle();
+    await w.act(async()=>button('Охота').click());await settle();
     await w.act(async () => w.root.unmount()); await w.act(async () => w.mount()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'fantasy-beta', 'beta preference survives restart');
     assert.equal(w.localStorage.getItem('aethelgard_interface_style'), 'fantasy-beta');
@@ -166,9 +167,9 @@ test('registration switches styles without losing input; both layouts share char
       await w.act(async () => button('Фэнтези').click()); await settle();
       assert.equal(activeTab(), label, 'fantasy keeps the selected section');
     }
-    await w.act(async () => button('Меню').click());
+    await w.act(async () => button('Ещё').click());
     await w.act(async () => button('Герой').click()); await settle();
-    assert.equal(activeTab(), 'Герой');
+    assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Современный').click()); await settle();
     assert(w.document.querySelector('main').textContent.includes('Новый герой'), 'modern renders the fantasy hero tab');
     assert.equal(w.document.querySelectorAll('[data-modern-equipment-slot]').length,12);
@@ -176,7 +177,7 @@ test('registration switches styles without losing input; both layouts share char
     assert.equal(activeTab(), 'Герой');
     assert.equal([...w.document.querySelectorAll('button')].some((node: any) => node.textContent.includes('Начать охоту')), false);
     await w.act(async () => button('Фэнтези').click()); await settle();
-    assert.equal(activeTab(), 'Герой');
+    assert.equal(activeTab(), 'Ещё');
     await w.act(async () => button('Охота').click()); await settle();
     await w.act(async () => button('Современный').click()); await settle();
     assert.equal(w.document.documentElement.dataset.interface, 'modern'); assert.equal(save().player.id, original.id); assert.equal(save().player.gold, original.gold);
@@ -291,7 +292,7 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
   w.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ resetVersion: 0, active: false, items: [], listings: [], players: [], messages: [], clans: [], clan: null, onlinePlayers: 0, profile: { enrolled: false, stance: 'balanced', rating: 1000, tickets: 5, wins: 0, losses: 0 }, opponents: [], leaders: [], history: [], resetAt: new Date().toISOString(), ok: true, totalGold: 0, isAdmin: false }) });
   const settle = async () => w.act(async () => { if(w.reloadRequested){w.reloadRequested=false;w.root.unmount();w.mount();} await new Promise(resolve => setTimeout(resolve, 50)); });
   const button = (label: string) => [...w.document.querySelectorAll('button')].find((node: any) => node.textContent.trim() === label) as any;
-  const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
+  const click = async (label: string) => { const node=button(label) || [...w.document.querySelectorAll('.game-drawer button,.mechanics-entry > button:first-child')].find((n:any)=>n.textContent.trim().startsWith(label)); assert(node, `missing button: ${label}`); await w.act(async () => node.click()); await settle(); };
   const aria = (label: string) => w.document.querySelector(`[aria-label="${label}"]`);
   try {
     await w.act(async () => w.mount()); await settle();
@@ -309,14 +310,15 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     const later=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));later.player.statPoints=2;later.player.energy=60;await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(later));await w.act(async()=>w.mount());await settle();
     assert.equal(w.document.querySelectorAll('header').length,1);
     assert.equal(w.document.querySelectorAll('nav').length,1);
-    assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Герой','Сумка','Меню']);
+    assert.deepEqual([...w.document.querySelectorAll('nav button')].map((n:any)=>n.textContent.trim()),['Охота','Мир','Арена','Сумка','Создание','Ещё']);
     assert(w.document.querySelector('header [data-shell-frame="hud"]'));
     assert.equal(w.document.querySelectorAll('nav button[aria-current="page"]').length,1);
     assert(w.document.querySelector('.shell-hud-resources .is-silver'));
     assert(!w.document.querySelector('header').classList.contains('is-compact'));
-    await click('Меню');await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/арен/i);
-    await click('Меню');await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
-    await click('Охота');
+    await fixturePlace(w,'settlement');await settle();
+    await click('Арена'); assert(w.document.querySelector('header').classList.contains('is-compact')); assert.match(w.document.querySelector('main').textContent,/арен/i);
+    await click('Создание'); assert(w.document.querySelector('main').textContent.trim().length>0);
+    await fixturePlace(w,'field');await settle();await click('Охота');
     assert(!w.document.querySelector('header').classList.contains('is-compact'),'returning to Hunt restores full HUD');
     const dossier=w.document.querySelector('.bestiary-dossier');
     const monsterName=dossier.querySelector('h2').textContent;
@@ -351,10 +353,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     await click('Снаряжение');
     await w.act(async () => aria('Сменить: Оружие').click()); await settle();
     assert.equal(w.document.querySelector('nav button[aria-current="page"]').textContent.trim(),'Сумка');
+    await fixturePlace(w,'settlement');await settle();
     await w.act(async () => aria('Открыть лист персонажа').click()); await settle();await click('Спутник');await click('Выбрать ›');
     assert.match(w.document.querySelector('main').textContent,/Спутник|Питом|СПУТНИК/i);
     for (const label of ['Кузница','Алхимия','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Задания']) {
-      await click('Меню');await click(label);
+      await click('Ещё');await click(label==='Задания'?'Журнал':label);
       assert(w.document.querySelector('main').textContent.trim().length>0,`${label} renders`);
       if (label === 'Арена') { await click('PvP — игроки'); assert.match(w.document.querySelector('main').textContent,/1000/); }
       assert.equal(w.document.querySelector('[aria-label="Другие разделы"]'),null);
@@ -370,11 +373,11 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.id,before.id);
     await w.act(async()=>w.root.unmount());
     const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
-    save.player.level=25;save.player.currentRegionId='reg_plains';
+    save.player.level=25;save.player.currentRegionId='reg_plains';save.player.worldPlace='field';
     w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));
     w.localStorage.setItem('aethelgard_interface_style','fantasy');
     await w.act(async()=>w.mount());await settle();await click('Мир');
-    assert.match(w.document.querySelector('.world-current').textContent,/Вы здесь/,'world keeps actual location even above its recommended level');
+    assert.match(w.document.querySelector('.world-codex').textContent,/Вы здесь/,'world keeps actual location even above its recommended level');
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }
 });
 
@@ -456,7 +459,7 @@ test('fantasy inventory manuscript retains equipment, locks, salvage, sale and r
   const slot=()=>w.document.querySelector('[data-equipment-slot="weapon"]');
   const selectBag=async(id:string)=>{const node=w.document.querySelector(`[data-inventory-item="${id}"]`);assert(node);await w.act(async()=>node.click());};
   try {
-    await w.act(async()=>w.mount());await settle();await w.act(async()=>w.game.createCharacter('Арсенал','paladin'));await settle();
+    await w.act(async()=>w.mount());await settle();await w.act(async()=>w.game.createCharacter('Арсенал','paladin'));await fixturePlace(w,'settlement');await settle();
     const weapon=w.game.player.equipped.weapon;
     assert.equal(w.document.querySelectorAll('[data-equipment-slot]').length,14);
     assert.equal(w.document.querySelector('.inventory-hero-art img').getAttribute('src'), '/assets/sprites/generated/heroes/paladin-fullbody.webp');
@@ -503,7 +506,7 @@ test('modern equipment drawer keeps equip and protection actions and restores fo
   w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((n:any)=>n.textContent.trim()===text) as any;
   try {
-    await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Арсенал','warrior'));
+    await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Арсенал','warrior'));await fixturePlace(w,'settlement');
     const weapon=w.game.player.equipped.weapon;
     const slot=w.document.querySelector('[data-modern-equipment-slot="weapon"]');slot.focus();
     await w.act(async()=>slot.click());

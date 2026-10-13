@@ -10,9 +10,10 @@ for (const fantasy of [false,true]) test(`${fantasy?'fantasy':'modern'}: complet
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'});const w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)};};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;
  w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})});w.HTMLMediaElement.prototype.play=async()=>{};w.HTMLMediaElement.prototype.pause=()=>{};
- let interval:(()=>void)|undefined;const timers:(()=>void)[]=[];w.setInterval=(fn:()=>void,ms:number)=>{if(ms===650)interval=fn;return 1;};w.clearInterval=()=>{};
+ let interval:(()=>void)|undefined;const timers:(()=>void)[]=[];w.setInterval=(fn:()=>void,ms:number)=>{if(ms===150)interval=fn;return 1;};w.clearInterval=()=>{};
  const originalTimeout=w.setTimeout.bind(w);w.setTimeout=(fn:()=>void,ms:number)=>[650,800].includes(ms)?(timers.push(fn),timers.length):originalTimeout(fn,ms);
  w.Math.random=()=>.99;w.eval(bundle.outputFiles[0].text);
+ const finishTrip=async()=>{const now=w.Date.now;const arrival=w.game.player.worldJourney.arrivesAt+1;w.Date.now=()=>arrival;await w.act(async()=>interval!());w.Date.now=now;};
  const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent.includes(text)) as any;
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Путник','warrior'));
@@ -21,17 +22,17 @@ for (const fantasy of [false,true]) test(`${fantasy?'fantasy':'modern'}: complet
   await w.act(async()=>w.game.claimRegionCompletion('reg_plains'));assert.equal(w.game.player.gold,210);
   await w.act(async()=>w.game.finishAdventureStory());assert.ok(w.game.player.adventureJournal.unlocked.includes('plains-complete'));
   let result:any;await w.act(async()=>{result=w.game.startTravel('reg_whisper_woods');});assert.equal(result.success,false);
-  await w.act(async()=>w.document.querySelector('[aria-label*="Пастбища Новичков"]').click());
-  const road=w.document.querySelector('[data-hunting-mode=mod_dense_fog]');assert.ok(road);await w.act(async()=>{const select=road.closest('select');select.value='mod_dense_fog';select.dispatchEvent(new w.Event('change',{bubbles:true}));});assert.equal(w.game.player.activeRegionModId,'mod_standard','selection does not teleport');
-  assert.ok(button('Отправиться ·'));await w.act(async()=>button('Отправиться ·').click());assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.player.energy,94);
-  for(let i=0;i<3;i++)await w.act(async()=>interval!());await w.act(async()=>timers.shift()!());assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.activeRegionModId,'mod_dense_fog');
+  await w.act(async()=>(w.document.querySelector('[aria-label*="Пастбища Новичков"]')||w.document.querySelector('.atlas-node')).click());
+  const road=w.document.querySelector('[data-hunting-mode=mod_dense_fog]');assert.ok(road);await w.act(async()=>{const select=road.closest('select');if(select){select.value='mod_dense_fog';select.dispatchEvent(new w.Event('change',{bubbles:true}));}else road.click();});assert.equal(w.game.player.activeRegionModId,'mod_standard','selection does not teleport');
+  assert.ok(button('Отправиться'));await w.act(async()=>button('Отправиться').click());assert.equal(w.game.travelState.isTraveling,true);assert.equal(w.game.player.energy,94);
+  await finishTrip();assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.activeRegionModId,'mod_dense_fog');
   const dummy={id:'test_road',name:'Цель',regionId:'reg_plains',level:2,hp:1,maxHp:1,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:0,goldReward:0,drops:[]};
   const count=()=>w.game.player.inventory.filter((i:any)=>i.templateId==='ascension_fragment').reduce((n:number,i:any)=>n+(i.stackCount||1),0);
   w.Math.random=()=>.5;const before=count();await w.act(async()=>w.game.startBattleWithMonster(dummy,{chain:true,energyCost:0}));
   let n=0;while(n++<10){await w.act(async()=>w.game.performPlayerAction('attack'));if(!w.game.combatChain.remaining)break;assert.equal(count(),before);await w.act(async()=>w.game.startNextCombatBattle());}
   assert.equal(count(),before+1,'one guaranteed fragment only at series completion');await w.act(async()=>w.game.exitCombat());
   w.Math.random=()=>.99;await w.act(async()=>w.__setPlayer({...w.game.player,ascension:{rank:'D',trialsWon:['D']}}));await w.act(async()=>{result=w.game.startTravel('reg_whisper_woods');});assert.equal(result.success,true);
-  for(let i=0;i<3;i++)await w.act(async()=>interval!());await w.act(async()=>timers.shift()!());assert.equal(w.game.player.currentRegionId,'reg_whisper_woods');assert.ok(w.game.player.unlockedRegionIds.includes('reg_whisper_woods'));
+  await finishTrip();assert.equal(w.game.player.currentRegionId,'reg_whisper_woods');assert.ok(w.game.player.unlockedRegionIds.includes('reg_whisper_woods'));
   const savedGold=w.game.player.gold;await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());
   assert.ok(w.game.player.regionalRewardsClaimed.includes('reg_plains'));assert.ok(w.game.player.adventureJournal.unlocked.includes('plains-complete'));assert.ok(w.game.player.unlockedRegionIds.includes('reg_whisper_woods'));
   await w.act(async()=>w.game.claimRegionCompletion('reg_plains'));assert.equal(w.game.player.gold,savedGold,'reward remains consumed after reloading');

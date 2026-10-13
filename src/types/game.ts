@@ -603,6 +603,8 @@ export interface PlayerCharacter {
 
   lastActiveTimestamp: number;
   lastMeditationTimestamp?: number;
+  worldPlace?: WorldPlace;
+  worldJourney?: WorldJourney;
   currentRegionId: string;
   activeRegionModId?: string;
 }
@@ -627,7 +629,18 @@ export interface RegionModifier {
   bonusRegen?: number;
 }
 
+export type WorldPlace = 'field' | 'settlement' | 'dungeon';
+export interface WorldJourney {
+  id: string;
+  destination: WorldPlace;
+  regionId: string;
+  modId?: string;
+  ambushMonsterId?: string;
+  startedAt: number;
+  arrivesAt: number;
+}
 export interface TravelState {
+  destination?: WorldPlace;
   isTraveling: boolean;
   targetRegionId: string;
   targetRegionName: string;

@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -27,7 +28,7 @@ for(const style of ['modern','fantasy','fantasy-beta']) test(`${style}: actual p
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Тест','warrior'));
   assert.equal(w.document.querySelector('[data-pickaxe-status]').dataset.pickaxeStatus,'missing');assert(button('Купить · 250 золота').disabled);assert.match(w.document.querySelector('[data-pickaxe-offer=pickaxe_common]').textContent,/нужно 250, у вас 120/);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;seed.player.gold=200000;seed.player.miningLevel=80;seed.player.alchemyLevel=80;seed.player.attributes.strength=1000000;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.worldPlace='settlement';seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;seed.player.gold=200000;seed.player.miningLevel=80;seed.player.alchemyLevel=80;seed.player.attributes.strength=1000000;
   // Old saves can have a stale equipped flag, missing template IDs, and a tool level above hero level.
   const pick=makePickaxe('pickaxe_legendary','legacy_pick'),retort=makeAlchemyTool('retort_legendary','legacy_retort');delete (pick as any).templateId;delete (retort as any).templateId;pick.isEquipped=true;retort.isEquipped=true;pick.level=80;retort.level=80;seed.player.inventory.push(pick,retort);
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
@@ -93,7 +94,7 @@ test('all game chapters in three interfaces render enabled buttons with working 
  }};
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Проверка','warrior'));
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.worldPlace='settlement';seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
   for(const style of ['modern','fantasy','fantasy-beta']){
    await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_interface_style',style);await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
@@ -105,10 +106,11 @@ test('all game chapters in three interfaces render enabled buttons with working 
    }
   }
 
+  await w.act(async()=>w.game.exitCombat());await fixturePlace(w,'settlement');await w.act(async()=>w.full(true));
   await w.act(async()=>w.nav.setCurrentTab('mine'));await settle();
   let clones=0;const originalClone=w.Node.prototype.cloneNode;
   w.Node.prototype.cloneNode=function(deep:boolean){clones++;return originalClone.call(this,deep);};
-  const local=w.document.querySelector('main button:not(:disabled):not(.reference-context-back)');
+  const local=[...w.document.querySelectorAll('main button:not(:disabled)')].find((b:any)=>b.textContent.trim()==='Добывать');
   assert(local);await w.act(async()=>local.click());assert.equal(clones,0,'local game actions must not clone a book page');
   await w.act(async()=>w.nav.setCurrentTab('alchemy'));await settle();assert(clones>0,'a real chapter change captures the old page');
   clones=0;w.matchMedia=()=>({matches:true});

@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -28,7 +29,7 @@ test('market picker excludes local loot, includes server gear, sells the complet
  w.eval(bundle.outputFiles[0].text);
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Торговец','warrior'));
-  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
+  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));save.player.worldPlace='settlement';
   save.player.inventory=[gear('herb','material','Лечебная трава',{stackCount:4}),gear('ore','ore','Железная руда',{stackCount:2}),gear('meat','material','Мясо вепря',{stackCount:48}),gear('locked','gloves','Заперто',{isLocked:true}),gear('bound','pants','Клановое',{boundToClan:'clan'})];save.player.equipped={};
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));await w.act(async()=>w.mount());
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent.trim()===text) as any;

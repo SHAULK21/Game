@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';import assert from 'node:assert/strict';import {build} from 'esbuild';import {JSDOM} from 'jsdom';
 import {potionDamage,isRestorationPotion,potionActionLabel,THROWING_RECIPES} from '../src/utils/combatPotions';
 
@@ -15,7 +16,7 @@ test('real provider: free restoration preserves effects and cooldowns; throws us
  const target:any={id:'potion_test',name:'Цель',regionId:'arena',level:1,hp:10000,maxHp:10000,mp:100,maxMp:100,attack:70,magicAttack:70,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:1,goldReward:1,drops:[]};
  const pot=(id:string,stats:any)=>({id,templateId:id,name:id==='restore'?'Настой':'Огненная склянка',type:'potion',rarity:'common',level:1,upgradeLevel:0,icon:'',stats,stackCount:2,sellPrice:1,disassembleYield:{silver:1}});
  try{
-  await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Алхимик','rogue'));w.Math.random=()=>.5;
+  await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Алхимик','rogue'));await fixturePlace(w,'settlement');w.Math.random=()=>.5;
   let seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.inventory.push(pot('restore',{heal:10,manaRestore:10}),pot('bomb',{fireDamage:90}));
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   let crafted=false;await w.act(async()=>{crafted=w.game.craftAlchemy('alc_throw_fire');});assert(crafted);assert.equal(w.game.player.inventory.find((i:any)=>i.templateId==='alc_throw_fire').stats.fireDamage,90);

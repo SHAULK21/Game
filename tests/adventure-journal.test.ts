@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -64,7 +65,7 @@ test('dungeon boss scene preserves the room, remaining HP and zero-energy fight 
   const { dom, w, reload } = await setup();
   try {
     await reload(s => { s.player.level = 4; });
-    await w.act(async () => w.game.enterDungeon('cave_bat'));
+    await w.act(async () => w.game.enterDungeon('cave_bat'));await completeJourney(w);
     assert(w.game.activeDungeonRun);
     await reload(s => {
       s.activeDungeonRun.currentRoomIndex = s.activeDungeonRun.totalRooms - 1;
@@ -87,7 +88,7 @@ for (const style of ['modern', 'fantasy']) {
   test(`${style}: royal reward opens one saved return scene and journal replay never awards gold, XP or another battle`, async () => {
     const { dom, w, reload, button } = await setup(style);
     try {
-      await reload(s => { s.player.firstJourney = 'done'; s.quests.find((q:any) => q.id === 'q_royal_first_journey').completed = true; });
+      await reload(s => { s.player.firstJourney = 'done';s.player.worldPlace='settlement'; s.quests.find((q:any) => q.id === 'q_royal_first_journey').completed = true; });
       const gold = w.game.player.gold;
       await w.act(async () => { w.game.claimQuestReward('q_royal_first_journey'); w.game.claimQuestReward('q_royal_first_journey'); });
       assert.equal(w.game.player.gold, gold + 120); assert.equal(w.game.player.adventureJournal.pending.chapter, 'royal-return');

@@ -1,3 +1,5 @@
+import {SettlementScreen} from '../../components/settlement/SettlementScreen';
+import {inSettlement} from '../../utils/worldPresence';
 import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll';
 import {GameSectionMenu} from '../../components/navigation/GameSectionMenu';
 import { t as localize, useLocale } from '../../i18n/locale';
@@ -29,7 +31,7 @@ const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(m
 
 export const ModernGameContent: React.FC = () => {
   useLocale();
-  const { player, quests } = useGame();
+  const { player, worldMessage, quests, isInCombat } = useGame();
   const { goBack, canGoBack, currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
   if (!player) {
@@ -45,6 +47,7 @@ export const ModernGameContent: React.FC = () => {
 
       {/* Main View Area */}
       <main data-modern-tab={isCharacterSheetOpen ? 'character' : currentTab} className="flex-1 w-full max-w-md mx-auto">
+        {worldMessage&&<div role="status" className="m-3 rounded-lg border p-3 text-sm">{localize(worldMessage)}<button className="min-h-11 ml-2 underline" onClick={()=>setCurrentTab('settlement')}>{localize('Поселение')}</button></div>}
         {canGoBack && !['hunter','world','character','inventory','menu'].includes(currentTab) && <button className="reference-context-back" onClick={goBack}>{localize('Назад')}</button>}
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
         <ScreenScrollRestorer key={isCharacterSheetOpen?'character':currentTab} screen={isCharacterSheetOpen?'character':currentTab}/>
@@ -52,7 +55,8 @@ export const ModernGameContent: React.FC = () => {
           <CharacterScreen onOpenInventory={() => { setIsCharacterSheetOpen(false); setCurrentTab('inventory'); }} onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') {if(canGoBack)goBack();else setCurrentTab('hunter');} }} />
         ) : (
           <>
-            {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
+            {currentTab === 'hunter' && (inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
+            {currentTab === 'settlement' && <SettlementScreen onNavigate={setCurrentTab}/>}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
             {currentTab === 'inventory' && <InventoryScreen onNavigateToBlacksmith={() => setCurrentTab('blacksmith')} onNavigateToCrafting={() => setCurrentTab('crafting')} />}

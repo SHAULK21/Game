@@ -138,8 +138,10 @@ test('actual hunts unlock elite then boss, award seals and first-boss fragment o
   const enhanced=w.data.BASIC_CRAFT_RECIPES.find((r:any)=>r.huntStage==='elite'&&r.result.type==='weapon'&&r.result.targetClass==='knight'&&r.regionId===region.id);
   const extra=enhanced.ingredients.filter((i:any)=>!i.name.startsWith('Знак элиты')).map((i:any)=>({id:i.name,templateId:i.name,name:i.name,type:'material',rarity:'common',level:1,upgradeLevel:0,icon:'',stats:{},sellPrice:0,disassembleYield:{},stackCount:i.count}));
   await w.act(async()=>w.setPlayer({...w.game.player,inventory:[...w.game.player.inventory,...extra]}));
+  await w.act(async()=>w.setPlayer({...w.game.player,worldPlace:'settlement'}));
   let crafted:any;await w.act(async()=>{crafted=w.game.craftBasicItem(enhanced.id);});assert.equal(crafted.success,true,crafted.message);
   assert.equal(w.game.player.inventory.find((i:any)=>i.templateId===enhanced.id).rarity,'rare');
+  await w.act(async()=>w.setPlayer({...w.game.player,worldPlace:'field'}));
   await win(boss);assert.equal(w.game.player.regionProgress.reg_plains.bossWins,1);
   const fragments=()=>w.game.player.inventory.filter((i:any)=>i.templateId==='ascension_fragment').reduce((n:number,i:any)=>n+(i.stackCount||1),0);
   assert.equal(fragments(),1);await win(boss);assert.equal(fragments(),1);

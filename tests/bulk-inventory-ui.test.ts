@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -22,7 +23,7 @@ test('Premium inventory bulk controls sell only confirmed matching gear and keep
  w.eval(bundle.outputFiles[0].text);
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Испытатель','warrior'));
-  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));
+  const save=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));save.player.worldPlace='settlement';
   const gear=(id:string,extra:any={})=>({id,templateId:'gear',name:id,type:'gloves',rarity:'common',level:1,upgradeLevel:0,icon:'',stats:{},sellPrice:10,disassembleYield:{silver:3,ore:1},...extra});
   save.player.inventory=[gear('ordinary'),gear('uncommon',{rarity:'uncommon'}),gear('rare',{rarity:'rare'}),gear('pants',{type:'pants'}),gear('locked',{isLocked:true}),gear('upgraded',{upgradeLevel:1})];save.player.equipped={};save.player.gold=100;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(save));await w.act(async()=>w.mount());

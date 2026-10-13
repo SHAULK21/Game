@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import { ASCENSION_STAGES } from '../src/data/ascension';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +18,7 @@ test('real ascension arena preserves combat stats, records victory without XP an
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));assert.equal(requests.filter(path=>path==='/api/profile/sync').length,1,'one profile sync on character creation');
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));seed.player.silver=10000;seed.player.attributes.strength=1000000;seed.player.inventory.push({id:'frag',templateId:'ascension_fragment',name:'Осколок вознесения',type:'material',rarity:'rare',level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:100});
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));seed.player.worldPlace='settlement';seed.player.silver=10000;seed.player.attributes.strength=1000000;seed.player.inventory.push({id:'frag',templateId:'ascension_fragment',name:'Осколок вознесения',type:'material',rarity:'rare',level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{},stackCount:100});
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_1',JSON.stringify(seed));await w.act(async()=>w.mount());
   const statsReference=w.game.combatStats;const baseline=JSON.parse(JSON.stringify(w.game.combatStats));const originalLevel=w.game.player.level;const originalXp=w.game.player.exp;const originalRating=w.game.player.arenaRating;const originalGold=w.game.player.gold;const tickets=w.game.player.arenaTickets;
   const button=(text:string)=>[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent===text) as any;
@@ -34,9 +35,10 @@ test('real ascension arena preserves combat stats, records victory without XP an
   await w.act(async()=>button('Вознестись до C').click());await w.act(async()=>button('Подтвердить вознесение').click());assert.equal(w.game.player.ascension.rank,'C');assert.ok(w.game.player.skills.some((s:any)=>s.id==='asc_warrior_C'));assert.equal(w.game.player.level,originalLevel);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
   const savedSkills=w.game.player.skills.map((s:any)=>s.id);
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.equal(w.game.player.ascension.rank,'C');assert.deepEqual(w.game.player.skills.map((s:any)=>s.id),savedSkills);assert.deepEqual(JSON.parse(JSON.stringify(w.game.combatStats)),baseline);
+  await fixturePlace(w,'field');
   const dummy={id:'dummy',name:'Манекен',regionId:'test',level:1,hp:10000000,maxHp:10000000,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:0,goldReward:0,drops:[]};
   await w.act(async()=>w.game.startBattleWithMonster(dummy,{chain:false,energyCost:0}));await w.act(async()=>w.game.performPlayerAction('skill','asc_warrior_C'));assert.ok(w.game.battleLog.some((e:any)=>e.text.includes('Рассекающий натиск')));assert.equal(w.game.player.skills.find((s:any)=>s.id==='asc_warrior_C').currentCooldown,4);
-  const echoSave=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));echoSave.player.ascension={rank:'SSS',primary:'ward',secondary:'flow',trialsWon:[]};echoSave.player.arenaTickets=5;
+  const echoSave=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));echoSave.player.worldPlace='settlement';echoSave.player.ascension={rank:'SSS',primary:'ward',secondary:'flow',trialsWon:[]};echoSave.player.arenaTickets=5;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_1',JSON.stringify(echoSave));await w.act(async()=>w.mount());
   const silver=w.game.player.silver;let started:any;await w.act(async()=>{started=w.game.challengeAscension('control');});assert.equal(started.success,true);
   const potions=w.game.player.inventory.filter((i:any)=>i.type==='potion').reduce((n:number,i:any)=>n+(i.stackCount||1),0);

@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -11,7 +12,7 @@ test('actual character applies gear attributes, rewards, full pet stats and hard
  w.fetch=async(path:string,opts:any)=>{if(path==='/api/telemetry')posts.push(JSON.parse(opts.body));return {ok:true,status:200,text:async()=>JSON.stringify({active:false,items:[],ok:true,totalGold:0})};};
  w.eval(bundle.outputFiles[0].text);
  try{
-  await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Мастер','warrior'));
+  await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Мастер','warrior'));await fixturePlace(w,'settlement');
   const before=JSON.parse(JSON.stringify(w.game.combatStats));
   w.dispatchEvent(new w.CustomEvent('aethelgard:screen',{detail:'fishing'}));
   await w.act(async()=>{for(let i=0;i<10;i++)await Promise.resolve();});
@@ -25,9 +26,9 @@ test('actual character applies gear attributes, rewards, full pet stats and hard
   const after=w.game.combatStats;
   assert.equal(after.expBonus,20);assert.equal(after.goldBonus-before.goldBonus,25);assert.equal(after.dropBonus-before.dropBonus,30);
   assert.equal(after.maxHp-before.maxHp,180);assert.ok(after.defense>before.defense+30);assert.ok(after.attack>before.attack);
-  await w.act(async()=>w.game.enterDungeon('cave_bat','normal'));
+  await w.act(async()=>w.game.enterDungeon('cave_bat','normal'));await completeJourney(w);
   const normal=w.game.activeDungeonRun.rooms.at(-1).monster;
-  await w.act(async()=>w.game.exitDungeon());await w.act(async()=>w.game.enterDungeon('cave_bat','hell'));
+  await w.act(async()=>w.game.exitDungeon());await w.act(async()=>w.game.enterDungeon('cave_bat','hell'));await completeJourney(w);
   const hell=w.game.activeDungeonRun.rooms.at(-1).monster;
   assert.equal(hell.maxHp,normal.maxHp*3);assert.equal(hell.attack,normal.attack*2);
   await w.act(async()=>w.game.exitDungeon());

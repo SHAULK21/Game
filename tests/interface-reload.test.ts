@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -8,7 +9,7 @@ async function setup(style='modern'){
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost',runScripts:'outside-only'}),w:any=dom.window;
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.reloads=0;
  const empty={items:[],ok:true,active:false};w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify(empty)});if(style!=='missing')w.localStorage.setItem('aethelgard_interface_style',style);w.eval((await bundle).outputFiles[0].text);
- await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Сохранённый','warrior',false));
+ await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Сохранённый','warrior',false));await fixturePlace(w,'settlement');
  return {w,close:async()=>{await w.act(async()=>w.root.unmount());dom.window.close();}};
 }
 const stable=(p:any)=>JSON.stringify({...p,lastActiveTimestamp:0});

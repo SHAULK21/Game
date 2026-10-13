@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -27,7 +28,7 @@ test('real purchase callback serializes clicks, recovers lost receipt and keeps 
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Покупатель','warrior'));
-  const key='aethelgard_save_v1_data_749219401';const seed=JSON.parse(w.localStorage.getItem(key));
+  const key='aethelgard_save_v1_data_749219401';const seed=JSON.parse(w.localStorage.getItem(key));seed.player.worldPlace='settlement';
   seed.player.gold=100;seed.player.maxInventorySlots=1;seed.player.inventory=[{...item,id:'local',rarity:'common',stackCount:1}];seed.player.equipped={};
   await w.act(async()=>w.root.unmount());w.localStorage.setItem(key,JSON.stringify(seed));await w.act(async()=>w.mount());
   let results:any[]=[];

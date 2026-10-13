@@ -38,7 +38,7 @@ const initial=await boot('modern');
 [...initial.w.document.querySelectorAll('button')].find(b=>b.textContent.includes('Начать путешествие')).click();
 for(let i=0;i<100&&!initial.w.localStorage.getItem('aethelgard_save_v1_data_749219401');i++)await sleep(10);
 const seed=JSON.parse(initial.w.localStorage.getItem('aethelgard_save_v1_data_749219401'));assert(seed?.player);
-seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;initial.close();
+seed.player.worldPlace='settlement';seed.player.firstJourney='done';seed.player.firstJourneyDeparture=false;seed.player.statPoints=0;initial.close();
 const stable=p=>JSON.stringify({...p,lastActiveTimestamp:0});
 const results=[];
 for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(const file of [...app.loaded].sort()){if(/\.(js|css)$/.test(file))resources.push({file,bytes:(await fs.stat(path.join(root,file))).size});}results.push({mode,js:resources.filter(r=>r.file.endsWith('.js')).reduce((a,r)=>a+r.bytes,0),css:resources.filter(r=>r.file.endsWith('.css')).reduce((a,r)=>a+r.bytes,0),resources,errors:app.errors});
@@ -51,16 +51,18 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   const click = async label => {
     let button = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === label);
     if (!button) {
-      const more = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === 'Меню');
+      const more = [...app.w.document.querySelectorAll('nav button')].find(b => b.textContent.trim() === (mode==='modern'?'Меню':'Ещё'));
       assert(more,'More navigation'); more.click(); await sleep(20);
-      const groupTitle=app.w.document.querySelector('.mechanics-group h2');assert(groupTitle);assert.equal(app.w.getComputedStyle(groupTitle).color,mode==='modern'?'rgb(226, 232, 238)':'rgb(48, 40, 30)','catalogue titles stay readable on the actual card surface');
-      button = [...app.w.document.querySelectorAll('.mechanics-entry > button:first-child')].find(b => b.textContent.trim().startsWith(label));
+      if(mode==='modern'){const groupTitle=app.w.document.querySelector('.mechanics-group h2');assert(groupTitle);assert.equal(app.w.getComputedStyle(groupTitle).color,'rgb(226, 232, 238)');}
+      button = [...app.w.document.querySelectorAll(mode==='modern'?'.mechanics-entry > button:first-child':'.game-drawer button')].find(b => b.textContent.trim().startsWith(label));
     }
+    if(!button&&label==='Журнал')button=[...app.w.document.querySelectorAll('.mechanics-entry > button:first-child')].find(b=>b.textContent.trim().startsWith('Задания'));
     assert(button,'Missing section '+mode+'/'+label); button.click(); await app.ready();
     assert(app.w.document.querySelector('main').textContent.trim(),'Empty section '+mode+'/'+label);
   };
-  for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Задания','Охота']) await click(label);
+  for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал','Поселение']) await click(label);
   await click('Мир');
+  if(mode==='modern'){
   const badge=app.w.document.querySelector('.world-current-badge');assert(badge,'current-location badge');
   assert.equal(badge.querySelectorAll('img').length,0,'badge uses bounded vector artwork');
   assert.equal(app.w.getComputedStyle(app.w.document.querySelector('.reference-bottom-nav')).maxWidth,mode==='fantasy-beta'?'430px':'760px','navigation matches the theme canvas width');
@@ -68,7 +70,7 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   assert.equal(app.w.getComputedStyle(badge).width,'max-content');
   const inactive=app.w.document.querySelector('.world-tabs [aria-selected=false]');
   assert.equal(app.w.getComputedStyle(inactive).backgroundColor,mode==='modern'?'rgb(32, 40, 50)':'rgb(29, 31, 29)','inactive tabs stay dark after theme CSS loads');
-  if(mode==='fantasy-beta')assert.equal(app.w.document.querySelector('[data-beta-book-page="world"]'),null);
+
   app.w.document.querySelector('.world-land-card').click();await app.ready();
   const sheet=app.w.document.querySelector('.world-action-sheet');assert(sheet);
   assert(app.w.document.querySelector('.world-sheet-map-context'),'atlas remains above the location sheet');
@@ -85,6 +87,7 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   assert.equal(app.w.document.activeElement.getAttribute('role'),'option','opening a picker focuses a choice, never a text field');
   picker.querySelector('header button').click();await app.ready();
   sheet.querySelector('.reference-close').click();await app.ready();
+  }else{assert(app.w.document.querySelector('.world-codex'));assert.equal(app.w.document.querySelector('.world-hub'),null);if(mode==='fantasy-beta')assert(app.w.document.querySelector('[data-beta-book-page="world"]'));}
   assert.equal(app.errors.length,0,app.errors.join(';'));
   if(mode==='fantasy-beta') {
     assert(!app.w.document.querySelector('image[href="/assets/sprites/reference/hero-codex.jpg"]'));

@@ -1,10 +1,10 @@
-import {BetaTopHeader} from './components/layout/BetaTopHeader';
+import {SettlementScreen} from '../../components/settlement/SettlementScreen';
+import {inSettlement} from '../../utils/worldPresence';
 import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll';
-import {GameSectionMenu} from '../../components/navigation/GameSectionMenu';
 import type {GameTabId} from '../../types/navigation';
 import { useInterface } from '../../context/InterfaceContext';
 import { t as localize, useLocale } from '../../i18n/locale';
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CombatScreen } from './components/combat/CombatScreen';
 import { CharacterCreationModal } from '../../components/dialogs/CharacterCreationModal';
@@ -32,23 +32,24 @@ type HeaderProps = {onOpenCharacterSheet:() => void;compact?:boolean;hidden?:boo
 type NavigationProps = {currentTab:GameTabId;onSelectTab:(tab:GameTabId) => void;availableQuestsCount:number};
 export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Navigation:React.ComponentType<NavigationProps>;Surface?:React.ComponentType<React.PropsWithChildren<{page:string}>>;decoration?:React.ReactNode;shellRef?:React.Ref<HTMLDivElement>}> = ({Header,Navigation,Surface=PlainSurface,decoration,shellRef}) => {
   useLocale();
-  const { player, quests, isInCombat, activeMonster } = useGame();
+  const { player, worldMessage, quests, isInCombat, activeMonster } = useGame();
   const { goBack, canGoBack, currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
+  useEffect(()=>{if(player&&currentTab==='menu')setCurrentTab('settlement');},[player?.userId,currentTab]);
   if (!player) {
     return <CharacterCreationModal />;
   }
 
-  const ScreenHeader = currentTab === 'world' || currentTab === 'menu' ? BetaTopHeader : Header;
   const availableQuests = quests.filter(q => q.completed && !q.claimed).length;
 
   return (
-    <div ref={shellRef} data-reference-page={currentTab==='world'||currentTab==='menu'?currentTab:undefined} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
+    <div ref={shellRef} className="game-shell min-h-screen pt-safe text-slate-100 flex flex-col font-sans select-none overflow-x-clip">
       {/* Top Header */}
-      <ScreenHeader hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
+      <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {decoration}
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
+        {worldMessage&&<div role="status" className="m-3 rounded-lg border p-3 text-sm">{localize(worldMessage)}<button className="min-h-11 ml-2 underline" onClick={()=>setCurrentTab('settlement')}>{localize('Поселение')}</button></div>}
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
         <ScreenScrollRestorer key={isCharacterSheetOpen?'character':currentTab} screen={isCharacterSheetOpen?'character':currentTab}/>
         {isCharacterSheetOpen ? (
@@ -56,7 +57,8 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
         ) : (
           <Surface page={currentTab}>
             {canGoBack && !['hunter','world','character','inventory','menu'].includes(currentTab) && <button className="reference-context-back" onClick={goBack}>{localize('Назад')}</button>}
-            {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
+            {currentTab === 'hunter' && (inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
+            {currentTab === 'settlement' && <SettlementScreen onNavigate={setCurrentTab}/>}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'character' && <CharacterScreen onClose={() => canGoBack?goBack():setCurrentTab('hunter')} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
@@ -71,7 +73,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
             {currentTab === 'market' && <MarketScreen />}
             {currentTab === 'pets' && <PetsScreen />}
             {currentTab === 'leaderboard' && <LeaderboardScreen />}
-            {currentTab === 'menu' && <GameSectionMenu onSelectTab={setCurrentTab} availableQuestsCount={availableQuests} />}
+            {currentTab === 'menu' && <SettlementScreen onNavigate={setCurrentTab}/>}
             {currentTab === 'more' && <MoreMenuScreen onOpenAdmin={() => setIsAdminOpen(true)} />}
           </Surface>
         )}

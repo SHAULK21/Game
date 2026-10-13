@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -15,7 +16,7 @@ test('real mining UI buys and equips a pickaxe, uses the vein maximum only on a 
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));seed.player.gold=200000;seed.player.miningLevel=80;seed.player.miningExp=14000;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_1'));seed.player.worldPlace='settlement';seed.player.gold=200000;seed.player.miningLevel=80;seed.player.miningExp=14000;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_1',JSON.stringify(seed));await w.act(async()=>w.mount());
   assert.ok(w.document.body.textContent.includes('Максимум жилы — редкий крит'));
   let bought:any;await w.act(async()=>{bought=w.game.buyPickaxe('pickaxe_legendary');});assert.equal(bought.success,true);assert.equal(w.game.player.gold,50000);

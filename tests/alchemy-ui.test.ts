@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -28,7 +29,7 @@ test('alchemy UI buys, equips, crafts once, preserves other items and XP; combat
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Алхимик','warrior'));
   assert.equal(w.game.buyAlchemyTool('retort_legendary').success,false);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.gold=200000;seed.player.alchemyLevel=80;seed.player.alchemyExp=80*220-1;seed.player.attributes.strength=1000000;seed.player.inventory.find((item:any)=>item.name==='Уголь').stackCount=20;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.worldPlace='settlement';seed.player.gold=200000;seed.player.alchemyLevel=80;seed.player.alchemyExp=80*220-1;seed.player.attributes.strength=1000000;seed.player.inventory.find((item:any)=>item.name==='Уголь').stackCount=20;
   seed.player.inventory.push({id:'keep',name:'Памятная вещь',type:'material',rarity:'common',level:1,upgradeLevel:0,icon:'✦',stats:{},sellPrice:0,disassembleYield:{}});
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   const baseline=JSON.parse(JSON.stringify(w.game.combatStats));let result:any;
@@ -44,7 +45,7 @@ test('alchemy UI buys, equips, crafts once, preserves other items and XP; combat
   await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());assert.equal(w.game.player.equipped.alchemyTool.id,tool.id);assert.equal(w.game.player.alchemyExp,before+11);
   await w.act(async()=>w.game.unequipItem('alchemyTool'));const exp=w.game.player.alchemyExp;await w.act(async()=>{result=w.game.craftAlchemy('alc_hp_small');});assert.equal(result,true);assert.equal(w.game.player.alchemyExp,exp+6);
   const monster={id:'series_test',name:'Манекен',regionId:'reg_plains',level:1,hp:10,maxHp:10,mp:0,maxMp:0,attack:1,magicAttack:0,defense:0,magicDefense:0,speed:1,critChance:0,evasion:0,avatar:'',expReward:10,goldReward:10,drops:[]};
-  w.Math.random=()=>.5;await w.act(async()=>w.game.startBattleWithMonster(monster,{chain:true,energyCost:0}));
+  await fixturePlace(w,'field');w.Math.random=()=>.5;await w.act(async()=>w.game.startBattleWithMonster(monster,{chain:true,energyCost:0}));
   const initialGold=w.game.player.gold,initialSilver=w.game.player.silver;const length=w.game.combatChain.total;assert.ok(length>1);let gold=0,silver=0,xp=0;
   for(let i=0;i<length;i++){
    await w.act(async()=>w.game.performPlayerAction('attack'));assert.equal(w.game.combatOutcome,'victory');

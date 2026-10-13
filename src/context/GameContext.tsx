@@ -1,3 +1,5 @@
+import {inSettlement,worldPlace,normalizeWorldJourney,SETTLEMENT_REQUIRED} from '../utils/worldPresence';
+import type {WorldJourney} from '../types/game';
 import {ENERGY_COSTS} from '../utils/energyCosts';
 import { getLanguage } from '../i18n/locale';
 import {flushSync} from 'react-dom';
@@ -121,6 +123,7 @@ interface GameContextType {
   combatStats: CombatStats;
   offlineReport: { minutes: number; gold: number; exp: number; kills: number; itemsCount: number; miningRewards?: MiningExpeditionReward[] } | null;
   travelState: TravelState;
+  worldMessage: string;
   premium: { active: boolean; premiumUntil: string | null; priceStars: number; periodDays: number; loading: boolean; invoiceLink?: string | null };
   
   // Actions
@@ -160,6 +163,7 @@ interface GameContextType {
 
   // Exploration & Dungeons
   setCurrentRegion: (regionId: string) => void;
+  returnToSettlement: () => {success:boolean;message:string};
   startTravel: (regionId: string, modId?: string) => { success: boolean; message: string };
   enterDungeon: (caveId: string, difficulty?: DungeonRun['difficulty']) => boolean;
   proceedDungeonRoom: (choice?: 'fight' | 'open' | 'pray' | 'disarm') => boolean;
@@ -629,6 +633,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [warriorMomentum, setWarriorMomentum] = useState(0);
   const [rogueFocus, setRogueFocus] = useState(false);
   const [activeDungeonRun, setActiveDungeonRun] = useState<DungeonRun | null>(null);
+  const dungeonPresenceRef=useRef(activeDungeonRun);dungeonPresenceRef.current=activeDungeonRun;
   const recordCombatIncome = useBalanceTelemetry(player, activeMonster, isInCombat, isCombatEnded, combatOutcome, combatRound, activeDungeonRun?.difficulty);
   useEffect(() => {
     if (!activeDungeonRun || combatOutcome !== 'victory' || !isCombatEnded) return;
@@ -668,6 +673,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAmbush: false,
     message: ''
   });
+
+  const [worldMessage,setWorldMessage]=useState('');
+  const presenceRef=useRef(player);presenceRef.current=player;
+  useEffect(()=>setWorldMessage(''),[player?.worldPlace]);
+  const journeyGate=useRef(false);
+  journeyGate.current=Boolean(player?.worldJourney);
+  const journeySnapshot=useRef(player?.worldJourney);journeySnapshot.current=player?.worldJourney;
+  const completedJourneys=useRef(new Set<string>());
 
   const refreshPremiumStatus = useCallback(async () => {
     if (!player) return;
@@ -1083,6 +1096,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
           parsed.player = refreshGameTimers(parsed.player, now);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
+          // Old saves already inside a profession must be able to finish it in town.
+          // A saved cave keeps its existing rooms; it is never recreated by migration.
+          const savedCave=parsed.activeDungeonRun&&CAVES[parsed.activeDungeonRun.dungeonId];
+          if(!parsed.player.worldPlace)parsed.player.worldPlace=savedCave&&!parsed.activeDungeonRun.completed?'dungeon':parsed.player.miningExpedition||parsed.player.fishing?.cast?'settlement':'field';
+          parsed.player.worldPlace=worldPlace(parsed.player);
+          parsed.player.worldJourney=normalizeWorldJourney(parsed.player.worldJourney,REGIONS.map(r=>r.id));
+          if(parsed.player.worldPlace==='dungeon'&&!savedCave)parsed.player.worldPlace='field';
+          if(parsed.player.worldJourney?.destination==='dungeon'&&!savedCave)parsed.player.worldJourney=undefined;
           const savedRegion = REGIONS.find(region => region.id === parsed.player.currentRegionId);
           if (!savedRegion || parsed.player.level < savedRegion.minLevel) {
             parsed.player.currentRegionId = REGIONS[0].id;
@@ -1195,10 +1216,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getInterfaceSwitchBlockReason = useCallback(() => {
     if (accountResetVersion.current !== readResetVersion(getTelegramUser().id) || player && String(player.userId) !== String(getTelegramUser().id)) return 'Аккаунт изменился. Дождитесь загрузки персонажа.';
     if (isInCombat && !isCombatEnded) return 'Нельзя сменить интерфейс во время незавершённого боя.';
-    if (travelState.isTraveling) return 'Дождитесь завершения путешествия.';
+    if (travelState.isTraveling || player?.worldJourney) return 'Дождитесь завершения путешествия.';
     if (hasGameOperation() || bulkInventoryBusy.current || marketBusy.current || clanCreationBusy.current) return 'Дождитесь завершения операции с предметами или валютой.';
     return '';
-  }, [isInCombat,isCombatEnded,travelState.isTraveling,player?.userId]);
+  }, [isInCombat,isCombatEnded,travelState.isTraveling,player?.userId,player?.worldJourney]);
 
   // Presence is separate from profile edits and stops while the app is hidden.
   useEffect(() => {
@@ -1524,6 +1545,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dungeonsCleared: 0
       },
       lastActiveTimestamp: Date.now(),
+      worldPlace: 'field',
       currentRegionId: 'reg_plains',
       activeRegionModId: 'mod_standard'
     };
@@ -2154,6 +2176,45 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player, isInCombat, isCombatEnded, combatOutcome, combatChain, combatStats.maxMp]);
 
 
+  const beginWorldJourney=useCallback((target:Pick<WorldJourney,'destination'|'regionId'|'modId'|'ambushMonsterId'>,energyCost:number)=>{
+    if(!player)return {success:false,message:'Персонаж не создан.'};
+    if(journeyGate.current||player.worldJourney||travelState.isTraveling||hasGameOperation()||marketBusy.current||bulkInventoryBusy.current||clanCreationBusy.current)return {success:false,message:'Дождитесь завершения текущего действия.'};
+    if(isInCombat&&!isCombatEnded||activeDungeonRun)return {success:false,message:'Сначала завершите бой или покиньте текущую пещеру.'};
+    if(player.miningExpedition&&!premium.active||player.fishing?.cast)return {success:false,message:'Сначала завершите добычу или рыбалку.'};
+    if(player.energy<energyCost)return {success:false,message:'Недостаточно энергии.'};
+    const now=Date.now();const journey:WorldJourney={...target,id:createOperationId(),startedAt:now,arrivesAt:now+2600};
+    journeyGate.current=true;
+    setPlayer(prev=>prev&&prev.userId===player.userId&&!prev.worldJourney?{...prev,energy:prev.energy-energyCost,worldJourney:journey,firstJourneyDeparture:target.destination==='field'&&target.regionId===REGIONS[0].id&&prev.firstJourney==='done'?false:prev.firstJourneyDeparture}:prev);
+    // Closing a completed encounter must not refill HP/MP.
+    if(isCombatEnded){setIsInCombat(false);setActiveMonster(null);setIsCombatEnded(false);setCombatOutcome(null);setCombatChain(null);}
+    sound.playTravelStep();
+    return {success:true,message:'Путешествие началось!'};
+  },[player,travelState.isTraveling,isInCombat,isCombatEnded,activeDungeonRun,premium.active]);
+
+  useEffect(()=>{
+    const journey=player?.worldJourney;if(!journey)return;
+    const region=REGIONS.find(r=>r.id===journey.regionId)||REGIONS[0];
+    const tick=()=>{
+      if(journeySnapshot.current?.id!==journey.id||completedJourneys.current.has(journey.id))return;
+      const progress=Math.min(100,Math.max(0,Math.floor((Date.now()-journey.startedAt)/(journey.arrivesAt-journey.startedAt)*100)));
+      setTravelState({isTraveling:progress<100,targetRegionId:journey.regionId,targetRegionName:journey.destination==='settlement'?'Поселение':journey.destination==='dungeon'?'Пещера':region.name,destination:journey.destination,progress,isAmbush:false,message:progress<100?'Вы в пути. Дождитесь прибытия.':'Вы добрались до места.'});
+      if(progress<100)return;
+      completedJourneys.current.clear();completedJourneys.current.add(journey.id);journeyGate.current=false;
+      setPlayer(prev=>prev?.worldJourney?.id===journey.id?{...prev,worldPlace:journey.destination,worldJourney:undefined,...(journey.destination==='field'?{currentRegionId:region.id,activeRegionModId:journey.modId||region.defaultModId,unlockedRegionIds:[...new Set([...(prev.unlockedRegionIds||[]),region.id])],firstJourneyDeparture:prev.firstJourney==='done'&&region.id===REGIONS[0].id?false:prev.firstJourneyDeparture}: {})}:prev);
+      if(journey.destination==='field'){
+        setQuests(previous=>completeTravelQuests(previous,region.id));
+        const monster=journey.ambushMonsterId&&MONSTERS[journey.ambushMonsterId];
+        if(monster){const mob=getRegionMonster(monster,region);sound.playAmbush();startBattleWithMonster({...mob,name:`[Засада!] ${mob.name}`,expReward:Math.round(mob.expReward*1.5),goldReward:Math.round(mob.goldReward*1.5)},{chain:false,energyCost:0,huntingModeId:journey.modId});}
+      }
+    };
+    tick();const interval=setInterval(tick,150);return()=>clearInterval(interval);
+  },[player?.worldJourney?.id,player?.userId,startBattleWithMonster]);
+
+  const returnToSettlement=useCallback(()=>{
+    if(inSettlement(player))return {success:false,message:'Вы уже в поселении.'};
+    return beginWorldJourney({destination:'settlement',regionId:player?.currentRegionId||REGIONS[0].id},0);
+  },[player,beginWorldJourney]);
+
   const startTravel = useCallback((targetRegionId: string, modId?: string) => {
     const targetReg = REGIONS.find(r => r.id === targetRegionId);
     if (!targetReg) return { success: false, message: 'Локация не найдена' };
@@ -2179,95 +2240,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: `Недостаточно энергии! Требуется ${energyCost} ⚡, а у вас ${player.energy} ⚡.` };
     }
 
-    // Deduct travel energy
-    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - energyCost),
-      firstJourneyDeparture: prev.firstJourney === 'done' && prev.firstJourneyDeparture && targetRegionId === REGIONS[0].id ? false : prev.firstJourneyDeparture
-    } : prev);
-
-    setTravelState({
-      isTraveling: true,
-      targetRegionId,
-      targetRegionName: targetReg.name,
-      progress: 15,
-      isAmbush: false,
-      message: 'Вы ступили на тропу перехода... Шелест листвы настораживает...'
-    });
-
-    sound.playTravelStep();
-    triggerHaptic('light');
-
-    let currentProg = 15;
-    const interval = setInterval(() => {
-      currentProg += 25;
-      if (currentProg < 85) {
-        sound.playTravelStep();
-        setTravelState(prev => ({
-          ...prev,
-          progress: currentProg,
-          message: currentProg >= 40 && currentProg < 70 ? 'Вглядываетесь в чащу... Впереди подозрительное затишье...' : 'Вы уже близко к цели...'
-        }));
-      } else {
-        clearInterval(interval);
-        // Ambush roll
-        const ambushChance = activeMod.ambushChance;
-        const isAmbush = Math.random() < ambushChance;
-
-        if (isAmbush) {
-          sound.playAmbush();
-          triggerHaptic('heavy');
-          setTravelState(prev => ({
-            ...prev,
-            progress: 100,
-            isAmbush: true,
-            message: '⚠️ ВНЕЗАПНАЯ ЗАСАДА! Из тени выскочил разъяренный монстр!'
-          }));
-
-          setTimeout(() => {
-            setTravelState(prev => ({ ...prev, isTraveling: false }));
-            setQuests(previous=>completeTravelQuests(previous,targetRegionId));
-            const ordinary = targetReg.monsters.filter(id => !MONSTERS[id].isBoss && !MONSTERS[id].isElite);
-            const monsterId = ordinary[Math.floor(Math.random() * ordinary.length)];
-            const baseMob = getRegionMonster(MONSTERS[monsterId] || MONSTERS['m_wolf'], targetReg);
-
-            setPlayer(prev => prev ? {
-              ...prev,
-              currentRegionId: targetRegionId,
-              unlockedRegionIds: [...new Set([...(prev.unlockedRegionIds || []), targetRegionId])],
-              activeRegionModId: selectedModId
-            } : prev);
-
-            startBattleWithMonster({
-              ...baseMob,
-              name: `[Засада!] ${baseMob.name}`,
-              expReward: Math.round(baseMob.expReward * 1.5),
-              goldReward: Math.round(baseMob.goldReward * 1.5)
-            }, { chain: false, energyCost: 0, huntingModeId:selectedModId });
-          }, 650);
-        } else {
-          sound.playVictory();
-          triggerHaptic('success');
-          setTravelState(prev => ({
-            ...prev,
-            progress: 100,
-            message: `Вы благополучно добрались до ${targetReg.name}!`
-          }));
-
-          setTimeout(() => {
-            setTravelState(prev => ({ ...prev, isTraveling: false }));
-            setQuests(previous=>completeTravelQuests(previous,targetRegionId));
-            setPlayer(prev => prev ? {
-              ...prev,
-              currentRegionId: targetRegionId,
-              unlockedRegionIds: [...new Set([...(prev.unlockedRegionIds || []), targetRegionId])],
-              activeRegionModId: selectedModId
-            } : prev);
-          }, 800);
-        }
-      }
-    }, 650);
-
-    return { success: true, message: 'Путешествие началось!' };
-  }, [player, travelState.isTraveling, startBattleWithMonster, isInCombat, isCombatEnded, activeDungeonRun, premium.active]);
+    const ordinary=targetReg.monsters.filter(id=>!MONSTERS[id]?.isBoss&&!MONSTERS[id]?.isElite);
+    const ambushMonsterId=Math.random()<activeMod.ambushChance?ordinary[Math.floor(Math.random()*ordinary.length)]:undefined;
+    return beginWorldJourney({destination:'field',regionId:targetRegionId,modId:selectedModId,ambushMonsterId},energyCost);
+  }, [player, travelState.isTraveling, isInCombat, isCombatEnded, activeDungeonRun, premium.active,beginWorldJourney]);
 
   const setActiveRegionMod = useCallback((modId: string) => {
     const region = REGIONS.find(r => r.id === player?.currentRegionId);
@@ -3349,15 +3325,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Exploration & Regions
   const setCurrentRegion = useCallback((regionId: string) => {
-    const region = REGIONS.find(r => r.id === regionId);
-    if (!region) return;
-    setPlayer(prev => prev && prev.level >= region.minLevel ? { ...prev, currentRegionId: regionId } : prev);
-    sound.playClick();
-  }, []);
+    startTravel(regionId);
+  }, [startTravel]);
 
   // Procedural Dungeons
   const enterDungeon = useCallback((caveId: string, difficulty: DungeonRun['difficulty'] = 'normal') => {
-    if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return false; }
+    if (journeyGate.current || !player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return false; }
     if (activeDungeonRun || travelState.isTraveling || isInCombat && !isCombatEnded || player.miningExpedition && !premium.active) { triggerHaptic('error'); return false; }
     const cave = CAVES[caveId];
     if (!cave || !Object.hasOwn(DUNGEON_DIFFICULTIES, difficulty)) { triggerHaptic('error'); return false; }
@@ -3429,13 +3402,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       completed: false
     };
 
+    if(!beginWorldJourney({destination:'dungeon',regionId:cave.regionId},ENERGY_COSTS.dungeon).success)return false;
     setActiveDungeonRun(run);
-    setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.dungeon) } : prev);
     return true;
-  }, [player, activeDungeonRun, travelState.isTraveling, isInCombat, isCombatEnded, premium.active]);
+  }, [player, activeDungeonRun, travelState.isTraveling, isInCombat, isCombatEnded, premium.active,beginWorldJourney]);
 
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {
-    if (!activeDungeonRun) return false;
+    if (!activeDungeonRun || player?.worldJourney || travelState.isTraveling) return false;
     if (activeDungeonRun.completed || isInCombat && !isCombatEnded) return false;
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
     if (!currentRoom || currentRoom.resolved) return false;
@@ -3495,11 +3468,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     });
     return false; // Non-combat rooms keep the player in the dungeon view.
-  }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp, isInCombat, isCombatEnded]);
+  }, [activeDungeonRun, startBattleWithMonster, combatStats.maxHp, combatStats.maxMp, isInCombat, isCombatEnded,player?.worldJourney,travelState.isTraveling]);
 
   const exitDungeon = useCallback(() => {
+    if(journeyGate.current)return;
     exitCombat();
     setActiveDungeonRun(null);
+    setPlayer(prev=>prev?{...prev,worldPlace:'field'}:prev);
     sound.playClick();
   }, [exitCombat]);
 
@@ -4163,6 +4138,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     triggerHaptic('success');
   }, []);
 
+  const guardedExitCombat=useCallback(()=>{if(!journeyGate.current)exitCombat();},[exitCombat]);
+  const servicesAvailable=()=>{const ready=inSettlement(presenceRef.current)&&!journeyGate.current&&!combatActiveRef.current;if(!ready)setWorldMessage(SETTLEMENT_REQUIRED);return ready;};
+  const serviceFailure={success:false,message:SETTLEMENT_REQUIRED};
   return (
     <GameContext.Provider value={{
       commitSwitchSnapshot, flushProgress, getInterfaceSwitchBlockReason,
@@ -4195,6 +4173,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       combatStats,
       offlineReport,
       travelState,
+      worldMessage,
       premium,
       createCharacter,
       acknowledgeFirstJourney,
@@ -4208,54 +4187,55 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetTalentTree,
       equipItem,
       unequipItem,
-      sellItem,
-      sellToResidents,
-      disassembleItem,
-      bulkDisposeItems,
+      sellItem: (...args)=>{if(servicesAvailable())sellItem(...args);},
+      sellToResidents: async (...args)=>servicesAvailable()?sellToResidents(...args):serviceFailure,
+      disassembleItem: (...args)=>{if(servicesAvailable())disassembleItem(...args);},
+      bulkDisposeItems: async (...args)=>servicesAvailable()?bulkDisposeItems(...args):serviceFailure,
       toggleItemLock,
       refreshServerInventory,
-      expandInventory,
-      upgradeItem,
+      expandInventory: (...args)=>servicesAvailable()?expandInventory(...args):serviceFailure,
+      upgradeItem: (...args)=>servicesAvailable()?upgradeItem(...args):serviceFailure,
       meditateOrRefillEnergy,
       claimRegionCompletion,
       setActiveRegionMod,
       setActivePet,
-      craftPet,
-      startBattleWithMonster,
-      startNextCombatBattle,
+      craftPet: (...args)=>servicesAvailable()?craftPet(...args):serviceFailure,
+      startBattleWithMonster: (...args)=>presenceRef.current&&!journeyGate.current&&!dungeonPresenceRef.current&&(worldPlace(presenceRef.current)!=='settlement'||args[0].regionId==='arena')?startBattleWithMonster(...args):false,
+      startNextCombatBattle: ()=>presenceRef.current&&!journeyGate.current&&worldPlace(presenceRef.current)!=='settlement'?startNextCombatBattle():false,
       performPlayerAction,
       toggleAutoBattle,
       updateAutoBattleSettings,
-      exitCombat,
+      exitCombat: guardedExitCombat,
       setCurrentRegion,
       startTravel,
+      returnToSettlement,
       enterDungeon,
       proceedDungeonRoom,
       exitDungeon,
-      buyPickaxe,
-      buyAlchemyTool,
-      mineNode,
-      startMiningExpedition,
-      claimMiningExpedition,
-      leaveMiningExpedition,
-      craftAlchemy,
-      fishingAction,
-      createClan,
-      listMarketItem,
+      buyPickaxe: (...args)=>servicesAvailable()?buyPickaxe(...args):serviceFailure,
+      buyAlchemyTool: (...args)=>servicesAvailable()?buyAlchemyTool(...args):serviceFailure,
+      mineNode: (...args)=>servicesAvailable()?mineNode(...args):{success:false,yieldCount:0,isCrit:false,oreName:''},
+      startMiningExpedition: (...args)=>servicesAvailable()?startMiningExpedition(...args):serviceFailure,
+      claimMiningExpedition: (...args)=>servicesAvailable()?claimMiningExpedition(...args):serviceFailure,
+      leaveMiningExpedition: (...args)=>servicesAvailable()?leaveMiningExpedition(...args):serviceFailure,
+      craftAlchemy: (...args)=>servicesAvailable()?craftAlchemy(...args):false,
+      fishingAction: (...args)=>servicesAvailable()?fishingAction(...args):{...serviceFailure,player:player!},
+      createClan: async (...args)=>{if(!servicesAvailable())throw new Error(SETTLEMENT_REQUIRED);return createClan(...args);},
+      listMarketItem: async (...args)=>servicesAvailable()?listMarketItem(...args):serviceFailure,
       refreshMarketIncome,
-      buyMarketListing,
-      returnMarketListing,
-      buyBasicConsumable,
-      craftBasicItem,
+      buyMarketListing: async (...args)=>servicesAvailable()?buyMarketListing(...args):serviceFailure,
+      returnMarketListing: async (...args)=>servicesAvailable()?returnMarketListing(...args):serviceFailure,
+      buyBasicConsumable: (...args)=>servicesAvailable()?buyBasicConsumable(...args):false,
+      craftBasicItem: (...args)=>servicesAvailable()?craftBasicItem(...args):serviceFailure,
       refreshPremiumStatus,
       preparePremiumInvoice,
       purchasePremium,
-      challengeAscension,
-      ascend,
-      challengeArena,
-      claimQuestReward,
-      claimAchievementReward,
-      sendChatMessage,
+      challengeAscension: (...args)=>servicesAvailable()?challengeAscension(...args):serviceFailure,
+      ascend: (...args)=>servicesAvailable()?ascend(...args):serviceFailure,
+      challengeArena: (...args)=>servicesAvailable()?challengeArena(...args):false,
+      claimQuestReward: (...args)=>{if(servicesAvailable())claimQuestReward(...args);},
+      claimAchievementReward: (...args)=>{if(servicesAvailable())claimAchievementReward(...args);},
+      sendChatMessage: (...args)=>{if(servicesAvailable())sendChatMessage(...args);},
       dismissOfflineReport,
       adminAddGold,
       adminAddSilver,

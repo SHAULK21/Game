@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -15,8 +16,9 @@ test('character wallet reserves clan payment once, resumes a lost response and r
  w.eval(bundle.outputFiles[0].text);
  try {
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Страж','warrior'));
+  await fixturePlace(w,'settlement');
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/100/);});assert.equal(calls.length,0);
-  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.gold=120000;
+  const seed=JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401'));seed.player.worldPlace='settlement';seed.player.gold=120000;
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());
   await w.act(async()=>{await assert.rejects(()=>w.game.createClan({name:'Стражи',tag:'GRD',description:''}),/Нет соединения/);});
   assert.equal(w.game.player.gold,20000);assert.equal(JSON.parse(w.localStorage.getItem('aethelgard_save_v1_data_749219401')).player.gold,20000);

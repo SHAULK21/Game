@@ -1,3 +1,4 @@
+import {completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
@@ -41,14 +42,16 @@ test('new heroes start one free fight, show three royal scenes before the codex 
     await w.act(async()=>await new Promise(r=>setTimeout(r,3100)));
     assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.currentRegionId,'reg_plains');assert.equal(w.game.player.energy,energy-cost);
     const royal=w.game.quests.find((q:any)=>q.id==='q_royal_first_journey');assert.equal(royal.completed,true);assert.equal(royal.claimed,false);
-    const gold=w.game.player.gold,silver=w.game.player.silver;
-    await w.act(async()=>{w.game.claimQuestReward(royal.id);w.game.claimQuestReward(royal.id);});
-    assert.equal(w.game.player.gold,gold+120);assert.equal(w.game.player.silver,silver+80);assert.equal(w.game.quests.find((q:any)=>q.id===royal.id).claimed,true);
-    await w.act(async()=>w.game.claimQuestReward(royal.id));assert.equal(w.game.player.gold,gold+120);
     if(cls==='berserker') {
      assert.equal(w.game.isInCombat,true,'ordinary ambush starts combat');assert(w.game.activeMonster.name.includes('[Засада!]'));assert.equal(w.nav.currentTab,'hunter');assert.equal(w.game.player.firstJourney,'done');
      await w.act(async()=>w.game.performPlayerAction('flee'));await settle();assert.equal(w.nav.isCharacterSheetOpen,false,'an ambush does not restart codex onboarding');
     }
+    await w.act(async()=>assert.equal(w.game.returnToSettlement().success,true));await completeJourney(w);
+    assert.equal(w.game.player.worldPlace,'settlement');
+    const gold=w.game.player.gold,silver=w.game.player.silver;
+    await w.act(async()=>{w.game.claimQuestReward(royal.id);w.game.claimQuestReward(royal.id);});
+    assert.equal(w.game.player.gold,gold+120);assert.equal(w.game.player.silver,silver+80);assert.equal(w.game.quests.find((q:any)=>q.id===royal.id).claimed,true);
+    await w.act(async()=>w.game.claimQuestReward(royal.id));assert.equal(w.game.player.gold,gold+120);
     await w.act(async()=>w.root.unmount());await w.act(async()=>w.mount());await settle();assert.equal(w.game.player.firstJourneyDeparture,false);assert.equal(w.game.travelState.isTraveling,false);assert.equal(w.game.player.energy,energy-cost);assert.equal(w.game.isInCombat,false);
     w.Math.random=()=>0;
    }

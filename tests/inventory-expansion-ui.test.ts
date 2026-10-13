@@ -1,3 +1,4 @@
+import {fixturePlace,completeJourney} from './helpers/worldPlace';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
@@ -21,7 +22,7 @@ test('Premium bag expansion shows its price, reports insufficient gold, adds per
   const expansionButton = () => [...w.document.querySelectorAll('button')].find((button: any) => button.textContent.startsWith('+5 слотов')) as any;
   try {
     await w.act(async () => w.mount());
-    await w.act(async () => w.game.createCharacter('Испытатель', 'warrior'));
+    await w.act(async () => w.game.createCharacter('Испытатель', 'warrior'));await fixturePlace(w,'settlement');
     assert.match(expansionButton().textContent, /2\s400/);
     const startingGold = w.game.player.gold;
     await w.act(async () => expansionButton().click());

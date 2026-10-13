@@ -12,7 +12,7 @@ test('real navigation restores menu/history, Back returns to world and travel pr
  w.eval(bundle.outputFiles[0].text);
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Навигация','warrior'));
-  await w.act(async()=>w.setPlayer((p:any)=>({...p,firstJourney:'done',firstJourneyDeparture:false,statPoints:0})));
+  await w.act(async()=>w.setPlayer((p:any)=>({...p,worldPlace:'settlement',firstJourney:'done',firstJourneyDeparture:false,statPoints:0})));
   await w.act(async()=>w.nav.setCurrentTab('world'));await w.act(async()=>w.nav.setCurrentTab('alchemy'));
   assert.equal(w.nav.currentTab,'alchemy');await w.act(async()=>w.nav.goBack());assert.equal(w.nav.currentTab,'world');
   await w.act(async()=>w.nav.setCurrentTab('menu'));assert.equal(w.nav.currentTab,'menu');
