@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import type {GameTabId} from '../../types/navigation';
+import {readResetVersion} from '../../utils/accountReset';
 import {getTelegramUser} from '../../utils/telegram';
 export type JournalSection='quests'|'achievements'|'stats'|'leaderboard'|'premium'|'notifications'|'journal'|'settings';
 export type WorldSection='lands'|'dungeons'|'activities';
@@ -20,7 +21,9 @@ export function requestGameSection(item:GameSection,navigate:(tab:GameTabId)=>vo
 /** Supports both mounting a new screen and selecting a subsection of the current one. */
 export function useSectionTarget<T extends string>(kind:string,valid:readonly T[],fallback:T){
  const take=()=>{try{const value=sessionStorage.getItem(targetKey(kind)) as T;sessionStorage.removeItem(targetKey(kind));return valid.includes(value)?value:null;}catch{return null;}};
- const [section,setSection]=useState<T>(()=>take()||fallback);
+ const contextKey=`${targetKey(kind)}_context_${readResetVersion(getTelegramUser().id)}`;
+ const [section,setSection]=useState<T>(()=>{const pending=take();if(pending)return pending;try{const value=sessionStorage.getItem(contextKey) as T;if(valid.includes(value))return value;}catch{}return fallback;});
+ useEffect(()=>{try{sessionStorage.setItem(contextKey,section);}catch{}},[contextKey,section]);
  useEffect(()=>{const next=take();if(next)setSection(next);const handle=(event:Event)=>{const d=(event as CustomEvent).detail;if(d?.kind===kind&&valid.includes(d.value)){take();setSection(d.value);}};window.addEventListener('aethelgard:section-target',handle);return()=>window.removeEventListener('aethelgard:section-target',handle);},[kind]);
  return [section,setSection] as const;
 }

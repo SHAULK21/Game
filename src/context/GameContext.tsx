@@ -1,3 +1,4 @@
+import {ENERGY_COSTS} from '../utils/energyCosts';
 import { getLanguage } from '../i18n/locale';
 import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
@@ -160,7 +161,7 @@ interface GameContextType {
   // Exploration & Dungeons
   setCurrentRegion: (regionId: string) => void;
   startTravel: (regionId: string, modId?: string) => { success: boolean; message: string };
-  enterDungeon: (caveId: string, difficulty?: DungeonRun['difficulty']) => void;
+  enterDungeon: (caveId: string, difficulty?: DungeonRun['difficulty']) => boolean;
   proceedDungeonRoom: (choice?: 'fight' | 'open' | 'pray' | 'disarm') => boolean;
   exitDungeon: () => void;
 
@@ -529,7 +530,7 @@ const isCurrentUserAdmin = () => {
 };
 
 
-const ENERGY_COSTS = { travel: 10, dungeon: 15, combat: 2, upgrade: 4, inventory: 0, quest: 2 };
+
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const accountResetVersion = useRef(readResetVersion(getTelegramUser().id));
@@ -3356,10 +3357,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Procedural Dungeons
   const enterDungeon = useCallback((caveId: string, difficulty: DungeonRun['difficulty'] = 'normal') => {
-    if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return; }
-    if (activeDungeonRun || travelState.isTraveling || isInCombat && !isCombatEnded || player.miningExpedition && !premium.active) { triggerHaptic('error'); return; }
+    if (!player || player.energy < ENERGY_COSTS.dungeon) { triggerHaptic('error'); return false; }
+    if (activeDungeonRun || travelState.isTraveling || isInCombat && !isCombatEnded || player.miningExpedition && !premium.active) { triggerHaptic('error'); return false; }
     const cave = CAVES[caveId];
-    if (!cave || !Object.hasOwn(DUNGEON_DIFFICULTIES, difficulty)) { triggerHaptic('error'); return; }
+    if (!cave || !Object.hasOwn(DUNGEON_DIFFICULTIES, difficulty)) { triggerHaptic('error'); return false; }
     const caveRegion = REGIONS.find(region => region.id === cave.regionId) || REGIONS[0];
     sound.playClick();
     triggerHaptic('medium');
@@ -3430,6 +3431,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setActiveDungeonRun(run);
     setPlayer(prev => prev ? { ...prev, energy: Math.max(0, prev.energy - ENERGY_COSTS.dungeon) } : prev);
+    return true;
   }, [player, activeDungeonRun, travelState.isTraveling, isInCombat, isCombatEnded, premium.active]);
 
   const proceedDungeonRoom = useCallback((choice?: 'fight' | 'open' | 'pray' | 'disarm') => {

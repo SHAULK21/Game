@@ -45,7 +45,7 @@ test('map highlights suitable regions; spoilers keep earlier and future travel o
     assert.match(w.document.body.textContent, /По вашему уровню/);
     assert(w.document.querySelector('.world-current h2').textContent.includes(w.regions[0].name));
     assert(w.document.querySelector('[role=tabpanel]').textContent.includes(w.regions.find((region:any)=>region.id==='reg_swamp').name));
-    const summaries = [...w.document.querySelectorAll('summary')] as any[];
+    const summaries = [...w.document.querySelectorAll('.world-accordion summary')] as any[];
     assert.equal(summaries.length, 2);
     for (const summary of summaries) {
       assert.equal(summary.parentElement.open, false);

@@ -97,7 +97,7 @@ test('all game chapters in three interfaces render enabled buttons with working 
   await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_save_v1_data_749219401',JSON.stringify(seed));await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
   for(const style of ['modern','fantasy','fantasy-beta']){
    await w.act(async()=>w.root.unmount());w.localStorage.setItem('aethelgard_interface_style',style);await w.act(async()=>w.mount());await w.act(async()=>w.full(true));
-   for(const tab of ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more']){
+   for(const tab of ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more','menu']){
     await w.act(async()=>w.nav.setCurrentTab(tab));await settle();assert(w.document.querySelector('main')?.textContent.trim(),`${style}/${tab} rendered`);check();
     // Actually activate local tab controls, not just inspect their presence.
     const tabs=[...w.document.querySelectorAll('main button[role=tab],main button[aria-pressed]')].filter((b:any)=>!b.disabled);
@@ -108,7 +108,7 @@ test('all game chapters in three interfaces render enabled buttons with working 
   await w.act(async()=>w.nav.setCurrentTab('mine'));await settle();
   let clones=0;const originalClone=w.Node.prototype.cloneNode;
   w.Node.prototype.cloneNode=function(deep:boolean){clones++;return originalClone.call(this,deep);};
-  const local=w.document.querySelector('main button:not(:disabled)');
+  const local=w.document.querySelector('main button:not(:disabled):not(.reference-context-back)');
   assert(local);await w.act(async()=>local.click());assert.equal(clones,0,'local game actions must not clone a book page');
   await w.act(async()=>w.nav.setCurrentTab('alchemy'));await settle();assert(clones>0,'a real chapter change captures the old page');
   clones=0;w.matchMedia=()=>({matches:true});

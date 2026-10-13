@@ -1,7 +1,7 @@
 import {WorldExplorer} from './WorldExplorer';
 import type {GameTabId} from '../../types/navigation';
 import {t as localize,useLocale} from '../../i18n/locale';
-import React from 'react';
+import React,{useState} from 'react';
 import {useGame} from '../../context/GameContext';
 import {ASSETS} from '../../data/gameData';
 import {Skull,Sparkles,Crown,Key,AlertTriangle,Footprints} from 'lucide-react';
@@ -13,6 +13,7 @@ interface WorldScreenProps {
 
 export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNavigate }) => {
   useLocale();
+  const [overview,setOverview]=useState(false);
   const {
     player,
     combatStats,
@@ -76,12 +77,13 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
   }
 
   // 2. PROCEDURAL DUNGEON ACTIVE RUN VIEW
-  if (activeDungeonRun) {
+  if (activeDungeonRun && !overview) {
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
     const isCompleted = activeDungeonRun.completed;
 
     return (
       <div className="p-3 space-y-4 max-w-lg mx-auto pb-24">
+        <button className="reference-context-back" onClick={()=>setOverview(true)}>{localize("Назад к землям")}</button>
         <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700 rounded-xl p-3">
           <div>
             <div className="text-[10px] font-mono text-[#d5ba89] uppercase">{localize("Подземелье")}</div>
@@ -197,5 +199,5 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
     );
   }
 
-  return <WorldExplorer onEnterCombatTab={onEnterCombatTab} onNavigate={onNavigate}/>;
+  return <WorldExplorer onResumeDungeon={()=>setOverview(false)} onEnterCombatTab={onEnterCombatTab} onNavigate={onNavigate}/>;
 };

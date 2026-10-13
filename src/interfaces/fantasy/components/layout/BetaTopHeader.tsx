@@ -50,7 +50,7 @@ export const BetaTopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, 
           </span>
           <span className="shell-hero-identity">
             <span className="shell-hero-name truncate">{player.name}</span>
-            <span className="shell-hero-level">{localize("Ур. ")}{localize(player.level)}</span>
+            <span className="shell-hero-xp" role="progressbar" aria-label={localize("Опыт")} aria-valuemin={0} aria-valuemax={player.nextExp} aria-valuenow={player.exp}><span style={{width:`${Math.min(100,player.exp/Math.max(1,player.nextExp)*100)}%`}}/></span><span className="shell-hero-level">{localize("Ур. ")}{localize(player.level)}</span>
           </span>
         </button>
 

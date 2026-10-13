@@ -1,7 +1,7 @@
 import {WorldExplorer} from '../../../../components/world/WorldExplorer';
 import type {GameTabId} from '../../../../types/navigation';
 import {t as localize,useLocale} from '../../../../i18n/locale';
-import React from 'react';
+import React,{useState} from 'react';
 import {useGame} from '../../../../context/GameContext';
 import {ASSETS} from '../../data/gameData';
 import {BestiaryPanel,FolioPage} from '../ui/BestiaryUI';
@@ -14,6 +14,7 @@ interface WorldScreenProps {
 
 export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNavigate }) => {
   useLocale();
+  const [overview,setOverview]=useState(false);
   const {
     player,
     combatStats,
@@ -43,12 +44,13 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
   }
 
   // 2. PROCEDURAL DUNGEON ACTIVE RUN VIEW
-  if (activeDungeonRun) {
+  if (activeDungeonRun && !overview) {
     const currentRoom = activeDungeonRun.rooms[activeDungeonRun.currentRoomIndex];
     const isCompleted = activeDungeonRun.completed;
 
     return (
       <FolioPage className="world-codex space-y-3 pt-3">
+        <button className="reference-context-back" onClick={()=>setOverview(true)}>{localize("Назад к землям")}</button>
         <BestiaryPanel className="flex items-center justify-between rounded-xl p-3">
           <div>
             <div className="text-[11px] font-mono text-[#d5ba89] uppercase">{localize("Подземелье")}</div>
@@ -162,5 +164,5 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
     );
   }
 
-  return <WorldExplorer onEnterCombatTab={onEnterCombatTab} onNavigate={onNavigate}/>;
+  return <WorldExplorer onResumeDungeon={()=>setOverview(false)} onEnterCombatTab={onEnterCombatTab} onNavigate={onNavigate}/>;
 };

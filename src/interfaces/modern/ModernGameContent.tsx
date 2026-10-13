@@ -1,3 +1,5 @@
+import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll';
+import {GameSectionMenu} from '../../components/navigation/GameSectionMenu';
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { lazy, Suspense } from 'react';
 import { useGame } from '../../context/GameContext';
@@ -28,7 +30,7 @@ const AdminModal = lazy(() => import('../../components/admin/AdminModal').then(m
 export const ModernGameContent: React.FC = () => {
   useLocale();
   const { player, quests } = useGame();
-  const { currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
+  const { goBack, canGoBack, currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen } = useNavigation();
 
   if (!player) {
     return <CharacterCreationModal />;
@@ -43,9 +45,11 @@ export const ModernGameContent: React.FC = () => {
 
       {/* Main View Area */}
       <main data-modern-tab={isCharacterSheetOpen ? 'character' : currentTab} className="flex-1 w-full max-w-md mx-auto">
+        {canGoBack && !['hunter','world','character','inventory','menu'].includes(currentTab) && <button className="reference-context-back" onClick={goBack}>{localize('Назад')}</button>}
         <Suspense fallback={<div role="status" className="p-6 text-center text-sm text-slate-400">{localize("Загрузка раздела…")}</div>}>
+        <ScreenScrollRestorer key={isCharacterSheetOpen?'character':currentTab} screen={isCharacterSheetOpen?'character':currentTab}/>
         {isCharacterSheetOpen || currentTab === 'character' ? (
-          <CharacterScreen onOpenInventory={() => { setIsCharacterSheetOpen(false); setCurrentTab('inventory'); }} onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') setCurrentTab('hunter'); }} />
+          <CharacterScreen onOpenInventory={() => { setIsCharacterSheetOpen(false); setCurrentTab('inventory'); }} onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') {if(canGoBack)goBack();else setCurrentTab('hunter');} }} />
         ) : (
           <>
             {currentTab === 'hunter' && <CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />}
@@ -62,6 +66,7 @@ export const ModernGameContent: React.FC = () => {
             {currentTab === 'market' && <MarketScreen />}
             {currentTab === 'pets' && <PetsScreen />}
             {currentTab === 'leaderboard' && <LeaderboardScreen />}
+            {currentTab === 'menu' && <GameSectionMenu onSelectTab={setCurrentTab} availableQuestsCount={availableQuests} />}
             {currentTab === 'more' && <MoreMenuScreen onOpenAdmin={() => setIsAdminOpen(true)} />}
           </>
         )}

@@ -24,6 +24,9 @@ window.mount=()=>{window.root=createRoot(document.getElementById('root'));window
       {id:'boss',roomNumber:4,type:'boss',title:'Босс',description:'',resolved:false,monster:{...enemy,id:'final_guard',isBoss:true}},
     ];
     await w.act(async()=>w.setRun({dungeonId:'cave_bat',dungeonName:'Проверка пещеры',difficulty:'normal',totalRooms:4,currentRoomIndex:0,rooms,completed:false}));
+    const snapshot=JSON.stringify(w.game.activeDungeonRun),energy=w.game.player.energy,goldBeforeOverview=w.game.player.gold;
+    await click('Назад к землям');assert.ok(w.document.querySelector('.world-run-resume'));assert.ok(w.document.querySelector('.world-run-resume').textContent.includes('1 / 4'));
+    await click('Продолжить поход');assert.equal(JSON.stringify(w.game.activeDungeonRun),snapshot);assert.equal(w.game.player.energy,energy);assert.equal(w.game.player.gold,goldBeforeOverview);
     for (const index of [0,2,3]) {
       await click('Сразиться с врагом');assert.equal(w.view,'combat');assert.equal(w.game.isCombatEnded,false);assert.ok(w.game.activeMonster.hp>0);
       await w.act(async()=>w.game.performPlayerAction('attack'));

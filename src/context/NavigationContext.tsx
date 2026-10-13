@@ -6,6 +6,8 @@ import type { GameTabId } from '../types/navigation';
 
 interface NavigationState {
   currentTab: GameTabId;
+  goBack:()=>void;
+  canGoBack:boolean;
   setCurrentTab: React.Dispatch<React.SetStateAction<GameTabId>>;
   isCharacterSheetOpen: boolean;
   setIsCharacterSheetOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -18,26 +20,38 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
   const userId = getTelegramUser().id;
   const navigationKey = 'aethelgard_navigation_' + userId + '_' + readResetVersion(userId);
   const [saved] = useState(() => { try { return JSON.parse(sessionStorage.getItem(navigationKey) || 'null'); } catch { return null; } });
-  const tabs = ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more'];
+  const tabs = ['hunter','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more','menu'];
   const [currentTab, updateTab] = useState<GameTabId>(tabs.includes(saved?.tab) ? saved.tab : 'hunter');
   const [isCharacterSheetOpen, updateSheet] = useState(saved?.sheet === true);
-  useLayoutEffect(() => { try { sessionStorage.setItem(navigationKey,JSON.stringify({tab:currentTab,sheet:isCharacterSheetOpen})); } catch {} }, [navigationKey,currentTab,isCharacterSheetOpen]);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const history=useRef<GameTabId[]>(Array.isArray(saved?.history)?saved.history.filter((tab:string)=>tabs.includes(tab)):[]);
+  const [canGoBack,setCanGoBack]=useState(history.current.length>0);
+  const travelRef=useRef(false);
   const tabRef = useRef(currentTab), sheetRef = useRef(isCharacterSheetOpen);
   const setCurrentTab = useCallback<NavigationState['setCurrentTab']>(action => {
     const next = typeof action === 'function' ? action(tabRef.current) : action;
-    if (next === tabRef.current) return;
+    if (next === tabRef.current || travelRef.current && next!=='world') return;
+    history.current=[...history.current.slice(-19),tabRef.current];setCanGoBack(true);
     if (!sheetRef.current) window.dispatchEvent(new CustomEvent('aethelgard:before-navigation'));
     tabRef.current = next; updateTab(next);
   }, []);
+  useLayoutEffect(() => { try { sessionStorage.setItem(navigationKey,JSON.stringify({tab:currentTab,sheet:isCharacterSheetOpen,history:history.current})); } catch {} }, [navigationKey,currentTab,isCharacterSheetOpen]);
+  const goBack=useCallback(()=>{if(travelRef.current)return;const previous=history.current.pop();if(!previous)return;window.dispatchEvent(new CustomEvent("aethelgard:before-navigation"));tabRef.current=previous;updateTab(previous);sheetRef.current=false;updateSheet(false);setCanGoBack(history.current.length>0);},[]);
   const setIsCharacterSheetOpen = useCallback<NavigationState['setIsCharacterSheetOpen']>(action => {
     const next = typeof action === 'function' ? action(sheetRef.current) : action;
-    if (next === sheetRef.current) return;
+    if (next === sheetRef.current || travelRef.current && next) return;
     if (tabRef.current !== 'character') window.dispatchEvent(new CustomEvent('aethelgard:before-navigation'));
     sheetRef.current = next; updateSheet(next);
   }, []);
 
   const { player, isInCombat, isCombatEnded, exitCombat, acknowledgeFirstJourney, travelState } = useGame();
+  travelRef.current=travelState.isTraveling;
+  useEffect(()=>{
+    const back=window.Telegram?.WebApp?.BackButton;if(!back)return;
+    const handle=()=>{if(travelRef.current)return;if(document.querySelector('[role="dialog"]'))document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));else goBack();};
+    if(canGoBack&&!travelState.isTraveling)back.show();else back.hide();back.onClick(handle);
+    return()=>{back.offClick(handle);back.hide();};
+  },[goBack,canGoBack,travelState.isTraveling]);
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('aethelgard:screen',{detail:isCharacterSheetOpen?'character':currentTab}));
   },[currentTab,isCharacterSheetOpen]);
@@ -63,7 +77,7 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
       setCurrentTab('world');
     }
   }, [player?.firstJourney,player?.firstJourneyDeparture,player?.statPoints,travelState.isTraveling]);
-  return <NavigationContext.Provider value={{ currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen }}>{children}</NavigationContext.Provider>;
+  return <NavigationContext.Provider value={{ goBack,canGoBack,currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen }}>{children}</NavigationContext.Provider>;
 };
 
 export const useNavigation = () => {
