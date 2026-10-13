@@ -14,9 +14,9 @@ function choicesFrom(children:React.ReactNode, group?:string, groupDisabled=fals
  });
  return choices;
 }
-type Props = React.SelectHTMLAttributes<HTMLSelectElement> & {renderChoice?:(value:string)=>React.ReactNode};
-/** Searchable themed dialog; the hidden native select retains form and change-event semantics. */
-export function SelectionField({renderChoice,...props}:Props) {
+type Props = React.SelectHTMLAttributes<HTMLSelectElement> & {renderChoice?:(value:string)=>React.ReactNode;searchable?:boolean};
+/** Short pickers omit search; large lists support deliberate search without opening the keyboard. */
+export function SelectionField({renderChoice,searchable,...props}:Props) {
  useLocale();
  const {style}=useInterface();
  const [open,setOpen]=useState(false), [query,setQuery]=useState('');
@@ -25,12 +25,15 @@ export function SelectionField({renderChoice,...props}:Props) {
  const choices=choicesFrom(props.children);
  const selected=choices.find(c=>c.value===String(props.value??props.defaultValue??''));
  const title=props['aria-label']||t('Выберите вариант');
- const visible=choices.filter(c=>(c.value!==''||!c.disabled)&&c.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+ const available=choices.filter(c=>c.value!==''||!c.disabled);
+ const showSearch=searchable??available.length>20;
+ const visible=available.filter(c=>c.label.toLocaleLowerCase().includes((showSearch?query:'').trim().toLocaleLowerCase()));
  useEffect(()=>{setOpen(false);},[props.disabled,style]);
  useEffect(()=>{
   if(!open)return;
   const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
-  panel.current?.querySelector<HTMLInputElement>('input')?.focus();
+  const selectedOption=panel.current?.querySelector<HTMLButtonElement>('[role=option][aria-selected=true]:not(:disabled)');
+  (selectedOption||panel.current?.querySelector<HTMLButtonElement>('[role=option]:not(:disabled)')||panel.current?.querySelector<HTMLButtonElement>('button'))?.focus({preventScroll:true});
   const keys=(e:KeyboardEvent)=>{
    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();setOpen(false);return;}
    if(!panel.current?.contains(document.activeElement))return;
@@ -47,7 +50,7 @@ export function SelectionField({renderChoice,...props}:Props) {
    }
   };
   document.addEventListener('keydown',keys,true);
-  return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',keys,true);if(trigger.current?.isConnected)trigger.current.focus();};
+  return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',keys,true);if(trigger.current?.isConnected)trigger.current.focus({preventScroll:true});};
  },[open]);
  const choose=(choice:Choice)=>{
   if(choice.disabled||props.disabled||!select.current)return;
@@ -64,8 +67,7 @@ export function SelectionField({renderChoice,...props}:Props) {
   {open&&createPortal(<div className="selection-backdrop" onClick={e=>{if(e.target===e.currentTarget)setOpen(false);}}>
    <div ref={panel} id={id} role="dialog" aria-modal="true" aria-label={title} className="selection-dialog">
     <header><h2>{title}</h2><button type="button" aria-label={t('Закрыть')} onClick={()=>setOpen(false)}>×</button></header>
-    <input type="search" aria-label={t('Поиск в списке')} placeholder={t('Поиск в списке')} value={query} onChange={e=>setQuery(e.target.value)}/>
-    <p className="selection-count">{t('Найдено: ')}{visible.length}</p>
+    {showSearch&&<><input type="search" aria-label={t('Поиск в списке')} placeholder={t('Поиск в списке')} value={query} onChange={e=>setQuery(e.target.value)}/><p className="selection-count">{t('Найдено: ')}{visible.length}</p></>}
     <div role="listbox" aria-label={title} className="selection-options">
      {visible.map(c=><button type="button" key={c.value} role="option" aria-selected={selected?.value===c.value} disabled={c.disabled} onClick={()=>choose(c)} className="selection-option">
       <span>{c.group&&<small>{c.group}</small>}{renderChoice?.(c.value)||c.label}</span><span aria-hidden="true" className="selection-check">{selected?.value===c.value?'✓':''}</span>

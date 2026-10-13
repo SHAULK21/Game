@@ -12,5 +12,5 @@ export function GameDialog({title,onClose,children,className='',backdropClassNam
   document.addEventListener('keydown',key);
   return()=>{document.body.style.overflow=overflow;siblings.forEach((el,i)=>el.inert=inert[i]);document.removeEventListener('keydown',key);if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[]);
- return createPortal(<div className={`game-dialog-backdrop ${backdropClassName}`} onClick={onClose}>{backdropContent&&<div className="game-dialog-context" aria-hidden="true">{backdropContent}</div>}<section ref={panel} className={`game-reference-dialog ${className}`} role="dialog" aria-modal="true" aria-label={t(title)} onClick={e=>e.stopPropagation()}>{children}</section></div>,document.body);
+ return createPortal(<div className={`game-dialog-backdrop ${backdropClassName}`} onClick={onClose}>{backdropContent&&<div className="game-dialog-context" aria-hidden="true" inert>{backdropContent}</div>}<section ref={panel} className={`game-reference-dialog ${className}`} role="dialog" aria-modal="true" aria-label={t(title)} onClick={e=>e.stopPropagation()}>{children}</section></div>,document.body);
 }

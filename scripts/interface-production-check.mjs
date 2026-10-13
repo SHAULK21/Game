@@ -72,10 +72,18 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   app.w.document.querySelector('.world-land-card').click();await app.ready();
   const sheet=app.w.document.querySelector('.world-action-sheet');assert(sheet);
   assert(app.w.document.querySelector('.world-sheet-map-context'),'atlas remains above the location sheet');
+  const stage=app.w.document.querySelector('.world-sheet-stage');assert(stage);
+  assert.equal(app.w.getComputedStyle(stage).backgroundColor,mode==='modern'?'rgb(21, 27, 34)':'rgb(21, 26, 23)','opaque surface hides the scrolled page behind the HUD');
+  assert(app.w.document.querySelector('.game-dialog-context').hasAttribute('inert'),'decorative HUD cannot receive focus');
   assert(sheet.querySelector('.world-sheet-footer .world-mode-select'),'mode stays beside confirmed action');
   assert.equal(app.w.getComputedStyle(sheet.querySelector('.reference-close')).borderTopWidth,'0px','close control has no inherited square frame');
   assert.equal(app.w.getComputedStyle(sheet).borderBottomLeftRadius,'0','sheet meets bottom navigation');
   if(mode==='fantasy-beta')assert.equal(app.w.getComputedStyle(sheet).maxWidth,'430px');
+  sheet.querySelector('.world-sheet-footer .selection-trigger').click();await app.ready();
+  const picker=app.w.document.querySelector('.selection-dialog');assert(picker);
+  assert.equal(picker.querySelector('input[type="search"]'),null,'short hunting mode list has no search');
+  assert.equal(app.w.document.activeElement.getAttribute('role'),'option','opening a picker focuses a choice, never a text field');
+  picker.querySelector('header button').click();await app.ready();
   sheet.querySelector('.reference-close').click();await app.ready();
   assert.equal(app.errors.length,0,app.errors.join(';'));
   if(mode==='fantasy-beta') {
