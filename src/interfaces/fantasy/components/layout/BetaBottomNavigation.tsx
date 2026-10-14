@@ -1,5 +1,6 @@
 import {useGame} from '../../../../context/GameContext';
 import {inSettlement} from '../../../../utils/worldPresence';
+import {requestGameSection} from '../../../../components/navigation/gameSections';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useEffect, useRef, useState } from 'react';
 import { sound } from '../../../../utils/audio';
@@ -91,6 +92,7 @@ export const BetaBottomNavigation: React.FC<BottomNavigationProps> = ({ currentT
             </button>;
           })}
         </div>
+        <button className="game-section mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg p-3 text-sm" onClick={()=>{sound.playClick();triggerHaptic('light');setOpen(false);requestGameSection({id:'settings',label:'Настройки',icon:'settings',tab:'more',journal:'settings'},onSelectTab);}}><RpgIcon kind="settings" size={22}/>{localize('Настройки')}</button>
       </div>
     </div>}
     <nav aria-label={localize("Основные разделы")} className="game-nav fantasy-shell-nav fixed bottom-0 left-0 right-0 z-40 mx-auto pb-safe">

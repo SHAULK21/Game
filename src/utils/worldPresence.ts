@@ -1,6 +1,7 @@
 import type {PlayerCharacter,WorldJourney,WorldPlace} from '../types/game';
 import type {GameTabId} from '../types/navigation';
-export const SETTLEMENT_TABS:readonly GameTabId[]=['arena','blacksmith','crafting','alchemy','mine','fishing','market','clan','pets','chat','leaderboard','more'];
+// Device settings, statistics and the journal are accessible independently of travel.
+export const SETTLEMENT_TABS:readonly GameTabId[]=['arena','blacksmith','crafting','alchemy','mine','fishing','market','clan','pets','chat'];
 export const SETTLEMENT_REQUIRED='Сначала доберитесь до поселения.';
 export function worldPlace(player:Pick<PlayerCharacter,'worldPlace'>|null):WorldPlace {
   return ['field','settlement','dungeon'].includes(player?.worldPlace||'')?player!.worldPlace!:'field';

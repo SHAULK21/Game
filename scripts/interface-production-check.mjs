@@ -61,6 +61,14 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
     assert(app.w.document.querySelector('main').textContent.trim(),'Empty section '+mode+'/'+label);
   };
   for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал','Поселение']) await click(label);
+  const plaza=app.w.document.querySelector('[data-settlement-screen]');assert(plaza,'town plaza');
+  assert(plaza.querySelector('[data-settlement-place="market"]'));assert(plaza.querySelector('[data-settlement-place="quests"]'));
+  for(const label of ['Настройки','Статистика','Оповещения','Premium','Герой','Достижения','Рейтинг'])assert(!plaza.textContent.includes(label),'technical entry on town plaza: '+label);
+  const townButton=plaza.querySelector('[data-settlement-place="quests"]');assert(parseFloat(app.w.getComputedStyle(townButton).minHeight)>=44,'emitted CSS makes a town place touchable');
+  townButton.click();await app.ready();
+  const questBoard=app.w.document.querySelector('.settlement-board');assert(questBoard);assert.equal(app.w.getComputedStyle(questBoard).overflow,'hidden');
+  assert.equal(app.w.getComputedStyle(questBoard.querySelector('.settlement-board-scroll')).overflow,'auto','real board CSS scrolls its quests');
+  assert(!questBoard.textContent.includes('Настройки'));questBoard.querySelector('[aria-label="Закрыть доску поручений"]').click();await app.ready();
   await click('Мир');
   if(mode==='modern'){
   const badge=app.w.document.querySelector('.world-current-badge');assert(badge,'current-location badge');

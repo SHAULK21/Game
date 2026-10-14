@@ -10,6 +10,8 @@ test('real provider persists settlement/field/cave journeys, charges once and ga
  try{
   await w.act(async()=>w.mount());await w.act(async()=>w.game.createCharacter('Путешественник','warrior'));
   await w.act(async()=>assert.equal(w.game.fishingAction('cast','river').success,false));const gold=w.game.player.gold,energy=w.game.player.energy;
+  await w.act(async()=>w.nav.setCurrentTab('more'));assert.equal(w.nav.currentTab,'more','settings and journal do not require a town journey');
+  await w.act(async()=>w.nav.setCurrentTab('leaderboard'));assert.equal(w.nav.currentTab,'leaderboard');assert.equal(w.game.player.energy,energy);assert.equal(w.game.player.worldPlace,'field');
   await w.act(async()=>w.nav.setCurrentTab('market'));assert.equal(w.nav.currentTab,'settlement');
   let result:any,duplicate:any;await w.act(async()=>{result=w.game.returnToSettlement();duplicate=w.game.returnToSettlement();});assert(result.success);assert(!duplicate.success);assert.equal(w.game.player.energy,energy);const townTrip=w.game.player.worldJourney;assert(townTrip);
   await w.act(async()=>w.root.unmount());clock=townTrip.startedAt+500;await w.act(async()=>w.mount());assert.equal(w.game.player.worldJourney.id,townTrip.id);await w.act(async()=>assert.equal(w.game.fishingAction('cast','river').success,false));

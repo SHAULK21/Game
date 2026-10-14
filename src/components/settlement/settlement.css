@@ -1,0 +1,76 @@
+.settlement-plaza {
+  --plaza-ink:#e8e0cc; --plaza-muted:#bcb39c; --plaza-line:#6d5b38;
+  --plaza-surface:#24251f; --plaza-tile:#2f3027; --plaza-accent:#d6b66b;
+  max-width:900px; margin:12px auto 0; padding:0 12px calc(36px + var(--app-safe-bottom,0px));
+  color:var(--plaza-ink); line-height:1.45;
+}
+html[data-interface="modern"] .settlement-plaza {
+  --plaza-ink:#ebeff2; --plaza-muted:#b4c1cb; --plaza-line:#49545f;
+  --plaza-surface:#1c252e; --plaza-tile:#26323e; --plaza-accent:#dec47e;
+}
+html[data-interface="fantasy-beta"] .settlement-plaza {
+  --plaza-ink:#3d2b1b; --plaza-muted:#6b5135; --plaza-line:#b18c59;
+  --plaza-surface:#ebd6b0; --plaza-tile:#ecd9b8; --plaza-accent:#81521c;
+  margin:8px 0 0; padding-inline:0;
+}
+.settlement-plaza .settlement-overview { overflow:hidden; border:1px solid var(--plaza-line); border-radius:14px; background:var(--plaza-surface); }
+.settlement-plaza .settlement-scene { position:relative; aspect-ratio:2.65; min-height:125px; max-height:230px; overflow:hidden; background:#34291c; }
+.settlement-plaza .settlement-scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:50% 45%; }
+.settlement-plaza .settlement-presence { position:absolute; left:12px; top:12px; display:flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid #af955d; border-radius:6px; background:#171a17ed; color:#f7e6b8; font:600 12px/1.3 Georgia,serif; }
+.settlement-plaza .settlement-introduction { padding:14px 16px; }
+.settlement-plaza .settlement-introduction :is(h1,h2) { margin:0; color:var(--plaza-ink); font:700 25px/1.2 Georgia,serif; }
+.settlement-plaza .settlement-introduction p { margin:7px 0 0; font-size:13px; color:var(--plaza-muted); }
+.settlement-plaza .settlement-featured { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.settlement-plaza .settlement-place { display:flex; align-items:center; gap:10px; min-width:0; min-height:82px; padding:12px; text-align:left; border:1px solid var(--plaza-line); border-radius:10px; background:var(--plaza-tile); color:var(--plaza-ink); cursor:pointer; transition:background .15s,box-shadow .15s; }
+.settlement-plaza .settlement-place--featured { min-height:100px; border-color:var(--plaza-accent); box-shadow:inset 0 2px var(--plaza-accent); }
+.settlement-plaza .settlement-place-icon { display:grid; place-items:center; flex:0 0 42px; width:42px; height:46px; border:1px solid var(--plaza-line); border-radius:8px; background:var(--plaza-surface); }
+.settlement-plaza .settlement-place-copy { display:flex; flex-direction:column; min-width:0; gap:4px; }
+.settlement-plaza .settlement-place-copy strong { color:var(--plaza-ink); font:700 16px/1.25 Georgia,serif; overflow-wrap:anywhere; }
+.settlement-plaza .settlement-place-copy small { color:var(--plaza-muted); font-size:12px; line-height:1.4; }
+.settlement-plaza .settlement-place-arrow { margin-left:auto; flex:0 0 auto; color:var(--plaza-accent); font:25px/1 Georgia,serif; }
+.settlement-plaza .settlement-reward-badge { align-self:flex-start; padding:3px 6px; border:1px solid var(--plaza-accent); border-radius:4px; font-size:11px; font-weight:700; color:var(--plaza-accent); }
+.settlement-plaza .settlement-quarter { margin-top:22px; }
+.settlement-plaza .settlement-quarter h2 { display:flex; align-items:center; gap:12px; margin:0 0 10px; color:var(--plaza-ink); font:700 18px/1.3 Georgia,serif; }
+.settlement-plaza .settlement-quarter h2>span:last-child { flex:1; height:1px; background:var(--plaza-line); }
+.settlement-plaza .settlement-place-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.settlement-plaza .settlement-place-grid--workshops>:last-child { grid-column:1/-1; }
+.settlement-plaza .settlement-departures { margin-top:24px; padding:16px; border:1px solid var(--plaza-line); border-radius:12px; background:var(--plaza-surface); }
+.settlement-plaza .settlement-departures h2 { margin:0; color:var(--plaza-ink); font:700 19px/1.3 Georgia,serif; }
+.settlement-plaza .settlement-departures p { margin:6px 0 12px; color:var(--plaza-muted); font-size:12px; }
+.settlement-plaza .settlement-roads { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.settlement-plaza .settlement-road { display:flex; align-items:center; gap:10px; min-width:0; min-height:70px; padding:12px; border:1px solid var(--plaza-accent); border-radius:8px; background:var(--plaza-tile); color:var(--plaza-ink); text-align:left; cursor:pointer; }
+.settlement-plaza .settlement-road>span { display:grid; min-width:0; gap:4px; }
+.settlement-plaza .settlement-road strong { color:var(--plaza-ink); font:700 15px/1.3 Georgia,serif; overflow-wrap:anywhere; }
+.settlement-plaza .settlement-road small { color:var(--plaza-muted); font-size:11px; }
+.settlement-plaza .settlement-road>span:last-child { margin-left:auto; color:var(--plaza-accent); }
+.settlement-plaza .settlement-arrival { margin-top:14px; padding:16px; border:1px solid var(--plaza-line); border-radius:10px; background:var(--plaza-surface); }
+.settlement-plaza .settlement-arrival p { margin:0 0 12px; color:var(--plaza-muted); font-size:13px; }
+.settlement-plaza .settlement-road--primary { width:100%; }
+.settlement-plaza .settlement-return { display:block; min-height:44px; margin-top:10px; color:var(--plaza-ink); text-decoration:underline; }
+.settlement-plaza .settlement-feedback { padding:12px; color:var(--plaza-ink); background:var(--plaza-surface); border:1px solid var(--plaza-line); border-radius:8px; font-size:13px; }
+.settlement-plaza button:disabled { opacity:.5; cursor:default; }
+.settlement-plaza button:focus-visible,.settlement-board button:focus-visible { outline:3px solid #c79028; outline-offset:3px; }
+.settlement-plaza :is(.settlement-place,.settlement-road):hover { box-shadow:inset 0 0 0 1px var(--plaza-accent); }
+.game-reference-dialog.settlement-board { display:flex; flex-direction:column; width:min(520px,calc(100vw - 24px)); max-height:calc(var(--app-visible-height,100dvh) - var(--reference-nav-height,72px) - var(--reference-safe-bottom,0px) - max(env(safe-area-inset-top,0px),var(--app-tg-content-top,0px),var(--app-tg-safe-top,0px)) - 28px); min-height:0; overflow:hidden; border:1px solid #a3834d; border-radius:14px; background:#f0dfbc; color:#382a1b; align-self:center; }
+.settlement-board .settlement-board-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-bottom:1px solid #c5ab7c; }
+.settlement-board .settlement-board-heading>div { display:flex; align-items:center; gap:8px; min-width:0; }
+.settlement-board .settlement-board-heading h2 { margin:0; font:700 21px/1.2 Georgia,serif; color:#382a1b; }
+.settlement-board .settlement-board-heading>button { flex:0 0 44px; width:44px; height:44px; border-radius:8px; color:#382a1b; font-size:28px; background:transparent; }
+.settlement-board .settlement-board-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 14px; }
+.settlement-board .settlement-board-tabs button { min-height:44px; padding:8px; border:1px solid #b2986c; border-radius:8px; background:#e3cda5; color:#49331c; font-size:13px; }
+.settlement-board .settlement-board-tabs [aria-pressed="true"] { background:#74522d; border-color:#74522d; color:#fff2d5; }
+.settlement-board .settlement-board-scroll { min-height:0; overflow:auto; overscroll-behavior:contain; padding:0 14px 14px; }
+.settlement-board .settlement-quest { margin-top:10px; padding:13px; border:1px solid #c4ac83; border-radius:10px; background:#f7ebd3; }
+.settlement-board .settlement-quest--ready { border:2px solid #91703d; }
+.settlement-board .settlement-quest h3 { margin:0; color:#382a1b; font:700 17px/1.3 Georgia,serif; }
+.settlement-board .settlement-quest p { margin:7px 0; color:#675033; font-size:13px; }
+.settlement-board .settlement-quest-progress { display:flex; align-items:center; gap:10px; color:#675033; font-size:12px; }
+.settlement-board .settlement-quest-progress progress { flex:1; min-width:0; height:7px; accent-color:#8f713d; }
+.settlement-board .settlement-quest-rewards { display:flex; flex-wrap:wrap; gap:7px 12px; margin-top:10px; color:#675033; font-size:12px; }
+.settlement-board .settlement-quest-rewards>span { display:inline-flex; align-items:center; gap:4px; }
+.settlement-board .settlement-quest-claim { min-height:44px; width:100%; margin-top:12px; padding:8px 12px; background:#725029; border:1px solid #513719; border-radius:7px; color:#fff2d5; font-weight:700; }
+.settlement-board .settlement-quest-state { display:block; margin-top:10px; color:#675033; font-size:12px; }
+@media(min-width:700px) { .settlement-plaza .settlement-place-grid--workshops { grid-template-columns:repeat(3,minmax(0,1fr)); } .settlement-plaza .settlement-place-grid--workshops>:last-child { grid-column:auto; } }
+@media(max-width:430px) { .settlement-plaza .settlement-place { gap:8px; padding:10px; } .settlement-plaza .settlement-place-icon { flex-basis:34px; width:34px; height:40px; border:0; background:transparent; } .settlement-plaza .settlement-place-copy strong { font-size:15px; } .settlement-plaza .settlement-place-arrow { font-size:21px; } .settlement-plaza .settlement-roads { grid-template-columns:1fr; } .settlement-plaza .settlement-place--featured { min-height:104px; } }
+@media(max-width:360px) { .settlement-plaza .settlement-featured { grid-template-columns:1fr; } .settlement-plaza .settlement-place--featured { min-height:80px; } .settlement-plaza .settlement-introduction :is(h1,h2) { font-size:23px; } }
+@media(prefers-reduced-motion:reduce) { .settlement-plaza .settlement-place { transition:none; } }

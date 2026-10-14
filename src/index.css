@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./components/navigation/navigation-reference.css";
+@import "./components/settlement/settlement.css";
 
 @theme {
   --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
