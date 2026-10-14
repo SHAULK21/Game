@@ -70,7 +70,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'fishing' && <FishingScreen />}
             {currentTab === 'clan' && <ClanScreen />}
-            {currentTab === 'chat' && <TavernScreen><ChatScreen /></TavernScreen>}
+            {currentTab === 'chat' && <TavernScreen><ChatScreen embedded /></TavernScreen>}
             {currentTab === 'market' && <MarketScreen />}
             {currentTab === 'pets' && <PetsScreen />}
             {currentTab === 'leaderboard' && <LeaderboardScreen />}

@@ -63,8 +63,21 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
       const tavern=app.w.document.querySelector('[data-tavern-screen]');assert(tavern,'real tavern in '+mode);
       const beer=tavern.querySelector('[data-drink-beer]');assert(beer);assert(beer.disabled,'full-energy hero has no pointless beer');
       assert(parseFloat(app.w.getComputedStyle(beer).minHeight)>=44,'emitted beer CSS has a touch target');
-      assert.equal(tavern.querySelector('.tavern-art>img').getAttribute('src'),'/assets/story/tavern-beer.webp');
-      if(mode==='fantasy-beta')assert.equal(app.w.getComputedStyle(tavern).color,'rgb(60, 48, 36)','Beta tavern text stays readable on parchment');
+      assert.equal(tavern.querySelector('.tavern-beer-thumb').getAttribute('src'),'/assets/story/tavern-beer.webp');
+      if(mode==='fantasy-beta'){
+        const paper=app.w.getComputedStyle(tavern);
+        assert.equal(paper.getPropertyValue('--tavern-ink').trim(),'#3c3024','Beta uses dark ink');
+        // jsdom preserves CSS var() here; native browser paint resolves it.
+        assert(['var(--tavern-ink)','rgb(60, 48, 36)'].includes(paper.color),'Beta consumes the correct ink token');
+      }
+      assert(!tavern.querySelector('.tavern-art'),'no large illustration above chat');
+      assert.equal(app.w.getComputedStyle(tavern.querySelector('.tavern-beer-thumb')).width,'48px','beer illustration stays a thumbnail');
+      assert(!tavern.querySelector('.tavern-beer-details').open,'beer rules are initially folded');
+      const chat=tavern.querySelector('#tavern-chat .tavern-chat-screen');assert(chat,'real chat is mounted on entry');
+      assert(chat.querySelector('.chat-composer input'));assert.notEqual(app.w.document.activeElement,chat.querySelector('input'),'entry never focuses the keyboard');
+      assert.equal(app.w.getComputedStyle(chat).paddingBottom,'0px','embedded chat has no extra full-screen spacing');
+      assert.equal(app.w.getComputedStyle(chat.querySelector('.chat-stream')).overflowY,'auto','messages scroll inside the visible conversation');
+      assert.equal(app.w.getComputedStyle(chat.querySelector('input')).fontSize,'16px','mobile composer avoids focus zoom');
     }
   };
   for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал','Поселение']) await click(label);

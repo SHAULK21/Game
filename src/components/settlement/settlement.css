@@ -83,22 +83,53 @@ html[data-interface="fantasy-beta"] .game-reference-dialog.settlement-board { ma
 @media(max-width:360px) { .settlement-plaza .settlement-featured { grid-template-columns:1fr; } .settlement-plaza .settlement-place--featured { min-height:80px; } .settlement-plaza .settlement-introduction :is(h1,h2) { font-size:23px; } }
 @media(prefers-reduced-motion:reduce) { .settlement-plaza .settlement-place { transition:none; } }
 
-/* Tavern remains a physical settlement service in each existing theme. */
-.game-tavern{margin:12px;max-width:100%;overflow:hidden;border:1px solid #695334;border-radius:14px;background:#171e25;color:#ddd5c5;padding-bottom:14px}
-.game-tavern .tavern-art{aspect-ratio:16/9;overflow:hidden}
-.game-tavern .tavern-art>img{display:block;width:100%;height:100%;object-fit:cover}
-.game-tavern header,.game-tavern .tavern-beer-card{padding:16px}
-.game-tavern h2,.game-tavern h3{font-family:Georgia,serif;font-weight:700;color:#e7c584;line-height:1.25;overflow-wrap:anywhere}
-.game-tavern h2{font-size:26px;margin:4px 0 8px}.game-tavern h3{font-size:21px;margin-bottom:12px}
-.game-tavern p{font-size:13px;line-height:1.65}.game-tavern .tavern-eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#b7a486}
-.game-tavern .tavern-beer-card{margin:0 12px 14px;border:1px solid #5d4d35;border-radius:10px;background:#22231f}
-.game-tavern .tavern-beer-benefits{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:space-between;margin-bottom:10px;color:#c7dab0}
-.game-tavern .tavern-current-effects{display:grid;gap:5px;font-size:12px;margin:12px 0;padding:10px;border:1px solid #615136;border-radius:8px}
-.game-tavern button{min-height:44px;white-space:normal;overflow-wrap:anywhere}.game-tavern [data-drink-beer]{width:100%;padding:10px 12px;border:1px solid #a58a4f;border-radius:8px;background:#604821;color:#ffe6ad;font-weight:700;font-size:14px}.game-tavern button:disabled{opacity:.5;cursor:not-allowed}
-.game-tavern .tavern-chat-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 12px;padding:12px;width:calc(100% - 24px);border:1px solid #695334;border-radius:8px;font-size:14px}
-.game-tavern .tavern-hint{margin-top:8px;opacity:.8}
-html[data-interface="fantasy"] .game-tavern{background:#211d17;color:#d5c5ae}
-html[data-interface="fantasy-beta"] .game-tavern{background:#dfcca2;color:#3c3024;border-color:#8a7048}
-html[data-interface="fantasy-beta"] .game-tavern :is(h2,h3){color:#4a3520}html[data-interface="fantasy-beta"] .game-tavern .tavern-eyebrow{color:#685236}
-html[data-interface="fantasy-beta"] .game-tavern .tavern-beer-card{background:#eddfbe;border-color:#a88c5d}
-html[data-interface="fantasy-beta"] .game-tavern .tavern-beer-benefits{color:#425031}
+/* Chat is the main tavern activity; the bar stays compact above the conversation. */
+.game-tavern {
+  --tavern-ink:#ddd5c5;--tavern-muted:#b5ad9c;--tavern-line:#695334;
+  --tavern-card:#22231f;--tavern-chat:#171e25;--tavern-message:#242c32;--tavern-own:#2b3737;
+  margin:12px;max-width:100%;border:1px solid var(--tavern-line);border-radius:14px;background:var(--tavern-chat);color:var(--tavern-ink);padding:12px;
+}
+.game-tavern .tavern-intro{padding:0;margin:0 0 10px}
+.game-tavern :is(h2,h3){font-family:Georgia,serif;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.game-tavern .tavern-intro h2{font-size:21px;margin:0;color:var(--tavern-ink)}
+.game-tavern .tavern-beer-card{padding:10px;margin:0 0 14px;border:1px solid var(--tavern-line);border-radius:10px;background:var(--tavern-card)}
+.game-tavern .tavern-beer-row{display:flex;align-items:center;gap:10px;min-width:0}
+.game-tavern .tavern-beer-row>img.tavern-beer-thumb{display:block;flex:0 0 48px;width:48px;height:48px;object-fit:cover;object-position:55% 55%;border-radius:8px}
+.game-tavern .tavern-beer-copy{flex:1;min-width:0}
+.game-tavern .tavern-beer-copy h3{font-size:15px;margin:0 0 4px;color:var(--tavern-ink)}
+.game-tavern .tavern-beer-benefits{font-size:11px;line-height:1.4;margin:0;color:var(--tavern-muted)}
+.game-tavern [data-drink-beer]{flex:0 0 auto;min-height:44px;padding:8px 12px;border:1px solid #a58a4f;border-radius:8px;background:#604821;color:#ffe6ad;font-weight:700;font-size:13px}
+.game-tavern button:disabled{opacity:.5;cursor:not-allowed}
+.game-tavern :is(.tavern-beer-warning,.tavern-hint,.tavern-feedback){font-size:11px;line-height:1.5;margin:6px 0 0}
+.game-tavern .tavern-hint{color:var(--tavern-muted)}
+.game-tavern .tavern-current-effects{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;line-height:1.5;margin-top:5px}
+.game-tavern .tavern-beer-details{font-size:12px;margin-top:2px}
+.game-tavern .tavern-beer-details summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;color:var(--tavern-muted)}
+.game-tavern .tavern-beer-details p{font-size:12px;line-height:1.6;margin:0 0 4px}
+.game-tavern #tavern-chat{min-width:0}
+.game-tavern #tavern-chat>.tavern-chat-screen{padding:0;margin:0;min-height:0;max-width:none;gap:10px}
+.game-tavern .chat-header{background:var(--tavern-card);border:1px solid var(--tavern-line);padding:10px;border-radius:10px}
+.game-tavern .chat-header h2{font-size:20px;color:var(--tavern-ink)}
+.game-tavern .chat-header :is(button){min-width:44px;min-height:44px}
+.game-tavern .chat-subtitle{font-size:11px;color:var(--tavern-muted)}
+.game-tavern .chat-stream{flex:none;min-height:160px;height:clamp(160px,34dvh,360px);overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 2px 0}
+.game-tavern .chat-message{border-color:var(--tavern-line);background:var(--tavern-message);padding:10px;border-radius:10px}
+.game-tavern .chat-message.is-own{background:var(--tavern-own)}
+.game-tavern .chat-sender{font-size:12px;color:var(--tavern-ink)}
+.game-tavern .chat-message-text{font-size:13px;line-height:1.55;color:var(--tavern-ink);overflow-wrap:anywhere}
+.game-tavern :is(.chat-time,.chat-empty){color:var(--tavern-muted)}
+.game-tavern .chat-composer{margin:0;padding-top:10px;border-color:var(--tavern-line)}
+.game-tavern .chat-composer input{min-height:44px;background:var(--tavern-card);border-color:var(--tavern-line);color:var(--tavern-ink);font-size:16px}
+.game-tavern .chat-composer input::placeholder{color:var(--tavern-muted);opacity:1}
+.game-tavern .chat-composer button{min-width:44px;min-height:44px}
+html[data-interface="fantasy"] .game-tavern{--tavern-chat:#211d17;--tavern-ink:#d5c5ae}
+html[data-interface="fantasy-beta"] .game-tavern{
+  --tavern-chat:#dfcca2;--tavern-ink:#3c3024;--tavern-muted:#6b573d;--tavern-line:#a88c5d;
+  --tavern-card:#eddfbe;--tavern-message:#f2e5c6;--tavern-own:#e0ceaa;margin:0;padding:10px;
+}
+html[data-interface="fantasy-beta"] .game-tavern .tavern-intro{display:none}
+@media(max-width:360px){.game-tavern{margin:8px;padding:8px}.game-tavern .tavern-beer-row{gap:6px}.game-tavern .tavern-beer-row>img.tavern-beer-thumb{flex-basis:36px;width:36px;height:44px}.game-tavern [data-drink-beer]{padding-inline:8px}.game-tavern .tavern-beer-copy h3{font-size:14px}}
+
+.game-tavern .chat-eyebrow{font-size:10px;color:var(--tavern-muted)}
+html[data-interface="fantasy-beta"] .game-tavern .chat-online{color:#285b32;background:#d7e4bd;border-color:#81975e}
+html[data-interface="fantasy-beta"] .game-tavern .chat-error{color:#6e382c;background:#eed4bc;border-color:#a46b56}

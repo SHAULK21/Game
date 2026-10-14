@@ -23,7 +23,7 @@ for(const style of ['modern','fantasy','fantasy-beta'])test(`${style}: real town
  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};
  w.IS_REACT_ACT_ENVIRONMENT=true;w.Headers=Headers;w.AbortSignal=AbortSignal;w.crypto.randomUUID=()=>crypto.randomUUID();
  w.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){}});w.HTMLMediaElement.prototype.play=async()=>{};w.HTMLMediaElement.prototype.pause=()=>{};
- w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true,totalGold:0,isAdmin:false,clan:null,clans:[],messages:[],players:[],listings:[],opponents:[],members:[],onlinePlayers:0,notifications:[],settings:{enabled:false,onboardingSeen:true},profile:{enrolled:false},history:[],leaders:[]})});
+ w.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({resetVersion:0,active:false,items:[],ok:true,totalGold:0,isAdmin:false,clan:null,clans:[],messages:[{id:1,text:"Привет из таверны",display_name:"Путник",created_at:"2026-10-14T18:00:00Z"}],players:[],listings:[],opponents:[],members:[],onlinePlayers:0,notifications:[],settings:{enabled:false,onboardingSeen:true},profile:{enrolled:false},history:[],leaders:[]})});
  w.localStorage.setItem('aethelgard_interface_style',style);w.eval((await bundle).outputFiles[0].text);
  const settle=()=>w.act(async()=>new Promise(resolve=>setTimeout(resolve,25)));
  const plaza=()=>w.document.querySelector('[data-settlement-screen]');
@@ -40,6 +40,12 @@ for(const style of ['modern','fantasy','fantasy-beta'])test(`${style}: real town
   // Every real service route uses the actual NavigationProvider and game shell.
   for(const id of ['market','crafting','blacksmith','alchemy','arena','clan','pets','chat','fishing','mine']){
    await w.act(async()=>place(id).click());await settle();assert.equal(w.nav.currentTab,id);assert(w.document.querySelector('main').textContent.trim());
+   if(id==='chat'){
+    const tavern=w.document.querySelector('[data-tavern-screen]');assert(tavern);
+    assert.match(tavern.querySelector('#tavern-chat').textContent,/Привет из таверны/,'real shared chat loads without an extra click');
+    assert(tavern.querySelector('#tavern-chat .chat-composer input'));assert.notEqual(w.document.activeElement,tavern.querySelector('input'));
+    assert(!tavern.querySelector('.tavern-beer-details').open);assert(!tavern.querySelector('.tavern-art'));assert(!tavern.querySelector('.tavern-chat-toggle'));
+   }
    await w.act(async()=>w.nav.setCurrentTab('settlement'));await settle();
   }
   assert.equal(w.game.player.gold,baseline.gold);assert.equal(w.game.player.energy,baseline.energy);assert.equal(JSON.stringify(w.game.player.inventory),baseline.inventory,'visiting services does not start a game operation');
