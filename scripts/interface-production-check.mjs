@@ -65,6 +65,9 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   assert(plaza.querySelector('[data-settlement-place="market"]'));assert(plaza.querySelector('[data-settlement-place="quests"]'));
   for(const label of ['Настройки','Статистика','Оповещения','Premium','Герой','Достижения','Рейтинг'])assert(!plaza.textContent.includes(label),'technical entry on town plaza: '+label);
   const townButton=plaza.querySelector('[data-settlement-place="quests"]');assert(parseFloat(app.w.getComputedStyle(townButton).minHeight)>=44,'emitted CSS makes a town place touchable');
+  const presenceIcon=plaza.querySelector('.settlement-presence img');assert(presenceIcon);
+  assert.equal(app.w.getComputedStyle(presenceIcon).width,'16px','scene illustration styling must not enlarge the presence icon');
+  assert.equal(app.w.getComputedStyle(presenceIcon).height,'16px');
   if(mode==='fantasy-beta')assert(app.w.getComputedStyle(plaza.querySelector('.settlement-place-grid--workshops')).gridTemplateColumns.startsWith('repeat(2'),'Beta keeps two columns inside its narrow book canvas');
   townButton.click();await app.ready();
   const questBoard=app.w.document.querySelector('.settlement-board');assert(questBoard);assert.equal(app.w.getComputedStyle(questBoard).overflow,'hidden');

@@ -15,8 +15,9 @@ html[data-interface="fantasy-beta"] .settlement-plaza {
 }
 .settlement-plaza .settlement-overview { overflow:hidden; border:1px solid var(--plaza-line); border-radius:14px; background:var(--plaza-surface); }
 .settlement-plaza .settlement-scene { position:relative; aspect-ratio:2.65; min-height:125px; max-height:230px; overflow:hidden; background:#34291c; }
-.settlement-plaza .settlement-scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:50% 45%; }
+.settlement-plaza .settlement-scene>img { display:block; width:100%; height:100%; object-fit:cover; object-position:50% 45%; }
 .settlement-plaza .settlement-presence { position:absolute; left:12px; top:12px; display:flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid #af955d; border-radius:6px; background:#171a17ed; color:#f7e6b8; font:600 12px/1.3 Georgia,serif; }
+.settlement-plaza .settlement-presence :is(img,svg) { flex:0 0 16px; width:16px; height:16px; object-fit:contain; }
 .settlement-plaza .settlement-introduction { padding:14px 16px; }
 .settlement-plaza .settlement-introduction :is(h1,h2) { margin:0; color:var(--plaza-ink); font:700 25px/1.2 Georgia,serif; }
 .settlement-plaza .settlement-introduction p { margin:7px 0 0; font-size:13px; color:var(--plaza-muted); }
