@@ -8,12 +8,12 @@ import { flightBattlesLeft } from '../src/utils/flightPenalty';
 import { fixturePlace, completeJourney } from './helpers/worldPlace';
 
 test('beer preserves full-energy limits, replaces shame, stacks without currency, and validates persisted intoxication', () => {
-  const base:any = {energy:55,maxEnergy:60,gold:200,silver:300,hp:11,mp:12,flightPenalty:{battlesLeft:3,warningSeen:true,warningPending:false}};
-  let p=drinkTavernBeer(base); assert.equal(p.energy,60); assert.equal(flightBattlesLeft(p),0);assert.equal(p.intoxication.mugs,1);
-  assert.equal(p.gold,200);assert.equal(p.silver,300);assert.equal(p.hp,11);assert.equal(p.mp,12);assert(p.flightPenalty.warningSeen);
+  const base:any = {energy:55,maxEnergy:60,gold:200,silver:300,flightPenalty:{battlesLeft:3,warningSeen:true,warningPending:false}};
+  let p=drinkTavernBeer(base); assert.equal(p.energy,60); assert.equal(flightBattlesLeft(p),0);assert.equal(p.intoxication!.mugs,1);
+  assert.equal(p.gold,200);assert.equal(p.silver,300);assert(p.flightPenalty!.warningSeen);
   assert(!canDrinkBeer(p));assert.equal(drinkTavernBeer(p),p);
-  p=drinkTavernBeer({...p,flightPenalty:{...p.flightPenalty,battlesLeft:3}});assert.equal(p.energy,60);assert.equal(intoxicationPercent(p),10);
-  for(let i=0;i<25;i++)p=drinkTavernBeer({...p,energy:0});assert.equal(intoxicationPercent(p),50);assert.equal(p.intoxication.battlesLeft,3);
+  p=drinkTavernBeer({...p,flightPenalty:{...p.flightPenalty!,battlesLeft:3}});assert.equal(p.energy,60);assert.equal(intoxicationPercent(p),10);
+  for(let i=0;i<25;i++)p=drinkTavernBeer({...p,energy:0});assert.equal(intoxicationPercent(p),50);assert.equal(p.intoxication!.battlesLeft,3);
   assert.equal(normalizeIntoxication({mugs:Infinity,battlesLeft:3}),undefined);
   assert.equal(normalizeIntoxication({mugs:2,battlesLeft:NaN}),undefined);
   assert.equal(normalizeIntoxication({mugs:-3,battlesLeft:3}),undefined);
@@ -35,8 +35,8 @@ test('real provider and tavern enforce location, reload, stacked combat penaltie
   await fixturePlace(w,'settlement');const saved=JSON.parse(w.localStorage.getItem(key()));saved.player.energy=10;saved.player.lastEnergyRegenTimestamp=clock;
   saved.player.inventory.push({id:'bomb',templateId:'bomb',name:'bomb',type:'potion',rarity:'common',level:1,upgradeLevel:0,icon:'',stats:{fireDamage:90},stackCount:5,sellPrice:1,disassembleYield:{}});
   await act(()=>w.root.unmount());w.localStorage.setItem(key(),JSON.stringify(saved));await act(()=>w.mount());
-  const gold=w.game.player.gold,silver=w.game.player.silver,hp=w.game.player.hp,mp=w.game.player.mp;
-  await act(()=>{beer().click();beer().click()});assert.equal(w.game.player.energy,30);assert.equal(intoxicationPercent(w.game.player),10);assert.equal(w.game.player.gold,gold);assert.equal(w.game.player.silver,silver);assert.equal(w.game.player.hp,hp);assert.equal(w.game.player.mp,mp);
+  const gold=w.game.player.gold,silver=w.game.player.silver,hp=w.game.combatPlayerHp,mp=w.game.combatPlayerMp;
+  await act(()=>{beer().click();beer().click()});assert.equal(w.game.player.energy,30);assert.equal(intoxicationPercent(w.game.player),10);assert.equal(w.game.player.gold,gold);assert.equal(w.game.player.silver,silver);assert.equal(w.game.combatPlayerHp,hp);assert.equal(w.game.combatPlayerMp,mp);
   assert.match(w.document.querySelector('[data-tavern-screen]').textContent,/Опьянение · −10%/);
   await act(()=>w.root.unmount());await act(()=>w.mount());assert.equal(w.game.player.energy,30);assert.equal(intoxicationPercent(w.game.player),10);
   await act(()=>w.setLanguage('uk'));assert.match(w.document.querySelector('[data-tavern-screen]').textContent,/Сп’яніння/);assert.match(beer().textContent,/Випити/);await act(()=>w.setLanguage('ru'));
