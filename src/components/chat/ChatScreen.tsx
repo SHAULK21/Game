@@ -11,6 +11,7 @@ export const ChatScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false 
   const {input,setInput,loading,sending,error,onlinePlayers,load,send,renderedMessages}=useGlobalChat();
 
   const { streamRef, onStreamScroll } = useChatScroll(renderedMessages);
+  const needsTelegram = embedded && /initData.*HTTP 401/.test(error);
 
   if (!player) return null;
 
@@ -36,8 +37,8 @@ export const ChatScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false 
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <div className="font-bold">{localize("Не удалось подключиться к чату")}</div>
-              <div className="mt-1 break-words">{localize(error)}</div>
+              <div className="font-bold">{needsTelegram ? (locale === 'uk' ? 'Чат доступний через Telegram' : 'Чат доступен через Telegram') : localize("Не удалось подключиться к чату")}</div>
+              <div className="mt-1 break-words">{needsTelegram ? (locale === 'uk' ? 'Відкрийте гру з Telegram, щоб бачити повідомлення й спілкуватися з іншими гравцями.' : 'Откройте игру из Telegram, чтобы видеть сообщения и общаться с другими игроками.') : localize(error)}</div>
               <button onClick={() => void load(true)} className="mt-2 px-2.5 py-1.5 rounded-lg border border-rose-500/40 bg-rose-950/50 font-bold">{localize("Повторить")}</button>
             </div>
           </div>
