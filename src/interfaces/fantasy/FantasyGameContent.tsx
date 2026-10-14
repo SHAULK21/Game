@@ -1,3 +1,4 @@
+import { TavernScreen } from '../../components/settlement/TavernScreen';
 import {SettlementScreen} from '../../components/settlement/SettlementScreen';
 import {inSettlement} from '../../utils/worldPresence';
 import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll';
@@ -69,7 +70,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'fishing' && <FishingScreen />}
             {currentTab === 'clan' && <ClanScreen />}
-            {currentTab === 'chat' && <ChatScreen />}
+            {currentTab === 'chat' && <TavernScreen><ChatScreen /></TavernScreen>}
             {currentTab === 'market' && <MarketScreen />}
             {currentTab === 'pets' && <PetsScreen />}
             {currentTab === 'leaderboard' && <LeaderboardScreen />}

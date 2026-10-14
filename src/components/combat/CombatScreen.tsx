@@ -1,3 +1,4 @@
+import { EnergyRecoveryInfo } from '../../components/settlement/EnergyRecoveryInfo';
 import { MonsterEnrageNotice } from './MonsterEnrageNotice';
 import { FlightPenaltyNotice } from '../../components/combat/FlightPenaltyNotice';
 import { RegionCompletionReward } from './RegionCompletionReward';
@@ -37,7 +38,6 @@ import { sound } from '../../utils/audio';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
 import { skillTier } from '../../data/classEvolution';
-import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 import { LevelEnvironment } from '../ui/LevelEnvironment';
 import { groupRegionsByLevel } from '../../utils/levelEnvironment';
 
@@ -75,7 +75,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     toggleAutoBattle,
     updateAutoBattleSettings,
     exitCombat,
-    meditateOrRefillEnergy,
     preparePremiumInvoice,
     purchasePremium,
     leaveMiningExpedition
@@ -279,17 +278,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{localize(energyError)}</span>
               </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => meditateOrRefillEnergy('meditate')}
-                  className="px-2.5 py-1 bg-emerald-950 border border-emerald-500 rounded text-emerald-200 text-[10px] font-bold"
-                >{localize("🧘 Помедитировать (+10 ⚡)")}</button>
-                <button
-                  onClick={() => meditateOrRefillEnergy('silver')}
-                  className="px-2.5 py-1 bg-amber-950 border border-amber-500 rounded text-amber-200 text-[10px] font-bold"
-                >{localize("🧪 Эликсир (+30 ⚡ / ")}{localize(getEnergyElixirPrice(premium.active))} 🥈){localize(premium.active ? ' · −50% Premium' : '')}
-                </button>
-              </div>
+              <EnergyRecoveryInfo />
             </div>
           )}
 

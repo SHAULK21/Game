@@ -1,10 +1,12 @@
+import { EnergyRecoveryInfo } from '../../../../components/settlement/EnergyRecoveryInfo';
+import { useNavigation } from '../../../../context/NavigationContext';
+import { inSettlement } from '../../../../utils/worldPresence';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../../../context/GameContext';
 import { CLASSES } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
-import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
 import { ShellOrnament } from '../ui/ShellOrnament';
 import { getFantasyHeroArtwork } from '../../utils/heroArtwork';
 import { ResourceBadge, RpgButton, DialogFrame } from '../ui/BestiaryUI';
@@ -25,20 +27,11 @@ const compactCount = (value: number) => {
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, compact = false, hidden = false }) => {
   useLocale();
-  const { player, meditateOrRefillEnergy, premium } = useGame();
+  const { player, premium } = useGame();
+  const { setCurrentTab } = useNavigation();
+  const openTavern = () => { setShowEnergyModal(false); setCurrentTab(inSettlement(player) ? 'chat' : 'settlement'); };
   const [showEnergyModal, setShowEnergyModal] = useState(false);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!showEnergyModal) return;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [showEnergyModal]);
-
   if (!player) return null;
-  const meditationWait = Math.max(0, (player.lastMeditationTimestamp || 0) + 30 * 60_000 - now);
-  const meditationDisabled = meditationWait > 0 || player.energy >= player.maxEnergy;
-  const elixirPrice = getEnergyElixirPrice(premium.active);
   const expPct = Math.min(100, Math.round((player.exp / Math.max(1, player.nextExp)) * 100));
   const heroClass = CLASSES[player.classId] || CLASSES.warrior;
   const currentEnergy = player.energy ?? 100;
@@ -89,15 +82,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet, comp
           <div className="mb-2 flex justify-between text-xs"><span className="text-[#918c82]">{localize("Запас")}</span><strong className="font-mono text-[#d1ad67]">{localize(currentEnergy)} / {localize(maxEnergy)}</strong></div>
           <div className="progress-track h-2"><div className="progress-fill is-energy" style={{ width: `${energyPct}%` }} /></div>
         </div>
-        <div className="space-y-2">
-          <RpgButton variant="secondary" icon="skill" className="w-full justify-between" disabled={meditationDisabled} onClick={() => { meditateOrRefillEnergy('meditate'); setShowEnergyModal(false); }}>
-            <span>{localize("Медитация · бесплатно")}</span><span className="font-mono text-[11px] text-[#d1ad67]">{localize(meditationWait > 0 ? `Через ${Math.ceil(meditationWait / 60000)} мин` : currentEnergy >= maxEnergy ? 'Запас полон' : '+10 · раз в 30 мин')}</span>
-          </RpgButton>
-          <RpgButton variant="secondary" icon="potion" className="w-full justify-between" disabled={premium.loading || (player.silver ?? 0) < elixirPrice || currentEnergy >= maxEnergy} onClick={() => { meditateOrRefillEnergy('silver'); setShowEnergyModal(false); }}>
-            <span>{localize("Эликсир бодрости")}</span><span className="font-mono text-[11px] text-[#d8d1c4]">+30 · {localize(elixirPrice)}{localize(" серебра")}</span>
-          </RpgButton>
-        </div>
-        {premium.active && <p className="mt-3 text-center text-[11px] text-[#918c82]">{localize("Скидка Premium учтена в цене эликсира.")}</p>}
+        <EnergyRecoveryInfo onTavern={openTavern} />
         <button className="rpg-button rpg-button-secondary mt-3 w-full" onClick={() => setShowEnergyModal(false)}>{localize("Закрыть")}</button>
     </DialogFrame>
   </>;

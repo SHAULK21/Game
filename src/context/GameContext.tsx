@@ -6,6 +6,7 @@ import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
 import {gameSaveKey, readAccountSave, removeAccountSave} from '../utils/accountReset';
 import { arenaMonster } from '../utils/arena';
+import { drinkTavernBeer, canDrinkBeer, intoxicationPercent, normalizeIntoxication, completeIntoxicatedBattle } from '../utils/tavernBeer';
 import { recordFlight, completePenalizedBattle, flightBattlesLeft, FLIGHT_PENALTY_PERCENT } from '../utils/flightPenalty';
 import { chooseMonsterSkill, monsterActionKind, sampleMonsterDelay, prepareMonsterForCombat, availableMonsterSkills, advanceMonsterCooldowns } from '../utils/monsterAI';
 import { forecastMonsterAction, monsterReadingAccuracy, type MonsterForecast } from '../utils/monsterForecast';
@@ -83,7 +84,7 @@ import {
 import { sound } from '../utils/audio';
 import { getTelegramUser, getTelegramWebApp, triggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
-import { getEnergyElixirPrice, getDungeonCompletionReward, rollDungeonChest, rollDungeonBlessing } from '../utils/dungeonRewards';
+import { getDungeonCompletionReward, rollDungeonChest, rollDungeonBlessing } from '../utils/dungeonRewards';
 import { applyClassGear, getEffectiveGearStats } from '../utils/classEquipment';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
@@ -147,7 +148,7 @@ interface GameContextType {
   refreshServerInventory: () => Promise<void>;
   expandInventory: () => { success: boolean; message: string };
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
-  meditateOrRefillEnergy: (mode: 'meditate' | 'silver' | 'potion') => void;
+  drinkBeer: () => { success: boolean; message: string };
   claimRegionCompletion: (regionId: string) => void;
   setActiveRegionMod: (modId: string) => void;
   setActivePet: (petId: string) => boolean;
@@ -573,7 +574,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!isInCombat || !isCombatEnded || flightHandled.current) return;
     flightHandled.current = true;
-    if (combatOutcome === 'victory' || combatOutcome === 'defeat') setPlayer(prev => prev ? completePenalizedBattle(prev) : prev);
+    if (combatOutcome === 'victory' || combatOutcome === 'defeat') setPlayer(prev => prev ? completeIntoxicatedBattle(completePenalizedBattle(prev)) : prev);
   }, [isInCombat, isCombatEnded, combatOutcome]);
   const talentFollowup = useRef(0);
   const bulkInventoryBusy = useRef(false);
@@ -1093,7 +1094,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           parsed.player.craftedPetIds = Array.isArray(parsed.player.craftedPetIds)
             ? parsed.player.craftedPetIds
             : [parsed.player.activePet?.id || 'pet_wolf'];
-          parsed.player.lastMeditationTimestamp = Number(parsed.player.lastMeditationTimestamp || 0);
+          delete parsed.player.lastMeditationTimestamp;
+          parsed.player.intoxication = normalizeIntoxication(parsed.player.intoxication);
           parsed.player = refreshGameTimers(parsed.player, now);
           parsed.player.activeRegionModId = parsed.player.activeRegionModId || 'mod_standard';
           // Old saves already inside a profession must be able to finish it in town.
@@ -1230,6 +1232,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',heartbeat);};
   },[player?.userId]);
 
+  const activeIntoxicationPercent = isInCombat && !isCombatEnded ? intoxicationPercent(player) : 0;
   const activeFlightPenalty = isInCombat && !isCombatEnded && flightBattlesLeft(player) > 0;
 
   // Compute Total Combat Stats
@@ -1365,6 +1368,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       defense *= 1 - FLIGHT_PENALTY_PERCENT / 100;
       magicDefense *= 1 - FLIGHT_PENALTY_PERCENT / 100;
     }
+    if (activeIntoxicationPercent) {
+      const factor = 1 - activeIntoxicationPercent / 100;
+      attack *= factor; magicAttack *= factor; defense *= factor; magicDefense *= factor;
+    }
     return {
       hp: maxHp,
       maxHp: Math.round(maxHp),
@@ -1392,7 +1399,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       expBonus: Math.round(expBonus),
       resistances
     };
-  }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing, activeFlightPenalty]);
+  }, [player?.attributes, player?.level, player?.classId, player?.equipped, player?.talents, player?.activePet, player?.energy, player?.maxEnergy, player?.stamina, player?.maxStamina, achievements, activeDungeonRun?.temporaryBlessing, activeFlightPenalty, activeIntoxicationPercent]);
 
   // Character Creation
   const createCharacter = useCallback((name: string, classId: CharacterClassId, firstJourney = false) => {
@@ -1508,7 +1515,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       energy: 60,
       maxEnergy: 60,
       lastEnergyRegenTimestamp: Date.now(),
-      lastMeditationTimestamp: 0,
       stamina: 100,
       maxStamina: 100,
       attributes: { ...classDef.baseAttributes },
@@ -1995,43 +2001,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [travelState.isTraveling, activeDungeonRun, isInCombat, isCombatEnded]);
 
-  const meditateOrRefillEnergy = useCallback((mode: 'meditate' | 'silver' | 'potion') => {
-    const now = Date.now();
-    setPlayer(prev => {
-      if (!prev) return prev;
-      if (mode === 'meditate') {
-        const cooldownMs = 30 * 60_000;
-        const lastMeditation = prev.lastMeditationTimestamp || 0;
-        if (now - lastMeditation < cooldownMs || prev.energy >= prev.maxEnergy) {
-          triggerHaptic('error');
-          return prev;
-        }
-        sound.playEnergyRefill();
-        triggerHaptic('medium');
-        return {
-          ...prev,
-          energy: Math.min(prev.maxEnergy, prev.energy + 10),
-          lastMeditationTimestamp: now
-        };
-      } else if (mode === 'silver') {
-        const price = getEnergyElixirPrice(premium.active);
-        if (prev.silver < price || prev.energy >= prev.maxEnergy) {
-          triggerHaptic('error');
-          sound.playUpgradeFail();
-          return prev;
-        }
-        sound.playCoinDrop();
-        sound.playEnergyRefill();
-        triggerHaptic('success');
-        return {
-          ...prev,
-          silver: prev.silver - price,
-          energy: Math.min(prev.maxEnergy, prev.energy + 30)
-        };
-      }
-      return prev;
-    });
-  }, [premium.active]);
+  const drinkBeer = useCallback(() => {
+    if (!inSettlement(presenceRef.current) || journeyGate.current || combatActiveRef.current) {
+      setWorldMessage(SETTLEMENT_REQUIRED);
+      return { success: false, message: SETTLEMENT_REQUIRED };
+    }
+    const current = presenceRef.current;
+    if (!current || !canDrinkBeer(current)) return { success: false, message: 'Энергия полна. Пиво сейчас не нужно.' };
+    setPlayer(prev => prev && inSettlement(prev) && !prev.worldJourney ? drinkTavernBeer(prev) : prev);
+    sound.playEnergyRefill();
+    triggerHaptic('medium');
+    return { success: true, message: 'Пиво восстановило энергию. Позор беглеца снят, но опьянение усилилось.' };
+  }, []);
 
   // START BATTLE with Energy Check
   const startBattleWithMonster = useCallback((monster: Monster, options?: BattleStartOptions): boolean => {
@@ -4195,7 +4176,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshServerInventory,
       expandInventory: (...args)=>servicesAvailable()?expandInventory(...args):serviceFailure,
       upgradeItem: (...args)=>servicesAvailable()?upgradeItem(...args):serviceFailure,
-      meditateOrRefillEnergy,
+      drinkBeer,
       claimRegionCompletion,
       setActiveRegionMod,
       setActivePet,

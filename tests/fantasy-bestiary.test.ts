@@ -21,11 +21,11 @@ async function setup(finishTurn = true) {
         selectedLock={null} progress={{kills:0,eliteWins:0,bossWins:0}}
         energyError={error} combatEnergyCost={2}
         autoBattle={{useSkills:true,healAtHpPercent:35}}
-        isSettingsOpen={false} premiumActive={false} elixirPrice={10}
+        isSettingsOpen={false} premiumActive={false}
         getMonsterLock={()=>null} onSelectMonster={()=>{}}
         onStartHunt={()=>window.hunts++} onToggleSettings={()=>{}}
         onUpdateAutoBattle={()=>{}} onLeaveMine={()=>{}}
-        onMeditate={()=>window.render(10)} onBuyElixir={()=>window.render(30)}
+        onVisitTavern={()=>window.tavernVisits=(window.tavernVisits||0)+1}
       /></GameProvider>);
       window.hunts=0;window.render(0);
     };`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'browser', format: 'iife',
@@ -45,7 +45,7 @@ async function setup(finishTurn = true) {
   return { dom, w };
 }
 
-test('fantasy dossier explains insufficient energy, restores it in place, and retains failed-start feedback', async () => {
+test('fantasy dossier explains insufficient energy, points to town without free recovery, and retains failed-start feedback', async () => {
   const { dom, w } = await setup();
   const button = (text: string) => [...w.document.querySelectorAll('button')].find((el: any) => el.textContent.trim() === text) as any;
   const hunt = () => w.document.querySelector('.dossier-hunt-button');
@@ -53,14 +53,13 @@ test('fantasy dossier explains insufficient energy, restores it in place, and re
     assert.equal(hunt().disabled, true);
     assert.match(w.document.querySelector('[role="status"]').textContent, /Недостаточно энергии/);
     await w.act(async () => hunt().click()); assert.equal(w.hunts, 0);
-    await w.act(async () => button('Медитация +10').click());
-    assert(w.document.querySelector('.bestiary-dossier-screen'), 'recovery keeps the dossier open');
-    assert.equal(hunt().disabled, false);
-    assert.equal(w.document.querySelector('.hunt-energy-notice'), null);
+    assert(!button('Медитация +10')); assert(!button('Эликсир +30 · 10 серебра'));
+    await w.act(async () => button('В таверну в поселении').click());
+    assert.equal(w.tavernVisits, 1);
+    assert(w.document.querySelector('.bestiary-dossier-screen'));
+    assert.equal(hunt().disabled, true, 'navigation cannot refill energy in the field');
+    await w.act(async () => w.render(10));
     await w.act(async () => hunt().click()); assert.equal(w.hunts, 1);
-    await w.act(async () => w.render(0));
-    await w.act(async () => button('Эликсир +30 · 10 серебра').click());
-    assert.equal(hunt().disabled, false);
     await w.act(async () => w.render(10, 'Недостаточно энергии! Для боя нужно 2.'));
     assert.match(w.document.querySelector('.dossier-footer [role="status"]').textContent, /Для боя нужно 2/);
   } finally { await w.act(async () => w.root.unmount()); dom.window.close(); }

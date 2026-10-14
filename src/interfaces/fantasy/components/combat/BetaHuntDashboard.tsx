@@ -1,3 +1,4 @@
+import { EnergyRecoveryInfo } from '../../../../components/settlement/EnergyRecoveryInfo';
 import { useBetaBookTurn } from '../ui/useBetaBookTurn';
 import { RegionCompletionReward } from '../../../../components/combat/RegionCompletionReward';
 import { localizeBestiary as localize } from '../../i18n/bestiary';
@@ -26,14 +27,12 @@ interface HuntDashboardProps {
   autoBattle: AutoBattleSettings;
   isSettingsOpen: boolean;
   premiumActive: boolean;
-  elixirPrice: number;
   getMonsterLock: (monster: Monster) => string | null;
   onSelectMonster: (monsterId: string) => void;
   onStartHunt: () => void;
   onToggleSettings: () => void;
   onUpdateAutoBattle: (settings: Partial<AutoBattleSettings>) => void;
-  onMeditate: () => void;
-  onBuyElixir: () => void;
+  onVisitTavern: () => void;
   onLeaveMine: () => void;
 }
 
@@ -66,8 +65,8 @@ const DossierStat: React.FC<{ icon: RpgIconKind; label: string; value: React.Rea
 
 export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
   player, currentRegion, regionMonsters, selectedMonster, selectedLock, progress, energyError, combatEnergyCost,
-  autoBattle, isSettingsOpen, premiumActive, elixirPrice, getMonsterLock, onSelectMonster, onStartHunt, onToggleSettings,
-  onUpdateAutoBattle, onMeditate, onBuyElixir, onLeaveMine
+  autoBattle, isSettingsOpen, premiumActive, getMonsterLock, onSelectMonster, onStartHunt, onToggleSettings,
+  onUpdateAutoBattle, onVisitTavern, onLeaveMine
 }) => {
   useLocale();
   const { pageRef, turn } = useBetaBookTurn();
@@ -82,10 +81,7 @@ export const BetaHuntDashboard: React.FC<HuntDashboardProps> = ({
   const energyMessage = energyError || (insufficientEnergy ? localize("Недостаточно энергии для охоты.") : null);
   const energyNotice = energyMessage && <div role="status" aria-live="polite" className="hunt-energy-notice">
     <p>{localize(energyMessage)}</p>
-    <div>
-      <button type="button" onClick={onMeditate}>{localize("Медитация +10")}</button>
-      <button type="button" disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} onClick={onBuyElixir}>{localize("Эликсир +30 · ")}{localize(elixirPrice)}{localize(" серебра")}</button>
-    </div>
+    <EnergyRecoveryInfo onTavern={onVisitTavern} />
   </div>;
   const selectedMonsterUnknown = Boolean(selectedMonster && getMonsterLock(selectedMonster));
   const knownCount = regionMonsters.filter(monster => !getMonsterLock(monster)).length;

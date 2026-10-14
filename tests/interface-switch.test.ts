@@ -85,7 +85,7 @@ test('registration switches styles without losing input; both layouts share char
     assert(button('Атака'), 'registration starts the first fight');
     w.Math.random=()=>0;await w.act(async()=>button('Покинуть бой').click());await settle();
     assert.match(w.document.body.textContent,/В королевстве трусы не в почёте/);
-    assert(w.document.querySelector('img[src="/assets/story/royal-order.webp"]'));
+    assert(w.document.querySelector('img[src="/assets/story/tavern-beer.webp"]'));
     await w.act(async()=>button('Продолжить приключение').click());await settle();
     for(const label of ["Далее", "Далее", "Открыть Кодекс"]) { const next=[...w.document.querySelectorAll("button")].find((n:any)=>n.textContent.trim()===label) as any; assert(next); await w.act(async()=>next.click()); await settle(); }
     assert.match(w.document.body.textContent,/Первый бой позади/);
@@ -328,7 +328,9 @@ test('fantasy codex controls, complete loot, dialogs and every section work toge
     for (const drop of monster.drops) assert(dossier.textContent.includes(drop.itemName));
     const energy=w.document.querySelector('button[title="Энергия. Открыть способы восстановления"]');
     await w.act(async()=>energy.click());
-    assert.equal(button('Медитация · бесплатноЗапас полон')?.disabled,true);
+    assert(!button('Медитация · бесплатноЗапас полон'));
+    assert(w.document.querySelector('.energy-recovery-info'));
+    assert.doesNotMatch(w.document.querySelector('.dialog-frame').textContent,/Эликсир бодрости|Медитация/);
     await w.act(async()=>w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
     const settings=aria('Настройки автобоя');
     await w.act(async () => { settings.focus(); settings.click(); });

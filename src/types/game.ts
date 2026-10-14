@@ -543,6 +543,7 @@ export interface PlayerCharacter {
   nextExp: number;
   firstJourney?: 'battle' | 'briefing' | 'codex' | 'done';
   royalBriefingStep?: number;
+  intoxication?: { mugs: number; battlesLeft: number };
   flightPenalty?: { battlesLeft: number; warningSeen: boolean; warningPending: boolean };
   firstJourneyDeparture?: boolean;
   adventureJournal?: AdventureJournalState;

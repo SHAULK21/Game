@@ -20,7 +20,7 @@ const groups:{id:string;label:string;places:Place[]}[]=[
   {id:'arena',label:'Арена',description:'Гладиаторы, поединки и вознесение',icon:'arena',tab:'arena'},
   {id:'clan',label:'Дом клана',description:'Собраться со своим кланом',icon:'clan',tab:'clan'},
   {id:'pets',label:'Приют спутников',description:'Спутники и их создание',icon:'pet',tab:'pets'},
-  {id:'chat',label:'Таверна',description:'Общение с другими искателями',icon:'quest',tab:'chat'},
+  {id:'chat',label:'Таверна',description:'Пиво, отдых и разговоры у очага',icon:'quest',tab:'chat'},
  ]},
  {id:'outskirts',label:'У поселения',places:[
   {id:'fishing',label:'Рыбацкий причал',description:'Рыбалка и снасти',icon:'fish',tab:'fishing'},

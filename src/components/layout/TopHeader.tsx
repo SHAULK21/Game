@@ -1,3 +1,6 @@
+import { EnergyRecoveryInfo } from '../../components/settlement/EnergyRecoveryInfo';
+import { useNavigation } from '../../context/NavigationContext';
+import { inSettlement } from '../../utils/worldPresence';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState, useSyncExternalStore } from 'react';
@@ -5,7 +8,6 @@ import { useGame } from '../../context/GameContext';
 import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';
-import { getEnergyElixirPrice } from '../../utils/dungeonRewards';
 
 interface TopHeaderProps {
   onOpenCharacterSheet: () => void;
@@ -13,8 +15,10 @@ interface TopHeaderProps {
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) => {
   useLocale();
-  const { player, meditateOrRefillEnergy, premium } = useGame();
+  const { player, premium } = useGame();
   const isMuted = useSyncExternalStore(sound.subscribe,()=>sound.getIsMuted(),()=>false);
+  const { setCurrentTab } = useNavigation();
+  const openTavern = () => { setShowEnergyModal(false); setCurrentTab(inSettlement(player) ? 'chat' : 'settlement'); };
   const [showEnergyModal, setShowEnergyModal] = useState(false);
 
   const handleToggleSound = () => {
@@ -22,7 +26,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
   };
 
   if (!player) return null;
-  const elixirPrice = getEnergyElixirPrice(premium.active);
 
   const expPct = Math.min(100, Math.round((player.exp / player.nextExp) * 100));
   const heroImage = `/assets/sprites/generated/heroes/${player.classId}.webp`;
@@ -83,36 +86,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCharacterSheet }) =>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  meditateOrRefillEnergy('meditate');
-                  setShowEnergyModal(false);
-                }}
-                className="w-full py-2 px-3 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <span>🧘</span>
-                  <span>{localize("Медитация · бесплатно")}</span>
-                </div>
-                <span className="text-amber-300 font-mono">{localize("+10 ⚡ · 1 раз / 30 мин")}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  meditateOrRefillEnergy('silver');
-                  setShowEnergyModal(false);
-                }}
-                disabled={premium.loading || (player.silver ?? 0) < elixirPrice || player.energy >= player.maxEnergy}
-                className="w-full py-2 px-3 rounded-lg bg-amber-950/70 hover:bg-amber-900 disabled:opacity-50 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <span>🧪</span>
-                  <span>{localize("Купить Эликсир Бодрости")}</span>
-                </div>
-                <span className="text-slate-200 font-mono">+30 ⚡ ({localize(elixirPrice)} 🥈){localize(premium.active ? ' · −50% Premium' : '')}</span>
-              </button>
-            </div>
+            <EnergyRecoveryInfo onTavern={openTavern} />
           </div>
         </div>
       )}

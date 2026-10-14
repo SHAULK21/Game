@@ -1,3 +1,4 @@
+import { EnergyRecoveryInfo } from '../../../../components/settlement/EnergyRecoveryInfo';
 import { RegionCompletionReward } from '../../../../components/combat/RegionCompletionReward';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import React from 'react';
@@ -26,14 +27,12 @@ interface HuntDashboardProps {
   autoBattle: AutoBattleSettings;
   isSettingsOpen: boolean;
   premiumActive: boolean;
-  elixirPrice: number;
   getMonsterLock: (monster: Monster) => string | null;
   onSelectMonster: (monsterId: string) => void;
   onStartHunt: () => void;
   onToggleSettings: () => void;
   onUpdateAutoBattle: (settings: Partial<AutoBattleSettings>) => void;
-  onMeditate: () => void;
-  onBuyElixir: () => void;
+  onVisitTavern: () => void;
   onLeaveMine: () => void;
 }
 
@@ -41,8 +40,8 @@ const damageTypeLabel = (type?: Monster['damageType']) => ({ physical: 'Физи
 
 export const HuntDashboard: React.FC<HuntDashboardProps> = ({
   player, currentRegion, regionMonsters, selectedMonster, activeMod, selectedLock, progress, energyError, combatEnergyCost,
-  autoBattle, isSettingsOpen, premiumActive, elixirPrice, getMonsterLock, onSelectMonster, onStartHunt, onToggleSettings,
-  onUpdateAutoBattle, onMeditate, onBuyElixir, onLeaveMine
+  autoBattle, isSettingsOpen, premiumActive, getMonsterLock, onSelectMonster, onStartHunt, onToggleSettings,
+  onUpdateAutoBattle, onVisitTavern, onLeaveMine
 }) => {
   useLocale();
   const scene = getBattleScene(currentRegion.id, currentRegion.id);
@@ -82,10 +81,7 @@ export const HuntDashboard: React.FC<HuntDashboardProps> = ({
 
     {energyError && <div role="status" aria-live="polite" className="bestiary-panel space-y-2 border-[#673b3b] bg-[#211719] p-3">
       <div className="flex items-start gap-2 text-xs text-[#e1b7b3]"><span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#81504d] font-bold">!</span><span>{localize(energyError)}</span></div>
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={onMeditate} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">{localize("Медитация +10")}</button>
-        <button onClick={onBuyElixir} disabled={player.silver < elixirPrice || player.energy >= player.maxEnergy} className="rpg-button rpg-button-secondary min-h-11 px-2 text-[11px]">{localize("Эликсир +30 · ")}{localize(elixirPrice)}{localize(" серебра")}</button>
-      </div>
+      <EnergyRecoveryInfo onTavern={onVisitTavern} />
     </div>}
 
 

@@ -59,6 +59,13 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
     if(!button&&label==='Журнал')button=[...app.w.document.querySelectorAll('.mechanics-entry > button:first-child')].find(b=>b.textContent.trim().startsWith('Задания'));
     assert(button,'Missing section '+mode+'/'+label); button.click(); await app.ready();
     assert(app.w.document.querySelector('main').textContent.trim(),'Empty section '+mode+'/'+label);
+    if(label==='Чат'){
+      const tavern=app.w.document.querySelector('[data-tavern-screen]');assert(tavern,'real tavern in '+mode);
+      const beer=tavern.querySelector('[data-drink-beer]');assert(beer);assert(beer.disabled,'full-energy hero has no pointless beer');
+      assert(parseFloat(app.w.getComputedStyle(beer).minHeight)>=44,'emitted beer CSS has a touch target');
+      assert.equal(tavern.querySelector('.tavern-art>img').getAttribute('src'),'/assets/story/tavern-beer.webp');
+      if(mode==='fantasy-beta')assert.equal(app.w.getComputedStyle(tavern).color,'rgb(60, 48, 36)','Beta tavern text stays readable on parchment');
+    }
   };
   for(const label of ['Мир','Арена','Сумка','Создание','Герой','Кузница','Алхимия','Рыбалка','Шахта','Рынок','Клан','Спутники','Чат','Рейтинг','Журнал','Поселение']) await click(label);
   const plaza=app.w.document.querySelector('[data-settlement-screen]');assert(plaza,'town plaza');

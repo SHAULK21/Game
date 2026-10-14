@@ -1,7 +1,5 @@
 import type { Monster, DungeonRun } from '../types/game';
 
-export const getEnergyElixirPrice = (premium: boolean) => premium ? 250 : 500;
-
 export const getDungeonCompletionReward = (level: number, difficulty: DungeonRun['difficulty']) => {
   const multiplier = { normal: 1, hard: 1.5, nightmare: 2, hell: 3 }[difficulty];
   return {

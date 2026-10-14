@@ -17,7 +17,7 @@ const pages = {
   mine: { title: 'Шахта', icon: 'mine' },
   fishing: { title: 'Рыбалка', icon: 'fish' },
   clan: { title: 'Клан', icon: 'clan' },
-  chat: { title: 'Чат', icon: 'quest' },
+  chat: { title: 'Таверна', icon: 'quest' },
   market: { title: 'Рынок', icon: 'market' },
   pets: { title: 'Спутник', icon: 'pet' },
   leaderboard: { title: 'Рейтинг', icon: 'crown' },

@@ -1,3 +1,4 @@
+import { useNavigation } from '../../../../context/NavigationContext';
 import { MonsterEnrageNotice } from '../../../../components/combat/MonsterEnrageNotice';
 import { FlightPenaltyNotice } from '../../../../components/combat/FlightPenaltyNotice';
 import { useInterface } from '../../../../context/InterfaceContext';
@@ -12,7 +13,6 @@ import { MONSTERS, REGIONS, CAVES, REGION_MODIFIERS, CLASSES, ASSETS, getRegionM
 import { getBattleScene } from '../../../../components/combat/BattleBackdrop';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ItemArtwork } from '../ui/ItemArtwork';
-import { getEnergyElixirPrice } from '../../../../utils/dungeonRewards';
 import { CombatArena } from './CombatArena';
 import { CombatSkillList } from './CombatSkillList';
 import { RpgButton } from '../ui/BestiaryUI';
@@ -24,6 +24,7 @@ export const getPredictedMonsterSkill = predictedMonsterSkill;
 
 export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnToArena?: () => void }> = ({ onContinueDungeon, onReturnToArena }) => {
   useLocale();
+  const { setCurrentTab } = useNavigation();
   const { style } = useInterface();
   const Dashboard = style === 'fantasy-beta' ? BetaHuntDashboard : HuntDashboard;
   const {
@@ -56,7 +57,6 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     toggleAutoBattle,
     updateAutoBattleSettings,
     exitCombat,
-    meditateOrRefillEnergy,
     preparePremiumInvoice,
     purchasePremium,
     leaveMiningExpedition
@@ -176,14 +176,12 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           autoBattle={autoBattle}
           isSettingsOpen={isSettingsOpen}
           premiumActive={premium.active}
-          elixirPrice={getEnergyElixirPrice(premium.active)}
           getMonsterLock={monster => huntLockReason(player, monster, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id)}
           onSelectMonster={setSelectedMonsterId}
           onStartHunt={() => { if (selectedMonster) handleStartBattle(selectedMonster); }}
           onToggleSettings={() => setIsSettingsOpen(open => !open)}
           onUpdateAutoBattle={updateAutoBattleSettings}
-          onMeditate={() => meditateOrRefillEnergy('meditate')}
-          onBuyElixir={() => meditateOrRefillEnergy('silver')}
+          onVisitTavern={() => setCurrentTab('settlement')}
           onLeaveMine={() => {
             const result = leaveMiningExpedition();
             setEnergyError(result.message);
