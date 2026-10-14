@@ -65,8 +65,10 @@ for(const mode of modes){const app=await boot(mode,seed);const resources=[];for(
   assert(plaza.querySelector('[data-settlement-place="market"]'));assert(plaza.querySelector('[data-settlement-place="quests"]'));
   for(const label of ['Настройки','Статистика','Оповещения','Premium','Герой','Достижения','Рейтинг'])assert(!plaza.textContent.includes(label),'technical entry on town plaza: '+label);
   const townButton=plaza.querySelector('[data-settlement-place="quests"]');assert(parseFloat(app.w.getComputedStyle(townButton).minHeight)>=44,'emitted CSS makes a town place touchable');
+  if(mode==='fantasy-beta')assert(app.w.getComputedStyle(plaza.querySelector('.settlement-place-grid--workshops')).gridTemplateColumns.startsWith('repeat(2'),'Beta keeps two columns inside its narrow book canvas');
   townButton.click();await app.ready();
   const questBoard=app.w.document.querySelector('.settlement-board');assert(questBoard);assert.equal(app.w.getComputedStyle(questBoard).overflow,'hidden');
+  if(mode==='fantasy-beta')assert.equal(app.w.getComputedStyle(questBoard).maxWidth,'430px','notice board respects the Beta book width');
   assert.equal(app.w.getComputedStyle(questBoard.querySelector('.settlement-board-scroll')).overflow,'auto','real board CSS scrolls its quests');
   assert(!questBoard.textContent.includes('Настройки'));questBoard.querySelector('[aria-label="Закрыть доску поручений"]').click();await app.ready();
   await click('Мир');

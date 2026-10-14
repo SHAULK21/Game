@@ -70,7 +70,14 @@ html[data-interface="fantasy-beta"] .settlement-plaza {
 .settlement-board .settlement-quest-rewards>span { display:inline-flex; align-items:center; gap:4px; }
 .settlement-board .settlement-quest-claim { min-height:44px; width:100%; margin-top:12px; padding:8px 12px; background:#725029; border:1px solid #513719; border-radius:7px; color:#fff2d5; font-weight:700; }
 .settlement-board .settlement-quest-state { display:block; margin-top:10px; color:#675033; font-size:12px; }
-@media(min-width:700px) { .settlement-plaza .settlement-place-grid--workshops { grid-template-columns:repeat(3,minmax(0,1fr)); } .settlement-plaza .settlement-place-grid--workshops>:last-child { grid-column:auto; } }
+/* Modern and Beta retain a narrow canvas even in a wide browser window. */
+@media(min-width:700px) { html[data-interface="fantasy"] .settlement-plaza .settlement-place-grid--workshops { grid-template-columns:repeat(3,minmax(0,1fr)); } html[data-interface="fantasy"] .settlement-plaza .settlement-place-grid--workshops>:last-child { grid-column:auto; } }
+html[data-interface="fantasy-beta"] .settlement-plaza .settlement-place { gap:8px; padding:10px; }
+html[data-interface="fantasy-beta"] .settlement-plaza .settlement-place-icon { flex-basis:34px; width:34px; height:40px; border:0; background:transparent; }
+html[data-interface="fantasy-beta"] .settlement-plaza .settlement-place-copy strong { font-size:15px; }
+html[data-interface="fantasy-beta"] .settlement-plaza .settlement-place-arrow { font-size:21px; }
+html[data-interface="fantasy-beta"] .settlement-plaza .settlement-roads { grid-template-columns:1fr; }
+html[data-interface="fantasy-beta"] .game-reference-dialog.settlement-board { max-width:430px; }
 @media(max-width:430px) { .settlement-plaza .settlement-place { gap:8px; padding:10px; } .settlement-plaza .settlement-place-icon { flex-basis:34px; width:34px; height:40px; border:0; background:transparent; } .settlement-plaza .settlement-place-copy strong { font-size:15px; } .settlement-plaza .settlement-place-arrow { font-size:21px; } .settlement-plaza .settlement-roads { grid-template-columns:1fr; } .settlement-plaza .settlement-place--featured { min-height:104px; } }
 @media(max-width:360px) { .settlement-plaza .settlement-featured { grid-template-columns:1fr; } .settlement-plaza .settlement-place--featured { min-height:80px; } .settlement-plaza .settlement-introduction :is(h1,h2) { font-size:23px; } }
 @media(prefers-reduced-motion:reduce) { .settlement-plaza .settlement-place { transition:none; } }
