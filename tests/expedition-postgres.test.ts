@@ -161,6 +161,18 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       assert.equal(collected.state.warehouse, null);
       const idle = await act(28, {type: 'reconcile'}); assert.equal(idle.state.warehouse, null);
     });
+    await t.test('confirmed online activity is not counted as Premium offline time', async () => {
+      await seed(35, {premium: true});
+      await act(35, {type: 'reconcile'});
+      for (let tick = 0; tick < 6; tick++) {
+        now += 10 * 60_000;
+        assert.equal((await act(35, {type: 'reconcile'})).state.warehouse, null);
+      }
+      now += HOUR;
+      const offline = await act(35, {type: 'reconcile'});
+      assert.equal(offline.state.warehouse!.source, 'premium');
+      assert.equal(offline.state.skill, 1);
+    });
     await t.test('legacy migration archives once, preserves the result and uses the warehouse', async () => {
       await seed(29, {legacy: true, slots: 1});
       await query("INSERT INTO owned_items(owner_telegram_id,item_json,quantity,origin) VALUES(29,$1::jsonb,1,'fixture')", [JSON.stringify(materialItem('gem'))]);

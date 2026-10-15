@@ -69,7 +69,7 @@ function finish(save: Save, state: ExpeditionState, now: number) {
 /** Called inside the same player lock as every other award. Never banks blocked time. */
 function accruePremium(save: Save, state: ExpeditionState, premiumUntil: number, now: number) {
   if (state.active || state.warehouse?.loot.length || !Number.isFinite(premiumUntil)) {state.premiumCursor = now; return;}
-  const end = Math.min(now, premiumUntil), start = state.premiumCursor;
+  const end = Math.min(now, premiumUntil), start = Math.max(state.premiumCursor, Number(save.player.lastActiveTimestamp) || state.premiumCursor);
   if (end - start < 30 * 60_000) {if (premiumUntil <= now) state.premiumCursor = now; return;}
   const hours = Math.max(1, Math.min(8, Math.floor((end - start) / 60_000) / 60));
   const loot = legacyPremiumLoot(hours, save.player.miningLevel, crypto.randomBytes(32).toString('hex'));
@@ -233,6 +233,9 @@ export class ExpeditionStore {
         try {await start(client, operation.ownerId, save, state, state.repeat, now, true);}
         catch (error) {if (error instanceof ExpeditionRuleError || error instanceof ExpeditionError && error.code === 'NOT_ENOUGH_GOLD') state.repeat = null; else throw error;}
       }
+      // The timestamp is server-owned. Repeated confirmed online actions do not
+      // become an "offline" Premium interval merely by accumulating wall time.
+      save.player.lastActiveTimestamp = now;
       await client.query(`INSERT INTO expedition_accounts(telegram_id,reset_version,state_json) VALUES($1,$2,$3::jsonb)
         ON CONFLICT(telegram_id) DO UPDATE SET reset_version=EXCLUDED.reset_version,state_json=EXCLUDED.state_json,updated_at=NOW()`, [operation.ownerId, operation.resetVersion, JSON.stringify(state)]);
       const version = Number(row.progress_version) + 1;
