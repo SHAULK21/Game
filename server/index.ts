@@ -906,6 +906,9 @@ const bootstrap = async () => {
   await ensureDatabaseConnection();
   const schema = await fs.readFile(path.resolve(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
+  // Additive storage only. Paid expedition routes are intentionally not
+  // registered until the character service owns the entire wallet and bag.
+  await pool.query(await fs.readFile(path.resolve(__dirname, 'migrations/20261015_expeditions.sql'), 'utf8'));
 
   if (telegramBotToken && publicBaseUrl && telegramWebhookSecret) {
     try {

@@ -1,3 +1,4 @@
+import {MINING_EXPEDITION_POOLS} from '../game/expeditions/catalog';
 import {inSettlement,worldPlace,normalizeWorldJourney,SETTLEMENT_REQUIRED} from '../utils/worldPresence';
 import type {WorldJourney} from '../types/game';
 import {ENERGY_COSTS} from '../utils/energyCosts';
@@ -320,36 +321,6 @@ const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots
   return { inventory: [...inventory, item], added: true };
 };
 
-const MINING_EXPEDITION_POOLS: Array<{
-  name: string;
-  icon: string;
-  type: 'ore' | 'material';
-  rarity: ItemRarity;
-  minLevel: number;
-  weight: number;
-}> = [
-  { name: 'Уголь', icon: '🪨', type: 'ore', rarity: 'common', minLevel: 1, weight: 18 },
-  { name: 'Медная руда', icon: '🟤', type: 'ore', rarity: 'common', minLevel: 1, weight: 17 },
-  { name: 'Железная руда', icon: '⚪', type: 'ore', rarity: 'common', minLevel: 5, weight: 15 },
-  { name: 'Лечебная трава', icon: '🌿', type: 'material', rarity: 'common', minLevel: 1, weight: 11 },
-  { name: 'Чистая вода', icon: '💧', type: 'material', rarity: 'common', minLevel: 1, weight: 10 },
-  { name: 'Горный корень', icon: '🌱', type: 'material', rarity: 'uncommon', minLevel: 5, weight: 8 },
-  { name: 'Серебряная руда', icon: '✨', type: 'ore', rarity: 'uncommon', minLevel: 15, weight: 8 },
-  { name: 'Лунная пыльца', icon: '🌙', type: 'material', rarity: 'uncommon', minLevel: 15, weight: 6 },
-  { name: 'Золотая руда', icon: '🪙', type: 'ore', rarity: 'rare', minLevel: 25, weight: 5 },
-  { name: 'Сырой самоцвет', icon: '💎', type: 'material', rarity: 'rare', minLevel: 25, weight: 4 },
-  { name: 'Мифриловая руда', icon: '💠', type: 'ore', rarity: 'rare', minLevel: 40, weight: 3 },
-  { name: 'Магическая эссенция', icon: '🔮', type: 'material', rarity: 'rare', minLevel: 40, weight: 2 },
-  { name: 'Адамантит', icon: '🟣', type: 'ore', rarity: 'epic', minLevel: 60, weight: 1.5 },
-  { name: 'Кобальтовая руда', icon: '🔷', type: 'ore', rarity: 'rare', minLevel: 35, weight: 4 },
-  { name: 'Кровавый обсидиан', icon: '🩸', type: 'ore', rarity: 'epic', minLevel: 72, weight: 1.2 },
-  { name: 'Драконит', icon: '🔥', type: 'ore', rarity: 'ancient', minLevel: 85, weight: 0.5 },
-  { name: 'Эфириум', icon: '🌌', type: 'ore', rarity: 'ancient', minLevel: 95, weight: 0.35 },
-  { name: 'Арканная пыль', icon: '✨', type: 'material', rarity: 'rare', minLevel: 40, weight: 2.3 },
-  { name: 'Руническое ядро', icon: '🧿', type: 'material', rarity: 'epic', minLevel: 60, weight: 0.8 },
-  { name: 'Осколок драконьей чешуи', icon: '🐲', type: 'material', rarity: 'epic', minLevel: 85, weight: 0.7 },
-  { name: 'Эфирная пыль', icon: '🌌', type: 'material', rarity: 'ancient', minLevel: 95, weight: 0.45 }
-];
 
 const MINING_BONUS_MATERIALS: Record<string, Array<{
   name: string;

@@ -1,5 +1,6 @@
 import type { Express, RequestHandler } from 'express';
 import type { Pool } from 'pg';
+import {clearExpeditionAccount} from './expeditions/reset';
 
 export class AccountResetError extends Error {}
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -33,6 +34,7 @@ export async function resetPlayerAccount(pool: Pick<Pool, 'connect'>, adminId: n
       }
     }
     await client.query('DELETE FROM clan_members WHERE telegram_id=$1', [targetId]);
+    await clearExpeditionAccount(client, targetId);
     await client.query('DELETE FROM owned_items WHERE owner_telegram_id=$1', [targetId]);
     await client.query("UPDATE market_listings SET status='cancelled' WHERE seller_telegram_id=$1 AND status='active'", [targetId]);
     await client.query('DELETE FROM market_listing_requests WHERE telegram_id=$1', [targetId]);

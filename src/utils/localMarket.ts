@@ -26,13 +26,17 @@ export function residentCategory(item:ResidentPricedItem):ResidentCategory {
   return 'equipment';
 }
 export function residentUnitGold(item:ResidentPricedItem,day:string) {
+  const baseline=residentNeutralUnitGold(item);
+  return baseline===0?0:Math.max(5,Math.floor(baseline*residentDemand(day).categories.find(c=>c.id===residentCategory(item))!.percent/100));
+}
+export function residentNeutralUnitGold(item:ResidentPricedItem) {
   const value=Number(item.sellPrice??10);
   if(!Number.isFinite(value)||value<=0)return 0;
-  const demand=residentDemand(day).categories.find(c=>c.id===residentCategory(item))!;
+  const demand=RESIDENT_CATEGORIES.find(c=>c.id===residentCategory(item))!;
   const rarity=Math.max(0,['common','uncommon','rare','epic','legendary','mythic','ancient','divine'].indexOf(item.rarity||'common'));
   const level=Number.isFinite(item.level)?Math.max(1,Math.min(100,Math.floor(item.level!))):1;
   const baseline=Math.max(demand.minimum+rarity*2+Math.floor(level/10)*2,Math.floor(Math.min(100000,value)*0.7));
-  return Math.max(5,Math.floor(baseline*demand.percent/100));
+  return baseline;
 }
 export function localBuyoutGold(item:ResidentPricedItem,quantity:number,day=residentMarketDay()) {
   if(!Number.isInteger(quantity)||quantity<1||quantity>999)return 0;
