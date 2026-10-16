@@ -159,7 +159,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
 
   const handleInventoryExpansion = async () => {
     if (premium.active) {
-      const result = expandInventory();
+      const result = (await expandInventory());
       setPremiumFeedback(result.message);
       return;
     }

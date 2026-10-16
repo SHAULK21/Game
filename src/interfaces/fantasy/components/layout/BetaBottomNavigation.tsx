@@ -71,7 +71,7 @@ export const BetaBottomNavigation: React.FC<BottomNavigationProps> = ({ currentT
     sound.playClick();
     triggerHaptic('light');
     setOpen(false);
-    onSelectTab(tab==='hunter'&&town?'settlement':tab);
+    onSelectTab(tab==='hunter'&&player?.expeditionPresence?'expeditions':tab==='hunter'&&town?'settlement':tab);
   };
   const hasUnread = unreadChatCount > 0 || availableQuestsCount > 0;
 
@@ -87,7 +87,7 @@ export const BetaBottomNavigation: React.FC<BottomNavigationProps> = ({ currentT
           {secondary.map(({ id, label, icon }) => {
             const count = id === 'chat' ? unreadChatCount : id === 'more' ? availableQuestsCount : 0;
             return <button key={id} aria-current={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'page' : undefined} onClick={() => select(id)} className={`game-section relative flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg p-2 text-xs ${(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'is-active' : ''}`}>
-              <RpgIcon kind={icon} size={23} /><span>{localize(id==='hunter'&&town?'Поселение':label)}</span>
+              <RpgIcon kind={icon} size={23} /><span>{localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)}</span>
               {count > 0 && <span className="nav-count absolute right-1.5 top-1" aria-label={localize(`${count} новых`)}>{localize(count > 99 ? '99+' : count)}</span>}
             </button>;
           })}
@@ -101,9 +101,9 @@ export const BetaBottomNavigation: React.FC<BottomNavigationProps> = ({ currentT
           const isCurrent = (currentTab === id || id==='hunter'&&currentTab==='settlement');
           const active = isCurrent && !open;
           const iconSize = id === 'arena' ? 28 : id === 'world' || id === 'inventory' ? 26 : 24;
-          return <button key={id} title={localize(id==='hunter'&&town?'Поселение':label)} aria-label={localize(id==='hunter'&&town?'Поселение':label)} aria-current={isCurrent ? 'page' : undefined} className={`game-nav-item ${active ? 'is-active' : ''}`} onClick={() => select(id)}>
+          return <button key={id} title={localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)} aria-label={localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)} aria-current={isCurrent ? 'page' : undefined} className={`game-nav-item ${active ? 'is-active' : ''}`} onClick={() => select(id)}>
             <RpgIcon kind={icon} size={iconSize} />
-            <span className="game-nav-label" aria-hidden={!active}>{localize(id==='hunter'&&town?'Поселение':label)}</span>
+            <span className="game-nav-label" aria-hidden={!active}>{localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)}</span>
           </button>;
         })}
         <button ref={moreRef} title={localize("Ещё")} aria-label={localize("Ещё")} aria-expanded={open} aria-haspopup="dialog" onClick={() => { sound.playClick(); triggerHaptic('light'); setOpen(value => !value); }} aria-current={secondary.some(tab => tab.id === currentTab) ? 'page' : undefined} className={`game-nav-item ${open || secondary.some(tab => tab.id === currentTab) ? 'is-active' : ''}`}>

@@ -6,8 +6,8 @@ export const SETTLEMENT_REQUIRED='Сначала доберитесь до по�
 export function worldPlace(player:Pick<PlayerCharacter,'worldPlace'>|null):WorldPlace {
   return ['field','settlement','dungeon'].includes(player?.worldPlace||'')?player!.worldPlace!:'field';
 }
-export function inSettlement(player:Pick<PlayerCharacter,'worldPlace'|'worldJourney'>|null) {
-  return worldPlace(player)==='settlement'&&!player?.worldJourney;
+export function inSettlement(player:Pick<PlayerCharacter,'worldPlace'|'worldJourney'|'expeditionPresence'>|null) {
+  return worldPlace(player)==='settlement'&&!player?.worldJourney&&!player?.expeditionPresence;
 }
 export function normalizeWorldJourney(value:unknown,regionIds:readonly string[]):WorldJourney|undefined {
   if(!value||typeof value!=='object')return undefined;

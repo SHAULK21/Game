@@ -37,10 +37,14 @@ export const CharacterCreationModal: React.FC = () => {
     if (localStorage.getItem(draftKey) !== serialized) throw new Error('Не удалось сохранить имя и класс персонажа.');
   }), [registerDraftSave,draftKey,name,selectedClass]);
 
-  const handleStart = () => {
+  const [creationError,setCreationError]=useState('');
+  const [creating,setCreating]=useState(false);
+  const handleStart = async () => {
     if (!name.trim()) return;
-    createCharacter(name, selectedClass, true);
-    localStorage.removeItem(draftKey);
+    if(creating)return;setCreating(true);
+    try{await createCharacter(name, selectedClass, true);localStorage.removeItem(draftKey);}
+    catch(error){setCreationError(error instanceof Error?error.message:'Не удалось создать персонажа.');}
+    finally{setCreating(false);}
   };
 
   const {ClassPortrait,SkillCard,heroArtwork} = useRegistrationPresentation();
@@ -165,10 +169,11 @@ export const CharacterCreationModal: React.FC = () => {
           </div>
         )}
 
+        {creationError&&<p role="alert">{creationError}</p>}
         {/* Start Game Button */}
         <button
           onClick={handleStart}
-          disabled={!name.trim()}
+          disabled={!name.trim()||creating}
           className="ui-primary w-full py-3.5 rounded-xl font-cinzel font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-cyan-400/40"
         >
           <Swords className="w-4 h-4" />

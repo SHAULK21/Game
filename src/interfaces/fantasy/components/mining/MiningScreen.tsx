@@ -1,3 +1,4 @@
+import {ExpeditionLink} from '../../../../components/expeditions/ExpeditionScreen';
 import {PickaxePanel} from '../../../../components/mining/PickaxePanel';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import {miningCritChance,miningYieldRange} from '../../../../utils/mining';
@@ -75,7 +76,7 @@ export const MiningScreen: React.FC = () => {
   const currentLevelNeed = Math.max(175, nextLevelExp - previousLevelExp);
   const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
-  const handleMine = (nodeId: string) => {
+  const handleMine = async (nodeId: string) => {
     if (miningLock.current) return;
     miningLock.current = true;
     setIsMining(true);
@@ -83,7 +84,7 @@ export const MiningScreen: React.FC = () => {
     // Complete the action in the click event. Embedded desktop clients can
     // throttle delayed callbacks; the timer only controls the visual cooldown.
     try {
-      const result = mineNode(nodeId);
+      const result = (await mineNode(nodeId));
       setMiningLog(prev => [
         result.success
           ? `${result.isCrit ? 'КРИТ · ' : ''}Получено: ${result.yieldCount} × ${result.oreName}`
@@ -102,8 +103,8 @@ export const MiningScreen: React.FC = () => {
     }
   };
 
-  const handleClaim = () => {
-    const result = claimMiningExpedition();
+  const handleClaim = async () => {
+    const result = (await claimMiningExpedition());
     setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
   };
 
@@ -199,86 +200,8 @@ export const MiningScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Offline expedition second */}
-      <BestiaryPanel className="p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <RpgIcon kind="quest" size={19} className="text-[#d5ba89]" />
-          <div>
-            <div className="text-xs font-bold text-cyan-200">{localize("Офлайн-экспедиция")}</div>
-            <div className="text-xs text-slate-500">
-              {localize(premium.active
-                ? 'Premium добывает ресурсы офлайн автоматически — запускать экспедицию не нужно.'
-                : 'Для обычного аккаунта экспедицию нужно запустить перед выходом из игры.')}
-            </div>
-          </div>
-        </div>
+      <ExpeditionLink/>
 
-        {expedition ? (
-          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-700 bg-cyan-950/10'}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-bold text-slate-100">{localize("Экспедиция на ")}{localize(expedition.durationHours)}{localize(" ч.")}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{localize("Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.")}</div>
-              </div>
-              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-[#d5ba89]'}`}>
-                {localize(expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs))}
-              </div>
-            </div>
-
-            {expeditionReady && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {expedition.rewards.map(reward => (
-                  <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[11px] text-slate-300">
-                    {localize(reward.name)} ×{localize(reward.count)}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {expeditionReady ? (
-              <RpgButton variant="primary" icon="inventory" onClick={handleClaim} className="mt-3 w-full">{localize("Забрать добычу")}</RpgButton>
-            ) : (
-              <RpgButton
-                onClick={() => {
-                  const result = leaveMiningExpedition();
-                  setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
-                }}
-                variant="danger"
-                className="mt-3 w-full"
-              >{localize("Уйти с шахты")}</RpgButton>
-            )}
-          </div>
-        ) : premium.active ? (
-          <div className="rounded-xl border border-yellow-500/25 bg-yellow-950/10 p-3 text-center">
-            <RpgIcon kind="crown" size={22} className="mx-auto mb-1 text-yellow-300" />
-            <div className="text-xs font-bold text-yellow-200">{localize("Автоматическая Premium-добыча активна")}</div>
-            <div className="text-[11px] text-slate-500 mt-1">{localize("Просто закройте игру — ресурсы будут рассчитаны при возвращении.")}</div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2">
-            {EXPEDITIONS.map(option => (
-              <RpgButton
-                key={option.hours}
-                onClick={() => {
-                  const result = startMiningExpedition(option.hours);
-                  setMiningLog(prev => [result.success ? result.message : `Ошибка: ${result.message}`, ...prev.slice(0, 8)]);
-                }}
-                variant="secondary"
-                className="w-full justify-between p-3 text-left"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs font-bold text-slate-100">{localize(option.title)}</div>
-                    <div className="text-[11px] text-slate-500">{localize(option.description)}</div>
-                  </div>
-                  <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] font-mono text-xs font-bold">
-                    {localize(option.hours)}{localize(" ч.")}</span>
-                </div>
-              </RpgButton>
-            ))}
-          </div>
-        )}
-      </BestiaryPanel>
     </FolioPage>
   );
 };

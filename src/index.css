@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./components/expeditions/expeditions.css";
 @import "./components/navigation/navigation-reference.css";
 @import "./components/settlement/settlement.css";
 

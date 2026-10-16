@@ -55,13 +55,13 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       assert.equal((results.find(result => result.status === 'rejected') as PromiseRejectedResult).reason.code, 'VERSION_CONFLICT');
       assert.equal((await query('SELECT count(*)::int AS n FROM game_notifications WHERE telegram_id=12')).rows[0].n, 1);
     });
-    await t.test('definitive training refusals do not spend gold or create a receipt', async () => {
+    await t.test('definitive training refusals do not spend gold and persist negative receipts', async () => {
       await seed(13, {gold: 499});
       await assert.rejects(() => act(13, {type: 'train'}), {code: 'NOT_ENOUGH_GOLD'});
       assert.equal((await persisted(13)).progress_json.player.gold, 499);
       await seed(14, {skill: 20});
       await assert.rejects(() => act(14, {type: 'train'}), {code: 'MAX_SKILL'});
-      assert.equal((await query('SELECT count(*)::int AS n FROM expedition_operations WHERE telegram_id IN (13,14)')).rows[0].n, 0);
+      assert.equal((await query("SELECT count(*)::int AS n FROM expedition_operations WHERE telegram_id IN (13,14) AND outcome='rejected'")).rows[0].n, 2);
     });
     await t.test('only the active writer and exact owner/reset can mutate', async () => {
       await seed(15); await seed(16);
@@ -190,7 +190,9 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       await query("INSERT INTO owned_items(owner_telegram_id,item_json,quantity,origin) VALUES(31,$1::jsonb,1,'fixture')", [JSON.stringify(materialItem('gem'))]);
       const hired = {...selection, crew: 'hired'} as const;
       await act(31, {type: 'repeat', selection: hired});
-      const started = await act(31, {type: 'reconcile'}), run = started.state.active!;
+      const waiting = await act(31, {type: 'reconcile'});
+      assert.equal(waiting.state.active, null); assert.equal(waiting.player.gold, 2000000);
+      const started = await act(31, {type: 'start', selection: hired, repeat: true}), run = started.state.active!;
       assert.equal(started.player.gold, 1999995);
       now += HOUR;
       const finished = await act(31, {type: 'reconcile'});
@@ -212,13 +214,15 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       assert.equal(last.state.active, null); assert.equal(last.player.gold, 1999990);
     });
     await t.test('Premium repetition with insufficient funds commits collection and stops without a debit', async () => {
-      await seed(32, {premium: true, skill: 5, gold: 4});
-      await warehouse(32, [{materialId: 'coal', quantity: 4}]);
-      await act(32, {type: 'repeat', selection: {...selection, crew: 'hired'}});
-      const collected = await act(32, {type: 'claim', runId: 'warehouse-32'});
+      await seed(32, {premium: true, skill: 5, gold: 39});
+      const hired = {...selection, crew: 'hired', duration: 7} as const;
+      const started = await act(32, {type: 'start', selection: hired, repeat: true});
+      now += 7 * HOUR;
+      await act(32, {type: 'reconcile'});
+      const collected = await act(32, {type: 'claim', runId: started.state.active!.id});
       assert.equal(collected.state.warehouse, null); assert.equal(collected.state.active, null); assert.equal(collected.state.repeat, null);
       assert.equal(collected.player.gold, 4);
-      assert.equal(Number((await query('SELECT quantity FROM owned_items WHERE owner_telegram_id=32')).rows[0].quantity), 4);
+      assert.ok(Number((await query('SELECT sum(quantity)::text AS total FROM owned_items WHERE owner_telegram_id=32')).rows[0].total) > 0);
     });
     await t.test('warehouse integer overflow uses a free second slot without trimming', async () => {
       await seed(33); await warehouse(33, [{materialId: 'coal', quantity: 1000}], 2);
@@ -252,4 +256,19 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       assert.equal((await persisted(11)).progress_json.player.gold, 1997500);
     });
   } finally {await close();}
+});
+
+test('signed early-return preview is exact despite network delay and cannot be moved into the future',async()=>{
+ const db=await expeditionDatabase();let now=Date.parse('2026-10-16T11:00:00Z');const token=crypto.randomUUID(),hash=crypto.createHash('sha256').update(token).digest('hex');const store=new ExpeditionStore(db.pool,()=>now);
+ const player={id:'preview',userId:'9901',gold:10000,worldPlace:'settlement',inventory:[],equipped:{},maxInventorySlots:20,miningLevel:10,miningExp:0,lastActiveTimestamp:now,statsSummary:{oresMined:0}};
+ const selection={route:'old-mine',goal:'balanced',duration:1,preparation:'none',crew:'personal'} as const;
+ const op=async()=>({ownerId:9901,resetVersion:0,sessionToken:token,sessionGeneration:1,operationId:crypto.randomUUID(),expectedVersion:Number((await db.query('SELECT progress_version FROM players WHERE telegram_id=9901')).rows[0].progress_version)});
+ try{
+  await db.query("INSERT INTO players(telegram_id,progress_json,progress_session_hash,progress_session_generation,character_authority) VALUES(9901,$1::jsonb,$2,1,'server-actions-v1')",[JSON.stringify({resetVersion:0,player,quests:[],achievements:[]}),hash]);
+  await store.mutate(await op(),{type:'start',selection});now+=1800000;
+  const preview=await store.mutate(await op(),{type:'reconcile'}),active=preview.state.active!;now+=10000;
+  await assert.rejects(()=>op().then(request=>store.mutate(request,{type:'return',runId:active.id,quote:{at:now+10000,signature:active.returnQuote.signature}})),{code:'RETURN_QUOTE_EXPIRED'});
+  const result=await store.mutate(await op(),{type:'return',runId:active.id,quote:active.returnQuote});
+  assert.deepEqual(result.state.history[0].loot,active.earlyReturn);
+ }finally{await db.close();}
 });

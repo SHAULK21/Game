@@ -4,6 +4,7 @@ import { t, useLocale } from '../../../../i18n/locale';
 import { RpgIcon } from './RpgIcon';
 
 const pages = {
+  expeditions: {title:'Экспедиции',icon:'map'},
   settlement: {title:'Поселение',icon:'market'},
   menu: { title: 'Меню', icon: 'more' },
   hunter: { title: 'Охота', icon: 'hunt' },

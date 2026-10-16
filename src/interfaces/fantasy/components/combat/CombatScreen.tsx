@@ -102,7 +102,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
   const combatPotions = player.inventory.filter(i => i.type === 'potion');
   const potionCount = combatPotions.reduce((sum, item) => sum + (item.stackCount || 1), 0);
 
-  const handleStartBattle = (mon: typeof MONSTERS[string]) => {
+  const handleStartBattle = async (mon: typeof MONSTERS[string]) => {
     setEnergyError(null);
     if (player.miningExpedition && !premium.active) {
       setEnergyError('Персонаж сейчас в шахте. Сначала нажмите «Уйти с шахты».');
@@ -110,7 +110,7 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
     }
     const lock = huntLockReason(player, mon, currentRegion) || huntingModeLockReason(player, currentRegion, activeMod.id);
     if (lock) {setEnergyError(lock);return;}
-    const success = startBattleWithMonster(mon);
+    const success = (await startBattleWithMonster(mon));
     if (!success) {
       setEnergyError(`Недостаточно энергии! Для боя нужно ${combatEnergyCost}, сейчас у вас ${player.energy ?? 0}.`);
       setTimeout(() => setEnergyError(null), 5000);
@@ -182,8 +182,8 @@ export const CombatScreen: React.FC<{ onContinueDungeon?: () => void; onReturnTo
           onToggleSettings={() => setIsSettingsOpen(open => !open)}
           onUpdateAutoBattle={updateAutoBattleSettings}
           onVisitTavern={() => setCurrentTab('settlement')}
-          onLeaveMine={() => {
-            const result = leaveMiningExpedition();
+          onLeaveMine={async () => {
+            const result = (await leaveMiningExpedition());
             setEnergyError(result.message);
           }}
         /></Suspense>

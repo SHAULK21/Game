@@ -61,9 +61,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
   const regionGroups = groupRegionsByLevel(REGIONS, player.level);
   const activeMod = REGION_MODIFIERS[selectedModId] || REGION_MODIFIERS.mod_standard;
 
-  const handleStartTravel = (regId: string) => {
+  const handleStartTravel = async (regId: string) => {
     setErrorMessage(null);
-    const result = startTravel(regId, selectedModId);
+    const result = (await startTravel(regId, selectedModId));
     if (!result.success) {
       setErrorMessage(result.message);
       setTimeout(() => setErrorMessage(null), 4000);
@@ -174,8 +174,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
               <div className="pt-2">
                 {currentRoom.type === 'combat' || currentRoom.type === 'boss' || currentRoom.type === 'elite' ? (
                   <button
-                    onClick={() => {
-                      if (proceedDungeonRoom('fight')) onEnterCombatTab?.();
+                    onClick={async () => {
+                      if ((await proceedDungeonRoom('fight'))) onEnterCombatTab?.();
                     }}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
@@ -184,7 +184,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
                   </button>
                 ) : currentRoom.type === 'treasure' ? (
                   <button
-                    onClick={() => proceedDungeonRoom('open')}
+                    onClick={async () => (await proceedDungeonRoom('open'))}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <RpgIcon kind="gold" size={17} />
@@ -192,7 +192,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
                   </button>
                 ) : (
                   <button
-                    onClick={() => proceedDungeonRoom('pray')}
+                    onClick={async () => (await proceedDungeonRoom('pray'))}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <RpgIcon kind="skill" size={17} />
@@ -464,9 +464,9 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
 
                   <RpgButton
                     disabled={!canEnter}
-                    onClick={e => {
+                    onClick={async e => {
                       e.stopPropagation();
-                      enterDungeon(cave.id, difficulty);
+                      (await enterDungeon(cave.id, difficulty));
                     }}
                     variant="secondary"
                     className="min-h-11 px-3 disabled:opacity-40"

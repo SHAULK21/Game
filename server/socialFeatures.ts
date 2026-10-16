@@ -134,7 +134,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
       await client.query('BEGIN');
       await client.query('SELECT telegram_id FROM players WHERE telegram_id=$1 FOR UPDATE',[id]);
       for(const entry of schedules) {
-        await client.query('DELETE FROM game_notifications WHERE telegram_id=$1 AND category=$2 AND sent_at IS NULL AND read_at IS NULL',[id,entry.category]);
+        await client.query("DELETE FROM game_notifications WHERE telegram_id=$1 AND category=$2 AND sent_at IS NULL AND read_at IS NULL AND event_key NOT LIKE 'expedition_%'",[id,entry.category]);
         if(entry.due)await queueNotification(client,id,entry.category+'_'+Math.floor(entry.due/1000),entry.category,entry.text,new Date(entry.due));
       }
       await client.query('COMMIT');res.json({ok:true});

@@ -1,3 +1,4 @@
+import {useServerProgress} from './ServerProgressContext';
 import {inSettlement,SETTLEMENT_TABS} from '../utils/worldPresence';
 import {getTelegramUser} from '../utils/telegram';
 import {readResetVersion} from '../utils/accountReset';
@@ -18,13 +19,15 @@ interface NavigationState {
 const NavigationContext = createContext<NavigationState | null>(null);
 
 export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const serverProgress=useServerProgress();
+  const firstJourneyWork=useRef(false);
   const { player, isInCombat, isCombatEnded, exitCombat, acknowledgeFirstJourney, travelState } = useGame();
   const settlementRef=useRef(false);settlementRef.current=inSettlement(player);
   const previousTravel=useRef(false);
   const userId = getTelegramUser().id;
   const navigationKey = 'aethelgard_navigation_' + userId + '_' + readResetVersion(userId);
   const [saved] = useState(() => { try { return JSON.parse(sessionStorage.getItem(navigationKey) || 'null'); } catch { return null; } });
-  const tabs = ['hunter','settlement','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more','menu'];
+  const tabs = ['expeditions','hunter','settlement','world','character','arena','inventory','blacksmith','crafting','alchemy','mine','fishing','clan','chat','market','pets','leaderboard','more','menu'];
   const [currentTab, updateTab] = useState<GameTabId>(tabs.includes(saved?.tab) ? saved.tab : 'hunter');
   const [isCharacterSheetOpen, updateSheet] = useState(saved?.sheet === true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -68,15 +71,19 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
     }
   }, [isInCombat, isCombatEnded]);
   useEffect(() => {
+    if(serverProgress&&(!serverProgress.current?.activeHere||serverProgress.status!=='saved'||serverProgress.pending))return;
     if (player?.firstJourney === 'briefing') {
-      exitCombat();setIsCharacterSheetOpen(false);setCurrentTab('hunter');return;
+      if(isInCombat)void exitCombat();setIsCharacterSheetOpen(false);setCurrentTab('hunter');return;
     }
-    if (player?.firstJourney !== 'codex') return;
-    exitCombat();
-    acknowledgeFirstJourney();
-    setCurrentTab('hunter');
-    setIsCharacterSheetOpen(true);
-  }, [player?.firstJourney, exitCombat, acknowledgeFirstJourney]);
+    if (player?.firstJourney !== 'codex'||firstJourneyWork.current) return;
+    firstJourneyWork.current=true;
+    void (async()=>{
+      if(isInCombat)await exitCombat();
+      await acknowledgeFirstJourney();
+      setCurrentTab('hunter');
+      setIsCharacterSheetOpen(true);
+    })().finally(()=>{firstJourneyWork.current=false;});
+  }, [player?.firstJourney, exitCombat, acknowledgeFirstJourney,isInCombat,serverProgress?.current?.activeHere,serverProgress?.status]);
   useEffect(() => {
     if (travelState.isTraveling || player?.worldJourney || player?.firstJourney === 'done' && player.firstJourneyDeparture && player.statPoints === 0) {
       setIsCharacterSheetOpen(false);
@@ -86,6 +93,7 @@ export const NavigationProvider: React.FC<React.PropsWithChildren> = ({ children
   return <NavigationContext.Provider value={{ goBack,canGoBack,currentTab, setCurrentTab, isCharacterSheetOpen, setIsCharacterSheetOpen, isAdminOpen, setIsAdminOpen }}>{children}</NavigationContext.Provider>;
 };
 
+export const useOptionalNavigation = () => useContext(NavigationContext);
 export const useNavigation = () => {
   const value = useContext(NavigationContext);
   if (!value) throw new Error('useNavigation must be used within a NavigationProvider');

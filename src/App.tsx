@@ -1,3 +1,5 @@
+import {ServerGameProvider} from './context/ServerGameProvider';
+import {getTelegramWebApp} from './utils/telegram';
 import React, {useEffect} from 'react';
 import {observeMobileViewport} from './utils/mobileViewport';
 import {initTelegramApp} from './utils/telegram';
@@ -11,5 +13,6 @@ import {InterfaceLoader} from './interfaces/InterfaceLoader';
 export default function App() {
   useLocale();
   useEffect(() => { initTelegramApp(); return observeMobileViewport(); }, []);
-  return <InterfaceProvider><AccountSessionGate><GameProvider><NavigationProvider><GameInterfaceBridge/><InterfaceLoader/></NavigationProvider></GameProvider></AccountSessionGate></InterfaceProvider>;
+  const Provider=getTelegramWebApp()?.initData?ServerGameProvider:GameProvider;
+  return <InterfaceProvider><AccountSessionGate><Provider><NavigationProvider><GameInterfaceBridge/><InterfaceLoader/></NavigationProvider></Provider></AccountSessionGate></InterfaceProvider>;
 }

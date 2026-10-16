@@ -1,3 +1,4 @@
+import {useServerProgress} from '../../../../context/ServerProgressContext';
 import { FirstJourneyHint } from '../../../../components/character/FirstJourneyHint';
 import { HeroReferenceArt } from '../ui/HeroReferenceArt';
 import { t as localize, useLocale } from '../../../../i18n/locale';
@@ -37,6 +38,7 @@ const equipmentSlots: Array<{ type: ItemType; label: string }> = [
 ];
 
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => {
+  const serverProgress=useServerProgress();
   useLocale();
   const { player, combatStats, allocateAttribute, premium } = useGame();
   const { setCurrentTab, setIsCharacterSheetOpen } = useNavigation();
@@ -74,7 +76,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose }) => 
           <div className="hero-counters">
             <button onClick={() => setActiveTab('stats')}><HeroReferenceArt region="strength"/><strong>{localize(player.statPoints)}</strong><span>{localize("Атрибуты")}</span></button>
             <button onClick={() => setActiveTab('talents')}><HeroReferenceArt region="intelligence"/><strong>{localize(player.talentPoints)}</strong><span>{localize("Таланты")}</span></button>
-            <button onClick={() => navigate('mine')}><HeroReferenceArt region="critical"/><strong>{localize(player.miningLevel)}/{localize(player.alchemyLevel)}</strong><span>{localize("Профессии")}</span></button>
+            <button onClick={() => navigate('mine')}><HeroReferenceArt region="critical"/><strong>{localize(player.miningLevel)}/{localize(player.alchemyLevel)}</strong><span>{localize("Профессии")} · {localize("Экспедиции")}: {serverProgress?.current?.expeditions?.skill||1}</span></button>
           </div>
         </div>
         <HeroReferenceArt region="castle" className="hero-reference-castle"/>

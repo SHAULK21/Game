@@ -1,3 +1,4 @@
+import {ExpeditionScreen} from '../../components/expeditions/ExpeditionScreen';
 import { TavernScreen } from '../../components/settlement/TavernScreen';
 import {SettlementScreen} from '../../components/settlement/SettlementScreen';
 import {inSettlement} from '../../utils/worldPresence';
@@ -46,6 +47,7 @@ export const ModernGameContent: React.FC = () => {
       {/* Top Header */}
       <TopHeader onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
+      {player.expeditionPresence && currentTab!=='expeditions'&&currentTab!=='hunter'&&<button className="exp-link px-4" onClick={()=>setCurrentTab('expeditions')}>{localize('Герой в экспедиции · открыть статус')}</button>}
       {/* Main View Area */}
       <main data-modern-tab={isCharacterSheetOpen ? 'character' : currentTab} className="flex-1 w-full max-w-md mx-auto">
         {worldMessage&&<div role="status" className="m-3 rounded-lg border p-3 text-sm">{localize(worldMessage)}<button className="min-h-11 ml-2 underline" onClick={()=>setCurrentTab('settlement')}>{localize('Поселение')}</button></div>}
@@ -56,7 +58,7 @@ export const ModernGameContent: React.FC = () => {
           <CharacterScreen onOpenInventory={() => { setIsCharacterSheetOpen(false); setCurrentTab('inventory'); }} onClose={() => { setIsCharacterSheetOpen(false); if (currentTab === 'character') {if(canGoBack)goBack();else setCurrentTab('hunter');} }} />
         ) : (
           <>
-            {currentTab === 'hunter' && (inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
+            {currentTab === 'hunter' && (player.expeditionPresence?<ExpeditionScreen/>:inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
             {currentTab === 'settlement' && <SettlementScreen onNavigate={setCurrentTab}/>}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'arena' && <ArenaScreen onEnterCombatTab={() => setCurrentTab('hunter')} />}
@@ -64,6 +66,7 @@ export const ModernGameContent: React.FC = () => {
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
             {currentTab === 'crafting' && <CraftingScreen />}
             {currentTab === 'alchemy' && <AlchemyScreen />}
+            {currentTab === 'expeditions' && <ExpeditionScreen/>}
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'fishing' && <FishingScreen />}
             {currentTab === 'clan' && <ClanScreen />}

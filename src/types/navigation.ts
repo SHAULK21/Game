@@ -1,1 +1,1 @@
-export type GameTabId = 'hunter' | 'settlement' | 'world' | 'character' | 'arena' | 'inventory' | 'blacksmith' | 'crafting' | 'alchemy' | 'fishing' | 'mine' | 'clan' | 'chat' | 'market' | 'pets' | 'leaderboard' | 'more' | 'menu';
+export type GameTabId = 'expeditions' | 'hunter' | 'settlement' | 'world' | 'character' | 'arena' | 'inventory' | 'blacksmith' | 'crafting' | 'alchemy' | 'fishing' | 'mine' | 'clan' | 'chat' | 'market' | 'pets' | 'leaderboard' | 'more' | 'menu';

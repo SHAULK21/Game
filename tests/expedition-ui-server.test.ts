@@ -1,0 +1,32 @@
+import test from 'node:test';import assert from 'node:assert/strict';import crypto from 'node:crypto';import express from 'express';import {build} from 'esbuild';import {JSDOM} from 'jsdom';
+import {expeditionDatabase} from './helpers/expeditionDatabase';import {GameStore} from '../server/gameStore';import {registerGameRoutes} from '../server/gameRoutes';import {verifyTelegramInitData} from '../server/telegramAuth';
+const botToken='integration-only-bot';
+function initData(id:number){const params=new URLSearchParams({auth_date:String(Math.floor(Date.now()/1000)),user:JSON.stringify({id,first_name:'Герой'})});const secret=crypto.createHmac('sha256','WebAppData').update(botToken).digest();params.set('hash',crypto.createHmac('sha256',secret).update([...params].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n')).digest('hex'));return params.toString();}
+test('three real interfaces use confirmed SQL expedition progress, with RU/UK navigation and no keyboard',async()=>{
+ const db=await expeditionDatabase(),app=express();app.use(express.json({limit:'1mb'}));
+ const auth:express.RequestHandler=(req,res,next)=>{try{req.authUser=verifyTelegramInitData(req.get('X-Telegram-Init-Data')||'',botToken);next();}catch{res.status(401).json({error:'auth'});}};registerGameRoutes(app,()=>db.pool,auth);
+ const listener=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>listener.once('listening',resolve));const base='http://127.0.0.1:'+(listener.address() as any).port;
+ const bundle=await build({stdin:{contents:`import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {ServerGameProvider} from './src/context/ServerGameProvider';import {useServerProgress} from './src/context/ServerProgressContext';import {useGame} from './src/context/GameContext';import {InterfaceProvider} from './src/context/InterfaceContext';import {NavigationProvider} from './src/context/NavigationContext';import {ExpeditionScreen,ExpeditionLink} from './src/components/expeditions/ExpeditionScreen';import {SettlementScreen} from './src/components/settlement/SettlementScreen';import {useNavigation} from './src/context/NavigationContext';function Probe(){window.game=useGame();window.server=useServerProgress();window.navigation=useNavigation();return window.navigation.currentTab==='expeditions'?<ExpeditionScreen/>:<SettlementScreen onNavigate={window.navigation.setCurrentTab}/>;}window.act=act;window.mount=()=>{window.root=createRoot(document.getElementById('root'));window.root.render(<InterfaceProvider><ServerGameProvider><NavigationProvider><Probe/></NavigationProvider></ServerGameProvider></InterfaceProvider>);};`,loader:'tsx',resolveDir:process.cwd()},bundle:true,write:false,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"development"','import.meta.env.VITE_ADMIN_TELEGRAM_ID':'""'},plugins:[{name:'art',setup(b){b.onLoad({filter:/\.(jpg|webp)$/},()=>({contents:'export default "art";',loader:'js'}));}}]});
+ try{
+ for(const [index,style] of ['modern','fantasy','fantasy-beta'].entries()){
+  const id=6000+index,owner={id,displayName:'Герой'},writer=crypto.randomUUID(),store=new GameStore(db.pool);await db.query('INSERT INTO players(telegram_id) VALUES($1)',[id]);let state=await store.acquire(owner,writer,0,false);state=await store.create(owner,{operationId:crypto.randomUUID(),expectedVersion:state.version,sessionToken:writer,sessionGeneration:state.sessionGeneration,resetVersion:0},{name:'Герой',classId:'warrior'});
+  const save=(await db.query('SELECT progress_json FROM players WHERE telegram_id=$1',[id])).rows[0].progress_json;save.player.worldPlace='settlement';save.player.gold=5000;if(index===0)save.player.firstJourney='codex';
+  await db.query('UPDATE players SET progress_json=$2::jsonb,progress_session_hash=NULL WHERE telegram_id=$1',[id,JSON.stringify(save)]);
+  const dom=new JSDOM('<div id="root"></div>',{url:base,runScripts:'outside-only'}),w:any=dom.window;
+  w.MessageChannel=class{port1={onmessage:null as any};port2={postMessage:()=>setTimeout(()=>this.port1.onmessage?.(),0)}};w.Headers=Headers;w.AbortSignal=AbortSignal;w.IS_REACT_ACT_ENVIRONMENT=true;w.confirm=()=>true;
+  w.Telegram={WebApp:{initData:initData(id),initDataUnsafe:{user:{id,first_name:'Герой'}}}};
+  w.localStorage.setItem('aethelgard_interface_style',style);w.localStorage.setItem('aethelgard_language',style==='fantasy'?'uk':'ru');w.localStorage.setItem('aethelgard_story_intro_v1_'+id,'done');
+  w.fetch=(path:string,init:any)=>path==='/api/notifications/schedule'?Promise.resolve(new Response('{}',{status:200})):fetch(base+path,init);w.eval(bundle.outputFiles[0].text);
+  const wait=async(predicate:()=>boolean)=>{for(let n=0;n<120&&!predicate();n++)await w.act(async()=>{await new Promise(resolve=>setTimeout(resolve,50));});assert.ok(predicate(),w.document.body.textContent);};
+  try{
+   await w.act(async()=>w.mount());assert.equal(w.document.querySelector('.registration-screen'),null,'no creation UI while the server GET is pending');await wait(()=>!!w.document.querySelector('[data-settlement-screen]')&&w.server.status==='saved'&&(index!==0||w.game.player.firstJourney==='done'));
+   const link=w.document.querySelector('.exp-link');assert.ok(link);await w.act(async()=>link.click());await wait(()=>!!w.document.querySelector('[data-expedition-screen]'));
+   assert.equal(w.document.querySelector('input[type=text],input[type=search]'),null);
+   const gold=w.game.player.gold;const start=[...w.document.querySelectorAll('button')].find((b:any)=>b.textContent.startsWith(style==='fantasy'?'Поліпшити за':'Улучшить за')) as any;assert.ok(start&&!start.disabled);await w.act(async()=>{start.click();start.click();});await wait(()=>w.server.current.expeditions.skill===2);
+   assert.equal(w.game.player.gold,gold-500);assert.equal((await db.query('SELECT progress_json FROM players WHERE telegram_id=$1',[id])).rows[0].progress_json.player.gold,gold-500);
+   const send=[...w.document.querySelectorAll('.exp-primary')][0] as any;await wait(()=>!send.disabled);await w.act(async()=>send.click());await wait(()=>!!w.server.current.expeditions.active);
+   assert.equal(w.server.current.expeditions.active.selection.crew,'personal');assert.ok(w.game.player.expeditionPresence);assert.equal(w.game.player.gold,gold-500);
+  }finally{await w.act(async()=>w.root.unmount());dom.window.close();}
+ }
+ }finally{await new Promise<void>((resolve,reject)=>listener.close(error=>error?reject(error):resolve()));await db.close();}
+});

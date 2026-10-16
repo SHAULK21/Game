@@ -1,11 +1,13 @@
+import {MAX_STACK_COUNT,validStackCount} from '../utils/stackRules';
+import type {GameEngineRuntime} from '../game/engineRuntime';
 import {MINING_EXPEDITION_POOLS} from '../game/expeditions/catalog';
 import {inSettlement,worldPlace,normalizeWorldJourney,SETTLEMENT_REQUIRED} from '../utils/worldPresence';
 import type {WorldJourney} from '../types/game';
 import {ENERGY_COSTS} from '../utils/energyCosts';
-import { getLanguage } from '../i18n/locale';
+import { getLanguage as browserGetLanguage } from '../i18n/locale';
 import {flushSync} from 'react-dom';
 import {beginGameOperation,hasGameOperation,trackOperation} from '../utils/gameOperations';
-import {gameSaveKey, readAccountSave, removeAccountSave} from '../utils/accountReset';
+import {gameSaveKey, readAccountSave as browserReadAccountSave, removeAccountSave as browserRemoveAccountSave} from '../utils/accountReset';
 import { arenaMonster } from '../utils/arena';
 import { drinkTavernBeer, canDrinkBeer, intoxicationPercent, normalizeIntoxication, completeIntoxicatedBattle } from '../utils/tavernBeer';
 import { recordFlight, completePenalizedBattle, flightBattlesLeft, FLIGHT_PENALTY_PERCENT } from '../utils/flightPenalty';
@@ -16,13 +18,13 @@ import { completeTravelQuests } from '../utils/travelQuests';
 import { potionDamage, isRestorationPotion, restorationUseful, potionKinds, potionUsedThisTurn } from '../utils/combatPotions';
 import { castFishing, hookFishing, landFishing, cancelFishing, upgradeFishingRod, initialFishing, migrateFishing, type FishingResult, type FishingAction, fightFishing } from '../utils/fishing';
 import { monsterPreparation, monsterImpact, type PlayerAction } from '../utils/combatNarration';
-import { readResetVersion } from '../utils/accountReset';
+import { readResetVersion as browserReadResetVersion } from '../utils/accountReset';
 import { chooseAutoBattleAction } from '../utils/autoBattle';
 import { playerDamagePower, pveThreatMultiplier, incomingArmorConstant, monsterEnrageMultiplier, monsterEnragePressureDamage, MONSTER_ENRAGE_ROUND, MONSTER_RELENTLESS_ROUND } from '../utils/pveBalance';
 import { claimRegionalReward, regionCompleted, regionEntryLockReason, huntLockReason, recordRegionalVictory, regionProgress, migrateRegionProgress, huntingModeLockReason, craftStageLockReason, regionalSealName } from '../utils/regionalProgress';
 import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
-import { useBalanceTelemetry } from '../hooks/useBalanceTelemetry';
+import { useBalanceTelemetry as browserBalanceTelemetry } from '../hooks/useBalanceTelemetry';
 import { sharpeningQuote, SHARPENABLE_TYPES } from '../utils/sharpening';
 import { smithingQuality, smithingExperience } from '../utils/professions';
 import { applyDungeonDifficulty, DUNGEON_DIFFICULTIES } from '../utils/dungeonRewards';
@@ -82,17 +84,17 @@ import {
   ALCHEMY_RECIPES,
   BASIC_CRAFT_RECIPES
 } from '../data/gameData';
-import { sound } from '../utils/audio';
-import { getTelegramUser, getTelegramWebApp, triggerHaptic, TelegramUser } from '../utils/telegram';
+import { sound as browserSound } from '../utils/audio';
+import { getTelegramUser as browserGetTelegramUser, getTelegramWebApp, triggerHaptic as browserTriggerHaptic, TelegramUser } from '../utils/telegram';
 import { generateCombatLoot } from '../utils/lootGenerator';
 import { getDungeonCompletionReward, rollDungeonChest, rollDungeonBlessing } from '../utils/dungeonRewards';
 import { applyClassGear, getEffectiveGearStats } from '../utils/classEquipment';
 import { addExperience, getNextExperience } from '../utils/progression';
 import { applyStatusEffect, getStatusModifiers, tickStatusEffects } from '../utils/statusEffects';
-import { apiRequest } from '../utils/api';
+import { apiRequest as browserApiRequest } from '../utils/api';
 import { CLASS_SKILLS, HIDDEN_SKILLS, hiddenSkillReady, reconcileSkills, skillTier } from '../data/classEvolution';
 
-interface GameContextType {
+export interface GameContextType {
   commitSwitchSnapshot: () => void;
   flushProgress: () => void;
   getInterfaceSwitchBlockReason: () => string;
@@ -247,7 +249,9 @@ const consumeIngredients = (inventory: GameItem[], ingredients: Array<{ name: st
   return next;
 };
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
+type SynchronousUI = 'commitSwitchSnapshot' | 'flushProgress' | 'getInterfaceSwitchBlockReason';
+export type RuntimeGameContext = {[K in keyof GameContextType]: K extends SynchronousUI ? GameContextType[K] : GameContextType[K] extends (...args:infer A)=>infer R ? (...args:A)=>R|Promise<Awaited<R>> : GameContextType[K]};
+export const GameContext = createContext<RuntimeGameContext | undefined>(undefined);
 
 const clampResistance = (value: number) => Math.max(-75, Math.min(85, value));
 
@@ -300,25 +304,27 @@ const calculateTypedDamage = ({
 };
 
 const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots: number) => {
-  const existingIndex = inventory.findIndex(i =>
-    i.templateId === item.templateId &&
-    i.type === item.type &&
-    i.name === item.name &&
-    i.rarity === item.rarity
-  );
-
-  const stackable = item.type === 'material' || item.type === 'ore' || item.type === 'potion';
-  if (existingIndex >= 0 && stackable) {
-    const next = [...inventory];
-    next[existingIndex] = {
-      ...next[existingIndex],
-      stackCount: (next[existingIndex].stackCount || 1) + (item.stackCount || 1)
-    };
-    return { inventory: next, added: true };
+  const quantity=item.stackCount ?? 1;
+  if(!validStackCount(quantity))return {inventory,added:false};
+  const stackable=['material','ore','potion'].includes(item.type);
+  if(!stackable)return inventory.length>=maxSlots?{inventory,added:false}:{inventory:[...inventory,item],added:true};
+  const next=inventory.map(entry=>({...entry}));
+  let remaining=quantity;
+  for(const entry of next){
+    if(entry.templateId!==item.templateId||entry.type!==item.type||entry.name!==item.name||entry.rarity!==item.rarity||Boolean(entry.serverOwned)!==Boolean(item.serverOwned)||(entry.marketTradable===false)!==(item.marketTradable===false))continue;
+    const current=entry.stackCount??1;
+    if(!validStackCount(current))return {inventory,added:false};
+    const count=Math.min(remaining,MAX_STACK_COUNT-current);
+    entry.stackCount=current+count;remaining-=count;
+    if(!remaining)return {inventory:next,added:true};
   }
-
-  if (inventory.length >= maxSlots) return { inventory, added: false };
-  return { inventory: [...inventory, item], added: true };
+  while(remaining>0){
+    if(next.length>=maxSlots)return {inventory,added:false};
+    const count=Math.min(remaining,MAX_STACK_COUNT);
+    next.push({...item,id:next.some(entry=>entry.id===item.id)?'stack_'+createOperationId():item.id,stackCount:count});
+    remaining-=count;
+  }
+  return {inventory:next,added:true};
 };
 
 
@@ -500,21 +506,39 @@ const addMiningRewardsToInventory = (
   return { inventory: next, added: true };
 };
 
-const isCurrentUserAdmin = () => {
+const browserIsCurrentUserAdmin = () => {
   const adminTelegramId = import.meta.env.VITE_ADMIN_TELEGRAM_ID || '';
-  return Boolean(adminTelegramId) && String(getTelegramUser().id) === String(adminTelegramId);
+  return Boolean(adminTelegramId) && String(browserGetTelegramUser().id) === String(adminTelegramId);
 };
 
 
 
 
-export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
+  const {useState,useRef,useMemo,useCallback,useEffect}=runtime?.hooks ?? React;
+  const localStorage=runtime?.localStorage ?? globalThis.localStorage;
+  const getTelegramUser=runtime?.getTelegramUser ?? browserGetTelegramUser;
+  const getLanguage=runtime?.getLanguage ?? browserGetLanguage;
+  const readResetVersion=runtime?.readResetVersion ?? browserReadResetVersion;
+  const readAccountSave=runtime?.readAccountSave ?? browserReadAccountSave;
+  const removeAccountSave=runtime?.removeAccountSave ?? browserRemoveAccountSave;
+  const isCurrentUserAdmin=runtime?.isCurrentUserAdmin ?? browserIsCurrentUserAdmin;
+  const sound=runtime?.sound ?? browserSound;
+  const triggerHaptic=runtime?.triggerHaptic ?? browserTriggerHaptic;
+  const apiRequest=runtime?.apiRequest ?? browserApiRequest;
+  const useBalanceTelemetry=runtime?.useBalanceTelemetry ?? browserBalanceTelemetry;
+  const Date=runtime?.Date ?? globalThis.Date;
+  const setTimeout=runtime?.setTimeout ?? globalThis.setTimeout;
+  const clearTimeout=runtime?.clearTimeout ?? globalThis.clearTimeout;
+  const setInterval=runtime?.setInterval ?? globalThis.setInterval;
+  const clearInterval=runtime?.clearInterval ?? globalThis.clearInterval;
+
   const accountResetVersion = useRef(readResetVersion(getTelegramUser().id));
   const [player, setPlayerState] = useState<PlayerCharacter | null>(null);
   const setPlayer = useCallback<React.Dispatch<React.SetStateAction<PlayerCharacter | null>>>(action => {
     setPlayerState(previous => {
       const next = typeof action === 'function' ? action(previous) : action;
-      return previous && next && next !== previous ? anchorSpentResources(previous, next) : next;
+      return previous && next && next !== previous ? anchorSpentResources(previous, next, Date.now()) : next;
     });
   }, []);
   const [activeMonster, setActiveMonster] = useState<Monster | null>(null);
@@ -526,7 +550,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const flightHandled = useRef(false);
   const combatActiveRef = useRef(false);
   const resetPotionTurn = () => { usedPotionsRef.current = []; setUsedPotionKinds([]); };
-  useEffect(resetPotionTurn, [combatRound]);
+  /* @actor-effect potionTurn */ useEffect(resetPotionTurn, [combatRound]);
   const markPotionUsed = (item: GameItem) => {
     usedPotionsRef.current = [...new Set([...usedPotionsRef.current, ...potionKinds(item)])];
     setUsedPotionKinds(usedPotionsRef.current);
@@ -540,9 +564,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isInCombat, setIsInCombat] = useState<boolean>(false);
   const [isCombatEnded, setIsCombatEnded] = useState<boolean>(false);
   const [combatOutcome, setCombatOutcome] = useState<'victory' | 'defeat' | 'flee' | null>(null);
-  useEffect(() => { combatActiveRef.current = isInCombat && !isCombatEnded; }, [isInCombat, isCombatEnded]);
+  /* @actor-effect combatPresence */ useEffect(() => { combatActiveRef.current = isInCombat && !isCombatEnded; }, [isInCombat, isCombatEnded]);
   const arenaDefeatHandled = useRef(false);
-  useEffect(() => {
+  /* @actor-effect battlePenalties */ useEffect(() => {
     if (!isInCombat || !isCombatEnded || flightHandled.current) return;
     flightHandled.current = true;
     if (combatOutcome === 'victory' || combatOutcome === 'defeat') setPlayer(prev => prev ? completeIntoxicatedBattle(completePenalizedBattle(prev)) : prev);
@@ -551,7 +575,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const bulkInventoryBusy = useRef(false);
   const serverInventoryVersion = useRef(0);
   const marketBusy = useRef(false);
-  useEffect(() => {
+  /* @actor-effect arenaDefeat */ useEffect(() => {
     if (!isCombatEnded || combatOutcome !== 'defeat') {
       arenaDefeatHandled.current = false;
       return;
@@ -573,7 +597,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [monsterEffects, setMonsterEffects] = useState<StatusEffect[]>([]);
   const [combatNarration, setCombatNarration] = useState<string[]>([]);
   const playerActionLock = useRef(false);
-  useEffect(() => {
+  /* @actor-effect combatNarrationReset */ useEffect(() => {
     playerActionLock.current = false;
     setCombatNarration([]);
   }, [isInCombat, activeMonster?.id, player?.userId]);
@@ -581,8 +605,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [monsterForecast, setMonsterForecast] = useState<MonsterForecast | null>(null);
   const monsterDecision = useRef<{ key: string; skill: MonsterSkill | null; readRoll: number; errorRoll: number } | null>(null);
   const monsterPlan = useRef<{ key: string; skill: MonsterSkill | null; deadline: number; preparationDeadline: number } | null>(null);
-  useEffect(() => { if (!isInCombat || isCombatEnded || turnPhase !== 'monster') monsterPlan.current = null; }, [isInCombat, isCombatEnded, turnPhase]);
-  useEffect(() => {
+  /* @actor-effect monsterPlanReset */ useEffect(() => { if (!isInCombat || isCombatEnded || turnPhase !== 'monster') monsterPlan.current = null; }, [isInCombat, isCombatEnded, turnPhase]);
+  /* @actor-effect monsterForecast */ useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || !player) {
       monsterDecision.current = null;
       setMonsterForecast(null);
@@ -607,7 +631,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeDungeonRun, setActiveDungeonRun] = useState<DungeonRun | null>(null);
   const dungeonPresenceRef=useRef(activeDungeonRun);dungeonPresenceRef.current=activeDungeonRun;
   const recordCombatIncome = useBalanceTelemetry(player, activeMonster, isInCombat, isCombatEnded, combatOutcome, combatRound, activeDungeonRun?.difficulty);
-  useEffect(() => {
+  /* @actor-effect dungeonLife */ useEffect(() => {
     if (!activeDungeonRun || combatOutcome !== 'victory' || !isCombatEnded) return;
     setActiveDungeonRun(run => run && (run.savedHp !== combatPlayerHp || run.savedMp !== combatPlayerMp)
       ? { ...run, savedHp: combatPlayerHp, savedMp: combatPlayerMp } : run);
@@ -648,7 +672,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [worldMessage,setWorldMessage]=useState('');
   const presenceRef=useRef(player);presenceRef.current=player;
-  useEffect(()=>setWorldMessage(''),[player?.worldPlace]);
+  /* @actor-effect worldMessage */ useEffect(()=>setWorldMessage(''),[player?.worldPlace]);
   const journeyGate=useRef(false);
   journeyGate.current=Boolean(player?.worldJourney);
   const journeySnapshot=useRef(player?.worldJourney);journeySnapshot.current=player?.worldJourney;
@@ -673,7 +697,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
   }, [player?.userId, refreshPremiumStatus]);
 
-  useEffect(() => {
+  /* @actor-effect premiumAutoPermission */ useEffect(() => {
     if (!premium.active) {
       setAutoBattle(prev => prev.enabled ? { ...prev, enabled: false } : prev);
     }
@@ -998,7 +1022,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [player?.userId]);
 
   // Load saved state or check Telegram User
-  useEffect(() => {
+  /* @actor-effect loadLegacy */ useEffect(() => {
     const tgUser: TelegramUser = getTelegramUser();
     const raw = readAccountSave(tgUser.id);
     
@@ -1782,7 +1806,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (prev.energy < ENERGY_COSTS.inventory) { triggerHaptic('error'); return prev; }
       sound.playClick();
       triggerHaptic('light');
-      const goldGain = item.sellPrice || 10;
+      const goldGain = (item.sellPrice || 10) * (item.stackCount || 1);
       return {
         ...prev,
         gold: prev.gold + goldGain,
@@ -1815,12 +1839,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerHaptic('medium');
 
       let inventory = prev.inventory.filter(i => i.id !== item.id);
+      let fits = true;
       const add = (material: GameItem) => {
-        inventory = addOrStackInventoryItem(inventory, material, prev.maxInventorySlots).inventory;
+        const result = addOrStackInventoryItem(inventory, material, prev.maxInventorySlots);
+        fits = fits && result.added; inventory = result.inventory;
       };
 
-      const salvageSilver = item.disassembleYield?.silver || 0;
-      const ore = item.disassembleYield?.ore || 0;
+      const salvageSilver = (item.disassembleYield?.silver || 0) * (item.stackCount || 1);
+      const ore = (item.disassembleYield?.ore || 0) * (item.stackCount || 1);
 
       if (ore > 0) {
         add({
@@ -1840,6 +1866,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
+      if (!fits) return prev;
       return {
         ...prev,
         inventory,
@@ -2083,7 +2110,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => prev?.adventureJournal?.pending
       ? { ...prev, adventureJournal: { ...prev.adventureJournal, pending: undefined } } : prev);
   }, []);
-  useEffect(() => { storyFinishLock.current = false; }, [player?.id, player?.adventureJournal?.pending?.chapter]);
+  /* @actor-effect storyClaimLock */ useEffect(() => { storyFinishLock.current = false; }, [player?.id, player?.adventureJournal?.pending?.chapter]);
   const finishAdventureStory = useCallback(() => {
     const pending = player?.adventureJournal?.pending;
     if (!pending || storyFinishLock.current) return true;
@@ -2143,7 +2170,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {success:true,message:'Путешествие началось!'};
   },[player,travelState.isTraveling,isInCombat,isCombatEnded,activeDungeonRun,premium.active]);
 
-  useEffect(()=>{
+  /* @actor-effect journey:clock */ useEffect(()=>{
     const journey=player?.worldJourney;if(!journey)return;
     const region=REGIONS.find(r=>r.id===journey.regionId)||REGIONS[0];
     const tick=()=>{
@@ -2956,7 +2983,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ]);
 
   // One action per render prevents double taps from consuming stale inventory.
-  useEffect(() => { playerActionLock.current = false; });
+  /* @actor-effect playerLock */ useEffect(() => { playerActionLock.current = false; });
   const performPlayerAction = useCallback((actionType: PlayerAction, skillId?: string) => {
     if (playerActionLock.current || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'player') return;
     const pot = actionType === 'potion' ? player.inventory.find(i => i.type === 'potion' && (!skillId || i.id === skillId)) : undefined;
@@ -2970,7 +2997,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isInCombat,isCombatEnded,activeMonster,player,turnPhase,combatPlayerHp,combatPlayerMp,combatStats,resolvePlayerAction]);
 
   // MONSTER TURN CONTROLLER — monsters telegraph skills before casting them.
-  useEffect(() => {
+  /* @actor-effect monster:timer */ useEffect(() => {
     if (!isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'monster' || !player || monsterIntent) return;
 
     const key = `${activeMonster.id}:${combatRound}`;
@@ -3108,7 +3135,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, monsterEffects, playerEffects, combatStats, completeCombatVictory, monsterIntent, combatPlayerHp, activeDungeonRun, autoBattle.enabled]);
 
   // Delayed monster skill execution. The warning above is intentionally visible first.
-  useEffect(() => {
+  /* @actor-effect monsterSkill:timer */ useEffect(() => {
     if (!monsterIntent || !isInCombat || isCombatEnded || !activeMonster || !player || turnPhase !== 'monster') return;
     const timer = setTimeout(() => {
       const skill = monsterIntent;
@@ -3197,14 +3224,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, monsterEffects, activeDungeonRun, autoBattle.enabled]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
-  useEffect(() => {
+  /* @actor-effect chainAuto:timer */ useEffect(() => {
     if (player?.adventureJournal?.pending || !autoBattle.enabled || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return;
     const timer = setTimeout(() => { startNextCombatBattle(); }, 700);
     return () => clearTimeout(timer);
   }, [player?.adventureJournal?.pending, autoBattle.enabled, isInCombat, isCombatEnded, combatOutcome, combatChain, startNextCombatBattle]);
 
   // Auto-battle loop (operates only on player's turn)
-  useEffect(() => {
+  /* @actor-effect playerAuto:timer */ useEffect(() => {
     if (!autoBattle.enabled || !isInCombat || isCombatEnded || !activeMonster || turnPhase !== 'player' || !player || player.flightPenalty?.warningPending) return;
 
     const timer = setTimeout(() => {
@@ -3266,7 +3293,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayer(prev => prev?.firstJourney === 'codex' ? {...prev,firstJourney:'done'} : prev);
   }, []);
 
-  useEffect(() => {
+  /* @actor-effect firstJourney */ useEffect(() => {
     if (player?.firstJourney !== 'battle') return;
     if (isCombatEnded) {
       setPlayer(prev => prev?.firstJourney === 'battle' ? {...prev,firstJourney:'briefing',royalBriefingStep:0} : prev);
@@ -4093,8 +4120,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const guardedExitCombat=useCallback(()=>{if(!journeyGate.current)exitCombat();},[exitCombat]);
   const servicesAvailable=()=>{const ready=inSettlement(presenceRef.current)&&!journeyGate.current&&!combatActiveRef.current;if(!ready)setWorldMessage(SETTLEMENT_REQUIRED);return ready;};
   const serviceFailure={success:false,message:SETTLEMENT_REQUIRED};
-  return (
-    <GameContext.Provider value={{
+  return {
       commitSwitchSnapshot, flushProgress, getInterfaceSwitchBlockReason,
       player,
       activeMonster,
@@ -4194,10 +4220,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       adminLevelUp,
       adminSpawnLegendaryItem,
       adminHealAll
-    }}>
-      {children}
-    </GameContext.Provider>
-  );
+  };
+}
+
+export const GameProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
+  const game=useGameEngine();
+  return <GameContext.Provider value={game}>{children}</GameContext.Provider>;
 };
 
 export const useGame = () => {

@@ -22,7 +22,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
 
   if (!player) return null;
 
-  const handleChallenge = (opponent: Gladiator) => {
+  const handleChallenge = async (opponent: Gladiator) => {
     setFightError(null);
     if (isInCombat && !isCombatEnded) {
       onEnterCombatTab?.();
@@ -40,7 +40,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({ onEnterCombatTab }) =>
       setFightError('Билеты закончились. Они восстановятся завтра в 00:00 UTC.');
       return;
     }
-    if (challengeArena(opponent)) onEnterCombatTab?.();
+    if ((await challengeArena(opponent))) onEnterCombatTab?.();
     else setFightError('Не удалось начать бой. Попробуйте ещё раз.');
   };
 

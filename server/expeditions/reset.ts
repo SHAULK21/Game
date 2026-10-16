@@ -7,6 +7,12 @@ export async function clearExpeditionAccount(client: PoolClient, owner: number) 
   if (!schema?.enabled) return;
   await client.query('DELETE FROM expedition_accounts WHERE telegram_id=$1', [owner]);
   await client.query('DELETE FROM expedition_operations WHERE telegram_id=$1', [owner]);
+  const commands = (await client.query("SELECT to_regclass('game_operations') IS NOT NULL AS enabled")).rows[0];
+  if (commands?.enabled) {
+    await client.query('DELETE FROM game_operations WHERE telegram_id=$1', [owner]);
+    await client.query('DELETE FROM progress_api_operations WHERE telegram_id=$1', [owner]);
+    await client.query('UPDATE players SET progress_migration_open=TRUE WHERE telegram_id=$1', [owner]);
+  }
   await client.query(`UPDATE players SET progress_json=NULL,progress_version=progress_version+1,
     progress_session_hash=NULL,progress_session_generation=progress_session_generation+1,
     character_authority='legacy-local' WHERE telegram_id=$1`, [owner]);

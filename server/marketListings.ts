@@ -27,7 +27,7 @@ export async function createMarketListing(pool: Pool, userId: number, body: any,
       return (await client.query('SELECT * FROM market_listings WHERE id=$1', [cached.listing_id])).rows[0];
     }
     const row = (await client.query('SELECT * FROM owned_items WHERE id=$1 AND owner_telegram_id=$2 FOR UPDATE', [itemId,userId])).rows[0];
-    if (!row || row.origin === 'legacy_market_return' || row.locked || row.equipped_slot || row.bound_clan_id || Number(row.quantity) < quantity) throw new Error('Предмет недоступен для продажи.');
+    if (!row || ['legacy_market_return','legacy_character'].includes(row.origin) || row.locked || row.equipped_slot || row.bound_clan_id || Number(row.quantity) < quantity) throw new Error('Предмет недоступен для продажи.');
     const safeItem = { ...row.item_json };
     for (const key of ['id','serverOwned','stackCount','isEquipped','isLocked','boundToClan']) delete safeItem[key];
     if (Number(row.quantity) === quantity) await client.query('DELETE FROM owned_items WHERE id=$1', [row.id]);

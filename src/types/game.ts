@@ -604,6 +604,8 @@ export interface PlayerCharacter {
 
   lastActiveTimestamp: number;
   lastMeditationTimestamp?: number;
+  /** Public server projection only; ownership remains in expedition_accounts. */
+  expeditionPresence?: {runId:string;endsAt:number};
   worldPlace?: WorldPlace;
   worldJourney?: WorldJourney;
   currentRegionId: string;

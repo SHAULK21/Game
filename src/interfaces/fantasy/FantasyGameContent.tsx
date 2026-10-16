@@ -1,3 +1,4 @@
+import {ExpeditionScreen} from '../../components/expeditions/ExpeditionScreen';
 import { TavernScreen } from '../../components/settlement/TavernScreen';
 import {SettlementScreen} from '../../components/settlement/SettlementScreen';
 import {inSettlement} from '../../utils/worldPresence';
@@ -48,6 +49,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
       <Header hidden={currentTab === 'hunter' && isInCombat && Boolean(activeMonster) && !isCharacterSheetOpen} compact={currentTab !== 'hunter' || isCharacterSheetOpen} onOpenCharacterSheet={() => setIsCharacterSheetOpen(true)} />
 
       {decoration}
+      {player.expeditionPresence && currentTab!=='expeditions'&&currentTab!=='hunter'&&<button className="exp-link px-4" onClick={()=>setCurrentTab('expeditions')}>{localize('Герой в экспедиции · открыть статус')}</button>}
       {/* Main View Area */}
       <main className="shell-main flex-1 w-full mx-auto">
         {worldMessage&&<div role="status" className="m-3 rounded-lg border p-3 text-sm">{localize(worldMessage)}<button className="min-h-11 ml-2 underline" onClick={()=>setCurrentTab('settlement')}>{localize('Поселение')}</button></div>}
@@ -58,7 +60,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
         ) : (
           <Surface page={currentTab}>
             {canGoBack && !['hunter','world','character','inventory','menu'].includes(currentTab) && <button className="reference-context-back" onClick={goBack}>{localize('Назад')}</button>}
-            {currentTab === 'hunter' && (inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
+            {currentTab === 'hunter' && (player.expeditionPresence?<ExpeditionScreen/>:inSettlement(player)&&!isInCombat?<SettlementScreen onNavigate={setCurrentTab}/>:<CombatScreen onContinueDungeon={() => setCurrentTab('world')} onReturnToArena={() => setCurrentTab('arena')} />)}
             {currentTab === 'settlement' && <SettlementScreen onNavigate={setCurrentTab}/>}
             {currentTab === 'world' && <WorldScreen onEnterCombatTab={() => setCurrentTab('hunter')} onNavigate={setCurrentTab} />}
             {currentTab === 'character' && <CharacterScreen onClose={() => canGoBack?goBack():setCurrentTab('hunter')} />}
@@ -67,6 +69,7 @@ export const FantasyShell: React.FC<{Header:React.ComponentType<HeaderProps>;Nav
             {currentTab === 'blacksmith' && <BlacksmithScreen />}
             {currentTab === 'crafting' && <CraftingScreen />}
             {currentTab === 'alchemy' && <AlchemyScreen />}
+            {currentTab === 'expeditions' && <ExpeditionScreen/>}
             {currentTab === 'mine' && <MiningScreen />}
             {currentTab === 'fishing' && <FishingScreen />}
             {currentTab === 'clan' && <ClanScreen />}

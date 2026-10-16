@@ -27,6 +27,8 @@ export async function expeditionDatabase() {
     const schema = (await fs.readFile('server/schema.sql', 'utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;', '');
     const migration = await fs.readFile('server/migrations/20261015_expeditions.sql', 'utf8');
     await execute(schema); await execute(migration); await execute(migration);
+    const commands = await fs.readFile('server/migrations/20261015_server_commands.sql', 'utf8');
+    await execute(commands); await execute(commands);
     return {pool, query, close};
   } catch (error) {await close(); throw error;}
 }

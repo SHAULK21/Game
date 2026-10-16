@@ -1,3 +1,4 @@
+import {ExpeditionTavern} from '../expeditions/ExpeditionScreen';
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../../context/GameContext';
 import { useLocale } from '../../i18n/locale';
@@ -23,8 +24,8 @@ export function TavernScreen({ children }: { children: ReactNode }) {
           <h3>{uk ? 'Кухоль пива' : 'Кружка пива'}</h3>
           <p className="tavern-beer-benefits">+{BEER_ENERGY} {uk ? 'енергії · безкоштовно' : 'энергии · бесплатно'}</p>
         </div>
-      <button type="button" data-drink-beer disabled={busy || !canDrinkBeer(player)} onClick={() => {
-        const result = drinkBeer();
+      <button type="button" data-drink-beer disabled={busy || !canDrinkBeer(player)} onClick={async () => {
+        const result = (await drinkBeer());
         setMessage(result.success ? (uk ? 'Енергію поповнено, ганьбу знято.' : 'Энергия пополнена, позор снят.') : (uk ? 'Зараз випити не можна: дістаньтеся таверни та завершіть бій. За повної енергії без ганьби пиво не потрібне.' : result.message));
       }}>{uk ? 'Випити' : 'Выпить'}</button>
       </div>
@@ -41,6 +42,7 @@ export function TavernScreen({ children }: { children: ReactNode }) {
         <p>{uk ? `Знімає «Ганьбу втікача». Кожен кухоль: −${INTOXICATION_PER_MUG}% фізичної й магічної атаки та обох захистів, до −${INTOXICATION_PER_MUG * MAX_INTOXICATION_MUGS}%. Ефект минає після ${INTOXICATION_BATTLES} завершених боїв. Новий кухоль оновлює строк; втеча його не скорочує.` : `Снимает «Позор беглеца». Каждая кружка: −${INTOXICATION_PER_MUG}% физической и магической атаки и обеих защит, до −${INTOXICATION_PER_MUG * MAX_INTOXICATION_MUGS}%. Эффект проходит после ${INTOXICATION_BATTLES} завершённых боёв. Новая кружка обновляет срок; побег его не сокращает.`}</p>
       </details>
     </aside>
+    <ExpeditionTavern/>
     <div id="tavern-chat">{children}</div>
   </section>;
 }

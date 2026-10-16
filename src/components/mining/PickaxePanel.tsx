@@ -53,7 +53,7 @@ export function PickaxePanel({isMining, onFeedback}:{isMining:boolean;onFeedback
           <p className="text-xs">{t('Цена: ')}{offer.price.toLocaleString(intlLocale())}{t(' золота')}</p>
           <p className="text-xs font-semibold">{t(equipped?'Установлена · бонус действует':owned?'Куплена · в сумке':'Не куплена')}</p>
           {!equipped&&!owned&&reason&&<p className="text-xs">{t(reason)}</p>}
-          <button className={`${button} min-h-11 w-full text-xs disabled:opacity-50`} disabled={busy||equipped||!owned&&!!reason} onClick={()=>void act(()=>owned?equipItem(owned):buyPickaxe(offer.id))}>{t(equipped?'Установлена':owned?'Установить':`Купить · ${offer.price.toLocaleString(intlLocale())} золота`)}</button>
+          <button className={`${button} min-h-11 w-full text-xs disabled:opacity-50`} disabled={busy||equipped||!owned&&!!reason} onClick={()=>void act(async ()=>owned?equipItem(owned):(await buyPickaxe(offer.id)))}>{t(equipped?'Установлена':owned?'Установить':`Купить · ${offer.price.toLocaleString(intlLocale())} золота`)}</button>
         </article>;
       })}</div>
     </details>

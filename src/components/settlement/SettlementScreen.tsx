@@ -1,3 +1,4 @@
+import {ExpeditionLink} from '../expeditions/ExpeditionScreen';
 import React,{useState} from 'react';
 import {useGame} from '../../context/GameContext';
 import {useInterface} from '../../context/InterfaceContext';
@@ -24,7 +25,7 @@ const groups:{id:string;label:string;places:Place[]}[]=[
  ]},
  {id:'outskirts',label:'У поселения',places:[
   {id:'fishing',label:'Рыбацкий причал',description:'Рыбалка и снасти',icon:'fish',tab:'fishing'},
-  {id:'mine',label:'Шахтёрский двор',description:'Добыча руды и экспедиции',icon:'mine',tab:'mine'},
+  {id:'mine',label:'Шахтёрский двор',description:'Ручная добыча и инструменты',icon:'mine',tab:'mine'},
  ]},
 ];
 
@@ -36,7 +37,7 @@ export function SettlementScreen({onNavigate}:{onNavigate?:(tab:GameTabId)=>void
  const [boardOpen,setBoardOpen]=useState(false);
  if(!player)return null;
  const town=inSettlement(player);
- const blockedReason=travelState.isTraveling||player.worldJourney?'Вы в пути. Дождитесь прибытия.':activeDungeonRun?'Сначала завершите поход или покиньте пещеру.':isInCombat&&!isCombatEnded?'Сначала завершите текущий бой.':'';
+ const blockedReason=player.expeditionPresence?'Герой в экспедиции. Откройте её статус, чтобы вернуться.':travelState.isTraveling||player.worldJourney?'Вы в пути. Дождитесь прибытия.':activeDungeonRun?'Сначала завершите поход или покиньте пещеру.':isInCombat&&!isCombatEnded?'Сначала завершите текущий бой.':'';
  const rewardsReady=quests.filter(q=>q.completed&&!q.claimed).length;
  const navigate=(tab:GameTabId)=>onNavigate?.(tab);
  const Title=style==='fantasy-beta'?'h2':'h1';
@@ -51,15 +52,17 @@ export function SettlementScreen({onNavigate}:{onNavigate?:(tab:GameTabId)=>void
    <div className="settlement-introduction"><Title>{t(town?'Площадь поселения':'Дорога в поселение')}</Title><p>{t(town?'Торговые ряды, мастерские и новые поручения. Выберите, к кому заглянуть.':'Мастерские и торговцы ждут за городскими воротами. Сначала доберитесь до поселения.')}</p></div>
   </div>
   {!town?<div className="settlement-arrival">
+   {player.expeditionPresence&&<ExpeditionLink onNavigate={navigate}/>}
    <p>{t('Вы сейчас: ')}<strong>{t(worldPlace(player)==='dungeon'?'Пещера':'Поля')}</strong></p>
    {blockedReason&&<p role="status">{t(blockedReason)}</p>}
-   <button className="settlement-road settlement-road--primary" disabled={Boolean(blockedReason)} onClick={()=>{const result=returnToSettlement();setMessage(result.message);if(result.success)navigate('world');}}><RpgIcon kind="map" size={25}/><span><strong>{t('Идти в поселение')}</strong><small>{t('без расхода энергии')}</small></span><span aria-hidden="true">›</span></button>
+   <button className="settlement-road settlement-road--primary" disabled={Boolean(blockedReason)} onClick={async ()=>{const result=(await returnToSettlement());setMessage(result.message);if(result.success)navigate('world');}}><RpgIcon kind="map" size={25}/><span><strong>{t('Идти в поселение')}</strong><small>{t('без расхода энергии')}</small></span><span aria-hidden="true">›</span></button>
    {activeDungeonRun&&<button className="settlement-return" onClick={()=>navigate('world')}>{t('Вернуться к походу')}</button>}
   </div>:<>
    <div className="settlement-featured" aria-label={t('На площади')}>
     {placeCard({id:'market',label:'Торговые ряды',description:'Рынок и продажа местным жителям',icon:'market',tab:'market'},true)}
     {placeCard({id:'quests',label:'Доска поручений',description:'Задания жителей и поручения короля',icon:'quest'},true)}
    </div>
+   <ExpeditionLink onNavigate={navigate}/>
    {groups.map(group=><section key={group.id} className="settlement-quarter" aria-labelledby={`settlement-${group.id}`}><h2 id={`settlement-${group.id}`}><span>{t(group.label)}</span><span aria-hidden="true"/></h2><div className={`settlement-place-grid settlement-place-grid--${group.id}`}>{group.places.map(place=>placeCard(place))}</div></section>)}
    <section className="settlement-departures" aria-labelledby="settlement-gates"><h2 id="settlement-gates">{t('За городские ворота')}</h2><p>{t('Выберите землю или пещеру. В путь отправитесь после выбора маршрута.')}</p><div className="settlement-roads">
     <button className="settlement-road" onClick={()=>requestGameSection({id:'hunt',label:'Поля',icon:'map',tab:'world',world:'lands'},navigate)}><RpgIcon kind="hunt" size={27}/><span><strong>{t('Отправиться на поля')}</strong><small>{t('Выбрать землю и режим охоты')}</small></span><span aria-hidden="true">›</span></button>

@@ -1,3 +1,4 @@
+import {useServerProgress} from '../../context/ServerProgressContext';
 import { HeroEquipment } from '../../interfaces/modern/HeroEquipment';
 import { FirstJourneyHint } from './FirstJourneyHint';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
@@ -27,6 +28,7 @@ interface CharacterScreenProps {
 }
 
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose, onOpenInventory }) => {
+  const serverProgress=useServerProgress();
   useLocale();
   const { player, combatStats, allocateAttribute, premium } = useGame();
   const [activeTab, setActiveTab] = useState<'stats' | 'talents' | 'pet'>('stats');
@@ -44,7 +46,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({ onClose, onOpe
       <section className="ui-panel rounded-2xl p-4">
         <div className="flex items-center justify-between gap-3"><div className="min-w-0"><h2 data-player-name className="font-cinzel break-words">{player.name}</h2><p className="mt-1 text-xs text-slate-400">{localize(classDef.name)} · {localize("Уровень ")}{player.level} · {localize("Ранг ")}{player.ascension?.rank || 'E'}{premium.active && ' · Premium'}</p></div><span className="modern-tag">EXP {expPct}%</span></div>
         <div role="progressbar" aria-label={localize("Опыт героя")} aria-valuenow={expPct} aria-valuemin={0} aria-valuemax={100} className="mt-3 h-1.5 rounded-full bg-black/50 overflow-hidden"><div className="h-full bg-amber-400" style={{width:`${expPct}%`}} /></div>
-        <details className="mt-3 text-xs"><summary className="cursor-pointer text-amber-200">{localize("Класс и пассивка · ")}{localize(classDef.passive.name)}</summary><p className="mt-2 text-slate-400">{localize(classDef.description)}</p><p className="mt-2 text-slate-400">{localize(classDef.passive.description)}</p><p className="mt-2 text-slate-400">{localize("Шахта / алхимия")}: {player.miningLevel} / {player.alchemyLevel}</p></details>
+        <details className="mt-3 text-xs"><summary className="cursor-pointer text-amber-200">{localize("Класс и пассивка · ")}{localize(classDef.passive.name)}</summary><p className="mt-2 text-slate-400">{localize(classDef.description)}</p><p className="mt-2 text-slate-400">{localize(classDef.passive.description)}</p><p className="mt-2 text-slate-400">{localize("Шахта / алхимия")}: {player.miningLevel} / {player.alchemyLevel} · {localize('Экспедиции')}: {serverProgress?.current?.expeditions?.skill||1}</p></details>
       </section>
 
       <HeroEquipment onOpenInventory={onOpenInventory} />

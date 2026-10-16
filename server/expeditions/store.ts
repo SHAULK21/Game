@@ -5,10 +5,12 @@ import {dailyOrder, ExpeditionRuleError, HOUR, legacyPremiumLoot, MATERIALS, mat
 import {residentMarketDay} from '../../src/utils/localMarket';
 import {queueNotification} from '../socialFeatures';
 
+export interface ReturnQuote {at: number; signature: string}
 export class ExpeditionError extends Error {
+  operationOutcome?: 'rejected';
   constructor(public code: string, message: string, public status = 409) {super(message);}
 }
-interface Save {resetVersion: number; player: PlayerCharacter; quests: Quest[]; achievements: Achievement[]; activeDungeonRun?: unknown; combat?: {isInCombat?: boolean; isCombatEnded?: boolean}}
+interface Save {resetVersion: number; player: PlayerCharacter; quests: Quest[]; achievements: Achievement[]; activeDungeonRun?: unknown; combat?: {isInCombat?: boolean; isCombatEnded?: boolean} | null}
 interface ActiveRun {id: string; startedAt: number; endsAt: number; seed: string; snapshot: ExpeditionSnapshot; legacy?: boolean}
 interface Report {id: string; startedAt: number; finishedAt: number; complete: boolean; legacy?: boolean; snapshot: ExpeditionSnapshot; loot: Loot[]; miningXp: number}
 interface Warehouse {runId: string; loot: Loot[]; source?: 'premium' | 'expedition'}
@@ -21,10 +23,11 @@ export interface ExpeditionState {
   acceptedDay: string | null;
   premiumCursor: number;
   repeat: Selection | null;
+  repeatReady?: string | null;
 }
 export interface Writer {ownerId: number; resetVersion: number; sessionToken: string; sessionGeneration: number}
 export interface Operation extends Writer {operationId: string; expectedVersion: number}
-export type Command = {type: 'train'} | {type: 'start'; selection: Selection} | {type: 'return'; runId: string} | {type: 'claim'; runId: string} | {type: 'accept-order'} | {type: 'deliver-order'} | {type: 'abandon-order'} | {type: 'repeat'; selection: Selection | null} | {type: 'reconcile'};
+export type Command = {type: 'train'; expectedPrice?: number} | {type: 'start'; selection: Selection; repeat?: boolean; expectedPrice?: number} | {type: 'return'; runId: string; quote?: ReturnQuote} | {type: 'claim'; runId: string} | {type: 'accept-order'} | {type: 'deliver-order'} | {type: 'abandon-order'} | {type: 'repeat'; selection: Selection | null} | {type: 'reconcile'};
 const empty = (now: number): ExpeditionState => ({skill: 1, active: null, warehouse: null, history: [], order: null, acceptedDay: null, premiumCursor: now, repeat: null});
 const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const hash = (value: string) => crypto.createHash('sha256').update(value).digest('hex');
@@ -49,13 +52,23 @@ function advanceMining(save: Save, xp: number, count: number) {
   for (const quest of save.quests) if (quest.category === 'mining') {quest.currentCount = Math.min(quest.targetCount, quest.currentCount + count); quest.completed = quest.currentCount >= quest.targetCount;}
   for (const achievement of save.achievements) if (achievement.id === 'ach_4') {achievement.progress = Math.min(achievement.maxProgress, achievement.progress + count); achievement.completed = achievement.progress >= achievement.maxProgress;}
 }
-function finish(save: Save, state: ExpeditionState, now: number) {
+function signReturn(run: ActiveRun, at: number) {return crypto.createHmac('sha256', run.seed).update(run.id + ':' + at).digest('hex');}
+function runOutcome(run: ActiveRun, elapsed: number) {
+  const result = outcome(run.snapshot, elapsed);
+  if (run.legacy && !result.complete) result.miningXp = Math.max(0, Math.round(run.snapshot.duration * 25 * Math.min(.85, .85 * Math.max(0, elapsed) / (run.endsAt - run.startedAt))));
+  if (run.legacy && !result.complete && elapsed >= 300_000 && !result.loot.length && run.snapshot.base.length) result.loot.push({...run.snapshot.base[0], quantity: 1});
+  return result;
+}
+function finish(save: Save, state: ExpeditionState, now: number, quote?: ReturnQuote) {
   const run = state.active;
   if (!run) throw new ExpeditionError('NO_ACTIVE_RUN', 'Нет активной экспедиции.');
   if (state.warehouse?.loot.length) throw new ExpeditionError('WAREHOUSE_OCCUPIED', 'Сначала заберите предыдущую добычу.');
-  const result = outcome(run.snapshot, now - run.startedAt);
-  if (run.legacy && !result.complete) result.miningXp = Math.max(0, Math.round(run.snapshot.duration * 25 * Math.min(.85, .85 * Math.max(0, now - run.startedAt) / (run.endsAt - run.startedAt))));
-  if (run.legacy && !result.complete && now - run.startedAt >= 300_000 && !result.loot.length && run.snapshot.base.length) result.loot.push({...run.snapshot.base[0], quantity: 1});
+  let effectiveNow = now;
+  if (now < run.endsAt && quote) {
+    if (!Number.isSafeInteger(quote.at) || quote.at < run.startedAt || quote.at > now || now - quote.at > 30_000 || typeof quote.signature !== 'string' || quote.signature !== signReturn(run, quote.at)) throw new ExpeditionError('RETURN_QUOTE_EXPIRED', 'Расчёт возвращения устарел. Обновите добычу и подтвердите снова.');
+    effectiveNow = quote.at;
+  }
+  const result = runOutcome(run, effectiveNow - run.startedAt);
   state.warehouse = result.loot.length ? {runId: run.id, loot: result.loot, source: 'expedition'} : null;
   advanceMining(save, result.miningXp, result.loot.reduce((sum, item) => sum + item.quantity, 0));
   if (run.snapshot.crew === 'personal') {save.player.worldPlace = 'settlement'; delete save.player.worldJourney;}
@@ -63,17 +76,19 @@ function finish(save: Save, state: ExpeditionState, now: number) {
   state.history.unshift({id: run.id, startedAt: run.startedAt, finishedAt: result.complete ? run.endsAt : now, complete: result.complete, legacy: run.legacy, snapshot: run.snapshot, loot: result.loot.map(item => ({...item})), miningXp: result.miningXp});
   state.history = state.history.slice(0, 20);
   state.active = null;
+  state.repeatReady = !state.warehouse && run.snapshot.crew === 'hired' ? run.id : null;
   // An occupied warehouse discards elapsed idle time; it is never a hidden bank.
   state.premiumCursor = now;
 }
 /** Called inside the same player lock as every other award. Never banks blocked time. */
-function accruePremium(save: Save, state: ExpeditionState, premiumUntil: number, now: number) {
+function accruePremium(save: Save, state: ExpeditionState, premiumUntil: number, now: number, eligibleAfter = 0) {
   if (state.active || state.warehouse?.loot.length || !Number.isFinite(premiumUntil)) {state.premiumCursor = now; return;}
-  const end = Math.min(now, premiumUntil), start = Math.max(state.premiumCursor, Number(save.player.lastActiveTimestamp) || state.premiumCursor);
+  const end = Math.min(now, premiumUntil), start = Math.max(state.premiumCursor, Number(save.player.lastActiveTimestamp) || state.premiumCursor, eligibleAfter);
   if (end - start < 30 * 60_000) {if (premiumUntil <= now) state.premiumCursor = now; return;}
   const hours = Math.max(1, Math.min(8, Math.floor((end - start) / 60_000) / 60));
   const loot = legacyPremiumLoot(hours, save.player.miningLevel, crypto.randomBytes(32).toString('hex'));
   state.warehouse = {runId: crypto.randomUUID(), loot, source: 'premium'};
+  state.repeatReady = null;
   advanceMining(save, Math.max(5, Math.round(hours * 12)), loot.reduce((count, item) => count + item.quantity, 0));
   state.premiumCursor = now;
 }
@@ -93,7 +108,7 @@ async function migrateVerifiedSave(client: PoolClient, owner: number, save: Save
       base.push({materialId: material.id, quantity: reward.count});
     }
     const snapshot: ExpeditionSnapshot = {route: 'old-mine', goal: 'balanced', preparation: 'none', crew: 'personal', duration: legacy.durationHours, skill: 1, mining: save.player.miningLevel, day: residentMarketDay(new Date(legacy.startedAt)), balanceVersion: 'legacy', cost: 0, base, event: null};
-    state.active = {id: crypto.randomUUID(), startedAt: legacy.startedAt, endsAt: legacy.endsAt, snapshot, seed: '', legacy: true};
+    state.active = {id: crypto.randomUUID(), startedAt: legacy.startedAt, endsAt: legacy.endsAt, snapshot, seed: crypto.randomBytes(32).toString('hex'), legacy: true};
     // Never award the overlapping old Premium interval a second time.
     state.premiumCursor = now;
     delete save.player.miningExpedition;
@@ -109,6 +124,7 @@ async function start(client: PoolClient, owner: number, save: Save, state: Exped
   const snapshot = resolveExpedition({...selection, skill: state.skill, mining: save.player.miningLevel, day: residentMarketDay(new Date(now))}, seed);
   debit(save, snapshot.cost);
   state.active = {id: crypto.randomUUID(), seed, snapshot, startedAt: now, endsAt: now + selection.duration * HOUR};
+  state.repeatReady = null;
   state.premiumCursor = now;
   // Existing notification settings, delivery worker and unique event key.
   await queueNotification(client, owner, 'expedition_' + state.active.id, 'mining', 'Экспедиция завершена. Добыча ждёт на складе.', new Date(state.active.endsAt));
@@ -134,13 +150,14 @@ async function claim(client: PoolClient, owner: number, save: Save, state: Exped
     if (remaining > 0) remainder.push({...loot, quantity: remaining});
   }
   state.warehouse = remainder.length ? {...warehouse, loot: remainder} : null;
+  if (!state.warehouse) state.repeatReady = state.history[0]?.id === runId && state.history[0].snapshot.crew === 'hired' ? runId : null;
   return {transferred, remainder};
 }
 async function deliverOrder(client: PoolClient, owner: number, save: Save, state: ExpeditionState) {
   town(save, state);
   if (!state.order) throw new ExpeditionError('NO_ORDER', 'Нет принятого заказа.');
   const order = state.order, item = materialItem(order.materialId);
-  const rows = (await client.query('SELECT id,quantity FROM owned_items WHERE owner_telegram_id=$1 AND item_json->>\'templateId\'=$2 AND equipped_slot IS NULL AND NOT locked ORDER BY created_at,id FOR UPDATE', [owner, item.templateId])).rows;
+  const rows = (await client.query('SELECT id,quantity FROM owned_items WHERE owner_telegram_id=$1 AND (item_json->>\'templateId\'=$2 OR (item_json->>\'name\'=$3 AND item_json->>\'type\'=$4 AND item_json->>\'rarity\'=$5)) AND equipped_slot IS NULL AND NOT locked AND bound_clan_id IS NULL ORDER BY created_at,id FOR UPDATE', [owner, item.templateId, item.name, item.type, item.rarity])).rows;
   if (rows.reduce((total, row) => total + Number(row.quantity), 0) < order.quantity) throw new ExpeditionError('NOT_ENOUGH_ITEMS', 'Недостаточно незаблокированных материалов для заказа.');
   let remaining = order.quantity;
   for (const row of rows) {
@@ -162,6 +179,7 @@ export class ExpeditionStore {
   async mutate(operation: Operation, command: Command) {
     if (!uuid(operation.operationId) || !Number.isSafeInteger(operation.expectedVersion) || operation.expectedVersion < 0 || !uuid(operation.sessionToken) || !Number.isSafeInteger(operation.sessionGeneration) || !Number.isSafeInteger(operation.resetVersion)) throw new ExpeditionError('INVALID_OPERATION', 'Некорректная операция.', 400);
     const client = await this.pool.connect();
+    let committed = false;
     try {
       await client.query('BEGIN');
       const row = (await client.query('SELECT * FROM players WHERE telegram_id=$1 FOR UPDATE', [operation.ownerId])).rows[0];
@@ -183,8 +201,9 @@ export class ExpeditionStore {
       const premiumUntil = new Date(row.premium_until || 0).getTime();
       const state: ExpeditionState = stored && Number(stored.reset_version) === operation.resetVersion ? stored.state_json : await migrateVerifiedSave(client, operation.ownerId, save, now, premiumUntil);
       if (receipt) {
-        await client.query('COMMIT');
-        return {replayed: true, result: receipt.result_json, progressVersion: Number(row.progress_version), resetVersion: operation.resetVersion, sessionGeneration: operation.sessionGeneration, state: publicState(state, this.clock()), player: save.player};
+        await client.query('COMMIT'); committed = true;
+        if (receipt.outcome === 'rejected') {const error = new ExpeditionError(receipt.result_json.code, receipt.result_json.error, receipt.result_json.status); error.operationOutcome = 'rejected'; throw error;}
+        return {replayed: true, result: receipt.result_json, progressVersion: Number(row.progress_version), resetVersion: operation.resetVersion, sessionGeneration: operation.sessionGeneration, state: publicState(state, this.clock(), save.player.miningLevel), player: save.player};
       }
       // An overdue return is always a full completion, including a stale button.
       if (state.active && state.active.endsAt <= now) finish(save, state, now);
@@ -192,13 +211,25 @@ export class ExpeditionStore {
       // Starting/training never silently issues an additional independent award.
       if (command.type === 'reconcile' || command.type === 'claim') accruePremium(save, state, premiumUntil, now);
       if (command.type === 'start') accruePremium(save, state, premiumUntil, now);
+      const beforeAction = structuredClone({save, state});
+      let rejection: ExpeditionError | ExpeditionRuleError | undefined;
+      await client.query('SAVEPOINT expedition_action');
       let result: unknown = {ok: true};
-      switch (command.type) {
-        case 'train': {town(save, state); const price = trainingCost(state.skill); if (price === null) throw new ExpeditionError('MAX_SKILL', 'Достигнут максимальный уровень.'); debit(save, price); state.skill++; result = {level: state.skill, gold: price}; break;}
-        case 'start': await start(client, operation.ownerId, save, state, command.selection, now); break;
+      try { switch (command.type) {
+        case 'train': {town(save, state); const price = trainingCost(state.skill); if (price === null) throw new ExpeditionError('MAX_SKILL', 'Достигнут максимальный уровень.'); if (command.expectedPrice !== undefined && command.expectedPrice !== price) throw new ExpeditionError('PRICE_CHANGED', 'Стоимость обучения изменилась.'); debit(save, price); state.skill++; result = {level: state.skill, gold: price}; break;}
+        case 'start': {
+          if (command.repeat !== undefined) {
+            if (typeof command.repeat !== 'boolean') throw new ExpeditionError('INVALID_REPEAT', 'Некорректный выбор повтора.', 400);
+            if (command.repeat && (premiumUntil <= now || command.selection.crew !== 'hired')) throw new ExpeditionError('PREMIUM_REQUIRED', 'Повтор доступен для бригады с Premium.');
+            state.repeat = command.repeat ? command.selection : null;
+          }
+          const preview = resolveExpedition({...command.selection, skill: state.skill, mining: save.player.miningLevel, day: residentMarketDay(new Date(now))}, 'price');
+          if (command.expectedPrice !== undefined && command.expectedPrice !== preview.cost) throw new ExpeditionError('PRICE_CHANGED', 'Стоимость отправления изменилась.');
+          await start(client, operation.ownerId, save, state, command.selection, now); break;
+        }
         case 'return': {
           if (state.active?.id === command.runId) {
-            finish(save, state, now);
+            finish(save, state, now, command.quote);
             await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE telegram_id=$1 AND event_key=$2 AND sent_at IS NULL', [operation.ownerId, 'expedition_' + command.runId]);
           }
           else if (!state.history.some(run => run.id === command.runId)) throw new ExpeditionError('NO_ACTIVE_RUN', 'Отправление не найдено.');
@@ -222,16 +253,25 @@ export class ExpeditionStore {
             const trial = resolveExpedition({...command.selection, skill: state.skill, mining: save.player.miningLevel, day: residentMarketDay(new Date(now))}, 'validation');
             result = {futureCost: trial.cost};
           }
-          state.repeat = command.selection; break;
+          state.repeat = command.selection;
+          if (!state.active && !state.warehouse || !command.selection) state.repeatReady = null;
+          break;
         }
         case 'reconcile': break;
         default: throw new ExpeditionError('UNKNOWN_COMMAND', 'Неизвестное действие.', 400);
       }
-      if (state.repeat && !state.active && !state.warehouse && new Date(row.premium_until || 0).getTime() > now && ['claim', 'reconcile'].includes(command.type)) {
+      if (state.repeat && state.repeatReady && !state.active && !state.warehouse && new Date(row.premium_until || 0).getTime() > now && ['claim', 'reconcile'].includes(command.type)) {
         // One automatic paid cycle per confirmed collection/reconciliation.
         // Declined payment is definitive; the collected loot must still commit.
         try {await start(client, operation.ownerId, save, state, state.repeat, now, true);}
-        catch (error) {if (error instanceof ExpeditionRuleError || error instanceof ExpeditionError && error.code === 'NOT_ENOUGH_GOLD') state.repeat = null; else throw error;}
+        catch (error) {if (error instanceof ExpeditionRuleError || error instanceof ExpeditionError && error.code === 'NOT_ENOUGH_GOLD') {state.repeat = null; state.repeatReady = null;} else throw error;}
+      }
+      await client.query('RELEASE SAVEPOINT expedition_action');
+      } catch (error) {
+        await client.query('ROLLBACK TO SAVEPOINT expedition_action'); await client.query('RELEASE SAVEPOINT expedition_action');
+        if (!(error instanceof ExpeditionError) && !(error instanceof ExpeditionRuleError)) throw error;
+        rejection = error; Object.assign(save, beforeAction.save); Object.assign(state, beforeAction.state);
+        result = {code: error.code, error: error.message, status: error instanceof ExpeditionError ? error.status : 400};
       }
       // The timestamp is server-owned. Repeated confirmed online actions do not
       // become an "offline" Premium interval merely by accumulating wall time.
@@ -239,16 +279,38 @@ export class ExpeditionStore {
       await client.query(`INSERT INTO expedition_accounts(telegram_id,reset_version,state_json) VALUES($1,$2,$3::jsonb)
         ON CONFLICT(telegram_id) DO UPDATE SET reset_version=EXCLUDED.reset_version,state_json=EXCLUDED.state_json,updated_at=NOW()`, [operation.ownerId, operation.resetVersion, JSON.stringify(state)]);
       const version = Number(row.progress_version) + 1;
-      await client.query('UPDATE players SET progress_json=$1::jsonb,progress_version=$2,updated_at=NOW() WHERE telegram_id=$3', [JSON.stringify(save), version, operation.ownerId]);
-      await client.query('INSERT INTO expedition_operations(telegram_id,reset_version,operation_id,request_hash,result_json) VALUES($1,$2,$3,$4,$5::jsonb)', [operation.ownerId, operation.resetVersion, operation.operationId, requestHash, JSON.stringify(result)]);
-      await client.query('COMMIT');
-      return {replayed: false, result, progressVersion: version, resetVersion: operation.resetVersion, sessionGeneration: operation.sessionGeneration, state: publicState(state, now), player: save.player};
-    } catch (error) {await client.query('ROLLBACK'); throw error;}
+      await client.query('UPDATE players SET progress_json=$1::jsonb,progress_version=$2,progress_migration_open=CASE WHEN $4 THEN FALSE ELSE progress_migration_open END,updated_at=NOW() WHERE telegram_id=$3', [JSON.stringify(save), version, operation.ownerId, !rejection && command.type !== 'reconcile']);
+      await client.query('INSERT INTO expedition_operations(telegram_id,reset_version,operation_id,request_hash,result_json,outcome) VALUES($1,$2,$3,$4,$5::jsonb,$6)', [operation.ownerId, operation.resetVersion, operation.operationId, requestHash, JSON.stringify(result), rejection ? 'rejected' : 'applied']);
+      await client.query('COMMIT'); committed = true;
+      if (rejection) {const error = rejection instanceof ExpeditionError ? rejection : new ExpeditionError(rejection.code, rejection.message, 400); error.operationOutcome = 'rejected'; throw error;}
+      return {replayed: false, result, progressVersion: version, resetVersion: operation.resetVersion, sessionGeneration: operation.sessionGeneration, state: publicState(state, now, save.player.miningLevel), player: save.player};
+    } catch (error) {if (!committed) await client.query('ROLLBACK'); throw error;}
     finally {client.release();}
   }
 }
 /** Never disclose the seed or future full reward while a run is active. */
-export function publicState(state: ExpeditionState, now: number) {
+export function publicState(state: ExpeditionState, now: number, mining = 1) {
   const active = state.active;
-  return {...state, active: active ? {id: active.id, startedAt: active.startedAt, endsAt: active.endsAt, legacy: !!active.legacy, selection: {route: active.snapshot.route, goal: active.snapshot.goal, duration: active.snapshot.duration, preparation: active.snapshot.preparation, crew: active.snapshot.crew}, skill: active.snapshot.skill, cost: active.snapshot.cost, earlyReturn: now >= active.endsAt ? null : outcome(active.snapshot, now - active.startedAt).loot} : null};
+  return {...state, dailyOffer: dailyOrder(state.skill, mining, residentMarketDay(new Date(now))), active: active ? {id: active.id, startedAt: active.startedAt, endsAt: active.endsAt, legacy: !!active.legacy, selection: {route: active.snapshot.route, goal: active.snapshot.goal, duration: active.snapshot.duration, preparation: active.snapshot.preparation, crew: active.snapshot.crew}, skill: active.snapshot.skill, cost: active.snapshot.cost, returnQuote: {at: now, signature: signReturn(active, now)}, earlyReturn: now >= active.endsAt ? null : runOutcome(active, now - active.startedAt).loot} : null};
+}
+
+/** Trusted host integration, inside its already-held player transaction. Reads
+ * may finish a confirmed run or settle earned offline time, never import rewards
+ * supplied by a client. Last presence comes from the database, not a phone clock. */
+export async function reconcileCanonicalExpeditions(client: PoolClient, row: any, save: Save, now: number, lastPresence = 0) {
+  const owner = Number(row.telegram_id), epoch = Number(row.reset_version);
+  const stored = (await client.query('SELECT reset_version,state_json FROM expedition_accounts WHERE telegram_id=$1', [owner])).rows[0];
+  const premiumUntil = new Date(row.premium_until || 0).getTime();
+  const state: ExpeditionState = stored && Number(stored.reset_version) === epoch ? stored.state_json : await migrateVerifiedSave(client, owner, save, now, premiumUntil);
+  const before = stored && Number(stored.reset_version) === epoch ? JSON.stringify(stored.state_json) : null;
+  if (state.active && state.active.endsAt <= now) finish(save, state, now);
+  if (!state.active && !state.warehouse?.loot.length && premiumUntil > 0 && Math.min(now, premiumUntil) - Math.max(state.premiumCursor, save.player.lastActiveTimestamp || 0, lastPresence) >= 30 * 60_000) accruePremium(save, state, premiumUntil, now, lastPresence);
+  if (state.repeat && state.repeatReady && !state.active && !state.warehouse && premiumUntil > now) {
+    try {await start(client, owner, save, state, state.repeat, now, true);}
+    catch (error) {if (error instanceof ExpeditionRuleError || error instanceof ExpeditionError && error.code === 'NOT_ENOUGH_GOLD') {state.repeat = null; state.repeatReady = null;} else throw error;}
+  }
+  const changed = before !== JSON.stringify(state);
+  if (changed) await client.query(`INSERT INTO expedition_accounts(telegram_id,reset_version,state_json) VALUES($1,$2,$3::jsonb)
+    ON CONFLICT(telegram_id) DO UPDATE SET reset_version=EXCLUDED.reset_version,state_json=EXCLUDED.state_json,updated_at=NOW()`, [owner, epoch, JSON.stringify(state)]);
+  return {state, changed};
 }

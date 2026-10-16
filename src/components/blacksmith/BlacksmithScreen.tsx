@@ -47,8 +47,8 @@ export const BlacksmithScreen: React.FC = () => {
     setUpgradeResultMsg(null);
     sound.playMining();
 
-    setTimeout(() => {
-      const res = upgradeItem(currentItem, useProtection);
+    setTimeout(async () => {
+      const res = (await upgradeItem(currentItem, useProtection));
       setUpgradeResultMsg({ text: res.message, success: res.success });
       setIsUpgrading(false);
     }, 450);

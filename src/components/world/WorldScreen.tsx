@@ -166,8 +166,8 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
               <div className="pt-2">
                 {currentRoom.type === 'combat' || currentRoom.type === 'boss' || currentRoom.type === 'elite' ? (
                   <button
-                    onClick={() => {
-                      if (proceedDungeonRoom('fight')) onEnterCombatTab?.();
+                    onClick={async () => {
+                      if ((await proceedDungeonRoom('fight'))) onEnterCombatTab?.();
                     }}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
@@ -176,7 +176,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
                   </button>
                 ) : currentRoom.type === 'treasure' ? (
                   <button
-                    onClick={() => proceedDungeonRoom('open')}
+                    onClick={async () => (await proceedDungeonRoom('open'))}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Key className="w-4 h-4" />
@@ -184,7 +184,7 @@ export const WorldScreen: React.FC<WorldScreenProps> = ({ onEnterCombatTab,onNav
                   </button>
                 ) : (
                   <button
-                    onClick={() => proceedDungeonRoom('pray')}
+                    onClick={async () => (await proceedDungeonRoom('pray'))}
                     className="ui-primary w-full py-3 rounded-xl font-cinzel font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />

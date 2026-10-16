@@ -73,7 +73,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
     sound.playClick();
     triggerHaptic('light');
     setOpen(false);
-    onSelectTab(tab==='hunter'&&town?'settlement':tab);
+    onSelectTab(tab==='hunter'&&player?.expeditionPresence?'expeditions':tab==='hunter'&&town?'settlement':tab);
   };
   const hasUnread = unreadChatCount > 0 || availableQuestsCount > 0;
 
@@ -89,7 +89,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
           {secondary.map(({ id, label, icon }) => {
             const count = id === 'chat' ? unreadChatCount : id === 'more' ? availableQuestsCount : 0;
             return <button key={id} aria-current={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'page' : undefined} onClick={() => select(id)} className={`game-section relative flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg p-2 text-xs ${(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'is-active' : ''}`}>
-              <RpgIcon kind={icon} size={23} /><span>{localize(id==='hunter'&&town?'Поселение':label)}</span>
+              <RpgIcon kind={icon} size={23} /><span>{localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)}</span>
               {count > 0 && <span className="nav-count absolute right-1.5 top-1" aria-label={localize(`${count} новых`)}>{localize(count > 99 ? '99+' : count)}</span>}
             </button>;
           })}
@@ -99,7 +99,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab, 
     </div>}
     <nav aria-label={localize("Основные разделы")} className="game-nav fantasy-shell-nav fixed bottom-0 left-0 right-0 z-40 mx-auto pb-safe">
       <div className="shell-nav-grid">
-        {primary.map(({ id, label, icon }) => <button key={id} title={localize(id==='hunter'&&town?'Поселение':label)} aria-current={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'page' : undefined} className={`game-nav-item flex min-w-0 flex-col items-center justify-center gap-1 text-[11px] ${(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'is-active' : ''}`} onClick={() => select(id)}><ShellOrnament variant={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'active' : 'inactive'} /><RpgIcon kind={icon} size={21} /><span>{localize(id==='hunter'&&town?'Поселение':label)}</span></button>)}
+        {primary.map(({ id, label, icon }) => <button key={id} title={localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)} aria-current={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'page' : undefined} className={`game-nav-item flex min-w-0 flex-col items-center justify-center gap-1 text-[11px] ${(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'is-active' : ''}`} onClick={() => select(id)}><ShellOrnament variant={(currentTab === id || id==='hunter'&&currentTab==='settlement') ? 'active' : 'inactive'} /><RpgIcon kind={icon} size={21} /><span>{localize(id==='hunter'&&player?.expeditionPresence?'Экспедиция':id==='hunter'&&town?'Поселение':label)}</span></button>)}
         <button ref={moreRef} aria-expanded={open} aria-haspopup="dialog" onClick={() => { sound.playClick(); triggerHaptic('light'); setOpen(value => !value); }} aria-current={secondary.some(tab => tab.id === currentTab) ? 'page' : undefined} className={`game-nav-item relative flex flex-col items-center justify-center gap-1 text-[11px] ${open || secondary.some(tab => tab.id === currentTab) ? 'is-active' : ''}`}>
           <ShellOrnament variant={open || secondary.some(tab => tab.id === currentTab) ? 'active' : 'inactive'} />
           <RpgIcon kind="more" size={21} /><span>{localize("Ещё")}</span>

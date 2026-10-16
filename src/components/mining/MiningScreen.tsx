@@ -1,3 +1,4 @@
+import {ExpeditionLink} from '../expeditions/ExpeditionScreen';
 import {PickaxePanel} from './PickaxePanel';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import {miningCritChance,miningYieldRange} from '../../utils/mining';
@@ -73,7 +74,7 @@ export const MiningScreen: React.FC = () => {
   const currentLevelNeed = Math.max(175, nextLevelExp - previousLevelExp);
   const levelProgress = Math.min(100, Math.round((currentLevelExp / currentLevelNeed) * 100));
 
-  const handleMine = (nodeId: string) => {
+  const handleMine = async (nodeId: string) => {
     if (miningLock.current) return;
     miningLock.current = true;
     setIsMining(true);
@@ -81,7 +82,7 @@ export const MiningScreen: React.FC = () => {
     // Complete the action in the click event. Embedded desktop clients can
     // throttle delayed callbacks; the timer only controls the visual cooldown.
     try {
-      const result = mineNode(nodeId);
+      const result = (await mineNode(nodeId));
       setMiningLog(prev => [
         result.success
           ? `${result.isCrit ? '⚡ КРИТ! ' : '⛏️ '}Получено: ${result.yieldCount} × ${result.oreName}`
@@ -100,8 +101,8 @@ export const MiningScreen: React.FC = () => {
     }
   };
 
-  const handleClaim = () => {
-    const result = claimMiningExpedition();
+  const handleClaim = async () => {
+    const result = (await claimMiningExpedition());
     setMiningLog(prev => [result.success ? `📦 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
   };
 
@@ -203,85 +204,7 @@ export const MiningScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Offline expedition second */}
-      <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0f1d] p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <Clock3 className="w-4 h-4 text-[#d5ba89]" />
-          <div>
-            <div className="text-xs font-bold text-cyan-200">{localize("Офлайн-экспедиция")}</div>
-            <div className="text-[10px] text-slate-500">
-              {localize(premium.active
-                ? 'Premium добывает ресурсы офлайн автоматически — запускать экспедицию не нужно.'
-                : 'Для обычного аккаунта экспедицию нужно запустить перед выходом из игры.')}
-            </div>
-          </div>
-        </div>
-
-        {expedition ? (
-          <div className={`rounded-xl border p-3 ${expeditionReady ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-700 bg-cyan-950/10'}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-bold text-slate-100">{localize("Экспедиция на ")}{localize(expedition.durationHours)}{localize(" ч.")}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{localize("Ручная добыча доступна параллельно, но бой заблокирован до выхода из экспедиции.")}</div>
-              </div>
-              <div className={`font-mono text-sm font-bold ${expeditionReady ? 'text-emerald-300' : 'text-[#d5ba89]'}`}>
-                {localize(expeditionReady ? 'ГОТОВО' : formatRemaining(remainingMs))}
-              </div>
-            </div>
-
-            {expeditionReady && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {expedition.rewards.map(reward => (
-                  <span key={reward.name} className="px-1.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[9px] text-slate-300">
-                    {localize(reward.icon)} {localize(reward.name)} ×{localize(reward.count)}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {expeditionReady ? (
-              <button onClick={handleClaim} className="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2">
-                <PackageCheck className="w-4 h-4" />{localize(" Забрать добычу")}</button>
-            ) : (
-              <button
-                onClick={() => {
-                  const result = leaveMiningExpedition();
-                  setMiningLog(prev => [result.success ? `🚪 ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
-                }}
-                className="mt-3 w-full py-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 font-bold text-xs"
-              >{localize("Уйти с шахты")}</button>
-            )}
-          </div>
-        ) : premium.active ? (
-          <div className="rounded-xl border border-yellow-500/25 bg-yellow-950/10 p-3 text-center">
-            <Crown className="w-5 h-5 mx-auto text-yellow-300 mb-1" />
-            <div className="text-xs font-bold text-yellow-200">{localize("Автоматическая Premium-добыча активна")}</div>
-            <div className="text-[10px] text-slate-500 mt-1">{localize("Просто закройте игру — ресурсы будут рассчитаны при возвращении.")}</div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2">
-            {EXPEDITIONS.map(option => (
-              <button
-                key={option.hours}
-                onClick={() => {
-                  const result = startMiningExpedition(option.hours);
-                  setMiningLog(prev => [result.success ? `🕯️ ${result.message}` : `❌ ${result.message}`, ...prev.slice(0, 8)]);
-                }}
-                className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-left hover:border-cyan-500/40 active:scale-[0.99]"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs font-bold text-slate-100">{localize(option.title)}</div>
-                    <div className="text-[10px] text-slate-500">{localize(option.description)}</div>
-                  </div>
-                  <span className="px-2 py-1 rounded-lg bg-cyan-950 border border-slate-700 text-[#d5ba89] font-mono text-xs font-bold">
-                    {localize(option.hours)}{localize(" ч.")}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <ExpeditionLink/>
     </div>
   );
 };

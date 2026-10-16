@@ -24,7 +24,7 @@ export function selectBulkItems(player: PlayerCharacter, filters: BulkFilters): 
 }
 export function bulkReward(items: GameItem[], action: BulkAction): BulkReward {
   return items.reduce((sum, item) => {
-    const quantity = nonNegativeAmount(item.stackCount ?? 1, 999);
+    const quantity = nonNegativeAmount(item.stackCount ?? 1, 2147483647);
     return {
       count: sum.count + quantity,
       gold: sum.gold + (action === 'sell' ? nonNegativeAmount(item.sellPrice) * quantity : 0),

@@ -1,9 +1,12 @@
+let progressTransport: ((path:string,options:RequestInit)=>Promise<any>) | null = null;
+export function setProgressTransport(transport:typeof progressTransport) {progressTransport=transport;}
 import {beginGameOperation,isGameMutation} from './gameOperations';
 import { getLanguage } from '../i18n/locale';
 import { getTelegramWebApp, getTelegramUser } from './telegram';
 import { readResetVersion } from './accountReset';
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (progressTransport && !['GET','HEAD'].includes((options.method||'GET').toUpperCase()) && /^\/api\/(?:items\/|market\/|clan\/|clans\/|pvp\/|referrals\/check)/.test(path) && !/^\/api\/clan\/chat$/.test(path)) return progressTransport(path,options);
   const tg = getTelegramWebApp();
   const userId = getTelegramUser().id;
   const headers = new Headers(options.headers);
