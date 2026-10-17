@@ -13,6 +13,7 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp?: {
+        Serverless?: import('./gameFetch').ServerlessTransport;
         initData: string;
         initDataUnsafe?: {
           user?: TelegramUser;

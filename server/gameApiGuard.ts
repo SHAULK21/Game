@@ -6,7 +6,7 @@ import {GameStore} from './gameStore';
 import {withGameTransaction} from './gameTransactions';
 /** Old economic endpoints participate in the same character transaction. Their
  * replies are receipts, never instructions for the browser to award currency. */
-export function registerGameApiGuard(app:Express,getPool:()=>Pool,auth:RequestHandler) {
+export function registerGameApiGuard(app:Express,getPool:()=>Pool,auth:RequestHandler,options: {now?:()=>number;isAdmin?:(id:number)=>boolean} = {}) {
  const guarded=(path:string)=>/^\/api\/(?:items\/|market\/|clan\/|clans\/|pvp\/|referrals\/check)/.test(path)&&!/^\/api\/(?:clan\/(?:chat|donate)$|market\/residents\/demand)/.test(path);
  app.use((req,res,next)=>{
   if(!guarded(req.path)||['GET','HEAD'].includes(req.method))return next();
@@ -29,7 +29,7 @@ export function registerGameApiGuard(app:Express,getPool:()=>Pool,auth:RequestHa
     const cached=(await client.query('SELECT * FROM progress_api_operations WHERE telegram_id=$1 AND operation_id=$2',[owner,id])).rows[0];
     if(cached&&cached.request_hash!==hash) {await client.query('ROLLBACK');original(fail('OPERATION_CONFLICT','Параметры повторного запроса изменились.'));return;}
     if(!cached&&Number(row.progress_version)!==version) {await client.query('ROLLBACK');original(fail('VERSION_CONFLICT','Загрузите актуальное состояние.'));return;}
-    const store=new GameStore(getPool());
+    const store=new GameStore(getPool(),options);
     if(cached){const stored=cached.response_json;const latest=await store.projectLocked(client,req.authUser!,token);await client.query('COMMIT');res.status(stored.statusCode);original({...stored.body,_progress:latest,_operation:{id,outcome:stored.outcome,result:stored.body,replayed:true}});return;}
     const frame=await store.projectLocked(client,req.authUser!,token);
     const refuse=async(code:string,error:string,status=409)=>{

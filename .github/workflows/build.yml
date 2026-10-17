@@ -38,4 +38,6 @@ jobs:
       - name: Tests
         run: npm test
       - name: Build
-        run: npm run build
+        run: npm run build:telegram
+      - name: Native release audit
+        run: npm run serverless:audit

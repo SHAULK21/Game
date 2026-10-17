@@ -2,12 +2,15 @@ import {build} from 'esbuild';
 import {parseSync} from 'rolldown/utils';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 const root = process.cwd();
-export async function buildGameEngine({allowSourceAssets = false} = {}) {
+export async function buildGameEngine({allowSourceAssets = false, buildOptions = {}} = {}) {
+  const {plugins: extraPlugins = [], ...overrides} = buildOptions;
   const manifest = await fs.readFile(path.join(root, 'dist/.vite/manifest.json'), 'utf8').then(JSON.parse).catch(() => ({}));
   await build({entryPoints: ['src/game/actorEntry.ts'], outfile: 'server-dist/game-engine.mjs', bundle: true, platform: 'node', format: 'esm', target: 'node24', packages: 'external',
     define: {'import.meta.env.VITE_ADMIN_TELEGRAM_ID': '""'},
+    ...overrides,
     plugins: [{name: 'account-game-actor', setup(builder) {
       builder.onLoad({filter: /GameContext\.tsx$/}, async ({path: filename}) => {
         const source = await fs.readFile(filename, 'utf8'), parsed = parseSync(filename, source), edits = [];
@@ -45,6 +48,6 @@ export async function buildGameEngine({allowSourceAssets = false} = {}) {
         if (!url) throw new Error('Asset absent from production manifest: ' + relative);
         return {contents: 'export default ' + JSON.stringify(url), loader: 'js'};
       });
-    }}], logLevel: 'silent'});
+    }}, ...extraPlugins], logLevel: 'silent'});
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) await buildGameEngine({allowSourceAssets: process.argv.includes('--allow-source-assets')});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildGameEngine({allowSourceAssets: process.argv.includes('--allow-source-assets')});
