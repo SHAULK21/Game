@@ -86,7 +86,8 @@ test('native API uses verified identity, ignores body ownership and preserves HT
   assert.equal(denied.status, 401);
 });
 
-test('native expedition start, completion and warehouse claim preserve exactly-once inventory', async () => {
+test('native expedition start, completion and warehouse claim preserve exactly-once inventory', async scenario => {
+  scenario.mock.method(crypto, 'randomBytes', ((size: number) => Buffer.alloc(size, 1)) as typeof crypto.randomBytes);
   const {pool, sessionToken} = await character();
   let clock = now;
   const row = pool.table('players')[0]; row.progress_json.player.worldPlace = 'settlement'; row.progress_json.player.gold = 10000;
