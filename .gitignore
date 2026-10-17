@@ -7,3 +7,7 @@ coverage/
 *.log
 .env*
 !.env.example
+.tgcloud/
+.migration-backups/
+tgcloud/lib/gameEngine.js
+tgcloud/lib/native-uk.js

@@ -1,0 +1,281 @@
+{
+  "sourceCommit": "10939c4",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/profile/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/players"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/players/:targetId/reset"
+    },
+    {
+      "method": "POST",
+      "path": "/api/telemetry"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/balance"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/broadcasts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/broadcasts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/projects/upgrade"
+    },
+    {
+      "method": "GET",
+      "path": "/api/progress"
+    },
+    {
+      "method": "POST",
+      "path": "/api/progress/session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/progress/create"
+    },
+    {
+      "method": "POST",
+      "path": "/api/progress/migrate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/progress/keep-server"
+    },
+    {
+      "method": "POST",
+      "path": "/api/progress/command"
+    },
+    {
+      "method": "GET",
+      "path": "/api/progress/operations/:id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/expeditions/command"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/profile/sync"
+    },
+    {
+      "method": "POST",
+      "path": "/api/profile/heartbeat"
+    },
+    {
+      "method": "GET",
+      "path": "/api/community/stats"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leaderboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clans"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clan/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/create"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/:clanId/join"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/leave"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/donate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/raid/attack"
+    },
+    {
+      "method": "GET",
+      "path": "/api/items/owned"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items/:itemId/equip"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items/:itemId/unequip"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items/:itemId/lock"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items/bulk-dispose"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items/:itemId/dispose"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clan/storage"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/storage/:itemId/deposit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/storage/:itemId/withdraw"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/storage/dispose"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/chat"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/global"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/global"
+    },
+    {
+      "method": "GET",
+      "path": "/api/market/listings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/market/residents/demand"
+    },
+    {
+      "method": "POST",
+      "path": "/api/market/residents"
+    },
+    {
+      "method": "POST",
+      "path": "/api/market/list"
+    },
+    {
+      "method": "GET",
+      "path": "/api/market/income"
+    },
+    {
+      "method": "GET",
+      "path": "/api/market/mine"
+    },
+    {
+      "method": "POST",
+      "path": "/api/market/:listingId/return"
+    },
+    {
+      "method": "POST",
+      "path": "/api/market/:listingId/buy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/premium/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/premium/invoice"
+    },
+    {
+      "method": "POST",
+      "path": "/api/telegram/webhook"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/player-analytics"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/premium/self"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications"
+    },
+    {
+      "method": "POST",
+      "path": "/api/preferences/language"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/settings"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/onboarding"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/schedule"
+    },
+    {
+      "method": "GET",
+      "path": "/api/referrals"
+    },
+    {
+      "method": "POST",
+      "path": "/api/referrals/check"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/manage"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clan/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clan/storage/:itemId/give"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pvp"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pvp/enroll"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pvp/challenge"
+    }
+  ]
+}

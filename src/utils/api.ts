@@ -4,6 +4,7 @@ import {beginGameOperation,isGameMutation} from './gameOperations';
 import { getLanguage } from '../i18n/locale';
 import { getTelegramWebApp, getTelegramUser } from './telegram';
 import { readResetVersion } from './accountReset';
+import {gameFetch} from './gameFetch';
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (progressTransport && !['GET','HEAD'].includes((options.method||'GET').toUpperCase()) && /^\/api\/(?:items\/|market\/|clan\/|clans\/|pvp\/|referrals\/check)/.test(path) && !/^\/api\/clan\/chat$/.test(path)) return progressTransport(path,options);
@@ -19,7 +20,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   try {
   let response: Response;
   try {
-    response = await fetch(path, { ...options, headers });
+    response = await gameFetch(path, { ...options, headers });
   } catch (error) {
     throw new Error('Нет соединения с игровым сервером. Проверьте Render и /api/health.');
   }

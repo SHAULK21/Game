@@ -185,7 +185,10 @@ test('production expedition transactions on PostgreSQL: ownership, retries, race
       assert.equal(completed.state.history[0].snapshot.cost, 0);
       assert.equal((await query('SELECT count(*)::int AS n FROM expedition_migration_backups WHERE telegram_id=29')).rows[0].n, 1);
     });
-    await t.test('Premium repetition charges one brigade after collection, waits for the bag and stops after expiry', async () => {
+    await t.test('Premium repetition charges one brigade after collection, waits for the bag and stops after expiry', async scenario => {
+      // This scenario needs a nonempty coal reward. Random loss events can yield
+      // no loot and legitimately start the next brigade without occupying a bag.
+      scenario.mock.method(crypto, 'randomBytes', ((size: number) => Buffer.alloc(size, 1)) as typeof crypto.randomBytes);
       await seed(31, {premium: true, skill: 5, slots: 1});
       await query("INSERT INTO owned_items(owner_telegram_id,item_json,quantity,origin) VALUES(31,$1::jsonb,1,'fixture')", [JSON.stringify(materialItem('gem'))]);
       const hired = {...selection, crew: 'hired'} as const;
