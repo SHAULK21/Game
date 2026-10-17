@@ -10,6 +10,7 @@ import {StartupReady} from '../components/layout/StartupReady';
 import {selectBulkItems} from '../utils/bulkInventory';
 import {clanCreationCost} from '../utils/clanEconomy';
 import {gameFetch} from '../utils/gameFetch';
+import {startProgressPolling} from '../utils/progressPolling';
 const keys:Record<string,string[]>={performPlayerAction:['action','id'],allocateAttribute:['attribute'],unlockTalent:['talentId'],setActivePet:['petId'],craftPet:['petId'],unequipItem:['slot'],toggleItemLock:['itemId'],claimRegionCompletion:['regionId'],startTravel:['regionId','modeId'],setCurrentRegion:['regionId'],setActiveRegionMod:['modeId'],enterDungeon:['dungeonId','difficulty'],proceedDungeonRoom:['choice'],buyPickaxe:['pickaxeId'],mineNode:['nodeId'],craftBasicItem:['recipeId'],buyAlchemyTool:['toolId'],craftAlchemy:['recipeId'],fishingAction:['action','id','step'],challengeAscension:['echoId'],ascend:['path'],claimQuestReward:['questId'],claimAchievementReward:['achievementId'],setAdventureStoryStep:['step'],updateAutoBattleSettings:['settings'],buyBasicConsumable:['templateId'],adminAddGold:['amount'],adminAddSilver:['amount']};
 const commandNames=['allocateAttribute','unlockTalent','resetTalentTree','setActivePet','craftPet','equipItem','unequipItem','sellItem','disassembleItem','toggleItemLock','expandInventory','upgradeItem','claimRegionCompletion','drinkBeer','dismissFlightWarning','startBattleWithMonster','performPlayerAction','startNextCombatBattle','exitCombat','startTravel','setCurrentRegion','setActiveRegionMod','returnToSettlement','enterDungeon','proceedDungeonRoom','exitDungeon','buyPickaxe','mineNode','craftBasicItem','buyAlchemyTool','craftAlchemy','fishingAction','challengeAscension','ascend','challengeArena','claimQuestReward','claimAchievementReward','setAdventureStoryStep','finishAdventureStory','dismissAdventureStory','advanceRoyalBriefing','acknowledgeFirstJourney','dismissOfflineReport','toggleAutoBattle','updateAutoBattleSettings','buyBasicConsumable','adminAddGold','adminAddSilver','adminLevelUp','adminSpawnLegendaryItem','adminHealAll'];
 export function ServerGameProvider({children}:React.PropsWithChildren){
@@ -25,15 +26,11 @@ export function ServerGameProvider({children}:React.PropsWithChildren){
  });
  useEffect(()=>client.subscribe(()=>redraw(n=>n+1)),[client]);
  useEffect(()=>{
-  let alive=true,timer:number;const refresh=async()=>{
-   if(document.hidden)return;
-   if(client.pending){await client.resolveConflict();}else await client.load();
-   if(alive){const due=client.current?.nextTickAt;timer=window.setTimeout(()=>void refresh(),due?Math.max(500,Math.min(15000,due-client.current!.serverTime+100)):15000);}
-  };
-  void (async()=>{await client.load();if(client.current&&!client.current.writerPresent)await client.acquire();if(client.pending)await client.resolveConflict();if(alive)timer=window.setTimeout(()=>void refresh(),1500);})();
-  const visible=()=>{if(!document.hidden){clearTimeout(timer);void refresh();}};
+  const polling=startProgressPolling(client,{now:Date.now,visible:()=>!document.hidden,
+   setTimeout:(callback,delay)=>window.setTimeout(callback,delay),clearTimeout:timer=>window.clearTimeout(timer as number)});
+  const visible=()=>polling.wake();
   window.addEventListener('online',visible);document.addEventListener('visibilitychange',visible);
-  return()=>{alive=false;clearTimeout(timer);window.removeEventListener('online',visible);document.removeEventListener('visibilitychange',visible);};
+  return()=>{polling.stop();window.removeEventListener('online',visible);document.removeEventListener('visibilitychange',visible);};
  },[client]);
  useEffect(()=>{setProgressTransport(async(path,init)=>{const result=await client.mutate(path,init.body?JSON.parse(String(init.body)):{});return result;});return()=>setProgressTransport(null);},[client]);
  const lastSoundVersion=useRef('');

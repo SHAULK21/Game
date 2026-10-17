@@ -7,7 +7,9 @@ Mini App: https://app8958621621.tgcloud.ai/. Activation is complete; see
 The browser and game backend run on Telegram. Render PostgreSQL is a retained
 source backup, not a runtime dependency. GitHub Actions supplies the notification
 timer; it does not host the game API. It runs approximately every five minutes
-and can be delayed by GitHub scheduling. Player requests also drain due messages.
+and can be delayed by GitHub scheduling. Bot message handlers also drain due
+messages. Gameplay requests return immediately after their game commit instead
+of waiting for notification delivery.
 
 ## Build and validation
 

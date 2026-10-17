@@ -13,3 +13,4 @@ export {validateNativeWorld} from './invariants';
 export {handleBotMessage, validCheckout} from './bot';
 export {ADMIN_TELEGRAM_ID, PRODUCTION_DOCUMENT} from './config';
 export {claimDeliveries, acknowledgeDelivery} from './deliveries';
+export {compactGameReply} from '../../src/utils/gameProjection';
