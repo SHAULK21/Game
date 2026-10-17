@@ -50,3 +50,14 @@ test('an operation ID cannot be reused for a different request', async () => {
     {code: 'OPERATION_CONFLICT'});
   assert.equal((await store.read('world')).state.value, 1);
 });
+
+test('gameplay updates keep private candidates, skip unchanged writes and retry concurrent revisions', async () => {
+  const store = setup({value: 0});
+  await store.update('world', (state: any) => state.value);
+  assert.equal((await store.read('world')).revision, 0);
+  await assert.rejects(store.update('world', (state: any) => {state.value = 999; throw new Error('abort');}));
+  assert.equal((await store.read('world')).state.value, 0);
+  await Promise.all(Array.from({length: 4}, () => store.update('world', (state: any) => ++state.value)));
+  const saved = await store.read('world');
+  assert.equal(saved.state.value, 4); assert.equal(saved.revision, 4);
+});

@@ -67,7 +67,7 @@ export async function handleProgressRequest(world: NativeWorld, input: any, iden
     if (!matches) continue;
     reply.status = 200;
     req.params = params;
-    const beforeRoute = JSON.parse(JSON.stringify(world));
+    const beforeRoute = /^\/api\/(progress|expeditions)(\/|$)/.test(path) ? null : JSON.parse(JSON.stringify(world));
     const handlers = [...middleware, ...route.handlers];
     const dispatch = async (index: number): Promise<void> => {
       if (sent || index >= handlers.length) return;
@@ -80,7 +80,7 @@ export async function handleProgressRequest(world: NativeWorld, input: any, iden
       }
     };
     await dispatch(0); await completion;
-    if (reply.status >= 400 && !reply.body?._operation && !/^\/api\/(progress|expeditions)(\/|$)/.test(path)) {
+    if (beforeRoute && reply.status >= 400 && !reply.body?._operation) {
       for (const key of Object.keys(world)) delete world[key]; Object.assign(world, beforeRoute);
     }
     break;

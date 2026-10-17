@@ -10,12 +10,15 @@ export function atomicDocument(storage, {attempts = 8} = {}) {
   return {
     async update(key, apply) {
       for (let attempt = 0; attempt < attempts; attempt++) {
-        const current = await this.read(key);
+        const current = await storage.read(key);
+        if (!current) throw new AtomicConflict('STATE_NOT_INITIALIZED');
         if (!Number.isSafeInteger(current.revision) || current.revision < 0 || current.revision === Number.MAX_SAFE_INTEGER) throw new AtomicConflict('INVALID_STATE_REVISION');
-        const candidate = clone(current.state);
+        // Every storage read is parsed into a fresh private candidate. Keep the
+        // original bytes for comparison instead of cloning/stringifying twice.
+        const candidate = JSON.parse(current.document);
         const result = await apply(candidate);
         const document = JSON.stringify(candidate);
-        if (document === JSON.stringify(current.state)) return result;
+        if (document === current.document) return result;
         if (await storage.compareAndSwap(key, current.revision, document)) return result;
       }
       throw new AtomicConflict('STATE_BUSY');

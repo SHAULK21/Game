@@ -1,7 +1,8 @@
 import {getTelegramWebApp} from './telegram';
+import {expandGameReply, type WireGameReply} from './gameProjection';
 
 type ServerlessError = {message?: string; type?: string; parameters?: Record<string, any>};
-type ServerlessReply = {status: number; body: unknown};
+type ServerlessReply = WireGameReply;
 export interface ServerlessTransport {
   call(name: string, input: Record<string, unknown>, callback: (error: ServerlessError | null, result?: ServerlessReply) => void): void;
 }
@@ -32,7 +33,7 @@ export function telegramRequest(transport: ServerlessTransport, path: string, in
     if (init.signal?.aborted) {abort(); return;}
     init.signal?.addEventListener('abort', abort, {once: true});
     try {
-      transport.call('gameApi', {path, method, headers, ...(body === undefined ? {} : {body})}, (error, result) => {
+      transport.call('gameApi', {path, method, headers, projectionProtocol: 1, ...(body === undefined ? {} : {body})}, (error, result) => {
         finish(() => {
           if (error) {
             if (error.type === 'ENDPOINT_ERROR' || error.type === 'UNAUTHORIZED') {
@@ -47,7 +48,7 @@ export function telegramRequest(transport: ServerlessTransport, path: string, in
             reject(new Error('Некорректный ответ Telegram Serverless.')); return;
           }
           const noBody = [204, 205, 304].includes(result.status);
-          resolve(new Response(noBody ? null : JSON.stringify(result.body ?? null),
+          resolve(new Response(noBody ? null : JSON.stringify(expandGameReply(result).body ?? null),
             {status: result.status, headers: {'Content-Type': 'application/json'}}));
         });
       });

@@ -1,7 +1,6 @@
 import {api} from 'sdk';
 import {nativeTransactions} from '../lib/nativeAtomicStorage.js';
-import {handleProgressRequest, validateNativeWorld, ADMIN_TELEGRAM_ID, PRODUCTION_DOCUMENT} from '../lib/gameEngine.js';
-import {drainDeliveries} from '../lib/deliveryWorker.js';
+import {handleProgressRequest, validateNativeWorld, compactGameReply, ADMIN_TELEGRAM_ID, PRODUCTION_DOCUMENT} from '../lib/gameEngine.js';
 
 export default async function (input, ctx) {
   const user = ctx?.initData?.user;
@@ -19,8 +18,8 @@ export default async function (input, ctx) {
       try {return {status: reply.status, body: {...reply.body, invoiceLink: await api.createInvoiceLink(reply.effect.payload)}};}
       catch {return {status: 502, body: {error: 'Не удалось создать счёт Telegram Stars. Попробуйте снова.'}};}
     }
-    try {await drainDeliveries(2);} catch {console.warn('Notification delivery deferred.');}
-    return {status: reply.status, body: reply.body};
+    const response = {status: reply.status, body: reply.body};
+    return input.projectionProtocol === 1 ? compactGameReply(response) : response;
   } catch (error) {
     if (error?.code === 'STATE_NOT_INITIALIZED') return {status: 503, body: {code: 'MAINTENANCE', error: 'Перенос игровых данных ещё не завершён.'}};
     console.error('Native game request failed:', error?.code || error?.name || 'UNKNOWN');
