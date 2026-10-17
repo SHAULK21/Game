@@ -1,5 +1,5 @@
 import {db} from 'sdk';
-import {GameActor, refreshGameTimers, validateNativeWorld} from '../lib/gameEngine.js';
+import {GameActor, refreshGameTimers, validateNativeWorld, handleProgressRequest} from '../lib/gameEngine.js';
 
 // CLI-only validation: reconstructs actors in memory. No database writes.
 export default async function (input) {
@@ -8,7 +8,15 @@ export default async function (input) {
   if (!row) throw new Error('Staging snapshot not found.');
   const world = JSON.parse(row.document), now = Date.now();
   validateNativeWorld(world);
-  const result = {sourcePlayers: world.tables.players.length, canonicalPlayers: 0, restoredPlayers: 0, issues: []};
+  const result = {sourcePlayers: world.tables.players.length, canonicalPlayers: 0, restoredPlayers: 0, apiReaders: 0, issues: []};
+  for (const [index, account] of world.tables.players.entries()) {
+    try {
+      const response = await handleProgressRequest(world, {path: '/api/progress'}, {id: Number(account.telegram_id),
+        username: account.username || undefined, displayName: account.display_name || 'Игрок'}, {now: () => now});
+      if (response.status !== 200 || String(response.body.ownerId) !== String(account.telegram_id)) throw new Error('Invalid account projection.');
+      validateNativeWorld(world); result.apiReaders++;
+    } catch (error) {result.issues.push({index, code: error.code || error.name || 'ACCOUNT_READ_FAILURE'});}
+  }
   for (const [index, account] of world.tables.players.entries()) {
     if (!account.progress_json || account.character_authority !== 'server-actions-v1') continue;
     result.canonicalPlayers++;
