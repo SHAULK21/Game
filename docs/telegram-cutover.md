@@ -1,7 +1,8 @@
 # Telegram Serverless release and cutover
 
 Target bot: `Aethelgardr_RPG_Bot`, app8958621621. Administrator: 437290420.
-Mini App: https://app8958621621.tgcloud.ai/.
+Mini App: https://app8958621621.tgcloud.ai/. Activation is complete; see
+[the verified release record](telegram-serverless-migration.md).
 
 The browser and game backend run on Telegram. Render PostgreSQL is a retained
 source backup, not a runtime dependency. GitHub Actions supplies the notification
@@ -74,6 +75,9 @@ All native economic invariants pass against the imported world.
 1. Disable Render Auto-Deploy and prevent the old service from writing again.
    Render reported the Helgard service suspended by its free usage limit during
    preparation. This automatic suspension alone is not a permanent write fence.
+   `node scripts/fence-render-database.mjs --freeze` sets this source role's
+   default transactions to read-only in this database, after checking that no
+   other source sessions remain. `--status` checks it; `--unfreeze` reverses it.
 2. Take and verify the final source snapshot; import to a fresh staging key and
    run actor/invariant verification. No production overwrite is allowed.
 3. Promote the verified document with the CLI-only promotion script. It releases
@@ -82,6 +86,8 @@ All native economic invariants pass against the imported world.
    ownership and test authenticated reads without running human-directed probes.
 5. Switch the bot menu and Mini App URL to the Telegram host. Existing per-user
    menu overrides must be updated too, using the configured language.
+   The Main Mini App URL is a separate BotFather setting; the owner must set it
+   to the Telegram URL as well.
 6. Enable `TELEGRAM_NOTIFICATIONS_ENABLED=true` only after the default branch
    contains the reviewed workflow. The approved `TGCLOUD_TOKEN` Actions secret
    is full CLI access to this bot. Keep it out of Git, logs and snapshots.
