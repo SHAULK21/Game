@@ -1,3 +1,4 @@
+import {sortScoredEquipment} from '../../utils/inventorySorting';
 import { HeroEquipment } from '../../interfaces/modern/HeroEquipment';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { STAT_LABELS } from '../../utils/statLabels';
@@ -115,6 +116,39 @@ const getResourceUse = (item: GameItem) => {
   return 'Ремесло и специальные рецепты';
 };
 
+const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equipped,onSelect,style}:{item:GameItem;characterClass:CharacterClassId;equipped:boolean;onSelect:(item:GameItem)=>void;style?:string}){ useLocale();
+    const rarityStyle = RARITY_COLORS[item.rarity];
+
+
+    return (
+      <button
+        key={item.id}
+        data-inventory-item={item.id}
+        onClick={() => onSelect(item)}
+        className={`modern-item-card relative text-left p-2 rounded-xl border min-h-[104px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
+      >
+        {equipped && (
+          <span className="absolute top-1 left-1 text-[8px] font-bold px-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">{localize("НАДЕТО")}</span>
+        )}
+        <div className="flex items-center justify-center h-9 mt-1">
+          <ItemArtwork item={item} size={40} />
+        </div>
+        <div
+          className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[32px] max-h-[32px]"
+          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+          title={localize(item.name)}
+        >
+          {localize(item.name)}
+        </div>
+        <div className="text-[9px] text-slate-400 flex items-center justify-between gap-1">
+          <span>{localize("Ур.")}{localize(item.level)}</span>
+          <span className="text-amber-300 font-bold">{localize(item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0')}</span>
+        </div>
+        <ClassGearBonus item={item} characterClass={characterClass} compact />
+      </button>
+    );
+  });
+
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBlacksmith, onNavigateToCrafting }) => {
   useLocale();
   const {
@@ -176,13 +210,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     : null;
 
   const equipment = useMemo(
-    () => player.inventory
-      .filter(item => EQUIPMENT_TYPES.includes(item.type))
-      .sort((a, b) => {
-        const aCurrent = player.equipped[a.type]?.id === a.id ? 1 : 0;
-        const bCurrent = player.equipped[b.type]?.id === b.id ? 1 : 0;
-        return bCurrent - aCurrent || getItemScore(b, player.classId) - getItemScore(a, player.classId);
-      }),
+    () => sortScoredEquipment(player.inventory.filter(item => EQUIPMENT_TYPES.includes(item.type)),player.equipped,item=>getItemScore(item,player.classId)),
     [player.inventory, player.equipped, player.classId]
   );
 
@@ -217,39 +245,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
   const currentScore = currentEquipped ? getItemScore(currentEquipped, player.classId) : 0;
   const scoreDelta = selectedIsEquipment ? selectedScore - currentScore : 0;
 
-  const renderItemCard = (item: GameItem) => {
-    const rarityStyle = RARITY_COLORS[item.rarity];
-    const equipped = player.equipped[item.type]?.id === item.id;
-
-    return (
-      <button
-        key={item.id}
-        data-inventory-item={item.id}
-        onClick={() => setSelectedItem(item)}
-        className={`modern-item-card relative text-left p-2 rounded-xl border min-h-[104px] transition-all active:scale-[0.98] ${rarityStyle.border} ${rarityStyle.bg} ${equipped ? 'ring-1 ring-cyan-400/70' : 'hover:border-slate-500'}`}
-      >
-        {equipped && (
-          <span className="absolute top-1 left-1 text-[8px] font-bold px-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">{localize("НАДЕТО")}</span>
-        )}
-        <div className="flex items-center justify-center h-9 mt-1">
-          <ItemArtwork item={item} size={40} />
-        </div>
-        <div
-          className="mt-1 text-[9px] leading-[11px] text-slate-100 font-medium text-center break-words overflow-hidden min-h-[32px] max-h-[32px]"
-          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
-          title={localize(item.name)}
-        >
-          {localize(item.name)}
-        </div>
-        <div className="text-[9px] text-slate-400 flex items-center justify-between gap-1">
-          <span>{localize("Ур.")}{localize(item.level)}</span>
-          <span className="text-amber-300 font-bold">{localize(item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0')}</span>
-        </div>
-        <ClassGearBonus item={item} characterClass={player.classId} compact />
-      </button>
-    );
-  };
-
+  const renderItemCard=(item:GameItem)=><EquipmentCard key={item.id} item={item} characterClass={player.classId} equipped={player.equipped[item.type]?.id===item.id} onSelect={setSelectedItem}/>;
   const renderResource = (item: GameItem) => (
     <button
       key={item.id}

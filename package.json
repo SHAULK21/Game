@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "wasm:build": "node scripts/build-wasm.mjs",
-    "wasm:test": "node --import tsx --test tests/typed-damage.test.ts tests/wasm-combat.test.ts",
+    "wasm:test": "node --import tsx --test tests/typed-damage.test.ts tests/wasm-combat.test.ts tests/actor-hash.test.ts",
+    "perf:actor": "node --import tsx scripts/profile-actor-native.ts",
     "perf:game": "node --import tsx scripts/profile-game.ts",
     "perf:wasm": "node --import tsx scripts/benchmark-wasm.ts",
     "dev": "vite --port=3000 --host=0.0.0.0",

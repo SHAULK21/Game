@@ -1,8 +1,19 @@
 mod combat;
+#[cfg(feature = "actor-hash")]
+mod hashing;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn protocol_version() -> u32 { 1 }
+
+#[cfg(feature = "actor-hash")]
+#[wasm_bindgen]
+pub fn actor_sha256(input: &[u8]) -> Result<Vec<u8>, JsValue> {
+    if input.len() > 4 * 1024 * 1024 {
+        return Err(JsValue::from_str("Actor fingerprint exceeds limit"));
+    }
+    Ok(hashing::sha256_bytes(input))
+}
 
 /// Numeric batch ABI v1: eight f64s per hit. No player IDs, RNG, saves, or rewards.
 #[wasm_bindgen]

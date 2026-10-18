@@ -12,6 +12,7 @@ import {clanCreationCost} from '../utils/clanEconomy';
 import {gameFetch} from '../utils/gameFetch';
 import {startProgressPolling} from '../utils/progressPolling';
 import {getWriterSession} from '../utils/writerSession';
+import {scheduleProjectionCache} from '../utils/projectionCache';
 const keys:Record<string,string[]>={performPlayerAction:['action','id'],allocateAttribute:['attribute'],unlockTalent:['talentId'],setActivePet:['petId'],craftPet:['petId'],unequipItem:['slot'],toggleItemLock:['itemId'],claimRegionCompletion:['regionId'],startTravel:['regionId','modeId'],setCurrentRegion:['regionId'],setActiveRegionMod:['modeId'],enterDungeon:['dungeonId','difficulty'],proceedDungeonRoom:['choice'],buyPickaxe:['pickaxeId'],mineNode:['nodeId'],craftBasicItem:['recipeId'],buyAlchemyTool:['toolId'],craftAlchemy:['recipeId'],fishingAction:['action','id','step'],challengeAscension:['echoId'],ascend:['path'],claimQuestReward:['questId'],claimAchievementReward:['achievementId'],setAdventureStoryStep:['step'],updateAutoBattleSettings:['settings'],buyBasicConsumable:['templateId'],adminAddGold:['amount'],adminAddSilver:['amount']};
 const commandNames=['allocateAttribute','unlockTalent','resetTalentTree','setActivePet','craftPet','equipItem','unequipItem','sellItem','disassembleItem','toggleItemLock','expandInventory','upgradeItem','claimRegionCompletion','drinkBeer','dismissFlightWarning','startBattleWithMonster','performPlayerAction','startNextCombatBattle','exitCombat','startTravel','setCurrentRegion','setActiveRegionMod','returnToSettlement','enterDungeon','proceedDungeonRoom','exitDungeon','buyPickaxe','mineNode','craftBasicItem','buyAlchemyTool','craftAlchemy','fishingAction','challengeAscension','ascend','challengeArena','claimQuestReward','claimAchievementReward','setAdventureStoryStep','finishAdventureStory','dismissAdventureStory','advanceRoyalBriefing','acknowledgeFirstJourney','dismissOfflineReport','toggleAutoBattle','updateAutoBattleSettings','buyBasicConsumable','adminAddGold','adminAddSilver','adminLevelUp','adminSpawnLegendaryItem','adminHealAll'];
 export function ServerGameProvider({children}:React.PropsWithChildren){
@@ -22,9 +23,9 @@ export function ServerGameProvider({children}:React.PropsWithChildren){
    const headers=new Headers(init.headers);headers.set('Content-Type','application/json');headers.set('X-Telegram-Init-Data',getTelegramWebApp()?.initData||'');headers.set('X-Game-Language',getLanguage());
    const response=await gameFetch(path,{...init,headers,signal:AbortSignal.timeout(20000)});
    const data=await response.json();if(!response.ok)throw new ProgressRequestError(data,response.status);return data;
-  });
+  },scheduleProjectionCache);
  });
- useEffect(()=>client.subscribe(()=>redraw(n=>n+1)),[client]);
+ useEffect(()=>{const unsubscribe=client.subscribe(()=>redraw(n=>n+1));return()=>{unsubscribe();client.disposeCache();};},[client]);
  useEffect(()=>{
   const polling=startProgressPolling(client,{now:Date.now,visible:()=>!document.hidden,
    setTimeout:(callback,delay)=>window.setTimeout(callback,delay),clearTimeout:timer=>window.clearTimeout(timer as number)});

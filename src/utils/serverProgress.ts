@@ -1,4 +1,6 @@
 import type {ProgressEnvelope,ProgressOperationResult} from '../types/progress';
+import {serializeProjectionCache,type CacheScheduler} from './projectionCache';
+import {shareProgressProjection} from './projectionSharing';
 export interface Journal {ownerId:string;resetVersion:number;sessionGeneration:number;expectedVersion:number;sessionToken:string;operationId:string;path:string;body:any}
 interface Storage {getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void}
 export class ProgressRequestError extends Error {constructor(public data:any,public status:number){super(data?.error||'Сервер недоступен.');}}
@@ -10,10 +12,11 @@ export class ServerProgress {
  current:ProgressEnvelope|null=null; status:ProgressStatus='loading'; message=''; pending:Journal|null=null; candidate:any=null;
  private generation=0;private listeners=new Set<()=>void>();private activeRequest=false;
  private revision=0;
+ private cacheStamp='';private cancelCache:(()=>void)|undefined;
  getSnapshot=()=>this.revision;
  private loading:Promise<boolean>|null=null;private acquiring=false;private resolving=false;
  get requestInFlight(){return this.activeRequest||!!this.loading||this.acquiring||this.resolving;}
- constructor(readonly ownerId:string,readonly token:string,private storage:Storage,private request:(path:string,init:RequestInit)=>Promise<any>){
+ constructor(readonly ownerId:string,readonly token:string,private storage:Storage,private request:(path:string,init:RequestInit)=>Promise<any>,private scheduleCache:CacheScheduler=work=>{work();return()=>{};}){
   const read=(key:string)=>{try{return JSON.parse(storage.getItem(key)||'null');}catch{return null;}};
   const journal=read(this.key('pending'));
   if(journal?.ownerId===ownerId)this.pending=journal;
@@ -35,6 +38,16 @@ export class ServerProgress {
  private key(kind:string,epoch?:number){return 'aethelgard_server_'+kind+'_'+this.ownerId+(epoch===undefined?'':'_'+epoch);}
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn);};};
  private emit(){this.revision++;for(const fn of this.listeners)fn();}
+ disposeCache(){this.cancelCache?.();this.cancelCache=undefined;this.cacheStamp='';}
+ private queueCache(snapshot:ProgressEnvelope){
+  const stamp=snapshot.resetVersion+':'+snapshot.version+':'+snapshot.sessionGeneration;
+  if(stamp===this.cacheStamp)return;
+  this.cacheStamp=stamp;this.cancelCache?.();
+  try{this.cancelCache=this.scheduleCache(()=>{
+   this.cancelCache=undefined;
+   try{this.storage.setItem(this.key('cache',snapshot.resetVersion),serializeProjectionCache(snapshot));}catch{/* Optional cache cannot invalidate a confirmed save. */}
+  });}catch{this.cancelCache=undefined;this.cacheStamp='';}
+ }
  private headers(journal?:Journal){const current=this.current;return {'X-Game-Session':journal?.sessionToken||this.token,'X-Game-Generation':String(journal?.sessionGeneration??current?.sessionGeneration??0),'X-Game-Reset-Version':String(journal?.resetVersion??current?.resetVersion??0),'X-Game-Version':String(journal?.expectedVersion??current?.version??0),...(journal?{'X-Game-Operation':journal.operationId}:{})};}
  /** Called after await. A response belongs to a specific active-session context. */
  accept(next:ProgressEnvelope,context=this.generation,requestStartedAt?:number):boolean {
@@ -44,12 +57,12 @@ export class ServerProgress {
   if(previous&&(next.resetVersion>previous.resetVersion||next.sessionGeneration>previous.sessionGeneration))this.generation++;
   if(previous&&next.resetVersion>previous.resetVersion&&this.pending && this.pending.resetVersion<next.resetVersion){this.storage.removeItem(this.key('pending'));this.storage.removeItem('aethelgard_rpc_pending_'+this.ownerId);this.pending=null;}
   // Equal versions may update presence and timing but cannot replace game data.
-  this.current=previous&&next.resetVersion===previous.resetVersion&&next.version===previous.version?{...next,game:previous.game,save:previous.save,expeditions:previous.expeditions}:next;
+  this.current=previous&&next.resetVersion===previous.resetVersion&&next.version===previous.version?{...next,game:previous.game,save:previous.save,expeditions:previous.expeditions}:shareProgressProjection(previous,next);
   try{this.candidate=JSON.parse(this.storage.getItem(this.key('candidate',next.resetVersion))||'null');if(!this.candidate){const legacy=JSON.parse(this.storage.getItem('aethelgard_migration_candidate_'+this.ownerId+'_'+next.resetVersion)||'null');if(legacy?.ownerId===this.ownerId&&legacy.resetVersion===next.resetVersion){this.candidate=legacy.save;this.storage.setItem(this.key('candidate',next.resetVersion),JSON.stringify(legacy.save));this.storage.setItem(this.key('backup',next.resetVersion),legacy.raw||JSON.stringify(legacy.save));}}}catch{this.candidate=null;}
   if(String(this.candidate?.player?.userId)!==this.ownerId||(this.candidate?.resetVersion??0)!==next.resetVersion)this.candidate=null;
   this.receivedAt=Date.now();
   if(requestStartedAt!==undefined)this.roundTripMs=Math.max(0,this.receivedAt-requestStartedAt);
-  try{this.storage.setItem(this.key('cache',next.resetVersion),JSON.stringify(this.current));}catch{/* The optional cache cannot invalidate a confirmed server save. */}
+  this.queueCache(this.current);
   if(!this.pending)this.message='';
   this.status=this.pending?'offline':next.activeHere?'saved':'readonly';this.emit();return true;
  }

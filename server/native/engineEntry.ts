@@ -1,5 +1,6 @@
 import './clone';
 export {GameActor, loadGameEngine} from '../gameActor';
+export {actorHashMode} from '../actorHash';
 export {executeGameCommand} from '../gameCommands';
 export {ProgressError, validateLegacyProgress} from '../progressValidation';
 export {canonicalJson} from '../../src/utils/canonicalJson';

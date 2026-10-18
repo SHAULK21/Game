@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "node": "v24.22.0",
+  "at": "2026-10-18T17:27:51.710Z",
+  "rows": [
+    {
+      "rust": false,
+      "moduleBytes": 766735,
+      "firstMs": 15.301400000000058,
+      "medianMs": 12.190802499999995,
+      "p95Ms": 13.85838,
+      "effectsEqual": true,
+      "timersEqual": true
+    },
+    {
+      "rust": true,
+      "moduleBytes": 820606,
+      "firstMs": 29.854299999999967,
+      "medianMs": 9.104762499999993,
+      "p95Ms": 9.3419625,
+      "effectsEqual": true,
+      "timersEqual": true
+    }
+  ],
+  "note": "Same synthetic actor snapshot, native crypto shim and 9x40 iterations. Node V8, not Telegram network latency. firstMs includes lazy WASM setup."
+}

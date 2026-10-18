@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "at": "2026-10-18T17:28:32.808Z",
+  "rows": [
+    {
+      "name": "typescript",
+      "iterations": 1,
+      "sample": 0,
+      "runtimeMs": 115.14830589294,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "rust",
+      "iterations": 1,
+      "sample": 0,
+      "runtimeMs": 73.456525802612,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    },
+    {
+      "name": "rust",
+      "iterations": 1,
+      "sample": 1,
+      "runtimeMs": 80.981969833374,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    },
+    {
+      "name": "typescript",
+      "iterations": 1,
+      "sample": 1,
+      "runtimeMs": 117.4955368042,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "typescript",
+      "iterations": 1,
+      "sample": 2,
+      "runtimeMs": 116.86110496521,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "rust",
+      "iterations": 1,
+      "sample": 2,
+      "runtimeMs": 74.632167816162,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    },
+    {
+      "name": "typescript",
+      "iterations": 12,
+      "sample": 0,
+      "runtimeMs": 720.26681900024,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "rust",
+      "iterations": 12,
+      "sample": 0,
+      "runtimeMs": 273.22173118590996,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    },
+    {
+      "name": "rust",
+      "iterations": 12,
+      "sample": 1,
+      "runtimeMs": 263.28349113464003,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    },
+    {
+      "name": "typescript",
+      "iterations": 12,
+      "sample": 1,
+      "runtimeMs": 716.38631820679,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "typescript",
+      "iterations": 12,
+      "sample": 2,
+      "runtimeMs": 720.21198272705,
+      "clockAvailable": false,
+      "hashMode": "typescript"
+    },
+    {
+      "name": "rust",
+      "iterations": 12,
+      "sample": 2,
+      "runtimeMs": 273.57006072998,
+      "clockAvailable": false,
+      "hashMode": "rust"
+    }
+  ],
+  "summary": [
+    {
+      "name": "typescript",
+      "iterations": 1,
+      "medianMs": 116.86110496521,
+      "minMs": 115.14830589294,
+      "maxMs": 117.4955368042
+    },
+    {
+      "name": "rust",
+      "iterations": 1,
+      "medianMs": 74.632167816162,
+      "minMs": 73.456525802612,
+      "maxMs": 80.981969833374
+    },
+    {
+      "name": "typescript",
+      "iterations": 12,
+      "medianMs": 720.21198272705,
+      "minMs": 716.38631820679,
+      "maxMs": 720.26681900024
+    },
+    {
+      "name": "rust",
+      "iterations": 12,
+      "medianMs": 273.22173118590996,
+      "minMs": 263.28349113464003,
+      "maxMs": 273.57006072998
+    }
+  ],
+  "note": "Synthetic /run invocation, metadata time in seconds converted to ms. Includes cold module/WASM initialization. No DB, network game transport or physical phone FPS. V8 Date.now is fixed and performance is unavailable; internal zero durations are not measurements."
+}
