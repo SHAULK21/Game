@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import {createActorDigest} from './actorDigest';
 import type {GameContextType} from '../src/context/GameContext';
 import type {GameEngineRuntime} from '../src/game/engineRuntime';
 import type {TelegramUser} from '../src/utils/telegram';
@@ -46,14 +46,11 @@ function decode(value: any): any {
   if (Array.isArray(value)) return value.map(decode);
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, decode(item)]));
 }
-function digest(value: unknown) {
-  const normalize = (item: any): any => typeof item === 'function' ? item[CALLBACK] || '[function]' : item instanceof Set ? [...item].map(normalize) : Array.isArray(item) ? item.map(normalize) : item && typeof item === 'object' ? Object.fromEntries(Object.keys(item).sort().map(key => [key, normalize(item[key])])) : item;
-  return crypto.createHash('sha256').update(JSON.stringify(normalize(value)) ?? '[undefined]').digest('hex');
-}
 
 /** An account-scoped actor executes the real shared rules without React rendering,
  * local test adapters, a DOM, global storage, or a client-provided reward result. */
 export class GameActor {
+  private fingerprints=createActorDigest(CALLBACK);
   private state: Record<string, any>;
   private refs: Record<string, {current: any}>;
   private dependencies: Record<string, string>;
@@ -89,8 +86,9 @@ export class GameActor {
         if (!key) throw new Error('Game engine must be compiled with stable actor hook identifiers.');
         if (!Object.hasOwn(actor.state, key)) actor.state[key] = structuredClone(typeof initial === 'function' ? initial() : initial);
         const setter = (action: any) => {
-          const previous = actor.state[key], fingerprint = digest(previous), next = typeof action === 'function' ? action(previous) : action;
-          if (fingerprint !== digest(next)) {actor.state[key] = next; actor.dirty = true;}
+          actor.fingerprints.endRead();
+          const previous = actor.state[key], fingerprint = actor.fingerprints.digest(previous), next = typeof action === 'function' ? action(previous) : action;
+          if (fingerprint !== actor.fingerprints.digest(next)) {actor.state[key] = next; actor.dirty = true;}
         };
         Object.defineProperty(setter, CALLBACK, {value: 'setter:' + key});
         return [actor.state[key], setter];
@@ -100,14 +98,14 @@ export class GameActor {
         return actor.refs[key] ??= {current: initial};
       },
       useCallback(callback: Function, dependencies: unknown[], key: string) {
-        Object.defineProperty(callback, CALLBACK, {value: digest([key, dependencies]), configurable: true});
+        Object.defineProperty(callback, CALLBACK, {value: actor.fingerprints.digest([key, dependencies]), configurable: true});
         return callback;
       },
       useMemo(callback: () => unknown) {return callback();},
       useEffect(callback: Effect['callback'], dependencies: unknown[] | undefined, key: string) {
         if (!key?.startsWith('actor:')) return;
         if (key === 'actor:loadLegacy' && !options.migrationSave) return;
-        actor.effects.push({key, callback, dependencies: dependencies === undefined ? '' : digest(dependencies)});
+        actor.effects.push({key, callback, dependencies: dependencies === undefined ? '' : actor.fingerprints.digest(dependencies)});
       },
     };
     this.runtime = {
@@ -141,7 +139,9 @@ export class GameActor {
   private render() {
     for (let pass = 0; pass < 40; pass++) {
       this.dirty = false; this.effects = []; this.timerCallbacks.clear();
-      this.view = this.module.useGameEngine(this.runtime);
+      this.fingerprints.beginRead();
+      try{this.view = this.module.useGameEngine(this.runtime);}
+      finally{this.fingerprints.endRead();}
       for (const effect of this.effects) {
         const clock = effect.key.endsWith(':timer') || effect.key.endsWith(':clock');
         if (!clock && effect.dependencies !== '' && this.dependencies[effect.key] === effect.dependencies) continue;

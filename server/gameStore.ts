@@ -10,6 +10,7 @@ import {executeGameCommand, isPresentationCommand, type GameCommand} from './gam
 import {ProgressError, validateLegacyProgress, type ProgressSave} from './progressValidation';
 import {publicState, reconcileCanonicalExpeditions, type ExpeditionState} from './expeditions/store';
 import {gameTransactionPool, withGameTransaction} from './gameTransactions';
+import {meaningfulSave} from './saveFingerprint';
 
 export interface GameIdentity {id: number; displayName: string; username?: string; locale?: 'ru' | 'uk'}
 export interface GameWriter {sessionToken: string; sessionGeneration: number; resetVersion: number}
@@ -28,14 +29,6 @@ function saveActor(actor: GameActor, epoch: number): ServerSave {
   if (!Number.isSafeInteger(player.gold) || player.gold < 0 || !Number.isSafeInteger(player.silver) || player.silver < 0) throw new ProgressError('WALLET_LIMIT', 'Недопустимый итоговый баланс. Действие не выполнено.', 400);
   return {resetVersion: epoch, player, inventoryDigest: hash(ownership(actor)), quests: actor.current.quests, achievements: actor.current.achievements, activeDungeonRun: actor.current.activeDungeonRun,
     combat: {isInCombat: actor.current.isInCombat, isCombatEnded: actor.current.isCombatEnded, combatPlayerHp: actor.current.combatPlayerHp, combatPlayerMp: actor.current.combatPlayerMp}, actor: actor.snapshot({externalizeCanonical: true})};
-}
-function meaningful(save: ServerSave) {
-  const copy = structuredClone(save);
-  // The bar is reconstructed from server timestamps in the client. Intermediate
-  // percentages never invalidate an otherwise unchanged paid action.
-  const travel = copy.actor?.state.travelState as any;
-  if (travel?.isTraveling) travel.progress = 0;
-  return json(copy);
 }
 function requestShape(operation: GameOperation) {
   if (!uuid(operation.operationId) || !uuid(operation.sessionToken) || !safeVersion(operation.expectedVersion) || !safeVersion(operation.sessionGeneration) || !safeVersion(operation.resetVersion)) throw new ProgressError('INVALID_OPERATION', 'Некорректная версия или идентификатор операции.', 400);
@@ -75,8 +68,8 @@ export class GameStore {
     const actor = await new GameActor({...this.actorOptions(identity, row, token), snapshot}).initialize();
     return {actor, items};
   }
-  private async update(client: PoolClient, row: any, actor: GameActor, closeMigration: boolean) {
-    const save = saveActor(actor, Number(row.reset_version));
+  private async update(client: PoolClient, row: any, actor: GameActor, closeMigration: boolean, prepared?:ServerSave) {
+    const save = prepared??saveActor(actor, Number(row.reset_version));
     return (await client.query(`UPDATE players SET progress_json=$2::jsonb,progress_version=progress_version+1,
       progress_migration_open=CASE WHEN $3 THEN FALSE ELSE progress_migration_open END,
       character_authority='server-actions-v1',character_name=$4,level=$5,arena_rating=$6,class_id=$7,updated_at=NOW()
@@ -97,15 +90,18 @@ export class GameStore {
     const save = structuredClone(row.progress_json) as ServerSave;
     const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).getTime() : save.player.lastActiveTimestamp || this.now();
     const expedition = await reconcileCanonicalExpeditions(client, row, save, this.now(), lastSeen);
-    const {actor, items} = await this.actorFor(client, identity, row, save, token), beforeItems = ownership(actor);
+    const {actor, items:loadedItems} = await this.actorFor(client, identity, row, save, token), beforeItems = ownership(actor);
+    let items=loadedItems;
     if (tick) actor.tick();
     if (beforeItems !== ownership(actor)) {
       await persistGameInventory(client, identity.id, actor, 'game_command', items.rows);
       const latest = await loadGameInventory(client, identity.id);
       actor.replacePlayer({...actor.current.player!, inventory: latest.inventory, equipped: latest.equipped});
+      items=latest;
     }
-    if (expedition.changed || meaningful(saveActor(actor, Number(row.reset_version))) !== meaningful(row.progress_json)) row = await this.update(client, row, actor, false);
-    return {row, actor, expedition, items: await loadGameInventory(client, identity.id)};
+    const candidate=saveActor(actor,Number(row.reset_version));
+    if (expedition.changed || meaningfulSave(candidate) !== meaningfulSave(row.progress_json)) row = await this.update(client, row, actor, false,candidate);
+    return {row, actor, expedition, items};
   }
   /** Locked read and clock reconciliation, not a client checkpoint. */
   async load(identity: GameIdentity, token: string, {tick = true} = {}) {
@@ -153,11 +149,16 @@ export class GameStore {
       let outcome: 'applied' | 'rejected' = 'applied', result: unknown;
       try {
         if (expedition.state.active?.snapshot.crew === 'personal' && !isPresentationCommand(command)) throw new ProgressError('PERSONAL_EXPEDITION', 'Герой в экспедиции. Сначала вернитесь через её статус.');
+        const beforeItems=ownership(actor);
         result = await executeGameCommand(actor, command);
         actor.replacePlayer({...actor.current.player!, lastActiveTimestamp: this.now()});
-        await persistGameInventory(client, identity.id, actor, 'game_command', items.rows);
-        const latest = await loadGameInventory(client, identity.id);
-        actor.replacePlayer({...actor.current.player!, inventory: latest.inventory, equipped: latest.equipped});
+        // The player and owned inventory are already locked by frame(). Pure
+        // combat/presentation actions must not rewrite every unchanged item.
+        if(beforeItems!==ownership(actor)){
+          await persistGameInventory(client, identity.id, actor, 'game_command', items.rows);
+          const latest = await loadGameInventory(client, identity.id);
+          actor.replacePlayer({...actor.current.player!, inventory: latest.inventory, equipped: latest.equipped});
+        }
         row = await this.update(client, row, actor, true);
         await client.query('RELEASE SAVEPOINT game_action');
       } catch (error) {

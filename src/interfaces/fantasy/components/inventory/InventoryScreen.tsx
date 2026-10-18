@@ -1,3 +1,4 @@
+import {sortScoredEquipment} from '../../../../utils/inventorySorting';
 import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { STAT_LABELS } from '../../../../utils/statLabels';
@@ -103,6 +104,22 @@ const getResourceUse = (item: GameItem) => {
   return 'Ремесло и специальные рецепты';
 };
 
+const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equipped,onSelect,style}:{item:GameItem;characterClass:CharacterClassId;equipped:boolean;onSelect:(item:GameItem)=>void;style?:string}){ useLocale();
+
+    return <button type="button" key={item.id} onClick={() => onSelect(item)}
+      data-inventory-item={item.id} data-rarity={item.rarity} className={`inventory-bag-slot ${equipped ? 'is-equipped' : ''}`}
+      aria-label={`${localize(item.name)} · ${localize(RARITY_COLORS[item.rarity].label)} · ${localize('Ур.')} ${item.level}${item.isLocked ? ` · ${localize('Защитить от продажи')}` : ''}`}
+      title={localize(item.name)}>
+      <ReferenceFrameParts id="equipment" />
+      <InventoryArt item={item} size={42} />
+      {style === 'fantasy-beta' && <span className="beta-item-name">{localize(item.name)}<small>{localize('Ур.')} {localize(item.level)}</small></span>}
+      <span className="inventory-bag-quantity">{localize(item.stackCount || 1)}</span>
+      {item.upgradeLevel>0 && <span className="inventory-bag-upgrade">+{item.upgradeLevel}</span>}
+      {equipped && <span className="inventory-bag-state">{localize('НАДЕТО')}</span>}
+      {item.isLocked && <span className="inventory-bag-state">{localize('Защитить от продажи')}</span>}
+    </button>;
+  });
+
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBlacksmith, onNavigateToCrafting }) => {
   useLocale();
   const { style } = useInterface();
@@ -147,13 +164,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
     : null;
 
   const equipment = useMemo(
-    () => player.inventory
-      .filter(item => EQUIPMENT_TYPES.includes(item.type))
-      .sort((a, b) => {
-        const aCurrent = player.equipped[a.type]?.id === a.id ? 1 : 0;
-        const bCurrent = player.equipped[b.type]?.id === b.id ? 1 : 0;
-        return bCurrent - aCurrent || getItemScore(b, player.classId) - getItemScore(a, player.classId);
-      }),
+    () => sortScoredEquipment(player.inventory.filter(item => EQUIPMENT_TYPES.includes(item.type)),player.equipped,item=>getItemScore(item,player.classId)),
     [player.inventory, player.equipped, player.classId]
   );
 
@@ -188,21 +199,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
   const currentScore = currentEquipped ? getItemScore(currentEquipped, player.classId) : 0;
   const scoreDelta = selectedIsEquipment ? selectedScore - currentScore : 0;
 
-  const renderItemCard = (item: GameItem) => {
-    const equipped = player.equipped[item.type]?.id === item.id;
-    return <button type="button" key={item.id} onClick={() => setSelectedItem(item)}
-      data-inventory-item={item.id} data-rarity={item.rarity} className={`inventory-bag-slot ${equipped ? 'is-equipped' : ''}`}
-      aria-label={`${localize(item.name)} · ${localize(RARITY_COLORS[item.rarity].label)} · ${localize('Ур.')} ${item.level}${item.isLocked ? ` · ${localize('Защитить от продажи')}` : ''}`}
-      title={localize(item.name)}>
-      <ReferenceFrameParts id="equipment" />
-      <InventoryArt item={item} size={42} />
-      {style === 'fantasy-beta' && <span className="beta-item-name">{localize(item.name)}<small>{localize('Ур.')} {localize(item.level)}</small></span>}
-      <span className="inventory-bag-quantity">{localize(item.stackCount || 1)}</span>
-      {item.upgradeLevel>0 && <span className="inventory-bag-upgrade">+{item.upgradeLevel}</span>}
-      {equipped && <span className="inventory-bag-state">{localize('НАДЕТО')}</span>}
-      {item.isLocked && <span className="inventory-bag-state">{localize('Защитить от продажи')}</span>}
-    </button>;
-  };
+  const renderItemCard=(item:GameItem)=><EquipmentCard key={item.id} item={item} characterClass={player.classId} equipped={player.equipped[item.type]?.id===item.id} onSelect={setSelectedItem} style={style}/>;
   const renderBag = (items: GameItem[], emptyMessage: string) => <>
     <div className="inventory-bag-grid">
       {items.map(renderItemCard)}
