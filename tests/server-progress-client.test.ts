@@ -8,6 +8,7 @@ import {verifyTelegramInitData} from '../server/telegramAuth';
 import {expeditionDatabase} from './helpers/expeditionDatabase';
 import {resetPlayerAccount} from '../server/accountReset';
 import type {ProgressEnvelope} from '../src/types/progress';
+import {getWriterSession} from '../src/utils/writerSession';
 class MemoryStorage {data=new Map<string,string>();getItem(k:string){return this.data.get(k)||null;}setItem(k:string,v:string){this.data.set(k,v);}removeItem(k:string){this.data.delete(k);}}
 const token='test-bot-token';
 function signed(id:number){const params=new URLSearchParams({auth_date:String(Math.floor(Date.now()/1000)),user:JSON.stringify({id,first_name:'Игрок'})});const text=[...params].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n');const key=crypto.createHmac('sha256','WebAppData').update(token).digest();params.set('hash',crypto.createHmac('sha256',key).update(text).digest('hex'));return params.toString();}
@@ -18,12 +19,17 @@ test('production HTTP, verified Telegram identity and real SQL progress drive th
  app.post('/api/clan/donate',auth,(_req,res)=>res.status(501).json({code:'FEATURE_UNAVAILABLE',outcome:'rejected',error:'Недоступно'}));
  const listener=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>listener.once('listening',resolve));const url='http://127.0.0.1:'+(listener.address() as any).port;
  const request=(owner:number)=>async(path:string,init:RequestInit)=>{const response=await fetch(url+path,{...init,headers:{...Object.fromEntries(new Headers(init.headers)), 'Content-Type':'application/json','X-Telegram-Init-Data':signed(owner)}});const data=await response.json();if(!response.ok)throw new ProgressRequestError(data,response.status);return data;};
- const storage=new MemoryStorage(),pc=new ServerProgress('990',crypto.randomUUID(),storage,request(990)),phone=new ServerProgress('990',crypto.randomUUID(),new MemoryStorage(),request(990));
+ const storage=new MemoryStorage(),pc=new ServerProgress('990',getWriterSession('990',storage,new MemoryStorage()),storage,request(990)),phone=new ServerProgress('990',crypto.randomUUID(),new MemoryStorage(),request(990));
  try{
  await t.test('GET confirms absence and a body ID cannot choose another account',async()=>{
   await pc.load();assert.equal(pc.current!.save,null);await pc.acquire();
   await pc.mutate('/api/progress/create',{name:'Рыцарь',classId:'warrior',ownerId:991,telegramId:991});
   assert.equal(pc.current!.save!.player.userId,'990');assert.equal(pc.pending,null);assert.equal((await db.query('SELECT * FROM players WHERE telegram_id=991')).rows.length,0);
+ });
+ await t.test('reopening with empty session storage remains active without acquiring a new generation',async()=>{
+  const reopened=new ServerProgress('990',getWriterSession('990',storage,new MemoryStorage()),storage,request(990));
+  await reopened.load();assert.equal(reopened.current!.activeHere,true);assert.equal(reopened.status,'saved');
+  assert.equal(reopened.current!.sessionGeneration,pc.current!.sessionGeneration);
  });
  await t.test('second device sees the same hero and cannot silently take the writer',async()=>{
   await phone.load();assert.equal(phone.current!.save!.player.id,pc.current!.save!.player.id);await phone.acquire(false);assert.equal(phone.current!.activeHere,false);
