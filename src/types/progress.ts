@@ -1,4 +1,4 @@
-import type {GameContextType} from '../context/GameContext';
+import type {GameContextType} from '../context/GameStateContext';
 import type {ProgressSave} from '../../server/progressValidation';
 import type {publicState} from '../../server/expeditions/store';
 

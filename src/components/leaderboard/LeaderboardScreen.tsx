@@ -1,7 +1,7 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Crown, Trophy, RefreshCw } from 'lucide-react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { apiRequest } from '../../utils/api';
 
 type Row = { telegram_id: number; character_name?: string; level: number; arena_rating: number; is_online?: boolean };

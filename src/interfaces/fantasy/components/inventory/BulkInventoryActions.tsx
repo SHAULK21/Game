@@ -1,7 +1,7 @@
 import { SelectionField } from '../../../../components/ui/SelectionField';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { BULK_EQUIPMENT_TYPES, BULK_RARITIES, bulkReward, selectBulkItems, type BulkAction, type BulkFilters } from '../../../../utils/bulkInventory';
 import type { ItemRarity } from '../../../../types/game';
 import { RpgIcon } from '../ui/RpgIcon';

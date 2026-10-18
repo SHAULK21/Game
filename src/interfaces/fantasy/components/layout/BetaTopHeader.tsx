@@ -4,7 +4,7 @@ import { inSettlement } from '../../../../utils/worldPresence';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getFantasyHeroArtwork } from '../../utils/heroArtwork';
 import { RpgButton, DialogFrame } from '../ui/BestiaryUI';

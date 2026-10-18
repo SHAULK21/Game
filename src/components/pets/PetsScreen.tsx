@@ -2,7 +2,7 @@ import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useState } from 'react';
 import { Check, Dog, Hammer, LockKeyhole, Sparkles } from 'lucide-react';
 import { PETS_LIST } from '../../data/gameData';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 
 const PET_RECIPES: Record<string, { miningLevelReq: number; ingredients: Array<{ name: string; count: number }> }> = {
   pet_dragon: {

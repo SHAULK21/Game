@@ -1,4 +1,4 @@
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { regionCompleted } from '../../utils/regionalProgress';
 

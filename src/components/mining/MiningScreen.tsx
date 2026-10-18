@@ -4,7 +4,7 @@ import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import {miningCritChance,miningYieldRange} from '../../utils/mining';
 import {ItemArtwork} from '../ui/ItemArtwork';
 import React, { useEffect, useRef, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { MINING_NODES } from '../../data/gameData';
 import { Clock3, Crown, PackageCheck, Pickaxe, Sparkles } from 'lucide-react';
 

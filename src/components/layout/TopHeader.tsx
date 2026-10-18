@@ -4,7 +4,7 @@ import { inSettlement } from '../../utils/worldPresence';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useState, useSyncExternalStore } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { sound } from '../../utils/audio';
 import { Volume2, VolumeX, Zap, Plus, X } from 'lucide-react';
 import { RpgIcon } from '../ui/RpgIcon';

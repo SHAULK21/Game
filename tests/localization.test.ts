@@ -173,7 +173,7 @@ test('language preference validates locale, scopes the update to the authenticat
 test('market search accepts Ukrainian names after a live language switch and keeps canonical item IDs and names', async () => {
   const bundle = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {MarketScreen as ModernMarket} from './src/components/market/MarketScreen';import {MarketScreen as FantasyMarket} from './src/interfaces/fantasy/components/market/MarketScreen';import {LanguageSwitcher} from './src/components/ui/LanguageSwitcher';window.act=act;window.mount=(fantasy)=>{window.root=createRoot(document.getElementById('root'));window.root.render(<><LanguageSwitcher/>{fantasy?<FantasyMarket/>:<ModernMarket/>}</>);};`, resolveDir: process.cwd(), loader: 'tsx' }, loader: {'.css':'empty'}, bundle: true, write: false, platform: 'browser', format: 'iife', define: { 'process.env.NODE_ENV': '"development"' }, plugins: [
     { name: 'fixture-game', setup(b) {
-      b.onResolve({ filter: /\/context\/GameContext$/ }, () => ({ path: 'fixture', namespace: 'test-game' }));
+      b.onResolve({ filter: /\/context\/GameStateContext$/ }, () => ({ path: 'fixture', namespace: 'test-game' }));
       b.onLoad({ filter: /.*/, namespace: 'test-game' }, () => ({ contents: 'export const useGame=()=>window.gameData;', loader: 'js' }));
     } },
     { name: 'art', setup(b) { b.onLoad({ filter: /\.(jpg|webp)$/ }, () => ({ contents: 'export default "art";', loader: 'js' })); } }

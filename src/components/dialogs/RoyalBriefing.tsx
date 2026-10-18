@@ -1,6 +1,6 @@
 import { ROYAL_SCENES } from '../../data/storyScenes';
 export { ROYAL_SCENES } from '../../data/storyScenes';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {useLocale} from '../../i18n/locale';
 import {useState} from 'react';
 

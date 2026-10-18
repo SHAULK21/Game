@@ -1,4 +1,4 @@
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {inSettlement} from '../../utils/worldPresence';
 import React from 'react';
 import {useInterface} from '../../context/InterfaceContext';

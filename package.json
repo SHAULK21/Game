@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "wasm:build": "node scripts/build-wasm.mjs",
+    "wasm:test": "node --import tsx --test tests/typed-damage.test.ts tests/wasm-combat.test.ts",
+    "perf:game": "node --import tsx scripts/profile-game.ts",
+    "perf:wasm": "node --import tsx scripts/benchmark-wasm.ts",
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build && node scripts/build-game-engine.mjs",
     "preview": "vite preview",
@@ -25,7 +29,6 @@
     "deploy": "npm run lint && npm run build:telegram && npm run test:native && npm run serverless:audit && tgcloud push"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "compression": "^1.8.1",
@@ -36,7 +39,6 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
     "pg": "^8.16.3",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

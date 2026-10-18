@@ -1,4 +1,4 @@
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { useLocale } from '../../i18n/locale';
 import { monsterEnrageMultiplier, MONSTER_ENRAGE_ROUND, MONSTER_RELENTLESS_ROUND } from '../../utils/pveBalance';
 

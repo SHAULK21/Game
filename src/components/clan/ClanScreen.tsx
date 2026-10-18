@@ -11,7 +11,7 @@ import {
   RefreshCw, Send, UserPlus, Search, Trophy, Coins, X
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { triggerHaptic } from '../../utils/telegram';
 
 type Clan = {

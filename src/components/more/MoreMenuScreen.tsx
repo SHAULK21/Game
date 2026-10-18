@@ -5,7 +5,7 @@ import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { SoundControls } from '../ui/SoundControls';
 import React, { useEffect, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { 
   Scroll, 
   Trophy, 

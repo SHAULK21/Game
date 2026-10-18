@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {useInterface} from '../../context/InterfaceContext';
 import {t, useLocale, intlLocale} from '../../i18n/locale';
 import {PICKAXES, getPickaxeBonus} from '../../utils/mining';

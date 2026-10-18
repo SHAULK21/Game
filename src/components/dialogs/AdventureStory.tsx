@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { STORY_CHAPTERS } from '../../data/storyScenes';
 import { useLocale } from '../../i18n/locale';
 import { StorySceneViewer } from './StorySceneViewer';

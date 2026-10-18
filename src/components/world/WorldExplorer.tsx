@@ -8,7 +8,7 @@ import {ItemArtwork} from '../ui/ItemArtwork';
 import {useScreenScroll} from '../navigation/useScreenScroll';
 import React,{useEffect,useRef,useState} from 'react';
 import {t,useLocale} from '../../i18n/locale';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {REGIONS,CAVES,MONSTERS,REGION_MODIFIERS,getRegionMonster} from '../../data/gameData';
 import {regionEntryLockReason,huntingModeLockReason,regionProgress,ELITE_HUNT_REQUIREMENT,BOSS_HUNT_REQUIREMENT} from '../../utils/regionalProgress';
 import {groupRegionsByLevel} from '../../utils/levelEnvironment';

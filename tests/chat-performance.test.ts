@@ -8,7 +8,7 @@ test('chat skips overlapping polls and hidden windows, resumes on visibility and
     stdin: {contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {ChatScreen} from './src/components/chat/ChatScreen';window.act=act;window.root=createRoot(document.getElementById('root'));window.mount=()=>window.root.render(<ChatScreen/>);`, resolveDir: process.cwd(), loader: 'tsx'},
     bundle: true, write: false, platform: 'browser', format: 'iife',
     define: {'process.env.NODE_ENV': '"development"'},
-    plugins: [{name:'game',setup(b){b.onResolve({filter:/context\/GameContext$/},()=>({path:'game',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const useGame=()=>({player:{name:"Игрок"}});',loader:'js'}));}}]
+    plugins: [{name:'game',setup(b){b.onResolve({filter:/context\/GameStateContext$/},()=>({path:'game',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const useGame=()=>({player:{name:"Игрок"}});',loader:'js'}));}}]
   });
   const dom = new JSDOM('<div id="root"></div>', {url:'http://localhost',runScripts:'outside-only'});
   const w: any = dom.window;

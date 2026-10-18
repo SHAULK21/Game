@@ -8,7 +8,7 @@ import { t as localize, useLocale } from '../../../../i18n/locale';
 import { regionEntryLockReason, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { DUNGEON_DIFFICULTIES } from '../../../../utils/dungeonRewards';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { REGIONS, CAVES, ASSETS, REGION_MODIFIERS } from '../../data/gameData';
 import { sound } from '../../../../utils/audio';
 import { groupRegionsByLevel, levelEnvironment } from '../../utils/levelEnvironment';

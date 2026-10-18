@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { CLASS_BRANCHES, branchSpent, spentTalentPoints, talentCost, talentLockReason, talentResetPrice, talentBonuses } from '../../data/talents';
 import type { Talent } from '../../types/game';
 

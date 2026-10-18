@@ -4,7 +4,7 @@ import { AscensionArena } from './AscensionArena';
 import { PvpArena } from './PvpArena';
 import { nextArenaReset } from '../../utils/gameCadence';
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { Trophy, Swords, Crown } from 'lucide-react';
 
 interface ArenaScreenProps {

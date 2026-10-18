@@ -7,7 +7,7 @@ import type {GameTabId} from '../../types/navigation';
 import { useInterface } from '../../context/InterfaceContext';
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { lazy, Suspense, useEffect } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { CombatScreen } from './components/combat/CombatScreen';
 import { CharacterCreationModal } from '../../components/dialogs/CharacterCreationModal';
 import { OfflineReportModal } from './components/dialogs/OfflineReportModal';

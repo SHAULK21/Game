@@ -3,7 +3,7 @@ import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../../../utils/sharpening';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { GameItem } from '../../../../types/game';
 import { RARITY_COLORS, getUpgradeRequirements, REGIONS } from '../../data/gameData';
 import { sound } from '../../../../utils/audio';

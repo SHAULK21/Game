@@ -4,7 +4,7 @@ import { inSettlement } from '../../../../utils/worldPresence';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { InterfaceSwitcher } from '../../../../components/ui/InterfaceSwitcher';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { CLASSES } from '../../data/gameData';
 import { RpgIcon } from '../ui/RpgIcon';
 import { ShellOrnament } from '../ui/ShellOrnament';

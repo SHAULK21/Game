@@ -2,7 +2,7 @@ import {WorldExplorer} from './WorldExplorer';
 import type {GameTabId} from '../../types/navigation';
 import {t as localize,useLocale} from '../../i18n/locale';
 import React,{useState} from 'react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {ASSETS} from '../../data/gameData';
 import {Skull,Sparkles,Crown,Key,AlertTriangle,Footprints} from 'lucide-react';
 

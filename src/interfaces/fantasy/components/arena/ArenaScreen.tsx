@@ -5,7 +5,7 @@ import { AscensionArena } from './AscensionArena';
 import { PvpArena } from './PvpArena';
 import { nextArenaReset } from '../../../../utils/gameCadence';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ResourceBadge, SectionTitle } from '../ui/BestiaryUI';
 

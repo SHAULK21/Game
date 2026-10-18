@@ -6,6 +6,41 @@ on:
   pull_request:
 
 jobs:
+  wasm-pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - run: npm ci
+      - name: Rust stable and WASM target
+        run: rustup toolchain install 1.99.1 --profile minimal --target wasm32-unknown-unknown
+      - name: Verified wasm-bindgen binary
+        run: |
+          mkdir -p .migration-backups/wasm-tools
+          cd .migration-backups/wasm-tools
+          file=wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz
+          mkdir -p gh-release
+          curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/$file" -o "gh-release/$file"
+          curl -fsSLO "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/$file.sha256sum"
+          sha256sum -c "$file.sha256sum"
+          tar -xzf "gh-release/$file"
+          echo "$PWD/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+      - name: Rust reference tests
+        run: cargo +1.99.1 test --locked --manifest-path engine/Cargo.toml
+      - name: Rebuild WASM from source
+        env:
+          RUSTUP_TOOLCHAIN: '1.99.1'
+        run: npm run wasm:build
+      - name: Compiled parity and fallback tests
+        run: npm run wasm:test
+      - name: Benchmark artifact
+        run: npm run perf:wasm -- .migration-backups/wasm-ci.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-benchmark
+          path: .migration-backups/wasm-ci.json
   build:
     runs-on: ubuntu-latest
     services:

@@ -4,7 +4,7 @@ import { FirstJourneyHint } from './FirstJourneyHint';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { HeroStats } from './HeroStats';
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { CharacterAttributes } from '../../types/game';
 import { 

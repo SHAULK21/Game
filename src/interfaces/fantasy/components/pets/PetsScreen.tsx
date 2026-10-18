@@ -2,7 +2,7 @@ import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
 import { Check, Flame, HeartPulse, LockKeyhole, PawPrint, Shield, Sparkles } from 'lucide-react';
 import { PETS_LIST } from '../../data/gameData';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';
 import { PetArtwork } from '../ui/PetArtwork';
 import { ItemArtwork } from '../ui/ItemArtwork';

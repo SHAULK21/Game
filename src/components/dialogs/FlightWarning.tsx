@@ -1,4 +1,4 @@
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { StorySceneViewer } from './StorySceneViewer';
 import type { StoryChapter } from '../../data/storyScenes';
 const chapter: StoryChapter = {

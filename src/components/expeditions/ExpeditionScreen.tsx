@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {Compass,Clock3,Coins,PackageOpen,ArrowLeft,Users,MapPin} from 'lucide-react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {useServerProgress} from '../../context/ServerProgressContext';
 import {useNavigation,useOptionalNavigation} from '../../context/NavigationContext';
 import {useLocale,t} from '../../i18n/locale';

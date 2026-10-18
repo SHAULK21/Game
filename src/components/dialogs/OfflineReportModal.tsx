@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../i18n/locale';
 import React from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { Moon, Package, Check, Crown } from 'lucide-react';
 import { sound } from '../../utils/audio';
 

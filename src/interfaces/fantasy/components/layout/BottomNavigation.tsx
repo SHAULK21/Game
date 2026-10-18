@@ -1,4 +1,4 @@
-import {useGame} from '../../../../context/GameContext';
+import {useGame} from '../../../../context/GameStateContext';
 import {inSettlement} from '../../../../utils/worldPresence';
 import {requestGameSection} from '../../../../components/navigation/gameSections';
 import { t as localize, useLocale } from '../../../../i18n/locale';

@@ -1,6 +1,6 @@
 import {ExpeditionTavern} from '../expeditions/ExpeditionScreen';
 import { useState, type ReactNode } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { useLocale } from '../../i18n/locale';
 import { inSettlement } from '../../utils/worldPresence';
 import { flightBattlesLeft } from '../../utils/flightPenalty';
