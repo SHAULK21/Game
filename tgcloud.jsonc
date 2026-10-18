@@ -3,9 +3,9 @@
   "static": {
     "source": "dist",
     "spa": true,
-    "immutable": ["/assets/*.js", "/assets/*.css"],
     "headers": [
-      {"path": "/index.html", "set": {"Cache-Control": "no-store"}}
+      {"path": "/index.html", "set": {"Cache-Control": "no-store"}},
+      {"path": "/assets/*", "set": {"Cache-Control": "public, max-age=3600"}}
     ]
   }
 }
