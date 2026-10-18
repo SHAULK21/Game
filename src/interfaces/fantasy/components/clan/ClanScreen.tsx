@@ -7,7 +7,7 @@ import {ClanManagement} from '../../../../components/clan/ClanManagement';
 import {CLAN_ROLE_LABELS,canUseVault,type ClanRole} from '../../../../utils/clanRoles';
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../../../../utils/api';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { triggerHaptic } from '../../../../utils/telegram';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';

@@ -9,6 +9,8 @@ export class ServerProgress {
  receivedAt=Date.now(); roundTripMs=0;
  current:ProgressEnvelope|null=null; status:ProgressStatus='loading'; message=''; pending:Journal|null=null; candidate:any=null;
  private generation=0;private listeners=new Set<()=>void>();private activeRequest=false;
+ private revision=0;
+ getSnapshot=()=>this.revision;
  private loading:Promise<boolean>|null=null;private acquiring=false;private resolving=false;
  get requestInFlight(){return this.activeRequest||!!this.loading||this.acquiring||this.resolving;}
  constructor(readonly ownerId:string,readonly token:string,private storage:Storage,private request:(path:string,init:RequestInit)=>Promise<any>){
@@ -32,7 +34,7 @@ export class ServerProgress {
  }
  private key(kind:string,epoch?:number){return 'aethelgard_server_'+kind+'_'+this.ownerId+(epoch===undefined?'':'_'+epoch);}
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn);};};
- private emit(){for(const fn of this.listeners)fn();}
+ private emit(){this.revision++;for(const fn of this.listeners)fn();}
  private headers(journal?:Journal){const current=this.current;return {'X-Game-Session':journal?.sessionToken||this.token,'X-Game-Generation':String(journal?.sessionGeneration??current?.sessionGeneration??0),'X-Game-Reset-Version':String(journal?.resetVersion??current?.resetVersion??0),'X-Game-Version':String(journal?.expectedVersion??current?.version??0),...(journal?{'X-Game-Operation':journal.operationId}:{})};}
  /** Called after await. A response belongs to a specific active-session context. */
  accept(next:ProgressEnvelope,context=this.generation,requestStartedAt?:number):boolean {

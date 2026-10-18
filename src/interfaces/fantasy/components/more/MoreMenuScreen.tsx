@@ -5,7 +5,7 @@ import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { SoundControls } from '../../../../components/ui/SoundControls';
 import React, { useEffect, useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { sound } from '../../../../utils/audio';
 import { apiRequest } from '../../../../utils/api';
 import { RpgIcon, type RpgIconKind } from '../ui/RpgIcon';

@@ -11,3 +11,4 @@ coverage/
 .migration-backups/
 tgcloud/lib/gameEngine.js
 tgcloud/lib/native-uk.js
+engine/target/

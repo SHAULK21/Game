@@ -1,6 +1,6 @@
 import {ExpeditionLink} from '../expeditions/ExpeditionScreen';
 import React,{useState} from 'react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {useInterface} from '../../context/InterfaceContext';
 import {t,useLocale} from '../../i18n/locale';
 import {requestGameSection} from '../navigation/gameSections';

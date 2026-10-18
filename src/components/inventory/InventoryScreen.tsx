@@ -6,7 +6,7 @@ import { getPickaxeBonus } from '../../utils/mining';
 import { ASCENSION_FRAGMENT_DESCRIPTION } from '../../data/ascension';
 import { BulkInventoryActions } from './BulkInventoryActions';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { GameItem, ItemType, CharacterClassId } from '../../types/game';
 import { RARITY_COLORS } from '../../data/gameData';
 import {

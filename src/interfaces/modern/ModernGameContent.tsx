@@ -6,7 +6,7 @@ import {ScreenScrollRestorer} from '../../components/navigation/useScreenScroll'
 import {GameSectionMenu} from '../../components/navigation/GameSectionMenu';
 import { t as localize, useLocale } from '../../i18n/locale';
 import React, { lazy, Suspense } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { TopHeader } from '../../components/layout/TopHeader';
 import { BottomNavigation } from '../../components/layout/BottomNavigation';
 import { CombatScreen } from '../../components/combat/CombatScreen';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { t, useLocale } from '../../i18n/locale';
 import { apiRequest } from '../../utils/api';
 import { getTelegramUser, isInsideTelegram } from '../../utils/telegram';

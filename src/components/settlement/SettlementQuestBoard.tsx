@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {t,useLocale} from '../../i18n/locale';
 import {GameDialog} from '../navigation/GameDialog';
 import {RpgIcon} from '../../interfaces/fantasy/components/ui/RpgIcon';

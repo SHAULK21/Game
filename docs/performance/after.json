@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "commit": "20ee3fae45959abf54e8d15b6d497bcc4ba6c486",
+  "at": "2026-10-18T16:47:33.583Z",
+  "environment": {
+    "node": "v24.22.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 7 8840HS w/ Radeon 780M Graphics"
+  },
+  "notes": [
+    "Local Node measurements on synthetic data; not Telegram network latency or mobile FPS.",
+    "Async harness overhead is included; sub-microsecond timings are not a WASM justification.",
+    "Bundle bytes are static import closures, excluding optional screens, images and remote SDK."
+  ],
+  "measurements": [
+    {
+      "name": "incomingAttackRoll",
+      "iterations": 10000,
+      "samples": 9,
+      "medianUs": 0.18125999999999748,
+      "p95Us": 0.41861000000000104,
+      "cpuMedianUs": 0
+    },
+    {
+      "name": "equipmentStats",
+      "iterations": 5000,
+      "samples": 9,
+      "medianUs": 0.5737599999999929,
+      "p95Us": 1.16733999999999,
+      "cpuMedianUs": 0
+    },
+    {
+      "name": "experienceFormula",
+      "iterations": 10000,
+      "samples": 9,
+      "medianUs": 0.18863000000000057,
+      "p95Us": 0.2947000000000003,
+      "cpuMedianUs": 0
+    },
+    {
+      "name": "inventoryFilter500",
+      "iterations": 500,
+      "samples": 9,
+      "medianUs": 34.371399999999994,
+      "p95Us": 43.937999999999874,
+      "cpuMedianUs": 32
+    },
+    {
+      "name": "pvpDuelWithLog",
+      "iterations": 500,
+      "samples": 9,
+      "medianUs": 9.991999999999962,
+      "p95Us": 13.411799999999857,
+      "cpuMedianUs": 30
+    },
+    {
+      "name": "actorRehydrate",
+      "iterations": 40,
+      "samples": 9,
+      "medianUs": 15198.287500000002,
+      "p95Us": 16858.14499999999,
+      "cpuMedianUs": 15250
+    },
+    {
+      "name": "actorProjection",
+      "iterations": 100,
+      "samples": 9,
+      "medianUs": 10.756000000001222,
+      "p95Us": 16.854999999995925,
+      "cpuMedianUs": 0
+    }
+  ],
+  "memory": {
+    "before": {
+      "rss": 102699008,
+      "heapTotal": 22794240,
+      "heapUsed": 17080392,
+      "external": 22256405,
+      "arrayBuffers": 10828347
+    },
+    "after": {
+      "rss": 168177664,
+      "heapTotal": 82362368,
+      "heapUsed": 13175008,
+      "external": 16797541,
+      "arrayBuffers": 9593419
+    }
+  },
+  "bundle": {
+    "entry": {
+      "jsBytes": 826660,
+      "jsGzipBytes": 198761,
+      "cssBytes": 182819,
+      "files": [
+        "assets/index-1E-W8q_F.js",
+        "assets/index-16upQNjg.css",
+        "assets/locale-6m9G2gls.js"
+      ]
+    },
+    "interfaces": {
+      "modern": {
+        "jsBytes": 1147032,
+        "jsGzipBytes": 295605,
+        "cssBytes": 197790,
+        "files": [
+          "assets/entry-DjGd4eEW.js",
+          "assets/entry-Cmb-G4a3.css",
+          "assets/locale-6m9G2gls.js",
+          "assets/index-1E-W8q_F.js",
+          "assets/index-16upQNjg.css",
+          "assets/classEvolution-ljQimWGU.js",
+          "assets/createLucideIcon-BELqFvex.js",
+          "assets/GameScreens-C5OauSKj.js",
+          "assets/SelectionField-Cf-oWQZ2.js",
+          "assets/x-Cbx_pBhq.js",
+          "assets/RegionCompletionReward-D3mzcWQs.js"
+        ]
+      },
+      "fantasy": {
+        "jsBytes": 1140155,
+        "jsGzipBytes": 296648,
+        "cssBytes": 270888,
+        "files": [
+          "assets/entry-DYvxFBUn.js",
+          "assets/entry-BLOXoZda.css",
+          "assets/locale-6m9G2gls.js",
+          "assets/GameScreens-C5OauSKj.js",
+          "assets/index-1E-W8q_F.js",
+          "assets/index-16upQNjg.css",
+          "assets/SelectionField-Cf-oWQZ2.js",
+          "assets/classEvolution-ljQimWGU.js",
+          "assets/createLucideIcon-BELqFvex.js",
+          "assets/registration-Pgruh1U1.js",
+          "assets/registration-IJOXqEGP.css",
+          "assets/sparkles-yowi7iIe.js",
+          "assets/heroArtwork-5f9sH9ZE.js",
+          "assets/FantasyLayout-BJAZxUWI.js"
+        ]
+      },
+      "fantasy-beta": {
+        "jsBytes": 1142776,
+        "jsGzipBytes": 297425,
+        "cssBytes": 338002,
+        "files": [
+          "assets/entry-CeRdoFdr.js",
+          "assets/entry-D7bEWsF_.css",
+          "assets/locale-6m9G2gls.js",
+          "assets/GameScreens-C5OauSKj.js",
+          "assets/index-1E-W8q_F.js",
+          "assets/index-16upQNjg.css",
+          "assets/SelectionField-Cf-oWQZ2.js",
+          "assets/classEvolution-ljQimWGU.js",
+          "assets/createLucideIcon-BELqFvex.js",
+          "assets/registration-Pgruh1U1.js",
+          "assets/registration-IJOXqEGP.css",
+          "assets/sparkles-yowi7iIe.js",
+          "assets/heroArtwork-5f9sH9ZE.js",
+          "assets/FantasyBetaLayout-CMxEBkwS.js"
+        ]
+      }
+    },
+    "totalJsBytes": 1900601
+  }
+}

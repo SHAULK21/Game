@@ -4,7 +4,7 @@ import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { createOperationId } from '../../../../utils/operationId';
 import React,{useEffect,useState} from 'react';
 import {apiRequest} from '../../../../utils/api';
-import {useGame} from '../../../../context/GameContext';
+import {useGame} from '../../../../context/GameStateContext';
 import {STANCE_LABELS,PVP_CLASS_NAMES,type PvpStance} from '../../../../utils/pvp';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, RpgButton } from '../ui/BestiaryUI';

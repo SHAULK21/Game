@@ -3,7 +3,7 @@ import {useGlobalChat} from '../../hooks/useGlobalChat';
 import { t as localize, useLocale } from '../../i18n/locale';
 import React from 'react';
 import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 
 export const ChatScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { locale } = useLocale();

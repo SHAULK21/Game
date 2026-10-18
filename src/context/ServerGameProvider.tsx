@@ -1,6 +1,6 @@
 import {ServerProgressContext as ServerContext} from './ServerProgressContext';
 import React,{createContext,useContext,useEffect,useMemo,useState,useRef} from 'react';
-import {GameContext,type RuntimeGameContext} from './GameContext';
+import {GameContext,type RuntimeGameContext} from './GameStateContext';
 import {ServerProgress,ProgressRequestError} from '../utils/serverProgress';
 import {getTelegramUser,getTelegramWebApp,triggerHaptic} from '../utils/telegram';
 import {getLanguage,t,useLocale} from '../i18n/locale';
@@ -72,7 +72,7 @@ export function ServerGameProvider({children}:React.PropsWithChildren){
   v.startMiningExpedition=v.claimMiningExpedition=v.leaveMiningExpedition=()=>({success:false,message:'Откройте раздел «Экспедиции».'});
   v.sendChatMessage=()=>{};
   return v as RuntimeGameContext;
- },[client,view,locale,client.status]);
+ },[client,view,locale]);
  const uk=locale==='uk',snapshot=client.current;
  if(!snapshot)return <>{client.message&&<StartupReady/>}<section className="p-6 text-center" role="status"><p>{t('Загрузка персонажа…')}</p>{client.message&&<p>{client.message}</p>}<button className="min-h-11 underline" onClick={()=>void client.load()}>{t('Повторить')}</button></section></>;
  const choose=!!client.candidate&&!skipLocal;

@@ -1,5 +1,5 @@
 import { intoxicationPercent } from '../../utils/tavernBeer';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { useLocale } from '../../i18n/locale';
 import { flightBattlesLeft } from '../../utils/flightPenalty';
 export function FlightPenaltyNotice() {

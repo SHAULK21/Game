@@ -1,5 +1,5 @@
 import {useLayoutEffect, useMemo} from 'react';
-import {useGame} from './GameContext';
+import {useGame} from './GameStateContext';
 import {useInterface} from './InterfaceContext';
 import {useGameOperation} from '../utils/gameOperations';
 /** Connects persistence/action guards without coupling presentation to game state. */

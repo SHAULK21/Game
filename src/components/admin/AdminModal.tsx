@@ -5,7 +5,7 @@ import { AdminPlayerReset } from './AdminPlayerReset';
 import { createOperationId } from '../../utils/operationId';
 import {AdminBroadcasts} from './AdminBroadcasts';
 import React, { useEffect, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { 
   ShieldAlert, 
   Coins, 

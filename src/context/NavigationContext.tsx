@@ -3,7 +3,7 @@ import {inSettlement,SETTLEMENT_TABS} from '../utils/worldPresence';
 import {getTelegramUser} from '../utils/telegram';
 import {readResetVersion} from '../utils/accountReset';
 import React, { createContext, useContext, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useGame } from './GameContext';
+import { useGame } from './GameStateContext';
 import type { GameTabId } from '../types/navigation';
 
 interface NavigationState {

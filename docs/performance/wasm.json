@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "at": "2026-10-18T16:37:15.185Z",
+  "node": "v24.22.0",
+  "cpu": "AMD Ryzen 7 8840HS w/ Radeon 780M Graphics",
+  "initMs": 24.052700000000016,
+  "wasmBytes": 17360,
+  "wasmGzipBytes": 7891,
+  "memoryBefore": 1114112,
+  "memoryAfter": 1507328,
+  "rows": [
+    {
+      "size": 1,
+      "iterations": 10000,
+      "ts": {
+        "medianUs": 0.4689500000000009,
+        "p95Us": 0.9020700000000034
+      },
+      "wasmPrepared": {
+        "medianUs": 0.5956199999999967,
+        "p95Us": 1.1599699999999984
+      },
+      "wasmWithPacking": {
+        "medianUs": 0.67971,
+        "p95Us": 1.0677500000000009
+      },
+      "wasmSafeAdapter": {
+        "medianUs": 1.934389999999996,
+        "p95Us": 2.671840000000009
+      },
+      "fullAdapterSpeedup": 0.24242784547066615
+    },
+    {
+      "size": 32,
+      "iterations": 1000,
+      "ts": {
+        "medianUs": 5.010099999999966,
+        "p95Us": 6.311400000000049
+      },
+      "wasmPrepared": {
+        "medianUs": 1.9481000000000677,
+        "p95Us": 2.29219999999998
+      },
+      "wasmWithPacking": {
+        "medianUs": 6.082199999999943,
+        "p95Us": 11.201400000000033
+      },
+      "wasmSafeAdapter": {
+        "medianUs": 9.113299999999981,
+        "p95Us": 16.63689999999997
+      },
+      "fullAdapterSpeedup": 0.5497569486355082
+    },
+    {
+      "size": 512,
+      "iterations": 100,
+      "ts": {
+        "medianUs": 64.25899999999956,
+        "p95Us": 68.80899999999883
+      },
+      "wasmPrepared": {
+        "medianUs": 14.510999999999967,
+        "p95Us": 16.052000000001954
+      },
+      "wasmWithPacking": {
+        "medianUs": 76.48200000000088,
+        "p95Us": 87.20599999999877
+      },
+      "wasmSafeAdapter": {
+        "medianUs": 136.10100000000102,
+        "p95Us": 178.09899999999973
+      },
+      "fullAdapterSpeedup": 0.47214201218212265
+    },
+    {
+      "size": 4096,
+      "iterations": 20,
+      "ts": {
+        "medianUs": 604.0700000000015,
+        "p95Us": 660.4649999999992
+      },
+      "wasmPrepared": {
+        "medianUs": 128.74500000000353,
+        "p95Us": 224.9749999999949
+      },
+      "wasmWithPacking": {
+        "medianUs": 543.7000000000012,
+        "p95Us": 617.6950000000033
+      },
+      "wasmSafeAdapter": {
+        "medianUs": 951.9549999999981,
+        "p95Us": 1185.1149999999961
+      },
+      "fullAdapterSpeedup": 0.6345573057550018
+    }
+  ],
+  "note": "Local Node/V8 synthetic benchmark, not mobile FPS or network latency. Prepared-array speed excludes object conversion. Use full adapter cost for adoption decisions."
+}

@@ -8,7 +8,7 @@ import { t as localize, useLocale } from '../../../../i18n/locale';
 import { huntLockReason, regionProgress, huntingModeLockReason } from '../../../../utils/regionalProgress';
 import { predictedMonsterSkill } from '../../../../utils/autoBattle';
 import React, { lazy, Suspense, useState, useRef, useEffect } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { MONSTERS, REGIONS, CAVES, REGION_MODIFIERS, CLASSES, ASSETS, getRegionMonster } from '../../data/gameData';
 import { getBattleScene } from '../../../../components/combat/BattleBackdrop';
 import { RpgIcon } from '../ui/RpgIcon';

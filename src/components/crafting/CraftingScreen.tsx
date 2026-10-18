@@ -3,7 +3,7 @@ import { t as localize, useLocale } from '../../i18n/locale';
 import { craftStageLockReason, regionalSealName } from '../../utils/regionalProgress';
 import { smithingProgress } from '../../utils/professions';
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import {
   BASIC_CRAFT_RECIPES, CRAFT_RARITY_CHANCES, MINE_CATALYST_BY_ORE,
   MINING_NODES, MONSTERS, RARITY_COLORS, REGIONAL_TROPHIES, REGIONS,

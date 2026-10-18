@@ -1,6 +1,6 @@
 import { SelectionField } from '../ui/SelectionField';
 import React, { useEffect, useRef, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { useInterface } from '../../context/InterfaceContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';

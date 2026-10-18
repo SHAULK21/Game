@@ -5,7 +5,7 @@ import type { ItemRarity } from '../../../../types/game';
 import { STAT_LABELS } from '../../../../utils/statLabels';
 import { getEffectiveGearStats } from '../../../../utils/classEquipment';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { apiRequest } from '../../../../utils/api';
 import { triggerHaptic } from '../../../../utils/telegram';
 import { calculateMarketSale } from '../../../../utils/marketEconomy';

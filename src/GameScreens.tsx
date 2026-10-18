@@ -9,7 +9,7 @@ import { LanguageSync } from './i18n/LanguageSync';
 import React, { Suspense, useEffect } from 'react';
 import { CharacterCreationModal } from './components/dialogs/CharacterCreationModal';
 
-import {useGame} from './context/GameContext';
+import {useGame} from './context/GameStateContext';
 
 export const GameScreens = ({Content}: {Content: React.ComponentType}) => {
   useLocale();

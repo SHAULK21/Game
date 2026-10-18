@@ -2,7 +2,7 @@ import {useChatScroll} from '../../../../hooks/useChatScroll';
 import {useGlobalChat} from '../../../../hooks/useGlobalChat';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';
 

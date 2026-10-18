@@ -5,7 +5,7 @@ import {BetaBottomNavigation} from '../fantasy/components/layout/BetaBottomNavig
 import {BetaBookPage,BetaPageTurn,type BetaBookTab} from '../fantasy/components/ui/BetaBookPage';
 import {useBookBounds} from '../fantasy/components/layout/useBookBounds';
 import {useNavigation} from '../../context/NavigationContext';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 function Surface({page,children}:React.PropsWithChildren<{page:string}>) { return page === 'hunter' ? <>{children}</> : <BetaBookPage page={page as BetaBookTab}>{children}</BetaBookPage>; }
 export function FantasyBetaLayout() {
   const {currentTab,isCharacterSheetOpen} = useNavigation();

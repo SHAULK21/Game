@@ -1,6 +1,6 @@
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import React, { useState, useRef, useEffect } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { ALCHEMY_RECIPES } from '../../data/gameData';
 import { ALCHEMY_TOOLS, getAlchemyToolBonus, alchemyProgress, alchemyExperience } from '../../../../utils/alchemy';
 import { RARITY_COLORS } from '../../data/gameData';

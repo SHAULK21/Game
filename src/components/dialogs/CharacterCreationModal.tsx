@@ -4,7 +4,7 @@ import { t as localize, useLocale } from '../../i18n/locale';
 import {useRegistrationPresentation} from '../../context/InterfacePresentationContext';
 import { InterfaceSwitcher } from '../ui/InterfaceSwitcher';
 import React, { useLayoutEffect, useState } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { CharacterClassId } from '../../types/game';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import { getTelegramUser } from '../../utils/telegram';

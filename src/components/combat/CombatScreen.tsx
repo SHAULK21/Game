@@ -11,7 +11,7 @@ import { huntLockReason, regionProgress, huntingModeLockReason } from '../../uti
 import { predictedMonsterSkill } from '../../utils/autoBattle';
 import { talentManaCost } from '../../data/talents';
 import React, { useState, useRef, useEffect } from 'react';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { 
   Swords, 
   Shield, 

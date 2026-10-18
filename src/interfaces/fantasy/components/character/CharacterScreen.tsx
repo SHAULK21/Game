@@ -3,7 +3,7 @@ import { FirstJourneyHint } from '../../../../components/character/FirstJourneyH
 import { HeroReferenceArt } from '../ui/HeroReferenceArt';
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { CLASSES, ASSETS } from '../../data/gameData';
 import type { CharacterAttributes, ItemType } from '../../../../types/game';
 import { TalentTree } from '../../../../components/character/TalentTree';

@@ -1,3 +1,6 @@
+import {calculateTypedDamage} from '../utils/typedDamage';
+import {GameContext} from './GameStateContext';
+export {GameContext,useGame} from './GameStateContext';
 import {MAX_STACK_COUNT,validStackCount} from '../utils/stackRules';
 import type {GameEngineRuntime} from '../game/engineRuntime';
 import {MINING_EXPEDITION_POOLS} from '../game/expeditions/catalog';
@@ -251,7 +254,6 @@ const consumeIngredients = (inventory: GameItem[], ingredients: Array<{ name: st
 
 type SynchronousUI = 'commitSwitchSnapshot' | 'flushProgress' | 'getInterfaceSwitchBlockReason';
 export type RuntimeGameContext = {[K in keyof GameContextType]: K extends SynchronousUI ? GameContextType[K] : GameContextType[K] extends (...args:infer A)=>infer R ? (...args:A)=>R|Promise<Awaited<R>> : GameContextType[K]};
-export const GameContext = createContext<RuntimeGameContext | undefined>(undefined);
 
 const clampResistance = (value: number) => Math.max(-75, Math.min(85, value));
 
@@ -266,41 +268,6 @@ const getTargetResistance = (
 ) => {
   if (!resistances || damageType === 'true') return 0;
   return clampResistance(resistances[damageType as keyof import('../types/game').ResistanceMap] ?? 0);
-};
-
-const calculateTypedDamage = ({
-  power,
-  multiplier,
-  damageType,
-  targetDefense,
-  targetMagicDefense,
-  armorPenetration,
-  targetResistances,
-  extraDamageMultiplier = 1
-}: {
-  power: number;
-  multiplier: number;
-  damageType: import('../types/game').DamageType;
-  targetDefense: number;
-  targetMagicDefense: number;
-  armorPenetration: number;
-  targetResistances?: Partial<import('../types/game').ResistanceMap>;
-  extraDamageMultiplier?: number;
-}) => {
-  if (damageType === 'true') {
-    return Math.max(1, Math.round(power * multiplier * extraDamageMultiplier));
-  }
-
-  const raw = Math.max(1, power * multiplier);
-  const defense = damageType === 'physical'
-    ? Math.max(0, targetDefense - armorPenetration)
-    : Math.max(0, targetMagicDefense);
-  const mitigation = defense / (defense + (damageType === 'physical' ? 75 : 90));
-  const resistance = getTargetResistance(damageType, targetResistances);
-  return Math.max(
-    1,
-    Math.round(raw * (1 - mitigation) * (1 - resistance / 100) * extraDamageMultiplier)
-  );
 };
 
 const addOrStackInventoryItem = (inventory: GameItem[], item: GameItem, maxSlots: number) => {
@@ -4226,12 +4193,4 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
 export const GameProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
   const game=useGameEngine();
   return <GameContext.Provider value={game}>{children}</GameContext.Provider>;
-};
-
-export const useGame = () => {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame must be used within a GameProvider');
-  }
-  return context;
 };

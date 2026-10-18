@@ -1,6 +1,6 @@
 import React from 'react';
 import { t as localize, useLocale } from '../../i18n/locale';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../context/GameStateContext';
 import { GameItem, ItemType } from '../../types/game';
 import { ItemArtwork } from '../../components/ui/ItemArtwork';
 import { RpgIcon } from '../../components/ui/RpgIcon';

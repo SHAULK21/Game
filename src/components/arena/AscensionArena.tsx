@@ -1,6 +1,6 @@
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import React,{useState} from 'react';
-import {useGame} from '../../context/GameContext';
+import {useGame} from '../../context/GameStateContext';
 import {ASCENSION_FRAGMENT_DESCRIPTION,ASCENSION_ECHOES,ascensionWeek,ascensionSeason,ASCENSION_RANKS,ASCENSION_STAGES,nextAscensionStage,passiveChoices,ascensionBonuses,ascensionSkills,fragmentCount,type AscensionPath} from '../../data/ascension';
 
 export const AscensionArena:React.FC<{onEnterCombatTab?:()=>void}>=({onEnterCombatTab})=>{

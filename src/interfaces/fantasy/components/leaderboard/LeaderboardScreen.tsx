@@ -1,6 +1,6 @@
 import { t as localize, useLocale } from '../../../../i18n/locale';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useGame } from '../../../../context/GameContext';
+import { useGame } from '../../../../context/GameStateContext';
 import { apiRequest } from '../../../../utils/api';
 import { RpgIcon } from '../ui/RpgIcon';
 import { BestiaryPanel, FolioPage, RpgButton } from '../ui/BestiaryUI';

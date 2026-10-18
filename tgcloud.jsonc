@@ -3,6 +3,7 @@
   "static": {
     "source": "dist",
     "spa": true,
+    "immutable": ["/assets/*.js", "/assets/*.css"],
     "headers": [
       {"path": "/index.html", "set": {"Cache-Control": "no-store"}}
     ]
