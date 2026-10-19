@@ -49,6 +49,9 @@ test('individual action timing has narrow bounded ranges, different creature rhy
       assert.equal(sampleMonsterDelay(monster,kind,false,()=>0),range[0]);
       assert.equal(sampleMonsterDelay(monster,kind,false,()=>1),range[1]);
       assert(monsterDelayRange(monster,kind,true)[1]<range[0]);
+      assert.deepEqual(monsterDelayRange(monster,kind,true),[0,0]);
+      assert.equal(sampleMonsterDelay(monster,kind,true,()=>0),0);
+      assert.equal(sampleMonsterDelay(monster,kind,true,()=>1),0);
     }
     assert.equal(new Set(ranges).size,4);
   }

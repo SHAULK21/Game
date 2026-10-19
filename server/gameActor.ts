@@ -156,12 +156,21 @@ export class GameActor {
     throw new Error('Game lifecycle did not settle.');
   }
   async initialize() {this.module = await loadGameEngine(); this.render(); return this;}
-  /** One due deadline per request prevents an offline request replaying hours of
-   * automatic combat. Remaining deadlines are resolved on subsequent requests. */
+  /** Resolve ready combat stages together, at most once per stage per request.
+   * At most one automatic player action prevents hours of offline catch-up. */
   tick() {
     this.render();
-    const due = Object.entries(this.timers).filter(([key, timer]) => timer.deadline <= this.now() && this.timerCallbacks.has(key) && (this.options.automationAllowed !== false || !/^actor:(?:playerAuto|chainAuto):timer:/.test(key))).sort((a, b) => a[1].deadline - b[1].deadline)[0];
-    if (due) {const callback = this.timerCallbacks.get(due[0])!; delete this.timers[due[0]]; callback(); this.render();}
+    const completed = new Set<string>();
+    for (let stage = 0; stage < 4; stage++) {
+      const due = Object.entries(this.timers).filter(([key, timer]) => timer.deadline <= this.now()
+        && !completed.has(key) && this.timerCallbacks.has(key)
+        && (stage === 0 || /^actor:(?:playerAuto|chainAuto|monster|monsterSkill):timer:/.test(key))
+        && (this.options.automationAllowed !== false || !/^actor:(?:playerAuto|chainAuto):timer:/.test(key)))
+        .sort((a, b) => a[1].deadline - b[1].deadline)[0];
+      if (!due) break;
+      const callback = this.timerCallbacks.get(due[0])!;
+      completed.add(due[0]); delete this.timers[due[0]]; callback(); this.render();
+    }
     return this.view;
   }
   /** Called only by the finite command dispatcher, never by a method name supplied

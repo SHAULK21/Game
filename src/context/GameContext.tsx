@@ -2979,6 +2979,10 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
       setCombatNarration(lines);
     }
     const plan = monsterPlan.current;
+    if (autoBattle.enabled) {
+      plan.preparationDeadline = Math.min(plan.preparationDeadline, Date.now());
+      plan.deadline = Math.min(plan.deadline, Date.now());
+    }
     const timer = setTimeout(() => {
       const currentTurn = combatRound;
       const newLogs: BattleLogEntry[] = [];
@@ -3186,14 +3190,14 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
       setActiveMonster(prev => prev ? { ...advanceMonsterCooldowns(prev, skill), potionCharges: Math.max(0, (prev.potionCharges || 0) - (monsterActionKind(skill) === 'potion' ? 1 : 0)), mp: Math.min(prev.maxMp, Math.max(0, prev.mp - skill.manaCost) + Math.ceil(prev.maxMp * .03)) } : null);
       setPlayer(prev => prev ? { ...prev, skills: prev.skills.map(s => ({ ...s, currentCooldown: Math.max(0, (s.currentCooldown || 0) - 1) })) } : prev);
       setBattleLog(prev => [...prev, ...logs]);
-    }, Math.max(0, (monsterPlan.current?.deadline || Date.now()) - Date.now()));
+    }, autoBattle.enabled ? 0 : Math.max(0, (monsterPlan.current?.deadline || Date.now()) - Date.now()));
     return () => clearTimeout(timer);
   }, [monsterIntent, isInCombat, isCombatEnded, activeMonster, player, turnPhase, combatRound, playerEffects, combatStats, combatPlayerHp, monsterEffects, activeDungeonRun, autoBattle.enabled]);
 
   // Auto-battle loop (continues the encounter chain without leaving combat).
   /* @actor-effect chainAuto:timer */ useEffect(() => {
     if (player?.adventureJournal?.pending || !autoBattle.enabled || !isInCombat || !isCombatEnded || combatOutcome !== 'victory' || !combatChain || combatChain.queue.length === 0) return;
-    const timer = setTimeout(() => { startNextCombatBattle(); }, 700);
+    const timer = setTimeout(() => { startNextCombatBattle(); }, 0);
     return () => clearTimeout(timer);
   }, [player?.adventureJournal?.pending, autoBattle.enabled, isInCombat, isCombatEnded, combatOutcome, combatChain, startNextCombatBattle]);
 
@@ -3205,7 +3209,7 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
       const decision = chooseAutoBattleAction({player:{...player,inventory:player.inventory.filter(item => item.type !== 'potion' || !potionUsedThisTurn(item, usedPotionsRef.current))},monster:activeMonster,stats:combatStats,hp:combatPlayerHp,mp:combatPlayerMp,
         playerEffects,monsterEffects,settings:autoBattle,damageMultiplier:combatHuntingMode(activeMonster).damageMultiplier});
       performPlayerAction(decision.action, decision.id);
-    }, 600);
+    }, 0);
 
     return () => clearTimeout(timer);
   }, [autoBattle.enabled, isInCombat, isCombatEnded, activeMonster, turnPhase, player, combatPlayerHp, combatPlayerMp, combatStats, playerEffects, monsterEffects, performPlayerAction]);

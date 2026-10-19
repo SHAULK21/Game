@@ -10,14 +10,15 @@ export function monsterActionKind(skill?: MonsterSkill | null): MonsterActionKin
 }
 /** Identity and speed set the rhythm; randomness only adds a small bounded jitter. */
 export function monsterDelayRange(monster: Monster, kind: MonsterActionKind, fast = false): [number, number] {
+  if (fast) return [0, 0];
   const hash = identityHash(monster.id + ':' + kind);
   const base = { attack: 620, super: 1080, defend: 760, potion: 940 }[kind];
   const min = Math.max(480, base + hash % 221 - Math.min(110, Math.max(0, monster.speed) * 2));
   const width = 100 + hash % 81;
-  const pace = fast ? .7 : 1;
-  return [Math.round(min * pace), Math.round((min + width) * pace)];
+  return [min, min + width];
 }
 export function sampleMonsterDelay(monster: Monster, kind: MonsterActionKind, fast = false, random = Math.random): number {
+  if (fast) return 0;
   const [min, max] = monsterDelayRange(monster, kind, fast);
   return min + Math.floor(Math.max(0, Math.min(.999999, random())) * (max - min + 1));
 }
