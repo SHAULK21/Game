@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {NativePool} from '../server/native/pool';
 import {GameStore} from '../server/gameStore';
+import {loadGameEngine} from '../server/gameActor';
+import {validateLegacyProgress} from '../server/progressValidation';
 
 test('native merging commits ownership and receipt once, survives reload and ignores forged client stats', async () => {
   const now = 1792272000000, identity = {id: 9761, displayName: 'Merge'}, sessionToken = crypto.randomUUID();
@@ -18,6 +20,11 @@ test('native merging commits ownership and receipt once, survives reload and ign
   };
   const baseId = issue(identity.id), donorId = issue(identity.id), foreignId = issue(9762);
   view = await store.load(identity, sessionToken);
+  const legacy = structuredClone(view.save!);
+  legacy.player.inventory = legacy.player.inventory.map(i => ({...i, serverOwned:false, mergeLevel:10}));
+  const admitted = validateLegacyProgress(legacy, identity.id, 0, await loadGameEngine());
+  assert.ok(admitted.player.inventory.length > 0);
+  assert.ok(admitted.player.inventory.every(i => i.mergeLevel === undefined), 'legacy browser input cannot mint fusion tiers');
   const request = op(), command = {type:'mergeItems', baseId, donorId, item:{mergeLevel:10, stats:{attack:999999}}, chance:1};
   const merged = await store.operation(identity, request, command);
   assert.equal((merged.operation.result as any).success, true);
@@ -46,6 +53,7 @@ test('native merging commits ownership and receipt once, survives reload and ign
   try {Math.random = () => 0.99; failed = await store.operation(identity, failureRequest, failureCommand);}
   finally {Math.random = random;}
   assert.equal((failed.operation.result as any).success, false);
+  assert.match((failed.operation.result as any).message, /Второй предмет израсходован/);
   assert.equal(failed.save!.player.equipped.weapon!.mergeLevel, 9);
   assert.equal(failed.save!.player.equipped.weapon!.upgradeLevel, 7);
   assert.equal(pool.table('owned_items').some(i => i.id === nextDonor), false);
