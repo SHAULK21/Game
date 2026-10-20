@@ -16,7 +16,7 @@ import { useNavigation } from '../../context/NavigationContext';
 const FishingScreen = lazy(() => import('../../components/fishing/FishingScreen').then(module => ({ default: module.FishingScreen })));
 const WorldScreen = lazy(() => import('./components/world/WorldScreen').then(module => ({ default: module.WorldScreen })));
 const ArenaScreen = lazy(() => import('./components/arena/ArenaScreen').then(module => ({ default: module.ArenaScreen })));
-const InventoryScreen = lazy(() => import('../../components/inventory/FlutterInventoryScreen').then(module => ({ default: module.FlutterInventoryScreen })));
+const InventoryScreen = lazy(() => import('./components/inventory/InventoryScreen').then(module => ({ default: module.InventoryScreen })));
 const BlacksmithScreen = lazy(() => import('./components/blacksmith/BlacksmithScreen').then(module => ({ default: module.BlacksmithScreen })));
 const CraftingScreen = lazy(() => import('./components/crafting/CraftingScreen').then(module => ({ default: module.CraftingScreen })));
 const AlchemyScreen = lazy(() => import('./components/alchemy/AlchemyScreen').then(module => ({ default: module.AlchemyScreen })));
