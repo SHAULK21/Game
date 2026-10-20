@@ -5,6 +5,8 @@
     "spa": true,
     "headers": [
       {"path": "/index.html", "set": {"Cache-Control": "no-store"}},
+      {"path": "/flutter-inventory.json", "set": {"Cache-Control": "no-store"}},
+      {"path": "/flutter-inventory/*", "set": {"Cache-Control": "public, max-age=3600"}},
       {"path": "/assets/*", "set": {"Cache-Control": "public, max-age=3600"}}
     ]
   }

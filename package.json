@@ -26,6 +26,9 @@
     "serverless:login": "tgcloud login",
     "build:native": "node scripts/build-native-engine.mjs",
     "build:telegram": "node scripts/build-telegram.mjs",
+    "flutter:build": "node scripts/build-flutter-inventory.mjs",
+    "flutter:test": "node scripts/build-flutter-inventory.mjs --test",
+    "flutter:analyze": "node scripts/build-flutter-inventory.mjs --analyze",
     "test:native": "node --import tsx --test --test-timeout=20000 tests/serverless-*.test.ts",
     "deploy": "npm run lint && npm run build:telegram && npm run test:native && npm run serverless:audit && tgcloud push"
   },
