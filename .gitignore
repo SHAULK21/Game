@@ -12,3 +12,8 @@ coverage/
 tgcloud/lib/gameEngine.js
 tgcloud/lib/native-uk.js
 engine/target/
+flutter/inventory/.dart_tool/
+flutter/inventory/build/
+flutter/inventory/.flutter-plugins*
+public/flutter-inventory/
+public/flutter-inventory.json

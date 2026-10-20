@@ -1,0 +1,21 @@
+name: aethelgard_inventory
+description: Embedded inventory for the Aethelgard Telegram Mini App.
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: InventorySans
+      fonts:
+        - asset: assets/NotoSans-Regular.ttf
+    - family: InventorySymbols
+      fonts:
+        - asset: assets/NotoSansSymbols2-Regular.ttf
