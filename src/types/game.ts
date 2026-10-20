@@ -91,6 +91,7 @@ export interface GameItem {
   image?: string;
   level: number;
   upgradeLevel: number; // +0 to +25
+  mergeLevel?: number; // Independent fusion tier, 0 to 10; absent on legacy items.
   icon: string;
   description?: string;
   baseAttack?: number;

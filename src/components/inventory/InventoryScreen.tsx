@@ -142,7 +142,7 @@ const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equip
         </div>
         <div className="text-[9px] text-slate-400 flex items-center justify-between gap-1">
           <span>{localize("Ур.")}{localize(item.level)}</span>
-          <span className="text-amber-300 font-bold">{localize(item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0')}</span>
+          <span className="text-amber-300 font-bold">{item.mergeLevel ? `◆${item.mergeLevel} · ` : ''}{localize(item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0')}</span>
         </div>
         <ClassGearBonus item={item} characterClass={characterClass} compact />
       </button>
@@ -383,7 +383,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     <h3 id="modern-item-title" className="font-cinzel text-sm font-bold text-slate-100 break-words">
                       {localize(currentSelected.name)}
                     </h3>
-                    <span className="text-amber-300 text-xs font-mono">+{localize(currentSelected.upgradeLevel)}</span>
+                    <span className="text-amber-300 text-xs font-mono">+{localize(currentSelected.upgradeLevel)}{currentSelected.mergeLevel ? ` · ◆${currentSelected.mergeLevel}` : ''}</span>
                   </div>
                   <div className="text-[10px] text-slate-400 mt-0.5">
                     {localize(TYPE_LABELS[currentSelected.type])}{localize(" · Ур. ")}{localize(currentSelected.level)} · {localize(RARITY_COLORS[currentSelected.rarity].label)}

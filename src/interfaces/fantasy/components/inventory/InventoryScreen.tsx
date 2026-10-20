@@ -114,7 +114,7 @@ const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equip
       <InventoryArt item={item} size={42} />
       {style === 'fantasy-beta' && <span className="beta-item-name">{localize(item.name)}<small>{localize('Ур.')} {localize(item.level)}</small></span>}
       <span className="inventory-bag-quantity">{localize(item.stackCount || 1)}</span>
-      {item.upgradeLevel>0 && <span className="inventory-bag-upgrade">+{item.upgradeLevel}</span>}
+      {(item.upgradeLevel>0 || !!item.mergeLevel) && <span className="inventory-bag-upgrade">+{item.upgradeLevel || 0}{item.mergeLevel ? ` · ◆${item.mergeLevel}` : ''}</span>}
       {equipped && <span className="inventory-bag-state">{localize('НАДЕТО')}</span>}
       {item.isLocked && <span className="inventory-bag-state">{localize('Защитить от продажи')}</span>}
     </button>;
@@ -291,7 +291,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     <h3 id="selected-item-title" className="inventory-detail-title">
                       {localize(currentSelected.name)}
                     </h3>
-                    <span className="inventory-ink text-xs font-mono">+{localize(currentSelected.upgradeLevel)}</span>
+                    <span className="inventory-ink text-xs font-mono">+{localize(currentSelected.upgradeLevel)}{currentSelected.mergeLevel ? ` · ◆${currentSelected.mergeLevel}` : ''}</span>
                   </div>
                   <div className="text-[11px] inventory-ink mt-0.5">
                     {localize(TYPE_LABELS[currentSelected.type])}{localize(" · Ур. ")}{localize(currentSelected.level)} · {localize(RARITY_COLORS[currentSelected.rarity].label)}

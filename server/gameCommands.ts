@@ -39,6 +39,7 @@ export async function executeGameCommand(actor: GameActor, command: GameCommand)
     case 'toggleItemLock': return actor.invoke('toggleItemLock', owned(actor, command.itemId).id);
     case 'expandInventory': return actor.invoke('expandInventory');
     case 'upgradeItem': return actor.invoke('upgradeItem', owned(actor, command.itemId), boolean(command.useProtection));
+    case 'mergeItems': return actor.invoke('mergeItems', string(command.baseId)!, owned(actor, command.donorId).id);
     case 'claimRegionCompletion': return actor.invoke('claimRegionCompletion', string(command.regionId)!);
     case 'drinkBeer': return actor.invoke('drinkBeer');
     case 'dismissFlightWarning': return actor.invoke('dismissFlightWarning');

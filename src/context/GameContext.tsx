@@ -29,6 +29,7 @@ import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
 import { useBalanceTelemetry as browserBalanceTelemetry } from '../hooks/useBalanceTelemetry';
 import { sharpeningQuote, SHARPENABLE_TYPES } from '../utils/sharpening';
+import { mergePlayerItems } from '../utils/itemMerging';
 import { smithingQuality, smithingExperience } from '../utils/professions';
 import { applyDungeonDifficulty, DUNGEON_DIFFICULTIES } from '../utils/dungeonRewards';
 import { applyHuntingMode, combatHuntingMode } from '../utils/huntingModes';
@@ -154,6 +155,7 @@ export interface GameContextType {
   refreshServerInventory: () => Promise<void>;
   expandInventory: () => { success: boolean; message: string };
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
+  mergeItems: (baseId: string, donorId: string) => { success: boolean; message: string };
   drinkBeer: () => { success: boolean; message: string };
   claimRegionCompletion: (regionId: string) => void;
   setActiveRegionMod: (modId: string) => void;
@@ -1877,6 +1879,18 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
     triggerHaptic('success');
     return { success: true, message: `Сумка расширена: +5 слотов, всего ${player.maxInventorySlots + 5}. Потрачено ${cost.toLocaleString('ru-RU')} золота.` };
   }, [player, premium.active]);
+
+  const mergeItems = useCallback((baseId: string, donorId: string) => {
+    if (!player) return {success: false, message: 'Персонаж не найден.'};
+    if ([...player.inventory, ...Object.values(player.equipped)].some(i => i && [baseId, donorId].includes(i.id) && i.serverOwned)) return {success: false, message: 'Для объединения серверных вещей откройте игру в Telegram.'};
+    const roll = Math.random(), merged = mergePlayerItems(player, baseId, donorId, roll);
+    if (merged.player !== player) {
+      setPlayer(prev => prev ? mergePlayerItems(prev, baseId, donorId, roll).player : prev);
+      if (merged.result.success) sound.playUpgradeSuccess(); else sound.playUpgradeFail();
+      triggerHaptic(merged.result.success ? 'success' : 'warning');
+    }
+    return merged.result;
+  }, [player]);
 
   // Blacksmith sharpening
   const upgradeItem = useCallback((item: GameItem, useProtection: boolean): { success: boolean; message: string } => {
@@ -4140,6 +4154,7 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
       refreshServerInventory,
       expandInventory: (...args)=>servicesAvailable()?expandInventory(...args):serviceFailure,
       upgradeItem: (...args)=>servicesAvailable()?upgradeItem(...args):serviceFailure,
+      mergeItems: (...args)=>servicesAvailable()?mergeItems(...args):serviceFailure,
       drinkBeer,
       claimRegionCompletion,
       setActiveRegionMod,

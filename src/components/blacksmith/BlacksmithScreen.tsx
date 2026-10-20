@@ -1,3 +1,5 @@
+import {ItemMergePanel} from './ItemMergePanel';
+import {mergingMultiplier,mergeLevel} from '../../utils/itemMerging';
 import { ItemSelector } from '../ui/ItemSelector';
 import { t as localize, useLocale } from '../../i18n/locale';
 import { sharpeningQuote, sharpeningMultiplier, SHARPENABLE_TYPES } from '../../utils/sharpening';
@@ -69,6 +71,7 @@ export const BlacksmithScreen: React.FC = () => {
         </div>
       </div>
 
+      <ItemMergePanel />
       {/* Item Selection Carousel / Selector */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs font-mono text-slate-400">
@@ -118,9 +121,9 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Физическая атака:")}</span>
                 <span className="text-slate-200 font-bold">
-                  {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel)))} →{localize(' ')}
+                  {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel) * mergingMultiplier(mergeLevel(currentItem))))} →{localize(' ')}
                   <span className="text-emerald-400">
-                    {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel + 1)))}
+                    {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel + 1) * mergingMultiplier(mergeLevel(currentItem))))}
                   </span>
                 </span>
               </div>
@@ -129,9 +132,9 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Физическая защита:")}</span>
                 <span className="text-slate-200 font-bold">
-                  {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel)))} →{localize(' ')}
+                  {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel) * mergingMultiplier(mergeLevel(currentItem))))} →{localize(' ')}
                   <span className="text-emerald-400">
-                    {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel + 1)))}
+                    {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel + 1) * mergingMultiplier(mergeLevel(currentItem))))}
                   </span>
                 </span>
               </div>
@@ -139,19 +142,19 @@ export const BlacksmithScreen: React.FC = () => {
             {!currentItem.baseAttack && currentItem.stats.attack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Атака:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel) * mergingMultiplier(mergeLevel(currentItem))))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel + 1) * mergingMultiplier(mergeLevel(currentItem))))}</span></span>
               </div>
             )}
             {currentItem.stats.magicAttack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Магическая атака:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel) * mergingMultiplier(mergeLevel(currentItem))))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel + 1) * mergingMultiplier(mergeLevel(currentItem))))}</span></span>
               </div>
             )}
             {!currentItem.baseDefense && currentItem.stats.defense && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Защита:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel) * mergingMultiplier(mergeLevel(currentItem))))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel + 1) * mergingMultiplier(mergeLevel(currentItem))))}</span></span>
               </div>
             )}
           </div>
