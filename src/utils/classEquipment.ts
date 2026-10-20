@@ -1,5 +1,6 @@
 import { getItemSpritePath } from './itemSprites';
 import { sharpeningMultiplier } from './sharpening';
+import {itemAscensionMultiplier, ITEM_ASCENSION_STATS} from './itemAscension';
 import type { CharacterClassId, GameItem } from '../types/game';
 
 interface ClassGear {
@@ -70,7 +71,10 @@ export const getEffectiveGearStats = (item: GameItem, characterClass?: Character
   if (item.baseDefense && stats.defense === undefined) stats.defense = item.baseDefense;
   if (item.baseMagicDef && stats.magicDefense === undefined) stats.magicDefense = item.baseMagicDef;
   for (const stat of ['attack', 'magicAttack', 'defense', 'magicDefense']) {
-    if (stats[stat] !== undefined) stats[stat] = Math.round(stats[stat] * sharpeningMultiplier(item.upgradeLevel));
+    if (stats[stat] !== undefined) stats[stat] = Math.round(stats[stat] * sharpeningMultiplier(item.upgradeLevel) * itemAscensionMultiplier(item.ascensionLevel));
+  }
+  for (const stat of ITEM_ASCENSION_STATS.filter(stat => stat === 'maxHp' || stat === 'maxMp')) {
+    if (stats[stat] !== undefined) stats[stat] = Math.round(stats[stat] * itemAscensionMultiplier(item.ascensionLevel));
   }
   const bonus = getClassGearBonus(item);
   if (bonus && bonus.targetClass === characterClass) stats[bonus.stat] = (stats[bonus.stat] || 0) + bonus.value;

@@ -1,4 +1,5 @@
 import {sortScoredEquipment} from '../../utils/inventorySorting';
+import {ItemAscensionBadge} from '../ui/ItemAscensionBadge';
 import { HeroEquipment } from '../../interfaces/modern/HeroEquipment';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
 import { STAT_LABELS } from '../../utils/statLabels';
@@ -142,6 +143,7 @@ const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equip
         </div>
         <div className="text-[9px] text-slate-400 flex items-center justify-between gap-1">
           <span>{localize("Ур.")}{localize(item.level)}</span>
+          <ItemAscensionBadge item={item} compact />
           <span className="text-amber-300 font-bold">{localize(item.upgradeLevel > 0 ? `+${item.upgradeLevel}` : '+0')}</span>
         </div>
         <ClassGearBonus item={item} characterClass={characterClass} compact />
@@ -385,6 +387,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     </h3>
                     <span className="text-amber-300 text-xs font-mono">+{localize(currentSelected.upgradeLevel)}</span>
                   </div>
+                  <ItemAscensionBadge item={currentSelected} />
                   <div className="text-[10px] text-slate-400 mt-0.5">
                     {localize(TYPE_LABELS[currentSelected.type])}{localize(" · Ур. ")}{localize(currentSelected.level)} · {localize(RARITY_COLORS[currentSelected.rarity].label)}
                   </div>

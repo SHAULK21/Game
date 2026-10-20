@@ -29,6 +29,7 @@ import { petBattleOpening } from '../utils/petCombat';
 import { classHealingMultiplier, classDefenseMultiplier, petDamageMultiplier, combatHitChance, incomingAttackRoll } from '../utils/combatBonuses';
 import { useBalanceTelemetry as browserBalanceTelemetry } from '../hooks/useBalanceTelemetry';
 import { sharpeningQuote, SHARPENABLE_TYPES } from '../utils/sharpening';
+import {mergeEquipment} from '../utils/itemAscension';
 import { smithingQuality, smithingExperience } from '../utils/professions';
 import { applyDungeonDifficulty, DUNGEON_DIFFICULTIES } from '../utils/dungeonRewards';
 import { applyHuntingMode, combatHuntingMode } from '../utils/huntingModes';
@@ -154,6 +155,7 @@ export interface GameContextType {
   refreshServerInventory: () => Promise<void>;
   expandInventory: () => { success: boolean; message: string };
   upgradeItem: (item: GameItem, useProtection: boolean) => { success: boolean; message: string };
+  mergeItems: (itemId: string, materialId: string) => {success: boolean; message: string};
   drinkBeer: () => { success: boolean; message: string };
   claimRegionCompletion: (regionId: string) => void;
   setActiveRegionMod: (modId: string) => void;
@@ -1953,6 +1955,17 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
         : `Провал заточки! Уровень снижен до +${newLevel}.`
     };
   }, [player, achievements]);
+
+  const mergeItems = useCallback((itemId: string, materialId: string) => {
+    if (!player) return {success:false, message:'Персонажа не знайдено.'};
+    if (!runtime && [...player.inventory, ...Object.values(player.equipped)].some(item => item?.serverOwned && [itemId, materialId].includes(item.id))) return {success:false, message:'Об’єднання серверних предметів доступне після підключення до сервера.'};
+    const splitId = 'ascension_' + createOperationId();
+    const result = mergeEquipment(player, itemId, materialId, splitId);
+    if (!result.success) return {success:false, message:result.message};
+    setPlayer(prev => prev ? mergeEquipment(prev, itemId, materialId, splitId).player ?? prev : prev);
+    sound.playUpgradeSuccess(); triggerHaptic('success');
+    return {success:true, message:result.message};
+  }, [player]);
 
   const claimRegionCompletion = useCallback((regionId: string) => {
     if (travelState.isTraveling || activeDungeonRun || isInCombat && !isCombatEnded) return;
@@ -4144,6 +4157,7 @@ export function useGameEngine(runtime?: GameEngineRuntime): GameContextType {
       refreshServerInventory,
       expandInventory: (...args)=>servicesAvailable()?expandInventory(...args):serviceFailure,
       upgradeItem: (...args)=>servicesAvailable()?upgradeItem(...args):serviceFailure,
+      mergeItems: (...args)=>servicesAvailable()?mergeItems(...args):serviceFailure,
       drinkBeer,
       claimRegionCompletion,
       setActiveRegionMod,

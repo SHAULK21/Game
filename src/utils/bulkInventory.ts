@@ -16,7 +16,7 @@ export function matchesBulkItem(item: GameItem, filters: BulkFilters, equippedId
   return BULK_EQUIPMENT_TYPES.includes(item.type) && filters.rarities.includes(item.rarity) &&
     (filters.type === 'all' || filters.type === item.type) &&
     !item.isEquipped && !equippedIds.has(item.id) && !item.isLocked && !item.boundToClan &&
-    (!filters.keepUpgraded || !(item.upgradeLevel > 0));
+    (!filters.keepUpgraded || !(item.upgradeLevel > 0 || (item.ascensionLevel ?? 0) > 0));
 }
 export function selectBulkItems(player: PlayerCharacter, filters: BulkFilters): GameItem[] {
   const equipped = new Set(Object.values(player.equipped).filter(Boolean).map(item => item!.id));

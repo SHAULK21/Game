@@ -11,9 +11,13 @@ import { ItemArtwork } from '../ui/ItemArtwork';
 import { ClassGearBonus } from '../../../../components/ui/ClassGearBonus';
 import { BestiaryPanel, FolioPage, ProgressBar, RpgButton, SectionTitle } from '../ui/BestiaryUI';
 import { RpgIcon } from '../ui/RpgIcon';
+import {ItemAscensionPanel} from '../../../../components/blacksmith/ItemAscensionPanel';
+import {itemAscensionMultiplier} from '../../../../utils/itemAscension';
+import {useServerProgress} from '../../../../context/ServerProgressContext';
 
 export const BlacksmithScreen: React.FC = () => {
   useLocale();
+  const serverProgress = useServerProgress();
   const { style } = useInterface();
   const { player, achievements, upgradeItem } = useGame();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -51,9 +55,11 @@ export const BlacksmithScreen: React.FC = () => {
     sound.playMining();
 
     setTimeout(async () => {
-      const res = (await upgradeItem(currentItem, useProtection));
-      setUpgradeResultMsg({ text: res.message, success: res.success });
-      setIsUpgrading(false);
+      try {
+        const res = await upgradeItem(currentItem, useProtection);
+        setUpgradeResultMsg({ text: res.message, success: res.success });
+      } catch (error) {setUpgradeResultMsg({text: error instanceof Error ? error.message : 'Не вдалося заточити предмет.', success:false});}
+      finally {setIsUpgrading(false);}
     }, 450);
   };
 
@@ -71,6 +77,8 @@ export const BlacksmithScreen: React.FC = () => {
           </div>
         </div>
       </BestiaryPanel>
+
+      <ItemAscensionPanel />
 
       {/* Item Selection Carousel / Selector */}
       <div className="space-y-2">
@@ -146,9 +154,9 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Физическая атака:")}</span>
                 <span className="text-slate-200 font-bold">
-                  {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel)))} →{localize(' ')}
+                  {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel) * itemAscensionMultiplier(currentItem.ascensionLevel)))} →{localize(' ')}
                   <span className="text-emerald-400">
-                    {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel + 1)))}
+                    {localize(Math.round(currentItem.baseAttack * sharpeningMultiplier(currentLevel + 1) * itemAscensionMultiplier(currentItem.ascensionLevel)))}
                   </span>
                 </span>
               </div>
@@ -157,9 +165,9 @@ export const BlacksmithScreen: React.FC = () => {
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Физическая защита:")}</span>
                 <span className="text-slate-200 font-bold">
-                  {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel)))} →{localize(' ')}
+                  {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel) * itemAscensionMultiplier(currentItem.ascensionLevel)))} →{localize(' ')}
                   <span className="text-emerald-400">
-                    {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel + 1)))}
+                    {localize(Math.round(currentItem.baseDefense * sharpeningMultiplier(currentLevel + 1) * itemAscensionMultiplier(currentItem.ascensionLevel)))}
                   </span>
                 </span>
               </div>
@@ -167,19 +175,19 @@ export const BlacksmithScreen: React.FC = () => {
             {!currentItem.baseAttack && currentItem.stats.attack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Атака:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel) * itemAscensionMultiplier(currentItem.ascensionLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.attack * sharpeningMultiplier(currentLevel + 1) * itemAscensionMultiplier(currentItem.ascensionLevel)))}</span></span>
               </div>
             )}
             {currentItem.stats.magicAttack && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Магическая атака:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel) * itemAscensionMultiplier(currentItem.ascensionLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.magicAttack * sharpeningMultiplier(currentLevel + 1) * itemAscensionMultiplier(currentItem.ascensionLevel)))}</span></span>
               </div>
             )}
             {!currentItem.baseDefense && currentItem.stats.defense && (
               <div className="flex justify-between text-xs font-mono">
                 <span className="text-slate-400">{localize("Защита:")}</span>
-                <span className="text-slate-200">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel + 1)))}</span></span>
+                <span className="text-slate-200">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel) * itemAscensionMultiplier(currentItem.ascensionLevel)))} → <span className="text-emerald-400">{localize(Math.round(currentItem.stats.defense * sharpeningMultiplier(currentLevel + 1) * itemAscensionMultiplier(currentItem.ascensionLevel)))}</span></span>
               </div>
             )}
           </div>
@@ -241,7 +249,7 @@ export const BlacksmithScreen: React.FC = () => {
           )}
 
           {/* Upgrade Button */}
-          {currentItem.serverOwned ? <div className="w-full rounded-xl border border-slate-700 py-3 text-center text-xs text-slate-400">{localize("Для заточки серверной вещи нужна серверная кузница и учёт руды.")}</div> : currentLevel >= 25 ? <div className="w-full rounded-xl border border-emerald-500/40 py-3 text-center text-sm font-bold text-emerald-300">{localize("Заточено до предела +25")}</div> : <RpgButton
+          {currentItem.serverOwned && !serverProgress?.current?.canonical ? <div className="w-full rounded-xl border border-slate-700 py-3 text-center text-xs text-slate-400">{localize("Для заточки серверной вещи нужна серверная кузница и учёт руды.")}</div> : currentLevel >= 25 ? <div className="w-full rounded-xl border border-emerald-500/40 py-3 text-center text-sm font-bold text-emerald-300">{localize("Заточено до предела +25")}</div> : <RpgButton
             onClick={handleUpgrade}
             disabled={isUpgrading || player.gold < costGold || player.silver < costSilver + protectionCost || !ingredientsReady}
             variant="primary"

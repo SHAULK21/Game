@@ -56,7 +56,7 @@ export async function persistGameInventory(client: PoolClient, owner: number, ac
       ids.add(old.id);
     } else {
       const id = crypto.randomUUID(); remap.set(sourceId, id); ids.add(id);
-      await client.query('INSERT INTO owned_items(id,owner_telegram_id,item_json,quantity,equipped_slot,locked,origin,character_id) VALUES($1,$2,$3::jsonb,$4,$5,$6,$7,$8)', [id, owner, JSON.stringify(canonicalItemJson(item)), quantity, slot, !!item.isLocked, origin, player.id]);
+      await client.query('INSERT INTO owned_items(id,owner_telegram_id,item_json,quantity,equipped_slot,locked,origin,character_id) VALUES($1,$2,$3::jsonb,$4,$5,$6,$7,$8)', [id, owner, JSON.stringify(canonicalItemJson(item)), quantity, slot, !!item.isLocked, item.marketTradable === false ? 'legacy_character' : origin, player.id]);
     }
   }
   for (const old of initial) if (!ids.has(old.id)) await client.query('DELETE FROM owned_items WHERE id=$1 AND owner_telegram_id=$2', [old.id, owner]);

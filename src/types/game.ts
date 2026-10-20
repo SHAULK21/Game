@@ -91,6 +91,7 @@ export interface GameItem {
   image?: string;
   level: number;
   upgradeLevel: number; // +0 to +25
+  ascensionLevel?: number; // 0 to 5; two identical items of the same rank merge into the next rank
   icon: string;
   description?: string;
   baseAttack?: number;

@@ -18,6 +18,12 @@ function owned(actor: GameActor, id: unknown): GameItem {
   if (!item) throw new ProgressError('ITEM_CHANGED', 'Предмет больше не находится в вашей сумке.');
   return item;
 }
+function ownedEquipment(actor: GameActor, id: unknown): GameItem {
+  const itemId = string(id), p = actor.current.player;
+  const item = [...p?.inventory ?? [], ...Object.values(p?.equipped ?? {})].find(item => item?.id === itemId);
+  if (!item) throw new ProgressError('ITEM_CHANGED', 'Предмет більше не належить вам.');
+  return item;
+}
 /** Finite commands resolve objects from the locked inventory or the real server
  * catalogue. No monster stats, reward, wallet or player snapshot is accepted. */
 export async function executeGameCommand(actor: GameActor, command: GameCommand) {
@@ -38,7 +44,13 @@ export async function executeGameCommand(actor: GameActor, command: GameCommand)
     case 'disassembleItem': return actor.invoke('disassembleItem', owned(actor, command.itemId));
     case 'toggleItemLock': return actor.invoke('toggleItemLock', owned(actor, command.itemId).id);
     case 'expandInventory': return actor.invoke('expandInventory');
-    case 'upgradeItem': return actor.invoke('upgradeItem', owned(actor, command.itemId), boolean(command.useProtection));
+    case 'upgradeItem': return actor.invoke('upgradeItem', ownedEquipment(actor, command.itemId), boolean(command.useProtection));
+    case 'mergeItems': {
+      const itemId = string(command.itemId)!, materialId = string(command.materialId)!;
+      ownedEquipment(actor, itemId);
+      owned(actor, materialId);
+      return actor.invoke('mergeItems', itemId, materialId);
+    }
     case 'claimRegionCompletion': return actor.invoke('claimRegionCompletion', string(command.regionId)!);
     case 'drinkBeer': return actor.invoke('drinkBeer');
     case 'dismissFlightWarning': return actor.invoke('dismissFlightWarning');

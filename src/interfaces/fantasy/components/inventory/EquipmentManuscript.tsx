@@ -6,6 +6,7 @@ import { Portrait } from '../ui/Portrait';
 import { RpgIcon } from '../ui/RpgIcon';
 import { getFantasyEquipmentArtwork } from '../../utils/heroArtwork';
 import { InventoryArt } from './InventoryArt';
+import {ItemAscensionBadge} from '../../../../components/ui/ItemAscensionBadge';
 
 const LEFT: ItemType[] = ['helmet','weapon','gloves','pants','boots','cloak','pickaxe','alchemyTool'];
 const RIGHT: ItemType[] = ['amulet','offhand','armor','ring','belt','artifact'];
@@ -30,7 +31,7 @@ export function EquipmentManuscript({ player, labels, onSelect }: {
       <span className="inventory-equipped-art">{item ? <InventoryArt item={item} size={32}/>
         : EMPTY[type] ? <ReferencePart id={EMPTY[type]!}/> : <RpgIcon kind={type} size={26}/>}</span>
       <span className="inventory-equipped-copy"><span>{label}</span><strong>{t(item?.name || 'Пусто')}</strong></span>
-      {item && item.upgradeLevel>0 && <span className="inventory-equipped-upgrade">+{item.upgradeLevel}</span>}
+      {item && (item.upgradeLevel>0 || item.ascensionLevel) && <span className="inventory-equipped-upgrade">{item.upgradeLevel>0 ? `+${item.upgradeLevel} ` : ''}<ItemAscensionBadge item={item} compact /></span>}
     </button>;
   });
   return <div className="inventory-paper-doll">

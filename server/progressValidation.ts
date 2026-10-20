@@ -110,6 +110,9 @@ export function validateLegacyProgress(input: any, owner: number, epoch: number,
   for (const item of [...p.inventory, ...Object.values(p.equipped).filter(Boolean)]) {
     if (!types.includes(item.type) || !rarities.includes(item.rarity) || typeof item.templateId !== 'string' || !item.templateId || item.templateId.length > 200 || typeof item.name !== 'string' || item.name.length > 200 || typeof item.icon !== 'string') throw new ProgressError('INVALID_SAVE', 'Неизвестный тип предмета.', 400);
     bounded(item.upgradeLevel, 0, 25, 0); bounded(item.sellPrice, 0, 1000000, 0);
+    // Legacy snapshots predate this server-earned progression. Never import a
+    // client-supplied ascension rank into the canonical ownership ledger.
+    delete item.ascensionLevel;
     for (const value of Object.values(item.stats)) if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > 100000) throw new ProgressError('INVALID_SAVE', 'Некорректная характеристика предмета.', 400);
     for (const value of Object.values(item.disassembleYield || {})) bounded(value, 0, 1000000);
   }

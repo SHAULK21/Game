@@ -5,6 +5,7 @@ import { GameItem, ItemType } from '../../types/game';
 import { ItemArtwork } from '../../components/ui/ItemArtwork';
 import { RpgIcon } from '../../components/ui/RpgIcon';
 import { RARITY_COLORS } from '../../data/gameData';
+import {ItemAscensionBadge} from '../../components/ui/ItemAscensionBadge';
 const slots = [
   ['helmet', 'Шлем'], ['amulet', 'Амулет'], ['weapon', 'Оружие'], ['offhand', 'Второе оружие'],
   ['armor', 'Доспех'], ['cloak', 'Плащ'], ['gloves', 'Перчатки'], ['ring', 'Кольцо'],
@@ -20,7 +21,7 @@ export function HeroEquipment({ onSelect, onOpenInventory }: { onSelect?: (item:
     const item = player.equipped[type as ItemType];
     return <button key={type} data-modern-equipment-slot={type} className={`modern-gear-slot ${item ? RARITY_COLORS[item.rarity].border : ''}`} title={localize(item?.name || label)} aria-label={localize(item ? `${label}: ${item.name}` : `${label}: Пусто`)} onClick={() => { if (onSelect && item) onSelect(item); else onOpenInventory?.(); }}>
       {item ? <ItemArtwork item={item} size={36} /> : <RpgIcon kind={type} size={30} className="text-stone-500" />}
-      <span>{localize(label)}</span>{item && item.upgradeLevel > 0 && <b>+{item.upgradeLevel}</b>}
+      <span>{localize(label)}</span>{item && item.upgradeLevel > 0 && <b>+{item.upgradeLevel}</b>}{item && <ItemAscensionBadge item={item} compact />}
     </button>;
   };
   return <section className="modern-hero-equipment" aria-label={localize("Снаряжение")}>

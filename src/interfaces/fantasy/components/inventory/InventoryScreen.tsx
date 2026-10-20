@@ -1,4 +1,5 @@
 import {sortScoredEquipment} from '../../../../utils/inventorySorting';
+import {ItemAscensionBadge} from '../../../../components/ui/ItemAscensionBadge';
 import { useInterface } from '../../../../context/InterfaceContext';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
 import { STAT_LABELS } from '../../../../utils/statLabels';
@@ -114,7 +115,7 @@ const EquipmentCard=React.memo(function EquipmentCard({item,characterClass,equip
       <InventoryArt item={item} size={42} />
       {style === 'fantasy-beta' && <span className="beta-item-name">{localize(item.name)}<small>{localize('Ур.')} {localize(item.level)}</small></span>}
       <span className="inventory-bag-quantity">{localize(item.stackCount || 1)}</span>
-      {item.upgradeLevel>0 && <span className="inventory-bag-upgrade">+{item.upgradeLevel}</span>}
+      {(item.upgradeLevel>0 || item.ascensionLevel) && <span className="inventory-bag-upgrade">{item.upgradeLevel>0 ? `+${item.upgradeLevel} ` : ''}<ItemAscensionBadge item={item} compact /></span>}
       {equipped && <span className="inventory-bag-state">{localize('НАДЕТО')}</span>}
       {item.isLocked && <span className="inventory-bag-state">{localize('Защитить от продажи')}</span>}
     </button>;
@@ -293,6 +294,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateToBl
                     </h3>
                     <span className="inventory-ink text-xs font-mono">+{localize(currentSelected.upgradeLevel)}</span>
                   </div>
+                  <ItemAscensionBadge item={currentSelected} />
                   <div className="text-[11px] inventory-ink mt-0.5">
                     {localize(TYPE_LABELS[currentSelected.type])}{localize(" · Ур. ")}{localize(currentSelected.level)} · {localize(RARITY_COLORS[currentSelected.rarity].label)}
                   </div>
