@@ -10,6 +10,7 @@ export const INVENTORY_LABELS = ['Сумка','Снаряжение','Зелья
 const TYPES:Record<string,string>={weapon:'Оружие',offhand:'Вторая рука',helmet:'Шлем',armor:'Доспех',pants:'Штаны',gloves:'Перчатки',boots:'Сапоги',amulet:'Амулет',ring:'Кольцо',belt:'Пояс',cloak:'Плащ',artifact:'Артефакт',pickaxe:'Кирка',alchemyTool:'Реторта',potion:'Зелье',ore:'Руда',material:'Материал',pet:'Спутник'};
 const RARITIES:Record<string,[string,string]>={common:['Обычный','94a3b8'],uncommon:['Необычный','65c885'],rare:['Редкий','6da9ed'],epic:['Эпический','b18be5'],legendary:['Легендарный','e0b365'],mythic:['Мифический','ee8caa'],ancient:['Древний','e29a68'],divine:['Божественный','eadea8']};
 const equipment = new Set([...BULK_EQUIPMENT_TYPES,'pickaxe','alchemyTool']);
+const percentages=new Set(['critChance','critDamage','vampirism','accuracy','evasion','physicalResistance','magicResistance','fireResistance','iceResistance','lightningResistance','poisonResistance','darkResistance','holyResistance','attackPercent','defensePercent']);
 export function inventoryProjection(game:RuntimeGameContext, translate:(text:string)=>string, locale:string) {
  const p=game.player;if(!p)return null;
  const map=(item:GameItem,equipped=false)=>{
@@ -18,7 +19,7 @@ export function inventoryProjection(game:RuntimeGameContext, translate:(text:str
   return {id:item.id,name:translate(item.name),type:item.type,typeLabel:translate(TYPES[item.type]||item.type),rarity:item.rarity,rarityLabel:translate(rarity[0]),color:rarity[1],level:item.level,upgrade:item.upgradeLevel||0,merge:item.ascensionLevel||0,
    image:sprite&&!/\.svg(?:\?|$)/.test(sprite)?sprite:null,description:translate(item.description||''),quantity:item.stackCount??1,equipped,locked:!!item.isLocked,bound:!!item.boundToClan,equipment:equipment.has(item.type),price:item.sellPrice||0,saleGold:(item.sellPrice||10)*(item.stackCount??1),
    score:Math.round((stats.attack||0)*2+(stats.magicAttack||0)*2+(stats.defense||0)*1.4+(stats.magicDefense||0)*1.4+(stats.maxHp||0)*.05+(stats.maxMp||0)*.04+(stats.critChance||0)*1.1+(stats.critDamage||0)*.25+(stats.vampirism||0)*1.2+(stats.speed||0)*.5+(stats.armorPenetration||0)*.8),
-   stats:Object.entries(stats).filter(([,v])=>v!==0).map(([key,value])=>({key,label:translate(STAT_LABELS[key]||key),value})),yield:{ore:item.disassembleYield?.ore||0,silver:item.disassembleYield?.silver||0},canEquip:equipped||['pickaxe','alchemyTool'].includes(item.type)||p.level>=item.level};
+   stats:Object.entries(stats).filter(([,v])=>v!==0).map(([key,value])=>({key,label:translate(STAT_LABELS[key]||key),value,percent:percentages.has(key)})),yield:{ore:item.disassembleYield?.ore||0,silver:item.disassembleYield?.silver||0},canEquip:equipped||['pickaxe','alchemyTool'].includes(item.type)||p.level>=item.level};
  };
  return {protocol:1,owner:p.userId,locale,name:translate(p.name),level:p.level,gold:p.gold,silver:p.silver,capacity:p.maxInventorySlots,used:p.inventory.length,premium:game.premium.active,expansionCost:p.maxInventorySlots*60,
   canAct:p.worldPlace==='settlement'&&!p.worldJourney&&!p.expeditionPresence&&!game.isInCombat&&!game.travelState.isTraveling,

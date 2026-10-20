@@ -4,6 +4,7 @@ typedef InventoryAction = Future<Map<String, dynamic>> Function(Map<String, dyna
 typedef Item = Map<String, dynamic>;
 List<Item> rows(dynamic value) => (value as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList();
 int number(dynamic value) => value is num ? value.toInt() : 0;
+String statValue(dynamic stat) => '${stat?['value'] ?? 0}${stat?['percent'] == true ? '%' : ''}';
 Color rarityColor(Item item) => Color(int.parse('ff${item['color'] ?? '94a3b8'}', radix: 16));
 const ink = Color(0xffe5e7eb), muted = Color(0xff9aa7b8), gold = Color(0xffdfbd7f), panel = Color(0xff16212e);
 
@@ -127,12 +128,13 @@ class _InventoryPageState extends State<InventoryPage> {
       Expanded(child: ListView(padding: const EdgeInsets.fromLTRB(18,8,18,80), children: [
         Center(child: artwork(item, 76)), const SizedBox(height: 12), Text('${item['name']}', textAlign: TextAlign.center, style: TextStyle(color: rarityColor(item), fontWeight: FontWeight.bold, fontSize: 20)),
         const SizedBox(height: 6), Text('${item['rarityLabel']} · ${item['typeLabel']} · ${s('Ур.')} ${item['level']}', textAlign: TextAlign.center, style: const TextStyle(color: muted, fontSize: 12)),
+        if (number(item['quantity']) > 1) Padding(padding: const EdgeInsets.only(top: 6), child: Text('${s('Стопка')} ×${item['quantity']}', textAlign: TextAlign.center, style: const TextStyle(color: gold, fontSize: 12))),
         const SizedBox(height: 12), Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [Chip(label: Text('${s('Заточка')} +${item['upgrade']}')), Chip(label: Text('${s('Объединение')} ◆${item['merge']}'))]),
         if ('${item['description'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text('${item['description']}', style: const TextStyle(color: muted, fontSize: 12))),
         if (item['equipment'] == true) ...[
           const SizedBox(height: 14), Text(s(!isEquipped && wearing != null ? 'Сравнение с надетым' : 'Характеристики'), style: const TextStyle(color: gold, fontSize: 13)), const SizedBox(height: 8),
           for (final key in statKeys) Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: Row(children: [Expanded(child: Text('${(newStats[key] ?? currentStats[key])?['label']}', style: const TextStyle(color: muted, fontSize: 12))),
-            if (!isEquipped && wearing != null) Text('${currentStats[key]?['value'] ?? 0} → ', style: const TextStyle(color: muted, fontSize: 12)), Text('${newStats[key]?['value'] ?? 0}', style: const TextStyle(color: ink, fontSize: 12))])),
+            if (!isEquipped && wearing != null) Text('${statValue(currentStats[key])} → ', style: const TextStyle(color: muted, fontSize: 12)), Text(statValue(newStats[key]), style: const TextStyle(color: ink, fontSize: 12))])),
         ],
         const Divider(height: 28),
         if (!canAct) Text(s('Действия доступны в поселении.'), style: const TextStyle(color: gold)),
