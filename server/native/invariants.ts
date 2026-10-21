@@ -4,6 +4,12 @@ const validAmount = (value: any) => Number.isSafeInteger(Number(value)) && Numbe
 export function validateNativeWorld(world: NativeWorld) {
   const table = (name: string) => world.tables[name] || [];
   const players = new Map(table('players').map(row => [String(row.telegram_id), row]));
+  const characterIds = new Set<string>(), characterSlots = new Set<string>();
+  for (const link of table('account_characters')) {
+    const id = Number(link.character_id), owner = Number(link.owner_id), slot = link.slot, key = owner + ':' + slot;
+    if (!Number.isSafeInteger(id) || id >= 0 || !Number.isSafeInteger(owner) || owner <= 0 || !Number.isInteger(slot) || slot < 1 || slot > 4 || !players.has(String(id)) || !players.has(String(owner)) || characterIds.has(String(id)) || characterSlots.has(key)) throw new EconomyInvariantError('CHARACTER_LINK_INVALID');
+    characterIds.add(String(id)); characterSlots.add(key);
+  }
   const clans = new Set(table('clans').map(row => row.id));
   const ids = new Set<string>(), slots = new Set<string>();
   for (const row of table('owned_items')) {

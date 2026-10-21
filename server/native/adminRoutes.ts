@@ -20,7 +20,7 @@ export function registerNativeAdmin(app: Express, native: NativePool, auth: Requ
   });
   app.post('/api/admin/players/:targetId/reset', auth, admin, async (req, res) => {
     const target = Number(req.params.targetId), {operationId, expectedVersion, confirmTargetId} = req.body || {};
-    if (!Number.isSafeInteger(target) || target <= 0 || String(confirmTargetId) !== String(target) || !uuid(operationId) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {res.status(400).json({error: 'Выберите игрока и подтвердите сброс его прогресса.'}); return;}
+    if (!Number.isSafeInteger(target) || target === 0 || String(confirmTargetId) !== String(target) || !uuid(operationId) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {res.status(400).json({error: 'Выберите игрока и подтвердите сброс его прогресса.'}); return;}
     try {res.json(await resetPlayerAccount(native.asPool(), req.authUser!.id, target, operationId, expectedVersion));}
     catch (error) {if (!(error instanceof AccountResetError)) throw error; res.status(409).json({error: error.message});}
   });

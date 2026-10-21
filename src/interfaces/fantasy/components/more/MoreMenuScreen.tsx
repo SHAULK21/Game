@@ -2,6 +2,7 @@ import {useSectionTarget,JOURNAL_SECTIONS,type JournalSection} from '../../../..
 import { AdventureJournal } from '../../../../components/more/AdventureJournal';
 import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../../../i18n/locale';
+import {CharacterSwitcher} from '../../../../components/layout/CharacterSwitcher';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { SoundControls } from '../../../../components/ui/SoundControls';
 import React, { useEffect, useState } from 'react';
@@ -106,6 +107,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {activeSection === 'journal' && <AdventureJournal />}
       <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
+      {activeSection === 'settings' && <CharacterSwitcher/>}
       {activeSection === 'settings' && <section className="world-paper p-4"><h2>{localize('Настройки')}</h2><p>{localize('Звук и оповещения на этом устройстве')}</p><NotificationsPanel/></section>}
 
       {/* Quest manuscript uses the same reward actions and live quest data. */}

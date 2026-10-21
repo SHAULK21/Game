@@ -63,8 +63,9 @@ export function registerNativeSocial(app: Express, native: NativePool, auth: Req
   });
   app.get('/api/notifications', auth, (req, res) => {
     const row = player(req.authUser!.id);
+    const owns = (id: any) => same(id,req.authUser!.id) || table('account_characters').some(link=>same(link.owner_id,req.authUser!.id)&&same(link.character_id,id));
     res.json({settings: row.notification_settings, botStarted: row.bot_started,
-      notifications: table('game_notifications').filter(row => same(row.telegram_id, req.authUser!.id) && new Date(row.due_at).getTime() <= now()).sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 50).map(row => ({id: row.id, category: row.category, text: row.text, due_at: row.due_at, read_at: row.read_at}))});
+      notifications: table('game_notifications').filter(row => owns(row.telegram_id) && new Date(row.due_at).getTime() <= now()).sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 50).map(row => ({id: row.id, category: row.category, text: row.text, due_at: row.due_at, read_at: row.read_at}))});
   });
   app.post('/api/preferences/language', auth, safe((req: any) => {
     const {language, interfaceStyle} = req.body || {};
@@ -82,7 +83,7 @@ export function registerNativeSocial(app: Express, native: NativePool, auth: Req
     res.json({settings});
   });
   app.post('/api/notifications/onboarding', auth, (req, res) => {const row = player(req.authUser!.id); row.notification_settings = {...row.notification_settings, onboardingSeen: true}; res.json({ok: true});});
-  app.post('/api/notifications/read', auth, (req, res) => {for (const row of table('game_notifications')) if (same(row.telegram_id, req.authUser!.id) && !row.read_at && new Date(row.due_at).getTime() <= now()) row.read_at = stamp(); res.json({ok: true});});
+  app.post('/api/notifications/read', auth, (req, res) => {for (const row of table('game_notifications')) if ((same(row.telegram_id, req.authUser!.id) || table('account_characters').some(link=>same(link.owner_id,req.authUser!.id)&&same(link.character_id,row.telegram_id))) && !row.read_at && new Date(row.due_at).getTime() <= now()) row.read_at = stamp(); res.json({ok: true});});
   app.post('/api/notifications/schedule', auth, safe(async (req: any) => {
     const {energy, maxEnergy, regenAt, miningEndsAt} = req.body || {};
     if (!Number.isFinite(energy) || !Number.isFinite(maxEnergy) || energy < 0 || energy > maxEnergy || maxEnergy < 1 || maxEnergy > 1000) throw new Error('Неверное состояние энергии.');

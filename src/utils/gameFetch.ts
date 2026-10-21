@@ -1,4 +1,5 @@
-import {getTelegramWebApp} from './telegram';
+import {getTelegramWebApp, getTelegramAccount} from './telegram';
+import {selectedCharacter} from './characterSession';
 import {expandGameReply, type WireGameReply} from './gameProjection';
 
 type ServerlessError = {message?: string; type?: string; parameters?: Record<string, any>};
@@ -57,6 +58,9 @@ export function telegramRequest(transport: ServerlessTransport, path: string, in
 }
 
 export function gameFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set('X-Game-Character',String(selectedCharacter(getTelegramAccount().id)?.slot || 0));
+  init = {...init, headers};
   if (import.meta.env?.VITE_GAME_BACKEND !== 'telegram') return fetch(path, init);
   const transport = getTelegramWebApp()?.Serverless;
   if (!transport) return Promise.reject(new Error('Откройте игру в Telegram с поддержкой Serverless.'));

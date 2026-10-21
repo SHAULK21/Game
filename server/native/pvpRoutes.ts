@@ -9,6 +9,7 @@ function random() {const bytes = new Uint32Array(1), limit = Math.floor(42949672
 export function registerNativePvp(app: Express, native: NativePool, auth: RequestHandler) {
   const table = (name: string) => native.table(name), now = () => native.now(), today = () => new Date(now()).toISOString().slice(0, 10);
   const player = (id: any) => table('players').find(row => same(row.telegram_id, id));
+  const owner = (id: any) => table('account_characters').find(link=>same(link.character_id,id))?.owner_id ?? id;
   const profile = (id: number) => {
     let row = table('pvp_profiles').find(row => same(row.telegram_id, id));
     if (!row) {row = {telegram_id: id, rating: 1000, wins: 0, losses: 0, tickets: 5, ticket_day: today(), stance: 'balanced', enrolled: false, last_fight_at: null}; table('pvp_profiles').push(row);}
@@ -18,7 +19,7 @@ export function registerNativePvp(app: Express, native: NativePool, auth: Reques
   app.get('/api/pvp', auth, (req, res) => {
     const id = req.authUser!.id, row = profile(id), account = player(id)!;
     if (String(row.ticket_day).slice(0, 10) < today()) {row.ticket_day = today(); row.tickets = 5;}
-    const opponents = table('pvp_profiles').filter(other => other.enrolled && !same(other.telegram_id, id) && Math.abs(Number(other.rating) - Number(row.rating)) <= 400 && player(other.telegram_id) && (!player(other.telegram_id)!.clan_id || player(other.telegram_id)!.clan_id !== account.clan_id) && !recent(id, other.telegram_id))
+    const opponents = table('pvp_profiles').filter(other => other.enrolled && !same(owner(other.telegram_id), owner(id)) && Math.abs(Number(other.rating) - Number(row.rating)) <= 400 && player(other.telegram_id) && (!player(other.telegram_id)!.clan_id || player(other.telegram_id)!.clan_id !== account.clan_id) && !recent(id, other.telegram_id))
       .sort((a, b) => Math.abs(Number(a.rating) - Number(row.rating)) - Math.abs(Number(b.rating) - Number(row.rating)) || Number(a.telegram_id) - Number(b.telegram_id)).slice(0, 10)
       .map(other => ({telegram_id: other.telegram_id, rating: other.rating, stance: other.stance, class_id: player(other.telegram_id)!.class_id, name: player(other.telegram_id)!.character_name || player(other.telegram_id)!.display_name}));
     const history = table('pvp_matches').filter(match => same(match.attacker, id) || same(match.defender, id)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 10).map(row => ({id: row.id, attacker: row.attacker, defender: row.defender, result: row.result, created_at: row.created_at}));
@@ -32,6 +33,7 @@ export function registerNativePvp(app: Express, native: NativePool, auth: Reques
   app.post('/api/pvp/challenge', auth, async (req, res) => {
     try {
       const id = req.authUser!.id, target = Number(req.body?.targetId), matchId = req.body?.matchId;
+      if (same(owner(id),owner(target))) throw new Error('Персонажи одного аккаунта не могут сражаться друг с другом.');
       if (!uuid(matchId) || !Number.isSafeInteger(target) || target === id) throw new Error('Неверный соперник или ID боя.');
       if (req.body?.stars) throw new Error('Бои со ставками Stars отключены.');
       const cached = table('pvp_matches').find(row => row.id === matchId);

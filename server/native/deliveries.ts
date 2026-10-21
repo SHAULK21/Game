@@ -16,7 +16,8 @@ export function claimDeliveries(world: NativeWorld, worker: string, at = Date.no
   }
   for (const row of notifications.filter(row => !row.sent_at && time(row.due_at) <= at && time(row.next_attempt_at) <= at && Number(row.attempts || 0) < 6 && !leased(row)).sort((a, b) => time(a.due_at) - time(b.due_at))) {
     if (jobs.length >= limit) break;
-    const player = players.get(String(row.telegram_id));
+    const ownerId = (world.tables.account_characters || []).find(link=>String(link.character_id)===String(row.telegram_id))?.owner_id ?? row.telegram_id;
+    const player = players.get(String(ownerId));
     let skip = !player?.bot_started || player.notification_settings?.enabled !== true || player.notification_settings?.[row.category] === false;
     if (!skip && ['energy', 'mining', 'arena'].includes(row.category)) {
       skip = time(row.due_at) < at - 86400000 || notifications.some(other => String(other.telegram_id) === String(row.telegram_id) && other.category === row.category && (time(other.due_at) > time(row.due_at) || time(other.due_at) === time(row.due_at) && Number(other.id) > Number(row.id))) ||
@@ -24,7 +25,7 @@ export function claimDeliveries(world: NativeWorld, worker: string, at = Date.no
     }
     if (!skip && row.category === 'premium' && String(row.event_key).startsWith('premium_expire_') && time(player!.premium_until) > at) skip = true;
     if (skip) {row.sent_at = stamp; row.read_at = stamp; suppressed++; continue;}
-    lease(row); jobs.push({kind: 'notification', id: row.id, worker, method: 'sendMessage', payload: gameMessagePayload(Number(row.telegram_id), row.text, APP_URL, player!.preferred_language === 'uk' ? 'uk' : 'ru')});
+    lease(row); jobs.push({kind: 'notification', id: row.id, worker, method: 'sendMessage', payload: gameMessagePayload(Number(ownerId), row.text, APP_URL, player!.preferred_language === 'uk' ? 'uk' : 'ru')});
   }
   return {jobs, suppressed};
 }
@@ -36,7 +37,7 @@ export function acknowledgeDelivery(world: NativeWorld, job: {kind: string; id: 
   if (result.ok) row[job.kind === 'outbox' ? 'completed_at' : 'sent_at'] = new Date(at).toISOString();
   else {
     row.next_attempt_at = new Date(at + 300000).toISOString();
-    if (result.blocked && job.kind === 'notification') {const player = (world.tables.players || []).find(player => String(player.telegram_id) === String(row.telegram_id)); if (player) player.bot_started = false;}
+    if (result.blocked && job.kind === 'notification') {const ownerId = (world.tables.account_characters || []).find(link=>String(link.character_id)===String(row.telegram_id))?.owner_id ?? row.telegram_id; const player = (world.tables.players || []).find(player => String(player.telegram_id) === String(ownerId)); if (player) player.bot_started = false;}
   }
   return {acknowledged: true};
 }

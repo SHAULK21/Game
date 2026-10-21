@@ -1,3 +1,4 @@
+import {selectedCharacter} from './characterSession';
 export interface TelegramUser {
   id: number | string;
   first_name: string;
@@ -87,7 +88,7 @@ export const isInsideTelegram = (): boolean => {
   return Boolean(tg && tg.initData && tg.initData.length > 0);
 };
 
-export const getTelegramUser = (): TelegramUser => {
+export const getTelegramAccount = (): TelegramUser => {
   const tg = getTelegramWebApp();
   if (tg?.initDataUnsafe?.user) {
     return tg.initDataUnsafe.user;
@@ -108,6 +109,11 @@ export const getTelegramUser = (): TelegramUser => {
     language_code: 'ru',
     is_premium: true,
   };
+};
+
+export const getTelegramUser = (): TelegramUser => {
+  const account = getTelegramAccount(), selected = selectedCharacter(account.id);
+  return selected ? {...account, id: selected.id} : account;
 };
 
 export const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error') => {

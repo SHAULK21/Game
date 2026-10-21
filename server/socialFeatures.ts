@@ -25,7 +25,7 @@ export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramAp
       // Serialize delivery across server replicas, including deduplication checks.
       const workerLock=await client.query('SELECT pg_try_advisory_xact_lock(74632820) AS acquired');
       if(workerLock.rows[0]?.acquired===false){await client.query('COMMIT');return;}
-      const rows=await client.query(`SELECT n.*,p.notification_settings,p.bot_started,p.preferred_language FROM game_notifications n JOIN players p ON p.telegram_id=n.telegram_id WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
+      const rows=await client.query(`SELECT n.*,p.telegram_id AS delivery_owner,p.notification_settings,p.bot_started,p.preferred_language FROM game_notifications n LEFT JOIN account_characters c ON c.character_id=n.telegram_id JOIN players p ON p.telegram_id=COALESCE(c.owner_id,n.telegram_id) WHERE n.sent_at IS NULL AND n.due_at<=NOW() AND n.next_attempt_at<=NOW() AND n.attempts<6 ORDER BY n.due_at LIMIT 10 FOR UPDATE OF n SKIP LOCKED`);
       for(const row of rows.rows) {
         if(!row.bot_started || row.notification_settings?.enabled!==true || row.notification_settings?.[row.category]===false) {
           await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;
@@ -42,12 +42,12 @@ export async function runNotificationBatch(getPool:()=>Pool, telegram:TelegramAp
           if(current.rows[0]?.active){await client.query('UPDATE game_notifications SET sent_at=NOW(),read_at=NOW() WHERE id=$1',[row.id]);continue;}
         }
         try {
-          await telegram('sendMessage',gameMessagePayload(Number(row.telegram_id),row.text,baseUrl,row.preferred_language === 'uk' ? 'uk' : 'ru'));
+          await telegram('sendMessage',gameMessagePayload(Number(row.delivery_owner ?? row.telegram_id),row.text,baseUrl,row.preferred_language === 'uk' ? 'uk' : 'ru'));
           await client.query('UPDATE game_notifications SET sent_at=NOW() WHERE id=$1',[row.id]);
         } catch(error) {
           const blocked=/blocked|chat not found|deactivated/i.test(String(error));
           await client.query("UPDATE game_notifications SET attempts=attempts+1,next_attempt_at=NOW()+INTERVAL '5 minutes' WHERE id=$1",[row.id]);
-          if(blocked) await client.query(`UPDATE players SET bot_started=FALSE WHERE telegram_id=$1`,[row.telegram_id]);
+          if(blocked) await client.query(`UPDATE players SET bot_started=FALSE WHERE telegram_id=$1`,[row.delivery_owner ?? row.telegram_id]);
         }
       }
       await client.query('COMMIT');
@@ -86,7 +86,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
   });
   app.get('/api/notifications',auth,async(req,res)=>{
     const p=(await getPool().query('SELECT notification_settings,bot_started FROM players WHERE telegram_id=$1',[req.authUser!.id])).rows[0];
-    const rows=await getPool().query('SELECT id,category,text,due_at,read_at FROM game_notifications WHERE telegram_id=$1 AND due_at<=NOW() ORDER BY id DESC LIMIT 50',[req.authUser!.id]);
+    const rows=await getPool().query('SELECT id,category,text,due_at,read_at FROM game_notifications WHERE (telegram_id=$1 OR telegram_id IN (SELECT character_id FROM account_characters WHERE owner_id=$1)) AND due_at<=NOW() ORDER BY id DESC LIMIT 50',[req.authUser!.id]);
     res.json({settings:p.notification_settings,botStarted:p.bot_started,notifications:rows.rows});
   });
   app.post('/api/preferences/language',auth,async(req,res)=>{
@@ -117,7 +117,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     res.json({ok:true});
   });
   app.post('/api/notifications/read',auth,async(req,res)=>{
-    await getPool().query('UPDATE game_notifications SET read_at=NOW() WHERE telegram_id=$1 AND read_at IS NULL AND due_at<=NOW()',[req.authUser!.id]);res.json({ok:true});
+    await getPool().query('UPDATE game_notifications SET read_at=NOW() WHERE (telegram_id=$1 OR telegram_id IN (SELECT character_id FROM account_characters WHERE owner_id=$1)) AND read_at IS NULL AND due_at<=NOW()',[req.authUser!.id]);res.json({ok:true});
   });
   app.post('/api/notifications/schedule',auth,async(req,res)=>{
     const id=req.authUser!.id,now=Date.now();
@@ -238,7 +238,7 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
     await getPool().query('INSERT INTO pvp_profiles (telegram_id) VALUES ($1) ON CONFLICT DO NOTHING',[id]);
     await getPool().query(`UPDATE pvp_profiles SET tickets=5,ticket_day=(NOW() AT TIME ZONE 'UTC')::date WHERE telegram_id=$1 AND ticket_day<(NOW() AT TIME ZONE 'UTC')::date`,[id]);
     const profile=(await getPool().query('SELECT * FROM pvp_profiles WHERE telegram_id=$1',[id])).rows[0];
-    const opponents=await getPool().query(`SELECT v.telegram_id,v.rating,v.stance,p.class_id,COALESCE(p.character_name,p.display_name) AS name FROM pvp_profiles v JOIN players p ON p.telegram_id=v.telegram_id WHERE v.enrolled AND v.telegram_id<>$1 AND ABS(v.rating-$2)<=400 AND (p.clan_id IS NULL OR p.clan_id IS DISTINCT FROM (SELECT clan_id FROM players WHERE telegram_id=$1)) AND NOT EXISTS(SELECT 1 FROM pvp_matches m WHERE ((m.attacker=$1 AND m.defender=v.telegram_id) OR (m.defender=$1 AND m.attacker=v.telegram_id)) AND m.created_at>NOW()-INTERVAL '24 hours') ORDER BY ABS(v.rating-$2),v.telegram_id LIMIT 10`,[id,profile.rating]);
+    const opponents=await getPool().query(`SELECT v.telegram_id,v.rating,v.stance,p.class_id,COALESCE(p.character_name,p.display_name) AS name FROM pvp_profiles v JOIN players p ON p.telegram_id=v.telegram_id WHERE v.enrolled AND v.telegram_id<>$1 AND COALESCE((SELECT owner_id FROM account_characters WHERE character_id=v.telegram_id),v.telegram_id)<>COALESCE((SELECT owner_id FROM account_characters WHERE character_id=$1),$1) AND ABS(v.rating-$2)<=400 AND (p.clan_id IS NULL OR p.clan_id IS DISTINCT FROM (SELECT clan_id FROM players WHERE telegram_id=$1)) AND NOT EXISTS(SELECT 1 FROM pvp_matches m WHERE ((m.attacker=$1 AND m.defender=v.telegram_id) OR (m.defender=$1 AND m.attacker=v.telegram_id)) AND m.created_at>NOW()-INTERVAL '24 hours') ORDER BY ABS(v.rating-$2),v.telegram_id LIMIT 10`,[id,profile.rating]);
     const history=await getPool().query(`SELECT id,attacker,defender,result,created_at FROM pvp_matches WHERE attacker=$1 OR defender=$1 ORDER BY created_at DESC LIMIT 10`,[id]);
     const leaders=await getPool().query(`SELECT v.rating,v.wins,COALESCE(p.character_name,p.display_name) AS name FROM pvp_profiles v JOIN players p ON p.telegram_id=v.telegram_id WHERE v.enrolled ORDER BY v.rating DESC,v.wins DESC,v.telegram_id LIMIT 20`);
     res.json({profile,opponents:opponents.rows,history:history.rows,leaders:leaders.rows,starsEnabled:false,resetAt:new Date(nextArenaReset()).toISOString()});
@@ -257,7 +257,10 @@ export function registerSocialFeatures(app:Express,getPool:()=>Pool,auth:Request
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[matchId]);
       const cached=(await client.query('SELECT * FROM pvp_matches WHERE id=$1',[matchId])).rows[0];
       if(cached){if(String(cached.attacker)!==String(id)||String(cached.defender)!==String(target))throw new Error('ID боя уже используется.');await client.query('COMMIT');return res.json(cached.result);}
-      const profiles=(await client.query(`SELECT v.*,p.class_id,p.clan_id,COALESCE(p.character_name,p.display_name) AS name FROM pvp_profiles v JOIN players p ON p.telegram_id=v.telegram_id WHERE v.telegram_id=ANY($1::bigint[]) ORDER BY v.telegram_id FOR UPDATE OF v`,[[id,target]])).rows;
+      const owners=await client.query('SELECT character_id,owner_id FROM account_characters WHERE character_id=ANY($1::bigint[])',[[id,target]]);
+        const account=(value:number)=>Number(owners.rows.find(row=>Number(row.character_id)===value)?.owner_id??value);
+        if(account(id)===account(target))throw new Error('Персонажи одного аккаунта не могут сражаться друг с другом.');
+        const profiles=(await client.query(`SELECT v.*,p.class_id,p.clan_id,COALESCE(p.character_name,p.display_name) AS name FROM pvp_profiles v JOIN players p ON p.telegram_id=v.telegram_id WHERE v.telegram_id=ANY($1::bigint[]) ORDER BY v.telegram_id FOR UPDATE OF v`,[[id,target]])).rows;
       const a=profiles.find(p=>String(p.telegram_id)===String(id)),b=profiles.find(p=>String(p.telegram_id)===String(target));
       if(!a?.enrolled||!b?.enrolled)throw new Error('Оба игрока должны включить участие в PvP.');
       if(a.clan_id&&a.clan_id===b.clan_id)throw new Error('Соклановцы не участвуют в рейтинговых дуэлях между собой.');

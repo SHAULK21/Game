@@ -318,3 +318,14 @@ CREATE TABLE IF NOT EXISTS market_purchase_requests (
 ALTER TABLE players ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 ALTER TABLE players ALTER COLUMN last_seen_at SET DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS idx_players_last_seen ON players(last_seen_at);
+
+-- Positive IDs remain the original Telegram character. Extra characters use
+-- an internal negative namespace; these IDs must never be sent to the Bot API.
+CREATE SEQUENCE IF NOT EXISTS character_id_seq AS BIGINT INCREMENT BY -1 START WITH -1 MINVALUE -9007199254740991 MAXVALUE -1;
+CREATE TABLE IF NOT EXISTS account_characters (
+  character_id BIGINT PRIMARY KEY DEFAULT nextval('character_id_seq'),
+  owner_id BIGINT NOT NULL CHECK(owner_id > 0),
+  slot INTEGER NOT NULL CHECK(slot BETWEEN 1 AND 4),
+  UNIQUE(owner_id,slot),
+  CHECK(character_id < 0)
+);

@@ -73,7 +73,7 @@ export function registerAccountReset(app: Express, getPool: () => Pool, auth: Re
   app.post('/api/admin/players/:targetId/reset', auth, admin, async (req, res) => {
     const targetId = Number(req.params.targetId);
     const { operationId, expectedVersion, confirmTargetId } = req.body || {};
-    if (!Number.isSafeInteger(targetId) || targetId <= 0 || String(confirmTargetId) !== String(targetId) || !uuid(operationId) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+    if (!Number.isSafeInteger(targetId) || targetId === 0 || String(confirmTargetId) !== String(targetId) || !uuid(operationId) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
       res.status(400).json({ error: 'Выберите игрока и подтвердите сброс его прогресса.' }); return;
     }
     try { res.json(await resetPlayerAccount(getPool(), req.authUser!.id, targetId, operationId, expectedVersion)); }

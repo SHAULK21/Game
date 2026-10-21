@@ -1,3 +1,5 @@
+import {accountRoute, characterSlot} from '../characters';
+import {nativeCharacters, addNativeCharacter} from './characters';
 import {registerGameRoutes} from '../gameRoutes';
 import {NativePool, type NativeWorld} from './pool';
 import {registerGameApiGuard} from '../gameApiGuard';
@@ -14,10 +16,27 @@ export async function handleProgressRequest(world: NativeWorld, input: any, iden
   options: {now?: () => number; isAdmin?: (id: number) => boolean; startParam?: string; onRoutes?: (routes: {method: string; pattern: string}[]) => void} = {}): Promise<Reply> {
   if (!Number.isSafeInteger(identity.id) || identity.id <= 0) return {status: 401, body: {code: 'UNAUTHORIZED', error: 'Откройте игру из Telegram.'}};
   if (!input || typeof input.path !== 'string' || input.path.length > 2048 || !input.path.startsWith('/api/')) return {status: 400, body: {error: 'Некорректный путь API.'}};
-  const pool = new NativePool(world, options.now), account = pool.ensurePlayer(identity);
+  const pool = new NativePool(world, options.now), owner = pool.ensurePlayer(identity);
   const path = input.path.split('?')[0], method = String(input.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {};
   for (const [name, value] of Object.entries(input.headers || {})) if (name.toLowerCase().startsWith('x-game-') && typeof value === 'string') headers[name.toLowerCase()] = value;
+  let slot: number;
+  try {slot = characterSlot(headers['x-game-character']);}
+  catch {return {status: 400, body: {error: 'Некорректный слот персонажа.'}};}
+  if (path === '/api/characters' && ['GET', 'POST'].includes(method)) {
+    if (method === 'POST') {
+      try {addNativeCharacter(pool, identity, characterSlot(input.body?.slot));}
+      catch {return {status: 400, body: {error: 'Некорректный слот персонажа.'}};}
+    }
+    return {status: 200, body: nativeCharacters(pool, identity.id)};
+  }
+  if (slot && !accountRoute(path)) {
+    const link = pool.table('account_characters').find(row => Number(row.owner_id) === identity.id && row.slot === slot);
+    if (!link) return {status: 404, body: {code: 'CHARACTER_NOT_FOUND', error: 'Персонаж не найден.'}};
+    identity = {...identity, id: Number(link.character_id)};
+  }
+  const account = pool.ensurePlayer(identity);
+  if (account !== owner) account.premium_until = owner.premium_until;
   const query: Record<string, string> = {};
   try {for (const part of input.path.split('?').slice(1).join('?').split('&')) {
     if (!part) continue; const at = part.indexOf('=');
@@ -40,7 +59,7 @@ export async function handleProgressRequest(world: NativeWorld, input: any, iden
     post: (pattern: string, ...handlers: any[]) => routes.push({method: 'POST', pattern, handlers}),
     use: (...handlers: any[]) => middleware.push(...handlers)};
   const auth: any = async (_req: any, response: any, next: any) => {
-    if (!['GET', 'HEAD'].includes(method) && Number(headers['x-game-reset-version'] || 0) !== Number(account.reset_version)) {
+    if (!accountRoute(path) && !['GET', 'HEAD'].includes(method) && Number(headers['x-game-reset-version'] || 0) !== Number(account.reset_version)) {
       response.status(409).json({code: 'ACCOUNT_RESET', resetVersion: Number(account.reset_version), error: 'Прогресс сброшен. Загрузите актуальные данные.'}); return;
     }
     await next();

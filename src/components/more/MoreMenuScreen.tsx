@@ -2,6 +2,7 @@ import {useSectionTarget,JOURNAL_SECTIONS,type JournalSection} from '../../compo
 import { AdventureJournal } from './AdventureJournal';
 import { LeaderboardScreen } from '../leaderboard/LeaderboardScreen';
 import { t as localize, useLocale, intlLocale } from '../../i18n/locale';
+import {CharacterSwitcher} from '../layout/CharacterSwitcher';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { SoundControls } from '../ui/SoundControls';
 import React, { useEffect, useState } from 'react';
@@ -110,6 +111,7 @@ export const MoreMenuScreen: React.FC<MoreMenuScreenProps> = ({ onOpenAdmin }) =
       {activeSection === 'journal' && <AdventureJournal />}
       <SoundControls />
       {activeSection === 'notifications' && <NotificationsPanel />}
+      {activeSection === 'settings' && <CharacterSwitcher/>}
       {activeSection === 'settings' && <section className="world-paper p-4"><h2>{localize('Настройки')}</h2><p>{localize('Звук и оповещения на этом устройстве')}</p><NotificationsPanel/></section>}
 
       {/* QUESTS SECTION */}

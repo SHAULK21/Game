@@ -9,7 +9,7 @@ import {withGameTransaction} from './gameTransactions';
 export function registerGameApiGuard(app:Express,getPool:()=>Pool,auth:RequestHandler,options: {now?:()=>number;isAdmin?:(id:number)=>boolean} = {}) {
  const guarded=(path:string)=>/^\/api\/(?:items\/|market\/|clan\/|clans\/|pvp\/|referrals\/check)/.test(path)&&!/^\/api\/(?:clan\/(?:chat|donate)$|market\/residents\/demand)/.test(path);
  app.use((req,res,next)=>{
-  if(!guarded(req.path)||['GET','HEAD'].includes(req.method))return next();
+  if((req.path==='/api/referrals/check' && Number(req.get('X-Game-Character')||0)>0)||!guarded(req.path)||['GET','HEAD'].includes(req.method))return next();
   void (async()=>{
    // Authenticate first, then lock; the downstream route reuses the verified ID.
    await new Promise<void>((resolve,reject)=>{const result=auth(req,res,(error?:any)=>error?reject(error):resolve());Promise.resolve(result).then(()=>{if(res.headersSent)resolve();}).catch(reject);});

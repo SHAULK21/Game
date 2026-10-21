@@ -9,6 +9,7 @@ test('notification delivery coalesces existing energy backlog and enforces a coo
  const pool:any={connect:async()=>({query,release:()=>{}})};
  try {
   await db.exec(`CREATE TABLE players(telegram_id bigint PRIMARY KEY,notification_settings jsonb,bot_started boolean,preferred_language text);
+   CREATE TABLE account_characters(character_id bigint PRIMARY KEY,owner_id bigint,slot integer);
    CREATE TABLE game_notifications(id bigserial PRIMARY KEY,telegram_id bigint,event_key text,category text,text text,due_at timestamptz DEFAULT NOW(),sent_at timestamptz,read_at timestamptz,attempts integer DEFAULT 0,next_attempt_at timestamptz DEFAULT NOW());
    INSERT INTO players VALUES(1,'{"enabled":true}',true,'ru'),(2,'{"enabled":false}',true,'ru');
    INSERT INTO game_notifications(telegram_id,event_key,category,text,due_at) VALUES

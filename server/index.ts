@@ -1,3 +1,4 @@
+import {accountRoute, characterSlot, resolveCharacter, listCharacters, addCharacter} from './characters';
 import {verifyTelegramInitData} from './telegramAuth';
 import {registerGameRoutes} from './gameRoutes';
 import {registerGameApiGuard} from './gameApiGuard';
@@ -130,13 +131,22 @@ const auth = async (req: express.Request, res: express.Response, next: express.N
       req.authUser = validateTelegramInitData(initData);
     }
 
+    await authenticatePlayer(pool,req.authUser);
+    const slot = characterSlot(req.get('X-Game-Character'));
+    if (slot && !accountRoute(req.path)) {
+      const owner = req.authUser.id;
+      const id = await resolveCharacter(pool,owner,slot);
+      req.authUser = {...req.authUser,id};
+      await pool.query('UPDATE players SET premium_until=(SELECT premium_until FROM players WHERE telegram_id=$1) WHERE telegram_id=$2', [owner,id]);
+    }
     const resetVersion = await authenticatePlayer(pool,req.authUser);
-    if (!['GET', 'HEAD'].includes(req.method) && Number(req.get('X-Game-Reset-Version') || 0) !== resetVersion) {
+    if (!accountRoute(req.path) && !['GET', 'HEAD'].includes(req.method) && Number(req.get('X-Game-Reset-Version') || 0) !== resetVersion) {
       res.status(409).json({ code: 'ACCOUNT_RESET', resetVersion, error: 'Прогресс сброшен администратором. Создайте нового персонажа.' });
       return;
     }
     next();
   } catch (error) {
+    if (error instanceof Error && 'code' in error && ['INVALID_CHARACTER','CHARACTER_NOT_FOUND'].includes(String(error.code))) {res.status(error.code === 'CHARACTER_NOT_FOUND' ? 404 : 400).json({code:error.code,error:(error as Error).message});return;}
     console.error('Telegram auth failed:', error);
     res.status(401).json({ error: error instanceof Error ? error.message : 'Unauthorized' });
   }
@@ -157,6 +167,11 @@ const requireClan = async (req: express.Request, res: express.Response, next: ex
   next();
 };
 
+app.get('/api/characters',auth,async(req,res)=>{res.json(await listCharacters(pool,req.authUser!.id));});
+app.post('/api/characters',auth,async(req,res)=>{
+  try {await addCharacter(pool,req.authUser!.id,characterSlot(req.body?.slot),req.authUser!);res.json(await listCharacters(pool,req.authUser!.id));}
+  catch(error) {res.status(400).json({error:error instanceof Error?error.message:'Не удалось создать персонажа.'});}
+});
 registerGameRoutes(app, () => pool, auth, {isAdmin: id => String(id) === String(process.env.ADMIN_TELEGRAM_ID || process.env.VITE_ADMIN_TELEGRAM_ID || '')});
 registerGameApiGuard(app, () => pool, auth);
 
@@ -876,6 +891,7 @@ const bootstrap = async () => {
   await pool.query(schema);
   // Finish additive storage migrations before listening. Canonical ownership
   // is granted only by server creation or verified one-time migration.
+  await pool.query(await fs.readFile(path.resolve(__dirname, 'migrations/20261022_characters.sql'), 'utf8'));
   await pool.query(await fs.readFile(path.resolve(__dirname, 'migrations/20261015_expeditions.sql'), 'utf8'));
   await pool.query(await fs.readFile(path.resolve(__dirname, 'migrations/20261015_server_commands.sql'), 'utf8'));
 

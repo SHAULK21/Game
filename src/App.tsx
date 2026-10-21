@@ -1,3 +1,4 @@
+import {CharacterGate} from './components/layout/CharacterGate';
 import {ServerGameProvider} from './context/ServerGameProvider';
 import {getTelegramWebApp} from './utils/telegram';
 import React, {lazy,Suspense,useEffect} from 'react';
@@ -14,5 +15,5 @@ export default function App() {
   useLocale();
   useEffect(() => { initTelegramApp(); return observeMobileViewport(); }, []);
   const Provider=getTelegramWebApp()?.initData?ServerGameProvider:LocalGameProvider;
-  return <InterfaceProvider><AccountSessionGate><Suspense fallback={<div className="interface-loading" role="status">…</div>}><Provider><NavigationProvider><GameInterfaceBridge/><InterfaceLoader/></NavigationProvider></Provider></Suspense></AccountSessionGate></InterfaceProvider>;
+  return <CharacterGate><InterfaceProvider><AccountSessionGate><Suspense fallback={<div className="interface-loading" role="status">…</div>}><Provider><NavigationProvider><GameInterfaceBridge/><InterfaceLoader/></NavigationProvider></Provider></Suspense></AccountSessionGate></InterfaceProvider></CharacterGate>;
 }
