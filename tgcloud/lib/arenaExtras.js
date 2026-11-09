@@ -6,7 +6,7 @@ const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_i
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
 import {realStats, saveStats, kitOf} from './heroStats.js';
-import {castSkill, outMult, inMult} from './skills.js';
+import {castSkill, outMult, inMult, gemProcs} from './skills.js';
 const DAY = 864e5;
 const CLASS = {warrior: {hp: 1.25, atk: 1.0, def: 1.3, name: 'Воин'}, knight: {hp: 1.3, atk: 0.9, def: 1.4, name: 'Рыцарь'}, paladin: {hp: 1.15, atk: 0.95, def: 1.2, heal: 1.4, name: 'Паладин'},
   berserker: {hp: 1.05, atk: 1.3, def: 0.85, name: 'Берсерк'}, rogue: {hp: 0.9, atk: 1.25, def: 0.8, crit: 0.2, name: 'Разбойник'}, assassin: {hp: 0.85, atk: 1.35, def: 0.75, crit: 0.22, name: 'Ассасин'},
@@ -167,7 +167,7 @@ function strike(d, actor, target, mult, {crit = null, ignoreDef = 0, label} = {}
 }
 function resolve(d, actor, target, action, now, skillId) {
   actor.guard = false;
-  if (action === 'attack') strike(d, actor, target, 1);
+  if (action === 'attack') { const dm = strike(d, actor, target, 1); if (dm > 0) { const gp = gemProcs(actor, {dots: target.dots ||= []}, actor.kit); if (gp.length) d.log.push({who: actor.id, text: `${actor.name}: ${gp.join(', ')}`}); } }
   else if (action === 'potion') {
     actor.potions--; const amount = Math.round(actor.maxHp * 0.35);
     actor.hp = Math.min(actor.maxHp, actor.hp + amount); d.log.push({who: actor.id, text: `🧪 ${actor.name} пьёт зелье: +${amount} HP`, heal: amount, to: actor.id});

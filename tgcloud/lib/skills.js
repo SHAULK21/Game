@@ -4,7 +4,8 @@
 const n = (v, lo, hi, d = lo) => { const x = Number(v); return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : d; };
 const FX = new Set(['stun', 'freeze', 'shield', 'bleed', 'poison', 'burn', 'fury', 'vulnerability', 'fortify', 'haste', 'invulnerable']);
 const TALENTS = ['alternatingDamage', 'executeDamage', 'afflictedDamage', 'offensiveStance', 'defensiveStance', 'skillManaReturn', 'critMana', 'shieldPower',
-  'defendHeal', 'blockMana', 'killRecovery', 'lowHpReduction', 'dotPower', 'healPower', 'critFollowup', 'momentumDamage', 'vulnerabilityPower'];
+  'defendHeal', 'blockMana', 'killRecovery', 'lowHpReduction', 'dotPower', 'healPower', 'critFollowup', 'momentumDamage', 'vulnerabilityPower',
+  'bleedChance', 'poisonChance', 'burnChance'];
 
 export function cleanKit(raw, level = 1) {
   if (!raw || typeof raw !== 'object') return null;
@@ -16,7 +17,7 @@ export function cleanKit(raw, level = 1) {
       comboFrom: /^[a-z0-9_]{2,40}$/i.test(String(s.comboFrom || '')) ? String(s.comboFrom) : null, comboMult: n(s.comboMult, 1, 2, 1.25),
       armorBreak: n(s.armorBreak, 0, 0.5, 0), execT: n(s.execT, 0, 0.5, 0), execM: n(s.execM, 1, 3, 1.5), inf: f};
   }).filter(Boolean);
-  const t = {}; for (const k of TALENTS) { const v = n(raw.talents?.[k], 0, 200, 0); if (v) t[k] = v; }
+  const t = {}; for (const k of TALENTS) { const v = n(raw.talents?.[k], 0, k.endsWith('Chance') ? 60 : 200, 0); if (v) t[k] = v; }
   return {skills, talents: t};
 }
 
@@ -70,3 +71,13 @@ export function castSkill(ctx) {
 // Damage multipliers that live on the actors between turns.
 export const outMult = actor => (actor.fury > 0 ? 1.3 : 1);
 export const inMult = foe => (foe.vuln > 0 ? 1.3 : 1);
+
+// Crystals in the hero's gear: chance to bleed / poison / burn the target on a hit (same as the monster fight).
+export function gemProcs(self, foe, kit) {
+  const t = kit?.talents || {}, out = [];
+  for (const [k, icon, name] of [['bleedChance', '🩸', 'Кровотечение'], ['poisonChance', '🧪', 'Яд'], ['burnChance', '🔥', 'Поджог']]) {
+    if (!(t[k] > 0) || Math.random() * 100 >= Math.min(60, t[k])) continue;
+    (foe.dots ||= []).push({icon, name: name + ' (кристалл)', per: Math.max(4, Math.round((self.atk || 20) * 0.15)), left: 3}); out.push(`💎 ${name.toLowerCase()}`);
+  }
+  return out;
+}

@@ -3,7 +3,7 @@
 // Combat is resolved on the server; hero stats blend the level formula with the hero's reported gear stats (clamped).
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
-import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf} from './skills.js';
+import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf, gemProcs} from './skills.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
 // Turn-based like the caves: every hero acts once per round (attack, any of their skills for mana, guard, potion),
@@ -312,7 +312,8 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     } else if (action === 'attack') {
       const crit = Math.random() < (self.crit || 0.12), dmg = hitFoe(room, self, crit ? 1.6 : 1, now);
       if (crit && t.critMana) self.mp = Math.min(self.maxMp, self.mp + Math.round(self.maxMp * t.critMana / 100));
-      log(room, `${self.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}`, now);
+      const gp = gemProcs(self, room.foe, kit);
+      log(room, `${self.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}${gp.length ? ', ' + gp.join(', ') : ''}`, now);
     } else if (action === 'guard') {
       self.guard = true; const mpGain = Math.round(self.maxMp * (GUARD_MP + (t.blockMana || 0) / 100)); self.mp = Math.min(self.maxMp, self.mp + mpGain);
       const heal = t.defendHeal ? Math.round(self.maxHp * t.defendHeal / 100) : 0; if (heal) self.hp = Math.min(self.maxHp, self.hp + heal);

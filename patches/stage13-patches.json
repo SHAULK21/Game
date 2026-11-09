@@ -1,0 +1,14 @@
+[
+ {
+  "name": "gem-procs",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12.js",
+  "old": ",E&&a.classDot&&!ne&&(ne=!0,",
+  "new": ",e===0&&(()=>{let q={};for(let t of Object.values(n.equipped||{}))if(t&&t.stats)for(let k of[`bleedChance`,`poisonChance`,`burnChance`])q[k]=(q[k]||0)+(Number(t.stats[k])||0);for(let[k,ty,nm]of[[`bleedChance`,`bleed`,`Кровотечение`],[`poisonChance`,`poison`,`Яд`],[`burnChance`,`burn`,`Поджог`]])q[k]>0&&Math.random()*100<Math.min(60,q[k])&&(P(e=>Xt(e,{type:ty,name:nm+` (кристалл)`,duration:3,value:Math.max(4,Math.round((H.attack||H.magicAttack||20)*.15))})),c.push({id:`gem_${ty}_${Date.now()}`,turn:r,text:`💎 ${o.name}: ${nm.toLowerCase()} от кристалла.`,type:`status`}))})(),E&&a.classDot&&!ne&&(ne=!0,"
+ },
+ {
+  "name": "craft-legendary-5pct",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12.js",
+  "old": "zn=[{rarity:`common`,chance:.5,multiplier:1},{rarity:`uncommon`,chance:.27,multiplier:1.15},{rarity:`rare`,chance:.14,multiplier:1.35},{rarity:`epic`,chance:.07,multiplier:1.65},{rarity:`legendary`,chance:.02,multiplier:2.1}]",
+  "new": "zn=[{rarity:`common`,chance:.46,multiplier:1},{rarity:`uncommon`,chance:.27,multiplier:1.15},{rarity:`rare`,chance:.14,multiplier:1.35},{rarity:`epic`,chance:.08,multiplier:1.65},{rarity:`legendary`,chance:.05,multiplier:2.1}]"
+ }
+]

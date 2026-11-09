@@ -3,7 +3,7 @@
 // Blood Moon: monsters hit harder and more often, wounded ones may flee and new ones run in; rewards are higher.
 import {logQuest} from './arenaExtras.js';
 import {blendedStats, baseStats, saveStats, kitOf} from './heroStats.js';
-import {castSkill, outMult, inMult} from './skills.js';
+import {castSkill, outMult, inMult, gemProcs} from './skills.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -101,6 +101,7 @@ function exchange(world, me, run, action, now, events, skillId) {
     if (power) run.powerCd = POWER_CD;
     const crit = Math.random() < h.crit, dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1) * outMult(run) * inMult(front));
     front.hp = Math.max(0, front.hp - dmg); events.push({t: 'hit', v: dmg, crit, power});
+    for (const g of gemProcs({atk: h.atk}, front, kit)) run.log.push(g);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.05));
   }
   if (front.hp > 0 && front.dots?.length) { for (const d of front.dots) { front.hp = Math.max(0, front.hp - d.per); d.left--; } front.dots = front.dots.filter(d => d.left > 0); }

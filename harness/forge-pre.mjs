@@ -21,6 +21,9 @@ console.log('forge:', main.slice(0, 600));
 const up = p.locator('main button').filter({hasText: /Заточить до/}).first(); console.log('req:', (await p.locator('main').innerText()).replace(/\n/g, ' | ').slice(250, 900)); console.log('upgrade btn:', await up.innerText().catch(() => '-'), 'disabled', await up.isDisabled().catch(() => '-'));
 await p.evaluate(() => window.__aethBridge.setPlayer(x => ({...x, gold: 99999, silver: 99999, inventory: [...x.inventory, ...['Серебряная руда','Нить древнего паука'].map((n, i) => ({id: 'mat' + i, templateId: 'mt' + i, name: n, type: 'material', rarity: 'common', level: 1, upgradeLevel: 0, icon: '🪨', stats: {}, sellPrice: 1, disassembleYield: {}, stackCount: 50}))]}))); await p.waitForTimeout(600);
 console.log('disabled now', await up.isDisabled().catch(() => '-')); if (!(await up.isDisabled().catch(() => true))) { await up.click(); await p.waitForTimeout(1500); console.log('banner:', await p.locator('.ae-banner, .ae-big-banner, [class*=banner]').allInnerTexts().catch(() => [])); }
+await p.waitForTimeout(800); console.log('forge after:', (await p.locator('main').innerText()).replace(/\n/g, ' | ').slice(250, 420)); await p.screenshot({path: `forge-after-${style}.png`});
+await p.locator('nav button, nav a').filter({hasText: 'Сумка'}).first().click({force: true}); await p.waitForTimeout(1200);
+console.log('bag tile:', await p.evaluate(() => { const it = window.__aethBridge.player.inventory.find(i => /следопыта/.test(i.name)); const t = document.querySelector(`[data-inventory-item="${it?.id}"]`); return JSON.stringify({lvl: it?.upgradeLevel, tile: t ? t.innerText.replace(/\n/g, ' ') : 'no tile', badge: t?.querySelector('.ae-badges')?.innerText}); }));
 await p.screenshot({path: `forge-pre-${style}.png`});
 console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n'));
 await s.close();

@@ -50,6 +50,8 @@
           power: (inf.power || 0) * (inf.type === 'vulnerability' ? 1 + (t.vulnerabilityPower || 0) / 100 : 1)} : null};
     });
     const keep = ['alternatingDamage', 'executeDamage', 'afflictedDamage', 'offensiveStance', 'defensiveStance', 'skillManaReturn', 'critMana', 'shieldPower', 'defendHeal', 'blockMana', 'killRecovery', 'lowHpReduction', 'dotPower', 'healPower'];
+    for (const it of Object.values(p.equipped || {})) if (it?.stats) for (const k of ['bleedChance', 'poisonChance', 'burnChance']) if (it.stats[k]) t[k] = (t[k] || 0) + Number(it.stats[k]);
+    keep.push('bleedChance', 'poisonChance', 'burnChance');
     return {skills, talents: Object.fromEntries(keep.filter(k => t[k]).map(k => [k, Math.round(t[k] * 100) / 100]))};
   }
   // The game's own «Навыки» menu (same markup as the monster fight), shared by co-op, duels and the Horde.
@@ -872,6 +874,17 @@
     if (!p || !main || !/Заточить до \+|Ковка\.\.\./.test(main.textContent || '')) { forgeSnap = null; return; }
     const items = [...Object.values(p.equipped || {}).filter(Boolean), ...(p.inventory || [])];
     const snap = {lv: new Map(items.map(i => [i.id, {lv: i.upgradeLevel || 0, name: i.name}])), gold: p.gold || 0, silver: p.silver || 0};
+    // the «+N» badge on the forge's item pictures, same as on bag tiles
+    const byName = new Map(items.map(i => [i.name, i]));
+    for (const img of main.querySelectorAll('img')) {
+      let box = img.parentElement, it = null;
+      for (let k = 0; k < 4 && box && !it; k++, box = box.parentElement) { const t = box.textContent || ''; for (const [nm, i] of byName) if (nm && t.includes(nm)) { it = i; break; } }
+      const holder = img.parentElement; if (!it || !holder || !isGear(it) || holder.getBoundingClientRect().width > 120) continue;
+      const lv = it.upgradeLevel || 0; let b = holder.querySelector(':scope > .ae-forge-up');
+      if (!lv) { b?.remove(); continue; }
+      if (!b) { b = h('b', {class: 'ae-forge-up'}); holder.append(b); if (getComputedStyle(holder).position === 'static') holder.style.position = 'relative'; }
+      if (b.textContent !== '+' + lv) { b.textContent = '+' + lv; b.classList.remove('is-pop'); void b.offsetWidth; b.classList.add('is-pop'); }
+    }
     const prev = forgeSnap; forgeSnap = snap; if (!prev) return;
     for (const [id, cur] of snap.lv) {
       const was = prev.lv.get(id); if (!was || was.lv === cur.lv) continue;
@@ -882,6 +895,189 @@
     if (snap.gold < prev.gold || snap.silver < prev.silver) { bigBanner('💥 Заточка не удалась — уровень сохранён', false); sfx.play('fail'); }
   }
   setInterval(() => { try { watchForge(); } catch {} }, 300);
+  // ---------- crystals: craft or buy, then socket into gear to add a stat (vampirism, crit, bleed…) ----------
+  const GEMS = [
+    {id: 'vamp', name: 'Кристалл вампиризма', icon: '🩸', stat: 'vampirism', value: 3, unit: '%', label: 'Вампиризм', recipe: [['Острый клык', 3], ['Магическая эссенция', 1]], gold: 900},
+    {id: 'life', name: 'Кристалл жизни', icon: '💚', stat: 'hpRegen', value: 5, unit: '', label: 'Регенерация HP', recipe: [['Лечебная трава', 5], ['Горный корень', 1]], gold: 600},
+    {id: 'mana', name: 'Кристалл маны', icon: '💧', stat: 'mpRegen', value: 3, unit: '', label: 'Регенерация маны', recipe: [['Лунная пыльца', 3]], gold: 600},
+    {id: 'fury', name: 'Кристалл ярости', icon: '⚡', stat: 'critChance', value: 4, unit: '%', label: 'Шанс крита', recipe: [['Острый клык', 2], ['Огненный цветок', 1]], gold: 900},
+    {id: 'ruin', name: 'Кристалл разрушения', icon: '💥', stat: 'critDamage', value: 15, unit: '%', label: 'Сила крита', recipe: [['Огненный цветок', 2], ['Магическая эссенция', 1]], gold: 900},
+    {id: 'pierce', name: 'Кристалл пробоя', icon: '🗡️', stat: 'armorPenetration', value: 5, unit: '', label: 'Пробивание брони', recipe: [['Медная монета гоблинов', 5], ['Горный корень', 1]], gold: 700},
+    {id: 'shadow', name: 'Кристалл тени', icon: '🌫️', stat: 'evasion', value: 3, unit: '', label: 'Уклонение', recipe: [['Волчья шкура', 4], ['Лунная пыльца', 1]], gold: 700},
+    {id: 'aim', name: 'Кристалл точности', icon: '🎯', stat: 'accuracy', value: 6, unit: '', label: 'Меткость', recipe: [['Медная монета гоблинов', 3], ['Волчья шкура', 2]], gold: 600},
+    {id: 'bleed', name: 'Кристалл крови', icon: '🔴', stat: 'bleedChance', value: 10, unit: '%', label: 'Шанс кровотечения при ударе', recipe: [['Острый клык', 3], ['Мясо вепря', 3]], gold: 800},
+    {id: 'venom', name: 'Кристалл яда', icon: '🧪', stat: 'poisonChance', value: 10, unit: '%', label: 'Шанс отравления при ударе', recipe: [['Ядовитая железа', 4]], gold: 800},
+    {id: 'flame', name: 'Кристалл пламени', icon: '🔥', stat: 'burnChance', value: 10, unit: '%', label: 'Шанс поджога при ударе', recipe: [['Огненный цветок', 3]], gold: 800}];
+  const GEM_SILVER = 300;
+  const GEM_SLOTS = {common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mythic: 3, ancient: 3, divine: 3};
+  const STAT_RU = Object.fromEntries(GEMS.map(g => [g.stat, g.label]));
+  const gemItem = g => ({id: 'gem_' + g.id + '_' + uuid4().slice(0, 8), templateId: 'ae_gem_' + g.id, name: g.name, type: 'material', rarity: 'epic', level: 1, upgradeLevel: 0, icon: g.icon,
+    description: `Вставьте в снаряжение: ${g.label} +${g.value}${g.unit}.`, stats: {}, sellPrice: 50, disassembleYield: {}, stackCount: 1});
+  const gemCount = (p, g) => (p.inventory || []).reduce((n, i) => n + (i.templateId === 'ae_gem_' + g.id ? i.stackCount || 1 : 0), 0);
+  const matCount = (p, name) => (p.inventory || []).reduce((n, i) => n + (i.name === name ? i.stackCount || 1 : 0), 0);
+  function takeFromBag(inv, pred, count) {
+    let left = count; const out = [];
+    for (const i of inv) { if (left > 0 && pred(i)) { const n = i.stackCount || 1, use = Math.min(n, left); left -= use; if (n - use > 0) out.push({...i, stackCount: n - use}); } else out.push(i); }
+    return left > 0 ? null : out;
+  }
+  function addGem(inv, g, n = 1) {
+    const i = inv.findIndex(x => x.templateId === 'ae_gem_' + g.id);
+    if (i >= 0) { const c = inv.slice(); c[i] = {...c[i], stackCount: (c[i].stackCount || 1) + n}; return c; }
+    return [...inv, {...gemItem(g), stackCount: n}];
+  }
+  const canAct = () => { const p = me(); if (!p) return 'Игра ещё загружается.'; if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return 'Сначала завершите бой или путь.'; return null; };
+  function openGems(tab = 'apply') {
+    let pick = null;
+    const st = openPanel('💎 Кристаллы', body => {
+      const p = me(); if (!p) return;
+      body.append(h('p', {class: 'ae-note'}, 'Кристалл вставляется в снаряжение и добавляет характеристику. Гнёзд: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3. Вставленный кристалл остаётся в вещи навсегда.'));
+      body.append(h('div', {class: 'ae-tabs'}, [['apply', '💎 Вставить'], ['craft', '⚒️ Создать'], ['buy', '🪙 Купить']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; pick = null; st.rerender(); }}, l))));
+      if (tab === 'craft' || tab === 'buy') {
+        if (tab === 'craft') body.append(h('div', {class: 'ae-pill'}, `Серебро: ${fmt(p.silver)} · каждый кристалл ${GEM_SILVER} 🥈`));
+        else body.append(h('div', {class: 'ae-pill'}, `Золото: ${fmt(p.gold)}`));
+        for (const g of GEMS) {
+          const have = gemCount(p, g), ok = tab === 'buy' ? (p.gold || 0) >= g.gold : (p.silver || 0) >= GEM_SILVER && g.recipe.every(([n, c]) => matCount(p, n) >= c);
+          body.append(h('div', {class: 'ae-card ae-row ae-gem-row'}, h('span', {class: 'ae-gem-i'}, g.icon),
+            h('div', {class: 'ae-grow'}, h('b', {}, g.name), h('div', {class: 'ae-sub'}, `${g.label} +${g.value}${g.unit}${have ? ` · у вас: ${have}` : ''}`),
+              tab === 'craft' ? h('div', {class: 'ae-gem-recipe'}, g.recipe.map(([n, c]) => h('span', {class: matCount(p, n) >= c ? 'ae-ing-ok' : 'ae-ing-low'}, `${n} ${Math.min(matCount(p, n), 999)}/${c}`))) : ''),
+            h('button', {type: 'button', class: 'ae-btn' + (ok ? ' ae-primary' : ''), disabled: !ok, onclick: () => {
+              const err = canAct(); if (err) return toast(err);
+              B().setPlayer(cur => {
+                if (!cur) return cur;
+                if (tab === 'buy') { if ((cur.gold || 0) < g.gold) return cur; return {...cur, gold: cur.gold - g.gold, inventory: addGem(cur.inventory, g)}; }
+                if ((cur.silver || 0) < GEM_SILVER) return cur;
+                let inv = cur.inventory; for (const [n, c] of g.recipe) { inv = takeFromBag(inv, i => i.name === n, c); if (!inv) return cur; }
+                return {...cur, silver: cur.silver - GEM_SILVER, inventory: addGem(inv, g)};
+              });
+              sfx.play(tab === 'buy' ? 'coins' : 'magic'); toast(`${g.icon} ${g.name} ${tab === 'buy' ? 'куплен' : 'создан'}`); setTimeout(() => st.rerender(), 120);
+            }}, tab === 'buy' ? `${fmt(g.gold)} 🪙` : 'Создать')));
+        }
+        return;
+      }
+      // apply
+      const owned = GEMS.filter(g => gemCount(p, g) > 0);
+      if (!owned.length) { body.append(h('p', {class: 'ae-empty'}, 'У вас нет кристаллов. Создайте или купите их во вкладках выше.')); return; }
+      body.append(h('h3', {class: 'ae-h3'}, '1. Выберите кристалл'));
+      body.append(h('div', {class: 'ae-gem-pick'}, owned.map(g => h('button', {type: 'button', class: 'ae-btn ae-gem-chip' + (pick === g.id ? ' is-on' : ''), onclick: () => { pick = g.id; st.rerender(); }}, `${g.icon} ${g.label} +${g.value}${g.unit} ×${gemCount(p, g)}`))));
+      if (!pick) return;
+      const g = GEMS.find(x => x.id === pick);
+      body.append(h('h3', {class: 'ae-h3'}, '2. Выберите вещь'));
+      const worn = Object.entries(p.equipped || {}).filter(([, i]) => i && MARKET_GEAR.has(i.type)).map(([slot, i]) => ({i, slot}));
+      const bag = (p.inventory || []).filter(i => MARKET_GEAR.has(i.type)).map(i => ({i, slot: null}));
+      const list = [...worn, ...bag].filter(({i}) => !i.serverOwned);
+      if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Нет подходящих вещей (серверные вещи с рынка сначала перенесите в сумку через «Объединение» или наденьте обычные).'));
+      for (const {i, slot} of list) {
+        const used = (i.gems || []).length, max = GEM_SLOTS[i.rarity] || 1, full = used >= max;
+        body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': i.rarity || 'common', disabled: full, onclick: () => {
+          const err = canAct(); if (err) return toast(err);
+          if (!confirm(`Вставить «${g.name}» в «${i.name}»? Это навсегда.`)) return;
+          B().setPlayer(cur => {
+            if (!cur || gemCount(cur, g) < 1) return cur;
+            const upd = it => ({...it, stats: {...(it.stats || {}), [g.stat]: (it.stats?.[g.stat] || 0) + g.value}, gems: [...(it.gems || []), g.id]});
+            const inv0 = takeFromBag(cur.inventory, x => x.templateId === 'ae_gem_' + g.id, 1); if (!inv0) return cur;
+            if (slot) { const e = cur.equipped?.[slot]; if (!e || e.id !== i.id || (e.gems || []).length >= max) return cur; return {...cur, inventory: inv0, equipped: {...cur.equipped, [slot]: upd(e)}}; }
+            const idx = inv0.findIndex(x => x.id === i.id); if (idx < 0 || (inv0[idx].gems || []).length >= max) return cur;
+            const inv = inv0.slice(); inv[idx] = upd(inv[idx]); return {...cur, inventory: inv};
+          });
+          sfx.play('magic'); bigBanner(`💎 ${i.name}: ${g.label} +${g.value}${g.unit}`, false); pick = null; setTimeout(() => st.rerender(), 150);
+        }}, h('img', {src: iconFor(i) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(i)}),
+          h('span', {class: 'ae-grow'}, h('b', {}, `${i.name}${slot ? ' (надето)' : ''}`), h('small', {}, `${RARITY_RU[i.rarity] || ''} · ур. ${i.level || 1} · гнёзд ${used}/${max}`),
+            (i.gems || []).length ? h('small', {class: 'ae-chat-item-stats'}, (i.gems || []).map(id => GEMS.find(x => x.id === id)?.icon || '💎').join(' ')) : ''),
+          h('span', {class: 'ae-equip-go'}, full ? 'Нет гнёзд' : 'Вставить')));
+      }
+    });
+  }
+  // ---------- legendary finds: an extra chance after every victory (the base game has very few legendaries) ----------
+  const LEG_NAMES = {
+    weapon: {warrior: ['Меч', 'Секира'], knight: ['Меч'], paladin: ['Молот'], berserker: ['Секира'], rogue: ['Кинжал'], assassin: ['Кинжал'], archer: ['Лук'], hunter: ['Лук'], mage: ['Посох'], necromancer: ['Посох'], druid: ['Посох']},
+    offhand: 'Щит', helmet: 'Шлем', armor: 'Доспех', pants: 'Поножи', gloves: 'Перчатки', boots: 'Сапоги', amulet: 'Амулет', ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', artifact: 'Реликвия'};
+  const LEG_EPITHETS = ['Рассвета', 'Падшей звезды', 'Громовержца', 'Лунной охотницы', 'Вечного пламени', 'Безмолвия', 'Древних королей', 'Небесного стража', 'Кровавой луны', 'Драконьего сердца', 'Бездны', 'Первородного света'];
+  const LEG_BONUS = ['vampirism', 'critChance', 'critDamage', 'hpRegen', 'evasion', 'armorPenetration', 'bleedChance', 'burnChance', 'poisonChance'];
+  const LEG_ICON = {weapon: '⚔️', offhand: '🛡️', helmet: '🪖', armor: '🥋', pants: '👖', gloves: '🧤', boots: '👢', amulet: '📿', ring: '💍', belt: '🎗️', cloak: '🧥', artifact: '🔮'};
+  function makeLegendary(p) {
+    const L = Math.max(1, 1 + Math.floor(((p.level || 1) - 1) / 4) * 4), types = Object.keys(LEG_NAMES), type = types[Math.floor(Math.random() * types.length)];
+    const base = type === 'weapon' ? (LEG_NAMES.weapon[p.classId] || ['Меч'])[Math.floor(Math.random() * (LEG_NAMES.weapon[p.classId] || ['Меч']).length)] : LEG_NAMES[type];
+    const epithet = LEG_EPITHETS[Math.min(LEG_EPITHETS.length - 1, Math.floor(L / 9))], m = 2.1, st = {};
+    const caster = CASTER.has(p.classId);
+    if (type === 'weapon') { st[caster ? 'magicAttack' : 'attack'] = Math.round((12 + L * 3) * m); st.critChance = 3 + Math.floor(L / 15); }
+    else if (type === 'armor') { st.defense = Math.round((6 + L * 2) * m); st.magicDefense = Math.round((4 + L) * m); st.maxHp = Math.round((25 + L * 9) * m); }
+    else if (['helmet', 'offhand', 'pants', 'gloves', 'boots', 'belt', 'cloak'].includes(type)) { st.defense = Math.round((3 + L) * m); st.magicDefense = Math.round((2 + L * 0.6) * m); st.maxHp = Math.round((12 + L * 4) * m); }
+    else { st[caster ? 'magicAttack' : 'attack'] = Math.round((4 + L) * m); st.maxHp = Math.round((10 + L * 3) * m); st.critChance = 2 + Math.floor(L / 20); }
+    const bonus = LEG_BONUS[Math.floor(Math.random() * LEG_BONUS.length)], bg = GEMS.find(g => g.stat === bonus); st[bonus] = (st[bonus] || 0) + Math.round((bg?.value || 3) * 1.5);
+    return {id: 'leg_' + uuid4(), templateId: `ae_leg_${type}_${L}`, name: `${base} ${epithet}`, type, rarity: 'legendary', level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
+      description: `Легендарная находка. Особое свойство: ${STAT_RU[bonus] || bonus}.`, stats: st, sellPrice: 60 + L * 25, disassembleYield: {silver: 30 + L * 6}, stackCount: 1};
+  }
+  let killSnap = null;
+  function legendaryTick() {
+    const p = me(), b = B(); if (!p?.statsSummary || !b?.setPlayer) return;
+    const k = {kills: p.statsSummary.monstersKilled || 0, bosses: p.statsSummary.bossesDefeated || 0, uid: p.userId};
+    const prev = killSnap; killSnap = k; if (!prev || prev.uid !== k.uid) return;
+    const dk = Math.max(0, Math.min(5, k.kills - prev.kills)), db = Math.max(0, Math.min(3, k.bosses - prev.bosses)); if (!dk && !db) return;
+    const lm = luckInfo(p).legMul;
+    let roll = false; for (let i = 0; i < dk - db; i++) if (Math.random() < 0.02 * lm) roll = true; for (let i = 0; i < db; i++) if (Math.random() < Math.min(0.6, 0.25 * lm)) roll = true;
+    if (!roll || (p.inventory || []).length >= (p.maxInventorySlots || 40)) return;
+    const item = makeLegendary(p);
+    b.setPlayer(cur => cur && cur.inventory.length < (cur.maxInventorySlots || 40) ? {...cur, inventory: [...cur.inventory, item]} : cur);
+    setTimeout(() => { bigBanner(`🌟 Легендарная находка: ${item.name}!`, true); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }, 600);
+  }
+  setInterval(() => { try { legendaryTick(); } catch (e) { console.warn('ae legendary', e); } }, 1000);
+  // ---------- luck: better rarity on found gear and more legendary finds ----------
+  const RARITY_UP = {common: 'uncommon', uncommon: 'rare', rare: 'epic', epic: 'legendary'};
+  function luckInfo(p) {
+    const luck = Number(p?.attributes?.luck) || 0;
+    return {luck, bump: Math.min(0.25, luck * 0.004), legMul: Math.max(1, Math.min(3, 1 + (luck - 8) / 40))};
+  }
+  let knownGear = null;
+  function luckTick() {
+    const p = me(), b = B(); if (!p?.inventory || !b?.setPlayer) return;
+    const ids = new Set(p.inventory.map(i => i.id));
+    if (!knownGear || knownGear.uid !== p.userId) { knownGear = {uid: p.userId, ids}; return; }
+    const fresh = p.inventory.filter(i => !knownGear.ids.has(i.id) && isGear(i) && !i.serverOwned && RARITY_UP[i.rarity] && !/^(leg_|merge_|trade_|srv_|coop_|gem_)/.test(i.id));
+    knownGear.ids = ids;
+    const {bump} = luckInfo(p);
+    for (const it of fresh) {
+      if (Math.random() >= bump) continue;
+      const to = RARITY_UP[it.rarity], stats = Object.fromEntries(Object.entries(it.stats || {}).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v * 1.15) : v]));
+      b.setPlayer(cur => cur && {...cur, inventory: cur.inventory.map(x => x.id === it.id ? {...x, rarity: to, stats, sellPrice: Math.round((x.sellPrice || 10) * 1.3)} : x)});
+      setTimeout(() => { bigBanner(`🍀 Удача! «${it.name}» стал(а) ${RARITY_RU[to]}`, to === 'legendary'); sfx.play('coins'); }, 400);
+    }
+  }
+  setInterval(() => { try { luckTick(); } catch {} }, 1000);
+  // ---------- respec: return every invested attribute point and distribute them again ----------
+  const BASE_ATTR = {warrior: {strength: 16, vitality: 15, willpower: 12, agility: 10, luck: 8, spirit: 7, intelligence: 6}, berserker: {strength: 18, agility: 12, intelligence: 5, vitality: 12, luck: 10, spirit: 6, willpower: 11},
+    knight: {strength: 14, agility: 9, intelligence: 7, vitality: 18, luck: 6, spirit: 9, willpower: 13}, rogue: {strength: 11, agility: 18, intelligence: 7, vitality: 10, luck: 15, spirit: 6, willpower: 8},
+    assassin: {strength: 12, agility: 19, intelligence: 8, vitality: 9, luck: 14, spirit: 5, willpower: 9}, archer: {strength: 11, agility: 17, intelligence: 8, vitality: 10, luck: 12, spirit: 8, willpower: 9},
+    mage: {strength: 6, agility: 9, intelligence: 19, vitality: 9, luck: 10, spirit: 15, willpower: 12}, necromancer: {strength: 7, agility: 9, intelligence: 18, vitality: 10, luck: 11, spirit: 14, willpower: 14},
+    paladin: {strength: 14, agility: 9, intelligence: 12, vitality: 15, luck: 8, spirit: 13, willpower: 14}, druid: {strength: 11, agility: 11, intelligence: 14, vitality: 13, luck: 10, spirit: 15, willpower: 12}};
+  const respecKey = () => 'aeth_respec_used_' + uid();
+  const respecInfo = p => {
+    const base = BASE_ATTR[p.classId === 'hunter' ? 'archer' : p.classId] || BASE_ATTR.warrior;
+    const spent = Object.entries(p.attributes || {}).reduce((n, [k, v]) => n + Math.max(0, (v || 0) - (base[k] ?? v)), 0);
+    const free = !localStorage.getItem(respecKey()), cost = free ? 0 : 50 * (p.level || 1);
+    return {base, spent, cost, free};
+  };
+  function doRespec() {
+    const p = me(), b = B(); if (!p || !b) return;
+    const err = canAct(); if (err) return toast(err);
+    const r = respecInfo(p);
+    if (!r.spent) return toast('Вложенных очков нет — сбрасывать нечего.');
+    if ((p.silver || 0) < r.cost) return toast(`Нужно ${fmt(r.cost)} серебра.`);
+    if (!confirm(`Сбросить характеристики? Вернётся ${r.spent} очков, их можно распределить заново.${r.cost ? ` Стоимость: ${fmt(r.cost)} серебра.` : ' Первый сброс — бесплатно.'}`)) return;
+    b.setPlayer(cur => {
+      if (!cur || (cur.silver || 0) < r.cost) return cur;
+      const attrs = {...cur.attributes}; let back = 0;
+      for (const [k, v] of Object.entries(attrs)) { const bv = r.base[k]; if (bv != null && v > bv) { back += v - bv; attrs[k] = bv; } }
+      return {...cur, attributes: attrs, statPoints: (cur.statPoints || 0) + back, silver: (cur.silver || 0) - r.cost};
+    });
+    localStorage.setItem(respecKey(), '1'); sfx.play('magic'); bigBanner(`♻️ Возвращено ${r.spent} очков характеристик`, false);
+  }
+  const respecButton = () => h('button', {type: 'button', class: 'ae-btn ae-wide ae-respec', 'data-ae-respec': '1', onclick: doRespec}, '♻️ Сбросить характеристики');
+  function injectRespec() {
+    const anchor = [...document.querySelectorAll('main span, main div, main p')].find(e => !e.childElementCount && /^(Свободно очков|Очки характеристик|Свободных очков)/i.test((e.textContent || '').trim()));
+    if (!anchor) return;
+    const row = anchor.parentElement; if (!row || row.parentElement.querySelector(':scope > [data-ae-respec]')) return;
+    row.after(respecButton());
+  }
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
@@ -891,6 +1087,7 @@
       btn = h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-bag-merge': '1', onclick: openMerge}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}), h('small', {})), h('span', {class: 'ae-coop-go'}, '›'));
       anchor.parentElement.insertBefore(btn, anchor.nextSibling);
     }
+    if (!anchor.parentElement.querySelector(':scope > [data-ae-gems]')) btn.after(h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Кристаллы'), h('small', {}, 'Вставить, создать или купить')), h('span', {class: 'ae-coop-go'}, '›')));
     if (!anchor.parentElement.querySelector(':scope > [data-ae-autoequip]')) btn.after(autoEquipToggle());
     const label = n ? `Объединить одинаковые · ${n}` : 'Объединить одинаковые', sub = n ? 'Есть пары для ★ — нажмите, чтобы выбрать' : 'Пар одинаковых вещей пока нет';
     if (btn.querySelector('b').textContent !== label) { btn.querySelector('b').textContent = label; btn.querySelector('small').textContent = sub; btn.classList.toggle('has-pairs', !!n); }
@@ -1211,6 +1408,8 @@
       if (!data) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const pr = data.profile;
       body.append(profileHeader(pr));
+      { const li = me() ? luckInfo(me()) : null; if (li) body.append(h('div', {class: 'ae-pill'}, `🍀 Удача ${li.luck}: шанс улучшить редкость найденной вещи ${Math.round(li.bump * 100)}% · легендарные находки ×${li.legMul.toFixed(2)}`)); }
+      { const r = me() ? respecInfo(me()) : null; if (r) body.append(h('div', {class: 'ae-row ae-card'}, h('div', {class: 'ae-grow'}, h('b', {}, '♻️ Характеристики'), h('div', {class: 'ae-sub'}, r.spent ? `Вложено очков: ${r.spent}. Сброс ${r.cost ? `— ${fmt(r.cost)} серебра` : '— первый бесплатно'}.` : 'Вложенных очков нет.')), h('button', {class: 'ae-btn' + (r.spent ? ' ae-primary' : ''), type: 'button', disabled: !r.spent, onclick: () => { closePanel(); doRespec(); }}, 'Сбросить'))); }
       body.append(h('div', {class: 'ae-tabs'}, [['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка']].map(([k, l]) =>
         h('button', {type: 'button', class: 'ae-pill-btn' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
       if (tab === 'avatars') {
@@ -1507,7 +1706,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['💎', 'Кристаллы', 'Вампиризм, крит, кровотечение…', () => openGems()], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -1809,6 +2008,7 @@
   // ---------- modern «Меню»: one style, no duplicates, add-on features as a native group ----------
   // Line icons in the menu's own style (stroke = currentColor, 28×28 like the game's icons)
   const LINE = {
+    gems: '<path d="M8 4h12l4 6-10 14L4 10z"/><path d="M4 10h20M11 4l-2 6 5 14 5-14-2-6"/>',
     invite: '<circle cx="11" cy="10" r="4"/><path d="M3.5 23c.7-4 3.7-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.2M21 14v8M17 18h8"/>',
     coop: '<path d="M5 24V12a9 9 0 0 1 18 0v12M3.5 24h21M11 24v-6a3 3 0 0 1 6 0v6M9 13.5h10"/>',
     duel: '<path d="M5 5l12 12M5 5h3.5L19 15.5M5 5v3.5L15.5 19M23 5L11 17M23 5h-3.5L9 15.5M23 5v3.5L12.5 19M8 20l-3 3M20 20l3 3M7 18l3 3M21 18l-3 3"/>',
@@ -1821,7 +2021,7 @@
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge], ['gems', 'Кристаллы', () => openGems()],
     ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
@@ -2286,7 +2486,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -2302,6 +2502,11 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
+.ae-forge-up{position:absolute;right:2px;bottom:2px;z-index:2;padding:0 5px;border-radius:6px;background:#1a1306e6;border:1px solid #e5ce96;color:#ffd77a;font:800 11px/16px system-ui,sans-serif;pointer-events:none}
+.ae-forge-up.is-pop{animation:aeForgePop .6s ease-out}@keyframes aeForgePop{0%{transform:scale(1.9);color:#fff;box-shadow:0 0 16px #ffd77a}100%{transform:scale(1)}}
+.ae-gem-row .ae-gem-i{font-size:26px;width:34px;text-align:center}.ae-gem-recipe{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ae-gem-recipe span{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid #ffffff22}
+.ae-gem-pick{display:flex;flex-wrap:wrap;gap:6px}.ae-gem-chip{min-height:38px;font-size:12px}.ae-gem-chip.is-on{background:#e5ce96;color:#1a1306;font-weight:700}
 .ae-ing-low{color:#fca5a5!important;border-color:#b91c1c!important}.ae-ing-ok{color:#86efac!important}
 .ae-alch-note{margin-top:6px;padding:6px 10px;border-radius:8px;background:#450a0a99;border:1px solid #b91c1c88;color:#fecaca;font-size:12px}
 .ae-alch-blocked{filter:grayscale(.6);opacity:.75}
@@ -2618,5 +2823,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite()};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me())};
 })();
