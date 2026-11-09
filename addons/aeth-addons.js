@@ -389,6 +389,7 @@
       if (room.status === 'lobby') {
         if (room.isHost) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', disabled: room.members.length < 2, onclick: () => post('/api/coop/start', {}, 'В бой!')}, room.members.length < 2 ? 'Ждём хотя бы одного союзника…' : '⚔️ Начать поход'));
         else body.append(h('p', {class: 'ae-note'}, 'Ждём, когда лидер начнёт поход.'));
+        body.append(h('button', {class: 'ae-btn ae-wide ae-coop-share', type: 'button', onclick: () => shareCoop(room)}, '📢 Позвать в общий чат'));
         body.append(h('h3', {class: 'ae-h3'}, 'Позвать друзей'));
         if (!friends.length) body.append(h('p', {class: 'ae-sub'}, 'Добавьте друзей в разделе «Друзья», чтобы звать их одним нажатием.'));
         for (const f of friends) body.append(h('div', {class: 'ae-row ae-card'}, h('span', {class: 'ae-dot' + (f.online ? ' is-on' : '')}), h('b', {class: 'ae-grow'}, `${f.name} (${f.level})`),
@@ -926,8 +927,32 @@
         h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик')));
     return card;
   }
+  // ---------- co-op invites in the global chat ----------
+  const COOP_RE = /⟦ae:c:([A-Za-z0-9+/=]+)⟧/;
+  function shareCoop(room) {
+    const k = 'aeth_coop_shared_' + room.id, last = Number(localStorage.getItem(k) || 0);
+    if (Date.now() - last < 60000) return toast(`Приглашение уже в чате. Повторить можно через ${Math.ceil((60000 - (Date.now() - last)) / 1000)} с.`);
+    const o = {r: room.id, d: room.dungeon.name, i: room.dungeon.id, mn: room.dungeon.minLevel, mx: room.dungeon.maxLevel, h: room.members.find(m => String(m.id) === String(room.hostId))?.name || ''};
+    const text = `🛡️ Ищу отряд в «${o.d}» (ур. ${o.mn}–${o.mx}) ⟦ae:c:${enc(o)}⟧`;
+    api('/api/chat/global', 'POST', {text}).then(() => { localStorage.setItem(k, String(Date.now())); toast('Приглашение отправлено в общий чат'); sfx.play('page'); }, e => toast(cleanError(e)));
+  }
+  function coopCard(o) {
+    const lvl = me()?.level || 1, low = lvl < (o.mn || 1);
+    return h('div', {class: 'ae-chat-item ae-chat-coop', onclick: e => e.stopPropagation()},
+      h('img', {src: dIcon(COOP_ICONS[o.i] || 'goblin_cave'), alt: ''}),
+      h('span', {class: 'ae-grow'}, h('b', {}, `🤝 Кооп: ${o.d}`), h('small', {}, `ур. ${o.mn}–${o.mx}${o.h ? ' · лидер ' + o.h : ''}`)),
+      h('button', {type: 'button', class: 'ae-btn ae-primary', disabled: low, onclick: async e => {
+        e.stopPropagation();
+        try { await api('/api/coop/join', 'POST', {roomId: o.r}); toast('Вы в отряде!'); sfx.play('bell'); openCoop(); }
+        catch (err) { toast(/уже в отряде|Сначала покиньте/i.test(cleanError(err)) ? 'Вы уже в другом отряде — сначала покиньте его.' : cleanError(err).replace('Комната уже недоступна.', 'Отряд уже ушёл в поход или распущен.')); }
+      }}, low ? `с ${o.mn} ур.` : 'Вступить'));
+  }
   function renderChatItems() {
     for (const el of document.querySelectorAll('main *, .game-dialog-backdrop *')) {
+      if (!el.childElementCount && COOP_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
+        const m = el.textContent.match(COOP_RE), o = dec(m[1]);
+        if (o && o.r) { const before = el.textContent.replace(COOP_RE, '').replace(/🛡️ Ищу отряд в «[^»]*» \(ур\. [^)]*\)/, '').trim(); el.replaceChildren(before ? h('span', {}, before + ' ') : '', coopCard(o)); continue; }
+      }
       if (el.childElementCount || !TOKEN_RE.test(el.textContent || '') || el.closest('.ae-chat-item, textarea, input')) continue;
       const m = (el.textContent || '').match(TOKEN_RE), o = m && dec(m[1]); if (!o) continue;
       const before = el.textContent.replace(TOKEN_RE, '').trim();
@@ -1536,6 +1561,7 @@ img.ae-land-icon{width:40px!important;height:40px!important;border-radius:50%;ob
 .modern-resource[data-ae-cur] > span:first-child{width:34px!important;height:28px!important;flex:0 0 34px!important;margin-right:2px;background:center/contain no-repeat}
 .modern-resource[data-ae-cur=gold] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/gold.webp)}.modern-resource[data-ae-cur=gold] b{color:#f6cf6b}
 .modern-resource[data-ae-cur=silver] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/silver.webp)}.modern-resource[data-ae-cur=silver] b{color:#d7dde6}
+.ae-chat-coop{display:flex;align-items:center;gap:8px;cursor:default}.ae-chat-coop img{width:40px;height:40px;border-radius:50%;flex:0 0 40px}.ae-chat-coop .ae-btn{flex:0 0 auto;padding:7px 12px}
 .ae-emoji-icon{font-size:22px;line-height:1;width:25px;height:25px;display:inline-flex!important;align-items:center;justify-content:center}
 .mechanics-favorites>div>button{position:relative}.ae-unpin{position:absolute;top:2px;right:5px;color:#e5c678;font-size:12px;cursor:pointer}
 /* modern interface: add-on controls in the modern look (slate cards, no fantasy gold) */
