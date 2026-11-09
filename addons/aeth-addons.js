@@ -1645,16 +1645,17 @@
   const today = () => new Date().toLocaleDateString('sv');
   const placeSeen = () => { try { return JSON.parse(localStorage.getItem(placeSeenKey()) || '{}'); } catch { return {}; } };
   const PLACE_HINT = {};
+  const plural = (n, one, few, many) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many; };
   function placeBadge(id, p) {
     const now = Date.now(), cast = p.fishing?.cast, exp = p.miningExpedition;
-    if (id === 'pets' && p.activePet) { const sat = petSat(); if (sat < HUNGRY_AT) return ['warn', '🍖', 'Питомец голоден!']; if (sat < 50) return ['info', '🍖', 'Питомец проголодался']; }
-    if (id === 'fishing' && cast) { if (cast.hookedAt || (Number.isFinite(cast.biteAt) && now >= cast.biteAt && !(now > cast.expiresAt))) return ['warn', '🐟', 'Клюёт! Подсекайте']; return ['busy', '⏳', 'Удочка заброшена']; }
-    if (id === 'mine' && exp) return Number(exp.endsAt) <= now ? ['ready', '✓', 'Экспедиция вернулась'] : ['busy', '⏳', 'Экспедиция в пути'];
-    if (id === 'arena' && (p.arenaTickets || 0) > 0) return ['ready', String(p.arenaTickets), 'Билеты на арену'];
-    if (id === 'alchemy' && (p.alchemyEnergy || 0) >= (p.maxAlchemyEnergy || 100)) return ['ready', '⚗️', 'Котёл полон сил'];
-    if (id === 'chat' && p.energy < p.maxEnergy) return ['ready', '⚡', 'Восстановить энергию'];
-    if (id === 'quests') { const n = (questCache || []).filter(q => !q.claimed && q.progress >= q.need).length; if (n) return ['ready', String(n), 'Награды ждут']; }
-    if (placeSeen()[id] !== today()) return ['new', '✦', 'Ещё не заглядывали сегодня'];
+    if (id === 'pets' && p.activePet) { const sat = petSat(); if (sat < HUNGRY_AT) return ['warn', '🍖 Питомец голоден']; if (sat < 50) return ['info', '🍖 Пора покормить']; }
+    if (id === 'fishing' && cast) { if (cast.hookedAt || (Number.isFinite(cast.biteAt) && now >= cast.biteAt && !(now > cast.expiresAt))) return ['warn', '🐟 Клюёт! Подсекайте']; return ['busy', '⏳ Ждём клёва']; }
+    if (id === 'mine' && exp) return Number(exp.endsAt) <= now ? ['ready', '⛏️ Добыча готова'] : ['busy', '⏳ Идёт добыча'];
+    if (id === 'arena' && (p.arenaTickets || 0) > 0) { const n = p.arenaTickets; return ['ready', `🎟️ ${n} ${plural(n, 'билет', 'билета', 'билетов')}`]; }
+    if (id === 'alchemy' && (p.alchemyEnergy || 0) >= (p.maxAlchemyEnergy || 100)) return ['ready', '⚗️ Можно варить'];
+    if (id === 'chat' && p.energy < p.maxEnergy) return ['ready', '⚡ Энергия +25'];
+    if (id === 'quests') { const n = (questCache || []).filter(q => !q.claimed && q.progress >= q.need).length; if (n) return ['ready', `🎁 ${n} ${plural(n, 'награда', 'награды', 'наград')}`]; }
+    if (placeSeen()[id] !== today()) return ['new', '✨ Загляните'];
     return null;
   }
   function paintPlaceBadges() {
@@ -1665,8 +1666,8 @@
       if ((t.dataset.aeBadge || '') === sig) continue;
       t.dataset.aeBadge = sig; t.querySelector(':scope > .ae-place-badge')?.remove(); t.removeAttribute('data-ae-badge-kind');
       if (!want) continue;
-      const [kind, text, title] = want; t.setAttribute('data-ae-badge-kind', kind);
-      t.append(h('span', {class: 'ae-place-badge is-' + kind, title, 'aria-label': title}, h('b', {}, text), h('small', {}, title)));
+      const [kind, text] = want; t.setAttribute('data-ae-badge-kind', kind);
+      t.append(h('span', {class: 'ae-place-badge is-' + kind, title: kind === 'new' ? 'Вы ещё не заходили сюда сегодня' : text}, text));
     }
   }
   setInterval(() => { try { paintPlaceBadges(); } catch {} }, 4000);
@@ -1971,17 +1972,16 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   // ---------- styles ----------
   const css = `
 [data-settlement-place]{position:relative!important;overflow:visible!important}
-.ae-place-badge{position:absolute;top:-7px;right:-5px;z-index:3;display:inline-flex;align-items:center;gap:4px;max-width:calc(100% + 4px);height:22px;padding:0 7px;border-radius:999px;font:700 11px/22px system-ui,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px #0009}
-.ae-place-badge b{font-weight:800}.ae-place-badge small{font:600 10px/1 system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis}
-.ae-place-badge.is-new small,.ae-place-badge.is-busy small{display:none}
-.ae-place-badge.is-new{background:linear-gradient(#f6d77c,#c99a35);color:#2a1a05;border:1px solid #fff3c4;padding:0;width:22px;justify-content:center;animation:aePlaceTwinkle 2.4s ease-in-out infinite}
+.ae-place-badge{position:absolute;top:-8px;right:-4px;z-index:3;max-width:calc(100% - 4px);height:20px;padding:0 8px;border-radius:999px;font:700 10.5px/20px system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 2px 8px #0009}
+.ae-place-badge.is-info{background:linear-gradient(#f59e0b,#b45309);color:#fff;border:1px solid #fde68a}
+.ae-place-badge.is-new{background:linear-gradient(#f6d77c,#c99a35);color:#2a1a05;border:1px solid #fff3c4;animation:aePlaceTwinkle 2.6s ease-in-out infinite}
 .ae-place-badge.is-ready{background:linear-gradient(#22c55e,#15803d);color:#fff;border:1px solid #bbf7d0;animation:aePlaceBob 1.8s ease-in-out infinite}
 .ae-place-badge.is-warn{background:linear-gradient(#ef4444,#b91c1c);color:#fff;border:1px solid #fecaca;animation:aePlaceBob 1.1s ease-in-out infinite}
-.ae-place-badge.is-busy{background:#1e293bee;color:#cbd5e1;border:1px solid #475569;padding:0;width:22px;justify-content:center}
+.ae-place-badge.is-busy{background:#1e293bee;color:#cbd5e1;border:1px solid #475569}
 [data-ae-badge-kind=warn]{box-shadow:0 0 0 1px #ef444488,0 0 16px #ef444455!important}
 [data-ae-badge-kind=ready]{box-shadow:0 0 0 1px #22c55e77,0 0 14px #22c55e40!important}
 @keyframes aePlaceBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@keyframes aePlaceTwinkle{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.12) rotate(12deg);filter:brightness(1.25)}}
+@keyframes aePlaceTwinkle{0%,100%{transform:scale(1);filter:brightness(1)}50%{filter:brightness(1.3)}}
 @media (prefers-reduced-motion:reduce){.ae-place-badge{animation:none!important}}
 .ae-petfood{margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #a28a5299;background:#1d1710e6;color:#efe6d2;display:flex;flex-direction:column;gap:6px}
 html[data-interface=modern] .ae-petfood{background:#0f172a;border-color:#2b3a52;color:#e2e8f0}

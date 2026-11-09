@@ -18,8 +18,8 @@ console.log(await p.evaluate(() => [...document.querySelectorAll('[data-settleme
 await p.screenshot({path: `badges-${style}.png`, fullPage: true});
 await p.evaluate(() => document.querySelector('[data-settlement-place="clan"]').click()); await p.waitForTimeout(800);
 await p.getByRole('button', {name: 'Назад'}).first().click().catch(() => {}); await p.waitForTimeout(4500);
-console.log('seen:', await p.evaluate(() => localStorage.getItem('aeth_place_seen_437290420')));
-await p.evaluate(() => document.querySelector('nav button')?.click()); await p.waitForTimeout(4500);
-console.log('clan now:', await p.evaluate(() => document.querySelector('[data-settlement-place="clan"]')?.dataset.aeBadge));
+
+
+
 console.log(s.log.filter(l => /pageerror|ae heavy|ae inject/.test(l)).slice(0, 3).join('\n'));
 await s.close();
