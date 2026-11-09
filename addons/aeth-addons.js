@@ -577,6 +577,7 @@
     const host = box || title.closest('[role=dialog]') || title.parentElement?.parentElement;
     if (host && !host.querySelector('[data-ae-admin]')) host.append(adminPremiumBlock());
     if (host && !host.querySelector('[data-ae-admin-promo]')) host.append(adminPromoBlock());
+    if (host && !host.querySelector('[data-ae-admin-news]')) host.append(adminNewsBlock());
     if (host && !host.querySelector('[data-ae-admin-level]')) host.append(adminLevelBlock());
   }
 
@@ -1180,11 +1181,11 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()],
+  const ENTRIES = [['📰', 'Что нового', 'Обновления игры', () => openNews()], ['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
-      h('div', {class: 'ae-entry-grid'}, ENTRIES.map(([icon, title, sub, fn]) => h('button', {class: 'ae-entry-btn', type: 'button', onclick: e => { e.stopPropagation(); fn(); }},
+      h('div', {class: 'ae-entry-grid'}, ENTRIES.map(([icon, title, sub, fn]) => h('button', {class: 'ae-entry-btn', type: 'button', 'data-ae-news-btn': title === 'Что нового' ? '1' : null, onclick: e => { e.stopPropagation(); fn(); }},
         h('span', {class: 'ae-entry-icon'}, icon), h('span', {}, h('b', {}, title), h('small', {}, sub))))));
   }
   function injectEntries() {
@@ -1406,15 +1407,16 @@
     merge: '<path d="M14 4l2.6 5.3 5.9.9-4.2 4.1 1 5.8L14 17.4l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/>',
     friends: '<circle cx="10" cy="9.5" r="3.5"/><circle cx="19.5" cy="10.5" r="2.8"/><path d="M3.5 22.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5M16 16.6c1-.6 2.2-.9 3.5-.9 2.8 0 5 2.2 5 5.3"/>',
     promo: '<rect x="5" y="12" width="18" height="11" rx="1.5"/><path d="M4 8.5h20V12H4zM14 8.5V23M14 8.5c-1.5-3-5.2-4-6.2-2.1s2 3 6.2 2.1zm0 0c1.5-3 5.2-4 6.2-2.1s-2 3-6.2 2.1z"/>',
+    news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  const AE_GROUP = [['news', 'Что нового', openNews], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
       const group = h('section', {class: 'mechanics-group', 'data-ae-group': '1'}, h('header', {}, h('h2', {}, 'Приключения'), h('p', {}, 'Вместе и против всех')),
         h('div', {class: 'mechanics-grid'}, AE_GROUP.map(([icon, label, fn]) => h('div', {class: 'mechanics-entry'},
-          h('button', {type: 'button', onclick: e => { e.stopPropagation(); fn(); }}, lineIcon(icon), h('span', {class: 'mechanics-entry-label'}, label))))));
+          h('button', {type: 'button', 'data-ae-news-btn': icon === 'news' ? '1' : null, onclick: e => { e.stopPropagation(); fn(); }}, lineIcon(icon), h('span', {class: 'mechanics-entry-label'}, label))))));
       const first = menu.querySelector(':scope > .mechanics-group');
       menu.insertBefore(group, first ? first.nextSibling : null);
     }
@@ -1451,9 +1453,58 @@
     const pet = document.querySelector('[data-settlement-place="pets"] .settlement-place-icon img');
     if (pet && pet.getAttribute('src') !== '/assets/pets/place-icon-v1.webp') pet.setAttribute('src', '/assets/pets/place-icon-v1.webp');
   }
+
+  // ---------- «Что нового»: update posts (same as in the channel) ----------
+  const newsSeenKey = () => 'aeth_news_seen_' + uid();
+  let newsCache = null;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  function newsHtml(text) {
+    return esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]{2,40})`/g, '<code class="ae-copy" title="Нажмите, чтобы скопировать">$1</code>')
+      .replace(/(^|\s)(t\.me\/[A-Za-z0-9_/]+)/g, '$1<a href="https://$2" target="_blank" rel="noopener">$2</a>').replace(/\n/g, '<br>');
+  }
+  async function loadNews() { try { newsCache = (await api('/api/news')).posts || []; } catch { newsCache = newsCache || []; } return newsCache; }
+  const unreadNews = () => { const seen = localStorage.getItem(newsSeenKey()) || ''; return (newsCache || []).filter(x => x.at > seen).length; };
+  function openNews() {
+    const st = openPanel('📰 Что нового', body => {
+      if (!newsCache) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      body.append(h('p', {class: 'ae-note'}, h('span', {}, 'Все обновления игры. Новости первыми — в канале '), h('a', {href: 'https://t.me/Aethelgardo', target: '_blank', rel: 'noopener'}, 't.me/Aethelgardo')));
+      if (!newsCache.length) return body.append(h('p', {class: 'ae-empty'}, 'Пока пусто.'));
+      for (const n of newsCache) body.append(h('article', {class: 'ae-card ae-news'}, h('small', {}, new Date(n.at).toLocaleDateString('ru-RU', {day: 'numeric', month: 'long', year: 'numeric'})), h('h3', {}, n.title), h('div', {class: 'ae-news-text', html: newsHtml(n.text)})));
+    });
+    st.body.addEventListener('click', e => { const c = e.target.closest('.ae-copy'); if (!c) return; navigator.clipboard?.writeText(c.textContent).then(() => toast('Промокод скопирован: ' + c.textContent), () => toast(c.textContent)); });
+    loadNews().then(() => { if (newsCache[0]) localStorage.setItem(newsSeenKey(), newsCache[0].at); if (openPanelState === st) st.rerender(); paintNewsBadges(); });
+  }
+  function paintNewsBadges() {
+    if (!newsCache) return;
+    const n = unreadNews(), want = n ? String(n) : '';
+    for (const b of document.querySelectorAll('[data-ae-news-btn]')) {
+      const cur = b.querySelector(':scope > .ae-qbadge');
+      if ((cur?.textContent || '') === want) continue;
+      cur?.remove(); if (want) b.append(h('i', {class: 'ae-qbadge'}, want));
+    }
+  }
+  setTimeout(async () => {
+    if (!uid()) return; await loadNews(); paintNewsBadges();
+    const latest = newsCache?.[0], seen = localStorage.getItem(newsSeenKey());
+    if (latest && (!seen || latest.at > seen)) popup({icon: '📰', text: `Вышло обновление: ${latest.title}`, act: 'Читать', fn: openNews});
+  }, 9000);
+  function adminNewsBlock() {
+    const title = h('input', {class: 'ae-input', placeholder: 'Заголовок, например: Обновление: связки в коопе', maxlength: 120});
+    const text = h('textarea', {class: 'ae-input ae-news-input', rows: 8, placeholder: 'Текст поста (как в канале). **жирный**, `ПРОМОКОД`'});
+    const toChannel = h('input', {type: 'checkbox'});
+    const publish = async () => {
+      if (!title.value.trim() || text.value.trim().length < 10) return toast('Заполните заголовок и текст.');
+      if (!confirm('Опубликовать новость в игре' + (toChannel.checked ? ' и в канале' : '') + '?')) return;
+      try { const r = await api('/api/admin/news', 'POST', {title: title.value, text: text.value, toChannel: toChannel.checked, operationId: uuid4()});
+        toast('Опубликовано в игре' + (r.channel === 'sent' ? ' и в канале' : r.channel ? ` (канал: ${r.channel.replace(/^failed: /, '')})` : '')); title.value = ''; text.value = ''; await loadNews(); paintNewsBadges(); }
+      catch (e) { toast(cleanError(e)); }
+    };
+    return h('section', {class: 'ae-admin-premium', 'data-ae-admin-news': '1'}, h('div', {class: 'ae-h3'}, '📰 Новости («Что нового»)'), h('div', {class: 'ae-sub'}, 'Текст появится в меню «Что нового» у всех игроков. Галочка отправит его и в канал — работает, если бот администратор канала с правом публикации.'),
+      title, text, h('label', {class: 'ae-row ae-sub'}, toChannel, ' Отправить и в канал t.me/Aethelgardo'), h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: publish}, 'Опубликовать'));
+  }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -1562,6 +1613,8 @@ img.ae-land-icon{width:40px!important;height:40px!important;border-radius:50%;ob
 .modern-resource[data-ae-cur=gold] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/gold.webp)}.modern-resource[data-ae-cur=gold] b{color:#f6cf6b}
 .modern-resource[data-ae-cur=silver] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/silver.webp)}.modern-resource[data-ae-cur=silver] b{color:#d7dde6}
 .ae-chat-coop{display:flex;align-items:center;gap:8px;cursor:default}.ae-chat-coop img{width:40px;height:40px;border-radius:50%;flex:0 0 40px}.ae-chat-coop .ae-btn{flex:0 0 auto;padding:7px 12px}
+.ae-news h3{margin:2px 0 8px;font:700 17px Georgia,serif;color:#f3e2b6}.ae-news small{color:#bfae8c;font-size:11px}.ae-news-text{font-size:13.5px;line-height:1.5}.ae-news-text code{background:#ffd36a22;border:1px dashed #ffd36a88;border-radius:6px;padding:1px 6px;color:#ffe08a;cursor:pointer;font-weight:700}
+.ae-news-text a{color:#7cc4ff}.ae-news-input{width:100%;min-height:140px;margin:6px 0;resize:vertical;font:13px/1.4 system-ui,sans-serif}[data-ae-news-btn],.ae-entry-btn{position:relative}
 .ae-emoji-icon{font-size:22px;line-height:1;width:25px;height:25px;display:inline-flex!important;align-items:center;justify-content:center}
 .mechanics-favorites>div>button{position:relative}.ae-unpin{position:absolute;top:2px;right:5px;color:#e5c678;font-size:12px;cursor:pointer}
 /* modern interface: add-on controls in the modern look (slate cards, no fantasy gold) */

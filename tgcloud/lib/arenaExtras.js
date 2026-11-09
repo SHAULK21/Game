@@ -49,6 +49,26 @@ function pulse(world, me) {
   });
 }
 
+// ---------- «Что нового»: update posts shown in the game (same text as the channel) ----------
+function handleNews(world, path, method, body, user, now) {
+  const list = rows(world, 'ae_news');
+  if (method === 'GET' && path === '/api/news') return ok({posts: list.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30).map(({id, title, text, at}) => ({id, title, text, at}))});
+  if (path === '/api/admin/news') {
+    if (!user.isAdmin) return fail('Недостаточно прав.', 403);
+    if (method === 'POST') {
+      const title = String(body.title || '').trim().slice(0, 120), text = String(body.text || '').trim().slice(0, 6000);
+      if (!title || text.length < 10) return fail('Нужны заголовок и текст поста.');
+      const opId = String(body.operationId || '');
+      const dup = opId && list.find(x => x.op === opId); if (dup) return ok({post: dup, replayed: true});
+      const post = {id: crypto.randomUUID(), op: opId || null, title, text, at: new Date(now).toISOString()};
+      list.push(post); world.tables.ae_news = list.slice(-60);
+      return ok({post}, 201);
+    }
+    if (method === 'DELETE' || (method === 'POST' && body.delete)) { world.tables.ae_news = list.filter(x => x.id !== body.id); return ok({ok: true}); }
+  }
+  return fail('API не найден.', 404);
+}
+
 // ---------- special quests: co-op and PvP (daily + weekly) ----------
 export function logQuest(world, userId, kind, now, n = 1) {
   const list = rows(world, 'ae_quest_log'); for (let i = 0; i < n; i++) list.push({u: String(userId), k: kind, at: new Date(now).toISOString()});
@@ -394,6 +414,7 @@ export function handleExtras(world, input, user, now, notify) {
     notify?.(world, target.telegram_id, `🎖️ Администратор повысил вашего героя до ${level} уровня. Откройте игру!`, 'admin-level', now);
     return ok({ok: true, name: nameOf(target), level});
   }
+  if (path === '/api/news' || path === '/api/admin/news') return handleNews(world, path, method, body, user, now);
   if (path.startsWith('/api/quests/special')) return handleQuests(world, path, method, body, user.id, now);
   if (path === '/api/items/deposit' && method === 'POST') return handleDeposit(world, body, user.id, now);
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);

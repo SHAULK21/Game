@@ -37,6 +37,10 @@ async function handle(input, ctx) {
         allowsWriteToPm: user.allows_write_to_pm === true}, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
       validateNativeWorld(world); return response;
     }, {maxAttempts: input.path === '/api/admin/broadcasts' && String(input.method).toUpperCase() === 'POST' ? 32 : 8});
+    if (input.path === '/api/admin/news' && reply.status === 201 && input.body?.toChannel) {
+      try { await api.sendMessage({chat_id: '@Aethelgardo', text: `${reply.body.post.title}\n\n${reply.body.post.text}`.slice(0, 4096), link_preview_options: {is_disabled: true}}); reply.body.channel = 'sent'; }
+      catch (e) { reply.body.channel = 'failed: ' + (e?.description || e?.message || 'ошибка'); }
+    }
     if (input.path === '/api/admin/premium/grant' && reply.status === 200 && !reply.body?.replayed)
       await sendPremiumWelcome(Number(input.body.targetId), Number(input.body.days), true);
     if (reply.effect?.method === 'createInvoiceLink') {
