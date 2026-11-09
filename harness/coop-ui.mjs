@@ -18,22 +18,22 @@ await p.waitForTimeout(1800); await p.locator('.ae-panel button', {hasText: 'Н�
 // attack spam: measure how many attacks register in 6 seconds
 const before = room.log.filter(l => /Админ|атакует|мощный/.test(l.text) && !/бьёт/.test(l.text)).length;
 const t0 = Date.now(); let clicks = 0;
-while (Date.now() - t0 < 6000) { await p.locator('[data-ae-act="attack"]').click({timeout: 500}).catch(() => {}); clicks++; await p.waitForTimeout(150); }
+while (Date.now() - t0 < 6000) { await p.locator('[data-ae-act="attack"]').first().click({timeout: 500, force: true}).catch(() => {}); clicks++; await p.waitForTimeout(150); }
 const mine = room.log.filter(l => /атакует/.test(l.text) && !/Борис/.test(l.text)).length;
 console.log('clicks', clicks, 'attacks registered in 6s', mine, '| enemy turns', room.log.filter(l => /бьёт|сокрушает/.test(l.text)).length);
-await p.locator('[data-ae-act="power"]').click(); await p.waitForTimeout(300);
+await p.locator('[data-ae-act="power"]').first().click({force: true}); await p.waitForTimeout(300);
 console.log('power cd label', await p.locator('[data-ae-act="power"] .ae-act-cd').innerText());
-console.log('foe card:', (await p.locator('.ae-foe').innerText()).replace(/\n/g, ' | '));
+console.log('battle view:', await p.locator('.ae-bv').count(), 'battle mode', await p.locator('.ae-battle-mode').count());
 await handleSocialRequest(s.world, {path: '/api/coop/act', method: 'POST', body: {action: 'spell'}}, {id: 555}, Date.now()); await p.waitForTimeout(1500);
-console.log('chain shown:', (await p.locator('.ae-chain').innerText().catch(() => 'none')).replace(/\n/g, ' | '), '| spell glow', await p.locator('.ae-spell.is-combo').count());
+console.log('chain shown:', (await p.locator('.ae-chain').innerText().catch(() => 'none')).replace(/\n/g, ' | '), '| spell glow', await p.locator('.ae-combo-glow').count());
 console.log('server chain before click', JSON.stringify(room.chain), 'now', Date.now(), 'admin next', JSON.stringify(room.members[0].next));
 await p.locator('[data-ae-act="spell"]').click({force: true}); await p.waitForTimeout(400); console.log('log after click', room.log.slice(-3).map(l => l.text).join(' || '));
 console.log('banner:', await p.locator('.ae-combo-banner').innerText().catch(() => 'none'));
 await handleSocialRequest(s.world, {path: '/api/coop/ping', method: 'POST', body: {kind: 'help'}}, {id: 555}, Date.now()); await p.waitForTimeout(1800);
 console.log('ping popup:', await p.locator('.ae-pop').allInnerTexts());
 console.log('log tail:', room.log.slice(-6).map(l => l.text).join(' || '));
-console.log('scene:', (await p.locator('.ae-scene').innerText()).replace(/\n/g, ' | '));
-await p.locator('.ae-panel').screenshot({path: `coop-ui-${style}.png`});
-await p.locator('.ae-body').evaluate(b => b.scrollTop = 400); await p.waitForTimeout(2500); console.log('scroll kept', await p.locator('.ae-body').evaluate(b => b.scrollTop));
+
+await p.screenshot({path: `coop-ui-${style}.png`, fullPage: true});
+
 console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n'));
 await s.close();

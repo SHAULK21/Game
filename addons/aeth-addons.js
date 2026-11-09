@@ -251,6 +251,12 @@
   // ---------- 7. co-op dungeons ----------
   const CLASS_RU = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
   const COOP_CD = {attack: 900, power: 4500, heal: 4000, guard: 6000};
+  const COOP_SCENES = {goblin_cave: '/assets/cave-bat-BMyMeMjZ.webp', spider_den: '/assets/spider-DP3tZJJe.webp', crypt_depths: '/assets/catacombs-DeUOVUij.webp', rift_gate: '/assets/cave-rift-87tvC-MB.webp'};
+  const COOP_FOE_SPRITE = {'Гоблин-разведчик': 'm_goblin', 'Гоблин-лучник': 'v_ww_raider', 'Гоблин-шаман': 'v_ww_shaman', 'Гоблин-громила': 'm_bandit', 'Вожак гоблинов': 'm_goblin', 'Король гоблинов Гракх': 'v_ww_shaman',
+    'Паук-ткач': 'v_ww_spider', 'Ядовитый паук': 'm_spider', 'Кокон-ловушка': 'v_cr_spider', 'Паук-страж': 'm_spider', 'Матка-ткачиха': 'v_sw_queen', 'Паучья королева Ирхаса': 'm_spider_queen',
+    'Скелет-воин': 'm_cursed_soldier', 'Костяной маг': 'bm_cultist', 'Упырь': 'bm_ghoul', 'Рыцарь праха': 'm_death_knight_boss', 'Страж гробниц': 'v_cr_colossus', 'Лич Морвен': 'v_cu_lord',
+    'Бес пламени': 'm_ash_imp', 'Адская гончая': 'bm_hound', 'Демон-палач': 'v_de_knight', 'Страж разлома': 'm_sand_guard', 'Пожиратель душ': 'bm_bat_swarm', 'Владыка разлома Азгор': 'm_demon_lord'};
+  const coopFoeImg = name => `/assets/sprites/generated/monsters/${COOP_FOE_SPRITE[name] || 'm_bandit'}.webp`;
   function bigBanner(text, triple) {
     const el = h('div', {class: 'ae-combo-banner' + (triple ? ' is-triple' : '')}, text.replace(/\s*\(.*?\)/, ''));
     document.body.append(el); setTimeout(() => el.classList.add('is-on'), 10); setTimeout(() => el.remove(), 2200);
@@ -263,12 +269,12 @@
     const feel = room => {
       if (!room) { prevFoe = null; return; }
       const t = Date.now(), f = room.foe;
-      if (f && prevFoe && prevFoe.name === f.name && f.hp < prevFoe.hp) { floats.push({sel: '.ae-foe', text: '−' + fmt(prevFoe.hp - f.hp), cls: 'is-dmg'}); shakeUntil = t + 380; }
+      if (f && prevFoe && prevFoe.name === f.name && f.hp < prevFoe.hp) { floats.push({sel: '[data-bv-foe], .ae-foe', text: '−' + fmt(prevFoe.hp - f.hp), cls: 'is-dmg'}); shakeUntil = t + 380; }
       prevFoe = f ? {name: f.name, hp: f.hp} : null;
       for (const m of room.members || []) {
         const was = prevHp[m.id];
-        if (was != null && m.hp < was) { hitUntil[m.id] = t + 600; floats.push({sel: `[data-ae-member="${m.id}"]`, text: '−' + fmt(was - m.hp), cls: 'is-hurt'}); if (String(m.id) === uid()) { sfx.play('hit', 0.45); try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch {} } }
-        if (was != null && m.hp > was) floats.push({sel: `[data-ae-member="${m.id}"]`, text: '+' + fmt(m.hp - was), cls: 'is-heal'});
+        if (was != null && m.hp < was) { hitUntil[m.id] = t + 600; floats.push({sel: String(m.id) === uid() ? '[data-bv-hero], [data-ae-member="' + m.id + '"]' : `[data-ae-member="${m.id}"]`, text: '−' + fmt(was - m.hp), cls: 'is-hurt'}); if (String(m.id) === uid()) { sfx.play('hit', 0.45); try { Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch {} } }
+        if (was != null && m.hp > was) floats.push({sel: String(m.id) === uid() ? '[data-bv-hero], [data-ae-member="' + m.id + '"]' : `[data-ae-member="${m.id}"]`, text: '+' + fmt(m.hp - was), cls: 'is-heal'});
         prevHp[m.id] = m.hp;
       }
       const keys = (room.log || []).map(l => l.at + l.text);
@@ -349,6 +355,40 @@
         for (const r of state.open) body.append(h('div', {class: 'ae-row ae-card'}, h('img', {class: 'ae-dthumb', src: dIcon(COOP_ICONS[r.dungeon.id] || 'goblin_cave'), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, r.dungeon.name),
           h('div', {class: 'ae-sub'}, r.members.map(m => `${m.name} (${m.level})`).join(', ') + ` · ${r.members.length}/3`)),
           h('button', {class: 'ae-btn ae-primary', disabled: !r.fits, onclick: () => post('/api/coop/join', {roomId: r.id}, 'Вы в отряде!')}, r.fits ? 'Войти' : `с ${r.dungeon.minLevel} ур.`)));
+        return;
+      }
+      const meFight = room.members.find(m => String(m.id) === uid());
+      battleMode(body, room.status === 'active' && room.phase === 'fight' && room.foe && meFight);
+      if (room.status === 'active' && room.phase === 'fight' && room.foe && meFight) {
+        // Same screen as the game's monster fight; party, combo chain and signals sit under the actions.
+        const f = room.foe, sp = meFight.spell, dead = !meFight.hp, comboReady = !!room.chain?.preview, onMe = f.intent !== 'aoe' && f.intentText?.includes(meFight.name);
+        const fx = room.fx || {}, chips = [];
+        if (fx.warcry) chips.push('📯 +25% урона'); if (fx.wall) chips.push('🧱 −40% урона'); if (fx.mark) chips.push('🎯 метка'); for (const d0 of fx.dots || []) chips.push(`${d0.icon} ${d0.name} · ${d0.left}`);
+        const party = h('div', {class: 'ae-bv-party'},
+          room.chain ? h('div', {class: 'ae-chain' + (room.chain.preview ? ' is-ready' : '')}, h('b', {}, room.chain.preview ? `⚡ ${room.chain.by} открыл(а) связку → ${room.chain.preview.icon} «${room.chain.preview.name}»` : '⚡ Связка открыта — ждём союзника'), h('small', {'data-ae-chain-timer': '1'}, '')) : '',
+          chips.length ? h('div', {class: 'ae-chips'}, chips.map(c => h('span', {class: 'ae-chip'}, c))) : '',
+          h('div', {class: 'ae-bv-members'}, room.members.filter(m => String(m.id) !== uid()).map(m => h('div', {class: 'ae-bv-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)},
+            h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'), h('small', {}, m.spell ? `${m.spell.icon} ${m.spell.name}` : ''))))),
+          h('div', {class: 'ae-pings'}, [['help', '🆘 Помощь'], ['guard', '🛡️ Прикрой'], ['combo', '⚡ Связка'], ['focus', '🎯 В атаку'], ['ok', '👍 Ок']].map(([k, t]) => h('button', {type: 'button', class: 'ae-ping', onclick: () => { sfx.play('bell', 0.25); post('/api/coop/ping', {kind: k}); }}, t))));
+        const fire = action => () => { if (dead || (cdEnd[action] || 0) > Date.now()) return; sfx.play(action === 'heal' ? 'magic' : action === 'guard' ? 'shield' : action === 'power' ? 'heavy' : action === 'spell' ? 'magic' : 'hit'); cdEnd[action] = Date.now() + (action === 'spell' ? spellCd : COOP_CD[action]); paintCd(); post('/api/coop/act', {action}); };
+        body.append(battleView({
+          location: room.dungeon.name, mode: `Зал ${room.stage}/${room.rooms}`, round: f.boss ? 'Босс' : f.elite ? 'Элита' : 'Враг',
+          scene: COOP_SCENES[room.dungeon.id] || '/assets/catacombs-DeUOVUij.webp', turn: dead ? 'Вы без сил — союзник может поднять вас' : 'Бой отряда — действуйте!', turnShort: 'Бой отряда',
+          hero: {name: meFight.name, cls: CLASS_RU2[meFight.classId] || meFight.classId, level: meFight.level, hp: meFight.hp, maxHp: meFight.maxHp, portrait: heroPortrait(meFight.classId), body: heroBody(meFight.classId)},
+          foe: {name: f.name, level: f.boss ? 'Босс' : f.elite ? 'Элита' : 'Враг', hp: f.hp, maxHp: f.maxHp, atk: f.atk, def: f.def, img: coopFoeImg(f.name)},
+          note: room.scene || f.desc,
+          intent: f.intentText ? {label: 'Следующий ход врага:', name: `${f.intentText}${onMe ? ' — это вы!' : ''}`, text: f.intent === 'aoe' ? '💡 Удар по всем: подлечите раненых заранее.' : onMe || f.intent === 'heavy' ? '💡 Нажмите «Прикрыть» — щит снизит урон на 60%.' : f.desc || '', value: '⏱'} : null,
+          series: {label: 'Отряд', value: `Зал ${room.stage} / ${room.rooms}`, sub: room.bonus ? `💰 Бонус награды +${Math.round(room.bonus * 100)}%` : ''},
+          actions: [{kind: 'attack', label: 'Атака', attr: {'data-ae-act': 'attack'}, cdSlot: true, onClick: fire('attack')},
+            {kind: 'skill', label: sp ? `${sp.name}${comboReady ? ' — СВЯЗКА!' : ''}` : 'Заклинание', attr: {'data-ae-act': 'spell'}, cdSlot: true, cls: comboReady ? 'ae-combo-glow' : '', onClick: fire('spell')},
+            {kind: 'defend', label: 'Прикрыть', attr: {'data-ae-act': 'guard'}, cdSlot: true, onClick: fire('guard')},
+            {kind: 'potion', label: 'Лечение', attr: {'data-ae-act': 'heal'}, cdSlot: true, onClick: fire('heal')}],
+          secondary: [{label: 'Мощный удар', attr: {'data-ae-act': 'power'}, cdSlot: true, kind: 'attack', onClick: fire('power')},
+            {label: 'Покинуть поход', kind: 'leave', onClick: () => confirm('Покинуть отряд?') && post('/api/coop/leave', {}, 'Вы покинули отряд').then(load)}],
+          log: room.log.map(l => l.text), extra: party}));
+        const intentEl = body.querySelector('.ae-bv details summary strong, .ae-bv .text-slate-100.font-bold'); if (intentEl) intentEl.after(h('small', {'data-ae-foe-timer': '1', class: 'ae-bv-timer'}, ''));
+        if (shakeUntil > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
+        if ((hitUntil[meFight.id] || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         return;
       }
       body.append(h('div', {class: 'ae-card ae-row'}, h('img', {class: 'ae-dthumb', src: dIcon(COOP_ICONS[room.dungeon.id] || 'goblin_cave'), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, room.dungeon.name), h('div', {class: 'ae-sub'},
@@ -815,6 +855,31 @@
         return;
       }
       if (prev == null) feel(duel);
+      battleMode(body, duel.status === 'active');
+      if (duel.status === 'active') {
+        const D = duel, mm = D.me, ff = D.foe, sk = mm.skill, cd = mm.cd || 0;
+        const fxText = f => { const fx = f.fx || {}, c = []; if (f.guard) c.push('🛡️ защита'); if (fx.rage) c.push('📯 +30% урона'); if (fx.wall) c.push('🧱 −50% урона'); if (fx.mark) c.push('🎯 метка'); if (fx.stun) c.push('🌿 опутан'); for (const d0 of fx.dots || []) c.push(`${d0.icon} ${d0.name}`); return c.join(' · '); };
+        const doAct = a => () => act('/api/duel/act', {action: a});
+        body.append(battleView({
+          location: 'Арена дуэлей', mode: 'PvP-дуэль', round: `Ход ${D.turn}`, scene: '/assets/arena-D132A-sN.webp',
+          turn: mm.fx?.stun ? 'Вы опутаны корнями — ход будет пропущен' : 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
+          hero: {name: mm.name, cls: mm.className, level: mm.level, hp: mm.hp, maxHp: mm.maxHp, mp: mm.mp, maxMp: mm.maxMp, mpLabel: 'MANA', portrait: heroPortrait(mm.classId), body: heroBody(mm.classId)},
+          foe: {name: ff.name, level: `${ff.className} · Ур. ${ff.level}`, hp: ff.hp, maxHp: ff.maxHp, atk: ff.atk, def: ff.def, img: isModern() ? heroPortrait(ff.classId) : heroBody(ff.classId), mirror: true},
+          note: [fxText(mm) && `Вы: ${fxText(mm)}`, fxText(ff) && `Соперник: ${fxText(ff)}`].filter(Boolean).join(' | ') || (D.log || []).at(-1)?.text,
+          intent: D.intent ? {label: 'Тень соперника готовит:', name: D.intent, text: /сильный|×|Огненный|Удар в спину|ярость/.test(D.intent) ? '💡 Встаньте в защиту — урон по вам снизится.' : ''} : null,
+          series: {label: 'Дуэль', value: `MP соперника ${ff.mp}/${ff.maxMp}`, sub: sk ? `${sk.icon} ${sk.name}: ${sk.text}` : ''},
+          actions: [{kind: 'attack', label: 'Атака', disabled: busy, onClick: doAct('attack')},
+            {kind: 'skill', label: sk ? (cd ? `${sk.name} · ${cd}` : sk.name) : 'Навык', disabled: busy || cd > 0, cls: cd ? '' : 'ae-combo-glow', onClick: doAct('skill')},
+            {kind: 'defend', label: 'Защита (+15 MP)', disabled: busy, onClick: doAct('guard')},
+            {kind: 'potion', label: 'Лечение (25 MP)', disabled: busy || mm.mp < 25, onClick: doAct('heal')}],
+          secondary: [{label: 'Сильный удар (20 MP)', kind: 'attack', disabled: busy || mm.mp < 20, onClick: doAct('power')}, {label: 'Сдаться', kind: 'leave', onClick: () => confirm('Сдаться?') && act('/api/duel/act', {action: 'flee'})}],
+          log: (D.log || []).map(l => l.text)}));
+        if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
+        if ((shake.me || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
+        requestAnimationFrame(() => { while (floats.length) { const f = floats.shift(), el = body.querySelector(f.side === 'me' ? '[data-bv-hero]' : '[data-bv-foe]'); if (!el) continue;
+          const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * 0.4}px;top:${r.top + r.height * 0.3}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 1100); } });
+        return;
+      }
       const chips = f => { const fx = f.fx || {}, c = [];
         if (f.guard) c.push('🛡️ защита'); if (fx.rage) c.push(`📯 +30% урона · ${fx.rage}`); if (fx.wall) c.push(`🧱 −50% урона · ${fx.wall}`); if (fx.mark) c.push(`🎯 метка · ${fx.mark}`); if (fx.stun) c.push('🌿 опутан');
         for (const d0 of fx.dots || []) c.push(`${d0.icon} ${d0.name} · ${d0.left}`);
@@ -1401,6 +1466,66 @@
 
   // ---------- pets: drawn icons instead of emoji ----------
   const PET_ICONS = {'🐺': ['pet_wolf', 'Снежный лютоволк'], '🐉': ['pet_dragon', 'Огненный дракончик'], '🧚': ['pet_fairy', 'Астральная фея'], '🗿': ['pet_golem', 'Адамантитовый големчик'], '🌌': ['pet_voidling', 'Эфирный пустотник']};
+  // ---------- pet hunger: satiety drains over a day; a hungry pet gives half its stats ----------
+  const PET_DAY = 24 * 3600e3, HUNGRY_AT = 25;
+  const petFoodKey = () => 'aeth_pet_food_' + uid();
+  const petBaseStats = {};
+  const FOOD_RE = /мясо|рыб|окун|карп|карас|щук|форел|лещ|сом\b|судак|угор/i;
+  function petFood() { try { const s = JSON.parse(localStorage.getItem(petFoodKey()) || 'null'); if (s && typeof s.v === 'number') return s; } catch {} const s = {v: 100, t: Date.now()}; localStorage.setItem(petFoodKey(), JSON.stringify(s)); return s; }
+  const petSat = () => { const s = petFood(); return Math.max(0, Math.min(100, s.v - (Date.now() - s.t) * 100 / PET_DAY)); };
+  const petHungry = () => !!me()?.activePet && petSat() < HUNGRY_AT;
+  const feedables = () => (me()?.inventory || []).filter(i => !i.isEquipped && !i.serverOwned && /material|fish|food|consumable/.test(i.type || '') && FOOD_RE.test(i.name || ''));
+  function applyPetHunger() {
+    const b = B(), p = me(), pet = p?.activePet; if (!b || !pet?.stats || p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return;
+    const hungry = petSat() < HUNGRY_AT;
+    const bk = petFoodKey() + '_base_' + pet.id;
+    if (!pet.aeHungry) { const j = JSON.stringify(pet.stats); petBaseStats[pet.id] = {...pet.stats}; if (localStorage.getItem(bk) !== j) localStorage.setItem(bk, j); }
+    let base = petBaseStats[pet.id]; if (!base) try { base = petBaseStats[pet.id] = JSON.parse(localStorage.getItem(bk) || 'null'); } catch {} if (!base) return;
+    if (hungry && !pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: true, stats: Object.fromEntries(Object.entries(base).map(([k, v]) => [k, Math.floor(v / 2)]))}} : c);
+    else if (!hungry && pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: false, stats: {...base}}} : c);
+  }
+  function feedPet(how) {
+    const b = B(), p = me(); if (!b || !p?.activePet) return toast('Нет активного питомца.');
+    const sat = petSat(); if (sat >= 99) return toast('Питомец сыт и не хочет есть.');
+    let add = 0;
+    if (how === 'food') { const it = feedables()[0]; if (!it) return toast('В сумке нет мяса или рыбы.'); add = 40;
+      b.setPlayer(c => c && {...c, inventory: c.inventory.flatMap(i => i.id !== it.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])}); }
+    else { const cost = how === 'feast' ? 30 : 10; if ((p.gold || 0) < cost) return toast(`Нужно ${cost} золота.`); add = how === 'feast' ? 100 : 50;
+      b.setPlayer(c => c && {...c, gold: Math.max(0, (c.gold || 0) - cost)}); }
+    localStorage.setItem(petFoodKey(), JSON.stringify({v: Math.min(100, sat + add), t: Date.now()})); localStorage.removeItem(petFoodKey() + '_warned');
+    sfx.play('potion'); toast(`🐾 ${p.activePet.name} доволен! Сытость ${Math.round(Math.min(100, sat + add))}%`);
+    setTimeout(() => { applyPetHunger(); document.querySelectorAll('.ae-petfood').forEach(e => e.replaceWith(petFoodCard())); paintPlaceBadges(); if (openPanelState?.root.querySelector('.ae-petfood')) openPanelState.rerender(); }, 50);
+  }
+  function petFoodCard() {
+    const sat = Math.round(petSat()), hungry = sat < HUNGRY_AT, pet = me()?.activePet, food = feedables(), gold = me()?.gold || 0;
+    const hrs = Math.max(0, Math.round((sat - HUNGRY_AT) * PET_DAY / 100 / 3600e3));
+    return h('div', {class: 'ae-petfood' + (hungry ? ' is-hungry' : '')},
+      h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, hungry ? `🍖 ${pet?.name || 'Питомец'} голоден!` : `🍖 Сытость: ${pet?.name || 'питомец'}`), h('span', {class: 'ae-petfood-pct'}, sat + '%')),
+      h('div', {class: 'ae-petfood-bar'}, h('i', {style: `width:${sat}%`})),
+      h('p', {class: 'ae-note'}, hungry ? 'Голодный питомец даёт только половину характеристик. Покормите его!' : `Сытый питомец даёт полные бонусы. Проголодается примерно через ${hrs} ч.`),
+      h('div', {class: 'ae-petfood-btns'},
+        h('button', {type: 'button', class: 'ae-btn', disabled: !food.length, onclick: () => feedPet('food')}, food.length ? `🥩 ${food[0].name} · +40%` : '🥩 Мясо/рыба · нет'),
+        h('button', {type: 'button', class: 'ae-btn', disabled: gold < 10, onclick: () => feedPet('bowl')}, '🥣 Миска корма · 10 🪙 · +50%'),
+        h('button', {type: 'button', class: 'ae-btn ae-primary', disabled: gold < 30, onclick: () => feedPet('feast')}, '🍗 Пир · 30 🪙 · 100%')));
+  }
+  function injectPetFood() {
+    if (!me()?.activePet) return;
+    const anchor = document.querySelector('main .pet-codex-card.is-active') || [...document.querySelectorAll('main .ui-panel')].find(e => /КОМПАНЬОНЫ|Компаньоны/.test(e.firstElementChild?.textContent || e.textContent.slice(0, 40)));
+    if (!anchor) return;
+    const sat = String(Math.round(petSat())), cur = anchor.parentElement.querySelector(':scope > .ae-petfood') || anchor.querySelector(':scope > .ae-petfood');
+    if (cur && cur.dataset.sat === sat) return;
+    const card = petFoodCard(); card.dataset.sat = sat;
+    if (cur) cur.replaceWith(card); else if (anchor.classList.contains('pet-codex-card')) anchor.after(card); else anchor.append(card);
+  }
+  function petHungerTick() {
+    if (!me()) return; applyPetHunger();
+    if (!petHungry()) return;
+    const k = petFoodKey() + '_warned'; if (localStorage.getItem(k) || openPanelState || document.documentElement.hasAttribute('data-in-combat')) return;
+    localStorage.setItem(k, String(Date.now())); sfx.play('bell');
+    openPanel('🐾 Ваш питомец голоден!', body => { body.append(h('img', {class: 'ae-petfood-art', src: `/assets/pets/icon-${me()?.activePet?.id || 'pet_wolf'}.webp`, alt: ''}), petFoodCard()); });
+  }
+  setInterval(() => { try { petHungerTick(); } catch (e) { console.warn('ae pet', e); } }, 5000);
+
   function decoratePets() {
     for (const el of document.querySelectorAll('main span, main div, .bottom-sheet-backdrop span, .bottom-sheet-backdrop div, .game-dialog-backdrop span, .game-dialog-backdrop div')) {
       if (el.childElementCount || el.classList.contains('ae-pet-icon')) continue;
@@ -1515,6 +1640,37 @@
     if (pet && pet.getAttribute('src') !== '/assets/pets/place-icon-v1.webp') pet.setAttribute('src', '/assets/pets/place-icon-v1.webp');
   }
 
+  // ---------- settlement tiles: live notification badges that pull players into each place ----------
+  const placeSeenKey = () => 'aeth_place_seen_' + uid();
+  const today = () => new Date().toLocaleDateString('sv');
+  const placeSeen = () => { try { return JSON.parse(localStorage.getItem(placeSeenKey()) || '{}'); } catch { return {}; } };
+  const PLACE_HINT = {};
+  function placeBadge(id, p) {
+    const now = Date.now(), cast = p.fishing?.cast, exp = p.miningExpedition;
+    if (id === 'pets' && p.activePet) { const sat = petSat(); if (sat < HUNGRY_AT) return ['warn', '🍖', 'Питомец голоден!']; if (sat < 50) return ['info', '🍖', 'Питомец проголодался']; }
+    if (id === 'fishing' && cast) { if (cast.hookedAt || (Number.isFinite(cast.biteAt) && now >= cast.biteAt && !(now > cast.expiresAt))) return ['warn', '🐟', 'Клюёт! Подсекайте']; return ['busy', '⏳', 'Удочка заброшена']; }
+    if (id === 'mine' && exp) return Number(exp.endsAt) <= now ? ['ready', '✓', 'Экспедиция вернулась'] : ['busy', '⏳', 'Экспедиция в пути'];
+    if (id === 'arena' && (p.arenaTickets || 0) > 0) return ['ready', String(p.arenaTickets), 'Билеты на арену'];
+    if (id === 'alchemy' && (p.alchemyEnergy || 0) >= (p.maxAlchemyEnergy || 100)) return ['ready', '⚗️', 'Котёл полон сил'];
+    if (id === 'chat' && p.energy < p.maxEnergy) return ['ready', '⚡', 'Восстановить энергию'];
+    if (id === 'quests') { const n = (questCache || []).filter(q => !q.claimed && q.progress >= q.need).length; if (n) return ['ready', String(n), 'Награды ждут']; }
+    if (placeSeen()[id] !== today()) return ['new', '✦', 'Ещё не заглядывали сегодня'];
+    return null;
+  }
+  function paintPlaceBadges() {
+    const p = me(); const tiles = document.querySelectorAll('[data-settlement-place]'); if (!p || !tiles.length) return;
+    for (const t of tiles) {
+      const id = t.dataset.settlementPlace, want = placeBadge(id, p), sig = want ? want.join('|') : '';
+      if (!t.dataset.aeSeenHook) { t.dataset.aeSeenHook = '1'; t.addEventListener('click', () => { const s = placeSeen(); s[id] = today(); localStorage.setItem(placeSeenKey(), JSON.stringify(s)); }, true); }
+      if ((t.dataset.aeBadge || '') === sig) continue;
+      t.dataset.aeBadge = sig; t.querySelector(':scope > .ae-place-badge')?.remove(); t.removeAttribute('data-ae-badge-kind');
+      if (!want) continue;
+      const [kind, text, title] = want; t.setAttribute('data-ae-badge-kind', kind);
+      t.append(h('span', {class: 'ae-place-badge is-' + kind, title, 'aria-label': title}, h('b', {}, text), h('small', {}, title)));
+    }
+  }
+  setInterval(() => { try { paintPlaceBadges(); } catch {} }, 4000);
+
   // ---------- «Что нового»: update posts (same as in the channel) ----------
   const newsSeenKey = () => 'aeth_news_seen_' + uid();
   let newsCache = null;
@@ -1602,6 +1758,80 @@
     return h('section', {class: 'ae-admin-premium', 'data-ae-admin-news': '1'}, h('div', {class: 'ae-h3'}, '📰 Новости («Что нового»)'), h('div', {class: 'ae-sub'}, 'Текст появится в меню «Что нового» у всех игроков. Галочка отправит его и в канал — работает, если бот администратор канала с правом публикации.'),
       title, text, h('label', {class: 'ae-row ae-sub'}, toChannel, ' Отправить и в канал t.me/Aethelgardo'), h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: publish}, 'Опубликовать'));
   }
+  // ---------- one battle screen for every add-on fight: a copy of the game's own monster-combat markup ----------
+  // Same classes as the native combat screen, so each interface style (fantasy / modern) dresses it exactly the same way.
+  const isModern = () => document.documentElement.getAttribute('data-interface') === 'modern';
+  const pctOf = (a, b) => Math.max(0, Math.min(100, 100 * (Number(a) || 0) / Math.max(1, Number(b) || 1)));
+  const ICON = k => `<span class="inline-flex items-center justify-center shrink-0 text-[#a48b60]" aria-hidden="true"><img alt="" aria-hidden="true" width="20" height="20" draggable="false" class="block shrink-0 object-contain" src="/assets/sprites/generated/ui/icons/${k}.webp"></span>`;
+  const KIND_ICON = {attack: 'attack', skill: 'skill', defend: 'defend', potion: 'potion'};
+  const LUCIDE = {attack: '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" x2="19" y1="19" y2="13"></line><line x1="16" x2="20" y1="16" y2="20"></line><line x1="19" x2="21" y1="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" x2="9" y1="14" y2="18"></line><line x1="7" x2="4" y1="17" y2="20"></line><line x1="3" x2="5" y1="19" y2="21"></line>',
+    skill: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>',
+    defend: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
+    potion: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path>',
+    leave: '<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path>',
+    play: '<path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path>'};
+  const lucide = (k, cls) => `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${LUCIDE[k] || LUCIDE.attack}</svg>`;
+  // o: {location, mode, round, scene, turn, hero:{name,cls,level,hp,maxHp,mp,maxMp,portrait,body}, foe:{name,level,hp,maxHp,atk,def,img,tint}, note, intent:{name,text,value},
+  //     series:{label,value,sub}, actions:[{kind,label,onClick,disabled,attr}], secondary:[{label,onClick,auto,on,attr}], log:[], extra:Node|null, extraTop:Node|null}
+  function battleView(o) {
+    const E = esc, hero = o.hero, foe = o.foe, root = document.createElement('div'); root.className = 'ae-bv';
+    const handlers = [];
+    const on = fn => { handlers.push(fn); return `data-bv="${handlers.length - 1}"`; };
+    const attrs = a => a ? Object.entries(a).map(([k, v]) => `${k}="${E(v)}"`).join(' ') : '';
+    const logRows = (o.log || []).slice(-12).reverse();
+    if (!isModern()) {
+      root.innerHTML = `<div class="folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3">
+<section class="bestiary-panel combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2"><div class="relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] border-[#a98951]"><img alt="" class="h-full w-full object-cover object-top" src="${E(hero.portrait)}"></div><div class="min-w-0"><div class="mb-1.5 flex items-center justify-between gap-2"><span class="truncate text-xs font-semibold text-[#e1d5c0]">${E(hero.name)} · ${E(hero.cls)}</span><span class="shrink-0 font-mono text-[11px] text-[#d2b676]">Ур. ${E(hero.level)}</span></div><span role="status" class="combat-turn-label mb-1 block text-[11px] font-semibold text-[#d5ba89]">${E(o.turn || 'Ваш ход — выберите действие')}</span><div class="mb-1.5"><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">HP</span><span class="text-[#d8d1c4]">${fmt(hero.hp)}/${fmt(hero.maxHp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-hp" style="width:${pctOf(hero.hp, hero.maxHp)}%"></div></div></div>${hero.maxMp ? `<div><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">${E(hero.mpLabel || 'MANA')}</span><span class="text-[#d8d1c4]">${fmt(hero.mp)}/${fmt(hero.maxMp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-mana" style="width:${pctOf(hero.mp, hero.maxMp)}%"></div></div></div>` : ''}</div></section>
+<div data-bv-extra-top></div>
+<section class="combat-scene relative isolate flex min-h-[334px] flex-col overflow-hidden rounded-2xl border border-[#756344] bg-[#090b0d] p-3 sm:min-h-[390px]"><div class="absolute inset-0 -z-20"><div aria-hidden="true" class="absolute inset-0 pointer-events-none"><img alt="" class="h-full w-full object-cover object-center" src="${E(o.scene)}"><div class="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-transparent to-slate-950/55"></div></div></div><div class="combat-scene-shade absolute inset-0 -z-10"></div><div class="combat-scene-header relative z-10 flex items-center justify-between gap-2 pb-2 text-[11px]"><span class="truncate font-semibold text-[#e0d2b7]">${E(o.location)}</span><div class="flex shrink-0 items-center gap-2"><span class="truncate text-[#b4aea2]">${E(o.mode || '')}</span><span class="combat-round">${E(o.round || '')}</span></div></div>
+<div class="combat-player-art" data-bv-hero><div><div class="combat-player-breathe"><img alt="" class="h-full w-full object-contain object-bottom" src="${E(hero.body)}"></div></div></div>
+${foe ? `<div class="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]" data-bv-foe><img alt="" class="h-full w-full object-contain object-right-bottom" style="${foe.mirror ? 'transform:scaleX(-1)' : ''}" src="${E(foe.img)}"></div>
+<div class="combat-enemy-plaque relative z-10 mt-auto pb-1 ml-[25%] max-w-[75%]"><div class="mb-1 flex items-center gap-2"><span class="text-[11px] uppercase tracking-[.12em] text-[#c2b9a8]">${E(foe.level)}</span></div><h1 class="folio-title break-words text-xl font-bold leading-tight sm:text-2xl">${E(foe.name)}</h1><div class="mt-3 max-w-sm"><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">Здоровье противника</span><span class="text-[#d8d1c4]">${fmt(foe.hp)}/${fmt(foe.maxHp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-hp" style="width:${pctOf(foe.hp, foe.maxHp)}%"></div></div></div>${foe.atk != null ? `<div class="mt-2 flex items-center gap-3 text-[11px] text-[#d0c8b9]"><span class="inline-flex items-center gap-1">${ICON('attack').replace('width="20" height="20"', 'width="14" height="14"')}${fmt(foe.atk)}</span>${foe.def != null ? `<span class="inline-flex items-center gap-1">${ICON('defend').replace('width="20" height="20"', 'width="14" height="14"')}${fmt(foe.def)}</span>` : ''}</div>` : ''}</div>` : ''}
+</section>
+<div class="combat-command-center space-y-2">${o.note ? `<p role="status" class="bestiary-panel px-3 py-2 text-xs leading-relaxed text-[#d8d1c4]">${E(o.note)}</p>` : ''}${o.intent ? `<details class="bestiary-panel overflow-hidden" open><summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">${ICON('skill').replace('width="20" height="20"', 'width="17" height="17"')}<span class="min-w-0 flex-1"><span class="mr-1 text-[11px] text-[#918c82]">${E(o.intent.label || 'Возможный приём:')}</span><strong class="text-[#d8d1c4]">${E(o.intent.name)}</strong>${o.intent.text ? `<span class="mt-1 block text-[11px] leading-relaxed text-[#aaa49a]">${E(o.intent.text)}</span>` : ''}</span>${o.intent.value ? `<span class="shrink-0 font-mono text-[11px] text-[#d28f89]">${E(o.intent.value)}</span>` : ''}</summary></details>` : ''}${o.series ? `<div class="bestiary-panel flex min-h-8 items-center justify-between gap-3 px-3 py-1 text-[11px]"><span class="flex items-center gap-1.5 font-bold text-[#d1ad67]">${ICON('hunt').replace('width="20" height="20"', 'width="14" height="14"')}${E(o.series.label)}</span><span class="font-mono text-[#c5c0b6]">${E(o.series.value)}</span></div>` : ''}
+<div class="space-y-2 transition-all opacity-100"><div class="combat-action-grid grid grid-cols-2 gap-2">${(o.actions || []).map(a => `<button ${on(a.onClick)} ${attrs(a.attr)} ${a.disabled ? 'disabled' : ''} class="combat-action combat-action-${a.kind} rpg-button ${a.kind === 'attack' ? 'rpg-button-primary' : 'rpg-button-secondary'} min-h-[76px] flex-col text-xs ${a.cls || ''}">${ICON(KIND_ICON[a.kind] || 'skill')}<span>${E(a.label)}</span>${a.sub ? `<small class="ae-bv-sub">${E(a.sub)}</small>` : ''}${a.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`).join('')}</div>
+<div class="combat-secondary-actions flex gap-2">${(o.secondary || []).map(s => s.auto ? `<button ${on(s.onClick)} ${attrs(s.attr)} class="combat-auto-toggle pointer-events-auto inline-flex min-h-11 flex-1 justify-center items-center gap-1.5 rounded-md border px-2.5 text-[10px] font-bold transition-colors ${s.on ? 'border-[#c3a775] bg-[#3a2f1c] text-[#f0d79a]' : 'border-[#414345] bg-[#202428] text-[#c8c2b8]'} hover:text-white">${ICON('settings').replace('width="20" height="20"', 'width="15" height="15"')}<span>${E(s.label)}</span></button>` : `<button ${on(s.onClick)} ${attrs(s.attr)} ${s.disabled ? 'disabled' : ''} class="rpg-button rpg-button-secondary min-h-11 flex-1 text-xs text-[#aaa49a] ae-bv-sec">${E(s.label)}${s.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`).join('')}</div></div></div>
+<div data-bv-extra></div>
+<details class="bestiary-panel overflow-hidden" open><summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 text-xs font-semibold text-[#cfc6b7]"><span class="flex items-center gap-2">${ICON('bestiary').replace('width="20" height="20"', 'width="17" height="17"')}Летопись боя</span><span class="font-mono text-[11px] text-[#918c82]">${(o.log || []).length} записей</span></summary><div class="max-h-40 space-y-1 overflow-y-auto border-t border-[#343638] px-3 py-2 text-xs">${logRows.map(l => `<div class="flex items-start gap-1.5 font-mono text-[11px] leading-snug"><span class="combat-ink">${E(l)}</span></div>`).join('')}</div></details></div>`;
+    } else {
+      const acts = o.actions || [];
+      const mainActs = acts.slice(0, 3), restActs = acts.slice(3);
+      const mainBtn = a => a.kind === 'defend' || a.kind === 'potion'
+        ? `<button ${on(a.onClick)} ${attrs(a.attr)} ${a.disabled ? 'disabled' : ''} class="py-3 px-2 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700 ${a.cls || ''}">${lucide(a.kind, 'lucide w-4 h-4 text-slate-300')}<span>${E(a.label)}</span>${a.sub ? `<small class="ae-bv-sub">${E(a.sub)}</small>` : ''}${a.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`
+        : `<button ${on(a.onClick)} ${attrs(a.attr)} ${a.disabled ? 'disabled' : ''} class="ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border ${a.kind === 'attack' ? 'border-cyan-400/40' : 'border-indigo-400/40'} ${a.cls || ''}">${lucide(a.kind, `lucide w-4 h-4 ${a.kind === 'attack' ? 'text-cyan-200' : 'text-indigo-200'}`)}<span>${E(a.label)}</span>${a.sub ? `<small class="ae-bv-sub">${E(a.sub)}</small>` : ''}${a.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`;
+      const smallBtn = a => a.kind === 'potion'
+        ? `<button ${on(a.onClick)} ${attrs(a.attr)} ${a.disabled ? 'disabled' : ''} class="py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all bg-emerald-950/60 border-emerald-500/50 text-emerald-200 active:scale-95 ${a.cls || ''}">${lucide('potion', 'lucide w-3.5 h-3.5 text-emerald-400')}<span>${E(a.label)}</span>${a.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`
+        : `<button ${on(a.onClick)} ${attrs(a.attr)} ${a.disabled ? 'disabled' : ''} class="py-2 px-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-all ${a.cls || ''}">${lucide(a.kind === 'leave' ? 'leave' : a.kind, 'lucide w-3.5 h-3.5 text-slate-400')}<span>${E(a.label)}</span>${a.cdSlot ? '<i class="ae-act-cd"></i>' : ''}</button>`;
+      const auto = (o.secondary || []).find(s => s.auto), others = (o.secondary || []).filter(s => !s.auto);
+      root.innerHTML = `<div class="p-3 space-y-3 max-w-lg mx-auto pb-24"><div data-bv-extra-top></div>
+<div class="relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] h-[33vh] min-h-[220px] max-h-[300px] flex flex-col justify-between p-3 select-none"><div aria-hidden="true" class="absolute inset-0 pointer-events-none"><img alt="" class="h-full w-full object-cover object-center" src="${E(o.scene)}"><div class="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-transparent to-slate-950/55"></div></div>
+<div class="relative z-10 flex items-center justify-between text-[11px] font-mono border-b border-slate-800/80 pb-1.5"><div class="flex items-center gap-1.5 text-cyan-300"><span class="font-bold truncate max-w-[120px]">${E(o.location)}</span><span class="text-slate-600">·</span><span class="text-amber-300 text-[10px]">${o.mode ? '[' + E(o.mode) + ']' : ''}</span></div><div class="flex items-center gap-2"><span class="text-slate-400 text-[10px]">${E(o.round || '')}</span><div class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border transition-all bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-sm"><span>${E(o.turn || 'Ваш ход')}</span></div></div></div>
+<div class="relative z-10 flex-1 grid grid-cols-5 items-center gap-2 py-1"><div class="col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ring-1 ring-[#c3a775] bg-slate-950/55" data-bv-hero><div class="relative"><div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md bg-slate-950"><img alt="" class="w-full h-full object-cover object-top" src="${E(hero.portrait)}"><span class="absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-cyan-300 py-0.5 truncate px-1">${E(hero.cls)}</span><span class="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm"></span></div></div><div class="w-full mt-1.5 text-center"><div class="flex items-center justify-between text-[11px] font-mono leading-none"><span class="font-bold text-slate-200 truncate max-w-[70px]">${E(hero.name)}</span><span class="text-cyan-400 font-bold text-[10px]">Ур. ${E(hero.level)}</span></div><div class="mt-1"><div class="flex justify-between text-[9px] font-mono text-emerald-400"><span class="font-bold">HP</span><span class="tabular-nums">${fmt(hero.hp)}/${fmt(hero.maxHp)}</span></div><div class="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-emerald-950 mt-0.5"><div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300 rounded-full" style="width:${pctOf(hero.hp, hero.maxHp)}%"></div></div></div>${hero.maxMp ? `<div class="mt-0.5"><div class="flex justify-between text-[9px] font-mono text-indigo-400"><span class="font-bold">${E(hero.mpLabel || 'MP')}</span><span class="tabular-nums">${fmt(hero.mp)}/${fmt(hero.maxMp)}</span></div><div class="h-1 bg-slate-950 rounded-full overflow-hidden border border-indigo-950"><div class="h-full bg-gradient-to-r from-indigo-500 to-purple-400 transition-all duration-300 rounded-full" style="width:${pctOf(hero.mp, hero.maxMp)}%"></div></div></div>` : ''}</div></div>
+<div class="col-span-1 flex flex-col items-center justify-center"><div class="w-9 h-9 rounded-full flex items-center justify-center font-cinzel font-bold text-xs transition-all bg-[#302c24] text-[#d5ba89] border border-[#9d8459]">VS</div><div class="mt-1 text-center"><span class="text-[9px] font-mono font-bold block text-cyan-300">Вы</span></div></div>
+${foe ? `<div class="col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 opacity-90 bg-slate-900/40" data-bv-foe><div class="relative flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-md bg-red-950/40"><img alt="" class="w-full h-full object-cover" src="${E(foe.img)}"><span class="absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-red-300 py-0.5 truncate px-1">${E(foe.name)}</span></div><div class="w-full mt-1.5 text-center"><div class="flex items-center justify-between text-[11px] font-mono leading-none"><span class="font-bold text-slate-200 truncate max-w-[70px]">${E(foe.name)}</span><span class="text-red-400 font-bold text-[10px]">${E(foe.level)}</span></div><div class="mt-1"><div class="flex justify-between text-[9px] font-mono text-red-400"><span class="font-bold">HP</span><span class="tabular-nums">${fmt(foe.hp)}/${fmt(foe.maxHp)}</span></div><div class="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-red-950 mt-0.5"><div class="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 transition-all duration-300 rounded-full" style="width:${pctOf(foe.hp, foe.maxHp)}%"></div></div></div>${foe.atk != null ? `<div class="mt-1 flex items-center justify-between text-[9px] font-mono text-slate-400"><span>⚔️ ${fmt(foe.atk)}</span>${foe.def != null ? `<span>🛡️ ${fmt(foe.def)}</span>` : ''}</div>` : ''}</div></div>` : ''}</div></div>
+<div class="space-y-2"><div class="p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono transition-all bg-[#252620] border-[#9d8459] text-[#d5ba89]"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#c3a775]"></span><span class="font-semibold">${E(o.turnShort || 'Ваш ход')}</span></div>${auto ? `<button ${on(auto.onClick)} class="px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors ${auto.on ? 'bg-cyan-900 text-cyan-100' : 'bg-slate-800 text-slate-300'} hover:text-white">${lucide('play', 'lucide w-3.5 h-3.5')}<span>${E(auto.label)}</span></button>` : ''}</div>
+${o.note ? `<p role="status" class="rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-200">${E(o.note)}</p>` : ''}
+${o.intent ? `<div class="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5"><div class="flex items-center gap-2 text-amber-200 text-xs font-bold"><span>${E(o.intent.label || 'Возможный приём врага')}</span>${o.intent.value ? `<span class="ml-auto text-[10px] text-slate-400">${E(o.intent.value)}</span>` : ''}</div><div class="mt-1 flex items-center gap-2 text-[11px] font-mono"><span class="text-slate-100 font-bold">${E(o.intent.name)}</span></div>${o.intent.text ? `<div class="mt-1 text-[10px] text-slate-400"><p>${E(o.intent.text)}</p></div>` : ''}</div>` : ''}
+${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 p-2.5"><div class="flex items-center justify-between text-[11px] font-mono"><span class="text-amber-300 font-bold">🔥 ${E(o.series.label)}</span><span class="text-slate-300">${E(o.series.value)}</span></div>${o.series.sub ? `<div class="mt-1 text-[10px] text-slate-400">${E(o.series.sub)}</div>` : ''}</div>` : ''}
+<div class="space-y-2 transition-all opacity-100"><div class="grid grid-cols-3 gap-2">${mainActs.map(mainBtn).join('')}</div><div class="grid grid-cols-3 gap-2">${[...restActs.map(smallBtn), ...others.map(s => smallBtn({kind: s.kind || 'leave', label: s.label, onClick: s.onClick, disabled: s.disabled, attr: s.attr, cdSlot: s.cdSlot}))].join('')}</div></div></div>
+<div data-bv-extra></div>
+<div class="rounded-xl border border-slate-800 bg-[#070a12] p-2.5 h-36 flex flex-col"><div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between border-b border-slate-800/80 pb-1"><span>Журнал пошагового сражения</span><span>${(o.log || []).length} записей</span></div><div class="flex-1 overflow-y-auto space-y-1 text-xs pr-1">${logRows.map(l => `<div class="leading-snug flex items-start gap-1.5 font-mono text-[11px]"><span class="text-slate-300">${E(l)}</span></div>`).join('')}</div></div></div>`;
+    }
+    root.querySelectorAll('[data-bv]').forEach(b => { const fn = handlers[Number(b.getAttribute('data-bv'))]; if (fn) b.addEventListener('click', e => { e.preventDefault(); if (!b.disabled) fn(e); }); });
+    if (o.extra) root.querySelector('[data-bv-extra]')?.append(o.extra);
+    if (o.extraTop) root.querySelector('[data-bv-extra-top]')?.append(o.extraTop);
+    return root;
+  }
+  // Full-screen battle mode for an add-on panel: hides the panel frame so the copy looks like the game's own screen.
+  const battleMode = (body, on) => {
+    const p = body.closest('.ae-panel'), b = body.closest('.ae-backdrop'); if (!p) return;
+    p.classList.toggle('ae-battle-mode', !!on); b?.classList.toggle('ae-battle-backdrop', !!on);
+    if (on && !p.dataset.bvBg) { const shell = document.querySelector('.game-shell') || document.body, cs = getComputedStyle(shell); p.dataset.bvBg = '1'; p.style.setProperty('--bv-bg', cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? cs.backgroundColor : '#0b0d10'); p.style.setProperty('--bv-bgi', cs.backgroundImage || 'none'); }
+  };
+  const heroPortrait = cls => `/assets/sprites/generated/heroes/${cls === 'hunter' ? 'archer' : cls || 'warrior'}.webp`;
+  const heroBody = cls => `/assets/sprites/generated/heroes/combat/${cls === 'hunter' ? 'archer' : cls || 'warrior'}.webp`;
+  const CLASS_RU2 = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
+
   // ---------- «Орда»: fast endless fights, auto-battle without delays, Blood Moon ----------
   const HORDE_COST = 10;
   function openHorde() {
@@ -1621,7 +1851,7 @@
         if (ev.t === 'dead') { auto = false; sfx.play('fail'); }
       }
     };
-    const showFloats = () => { while (floats.length) { const f = floats.shift(), el = st.body.querySelector(`[data-hz="${f.at}"]`); if (!el) continue;
+    const showFloats = () => { while (floats.length) { const f = floats.shift(), el = st.body.querySelector(f.at === 'hero' ? '[data-bv-hero], [data-hz="hero"]' : '[data-bv-foe], [data-hz="foe"]'); if (!el) continue;
       const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.35)}px;top:${r.top + r.height * 0.25}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 900); } };
     const act = async (action, steps = 1) => {
       if (busy || !run || run.status !== 'active') return; busy = true;
@@ -1668,6 +1898,28 @@
         return;
       }
       const front = run.queue[0], next = run.next;
+      battleMode(body, run.status === 'active' && !!front);
+      if (run.status === 'active' && front) {
+        const cls = me()?.classId || 'warrior', q = run.queue.slice(1);
+        body.append(battleView({
+          location: run.blood ? 'Орда · Кровавая луна' : 'Орда монстров', mode: run.blood ? 'Кровавая луна ×1.75' : 'Быстрый бой', round: `☠️ ${run.kills}`,
+          scene: run.blood ? '/assets/rift-DTdreQra.webp' : '/assets/arena-D132A-sN.webp', turn: auto ? 'Автобой — бой идёт сам' : 'Ваш ход — выберите действие', turnShort: auto ? 'Автобой' : 'Ваш ход',
+          hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.potions, maxMp: 3, mpLabel: 'Зелья', portrait: heroPortrait(cls), body: heroBody(cls)},
+          foe: {name: front.name, level: front.kind === 'leader' ? 'Вожак' : front.kind === 'elite' ? 'Элита' : 'Монстр орды', hp: front.hp, maxHp: front.maxHp, img: sprite(front.sprite)},
+          note: (run.log || []).at(-1),
+          intent: q.length ? {label: 'Следом бегут:', name: q.map(m => m.name).join(', '), text: run.blood ? 'Кровавая луна: монстры бьют сильнее, раненые могут сбежать, на их место прибегают новые.' : '', value: `+${q.length}`} : null,
+          series: {label: 'Орда', value: next ? `${run.kills} / ${next}` : `${run.kills} · все вехи`, sub: `Добыча: ${rewardText(run.loot) || '—'}`},
+          actions: [{kind: 'attack', label: 'Атака', onClick: () => { if (!auto) act('attack'); }},
+            {kind: 'skill', label: run.powerCd > 0 ? `Мощный удар · ${run.powerCd}` : 'Мощный удар', disabled: run.powerCd > 0, onClick: () => { if (!auto) act('power'); }},
+            {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => { if (!auto) act('potion'); }}],
+          secondary: [{auto: true, on: auto, label: auto ? '⏸ Автобой: вкл' : 'Автобой', onClick: () => { auto = !auto; st.rerender(); if (auto) autoLoop(); }},
+            {label: 'Уйти с добычей', onClick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}],
+          log: run.log || []}));
+        if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
+        if ((shake.hero || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
+        requestAnimationFrame(showFloats);
+        return;
+      }
       body.append(h('div', {class: 'ae-horde-top'}, h('div', {class: 'ae-horde-kills'}, h('b', {}, `☠️ ${run.kills}`), h('small', {}, next ? `до вехи ${next}: ${next - run.kills}` : 'все вехи взяты!')),
         h('div', {class: 'ae-horde-loot'}, h('span', {}, `🪙 ${fmt(run.loot.gold)}`), h('span', {}, `✨ ${fmt(run.loot.exp)}`), run.loot.fragments ? h('span', {}, `✦ ${run.loot.fragments}`) : '')));
       if (next) body.append(bar(run.kills - (next === 20 ? 0 : next - 20), 20, 'is-mp', `Веха ${next}: ${run.kills} / ${next}`));
@@ -1702,7 +1954,7 @@
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -1718,6 +1970,27 @@
 
   // ---------- styles ----------
   const css = `
+[data-settlement-place]{position:relative!important;overflow:visible!important}
+.ae-place-badge{position:absolute;top:-7px;right:-5px;z-index:3;display:inline-flex;align-items:center;gap:4px;max-width:calc(100% + 4px);height:22px;padding:0 7px;border-radius:999px;font:700 11px/22px system-ui,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px #0009}
+.ae-place-badge b{font-weight:800}.ae-place-badge small{font:600 10px/1 system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis}
+.ae-place-badge.is-new small,.ae-place-badge.is-busy small{display:none}
+.ae-place-badge.is-new{background:linear-gradient(#f6d77c,#c99a35);color:#2a1a05;border:1px solid #fff3c4;padding:0;width:22px;justify-content:center;animation:aePlaceTwinkle 2.4s ease-in-out infinite}
+.ae-place-badge.is-ready{background:linear-gradient(#22c55e,#15803d);color:#fff;border:1px solid #bbf7d0;animation:aePlaceBob 1.8s ease-in-out infinite}
+.ae-place-badge.is-warn{background:linear-gradient(#ef4444,#b91c1c);color:#fff;border:1px solid #fecaca;animation:aePlaceBob 1.1s ease-in-out infinite}
+.ae-place-badge.is-busy{background:#1e293bee;color:#cbd5e1;border:1px solid #475569;padding:0;width:22px;justify-content:center}
+[data-ae-badge-kind=warn]{box-shadow:0 0 0 1px #ef444488,0 0 16px #ef444455!important}
+[data-ae-badge-kind=ready]{box-shadow:0 0 0 1px #22c55e77,0 0 14px #22c55e40!important}
+@keyframes aePlaceBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes aePlaceTwinkle{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.12) rotate(12deg);filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.ae-place-badge{animation:none!important}}
+.ae-petfood{margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #a28a5299;background:#1d1710e6;color:#efe6d2;display:flex;flex-direction:column;gap:6px}
+html[data-interface=modern] .ae-petfood{background:#0f172a;border-color:#2b3a52;color:#e2e8f0}
+.ae-petfood.is-hungry{border-color:#dc2626;box-shadow:0 0 0 1px #dc262655,0 0 18px #dc262633}
+.ae-petfood-pct{font:700 13px system-ui,sans-serif;color:#facc15}.ae-petfood.is-hungry .ae-petfood-pct{color:#f87171}
+.ae-petfood-bar{height:8px;border-radius:99px;background:#0006;overflow:hidden}.ae-petfood-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#84cc16);transition:width .4s}
+.ae-petfood.is-hungry .ae-petfood-bar i{background:linear-gradient(90deg,#b91c1c,#f97316)}
+.ae-petfood-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ae-petfood-btns .ae-btn{font-size:12px;padding:0 8px}.ae-petfood-btns .ae-btn:first-child{grid-column:1/-1}
+.ae-petfood-art{width:96px;height:96px;object-fit:contain;align-self:center}
 .ae-backdrop{position:fixed;inset:0;z-index:170;background:#000b;display:flex;align-items:flex-end;justify-content:center;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
 .ae-panel{width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;background:#141a21;color:#e7e2d6;border:1px solid #b4975680;border-radius:16px;box-shadow:0 20px 60px #000c;font:14px/1.45 system-ui,sans-serif}
 html[data-interface=fantasy] .ae-panel{background:#1b1712;border-color:#a28a52;font-family:Georgia,serif}
@@ -1810,6 +2083,19 @@ img.ae-land-icon{width:40px!important;height:40px!important;border-radius:50%;ob
 .modern-resource[data-ae-cur] > span:first-child{width:34px!important;height:28px!important;flex:0 0 34px!important;margin-right:2px;background:center/contain no-repeat}
 .modern-resource[data-ae-cur=gold] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/gold.webp)}.modern-resource[data-ae-cur=gold] b{color:#f6cf6b}
 .modern-resource[data-ae-cur=silver] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/silver.webp)}.modern-resource[data-ae-cur=silver] b{color:#d7dde6}
+/* battle mode: the add-on panel becomes a copy of the game's own combat screen */
+.ae-backdrop.ae-battle-backdrop{padding:0!important;background:#000!important;align-items:stretch!important}
+.ae-panel.ae-battle-mode{position:fixed!important;inset:0!important;width:100%!important;max-width:none!important;max-height:none!important;height:100%!important;border-radius:0!important;border:0!important;box-shadow:none!important;background-color:var(--bv-bg,#0b0d10)!important;background-image:var(--bv-bgi,none)!important;display:flex;flex-direction:column}
+.ae-panel.ae-battle-mode .ae-head{position:absolute;top:8px;right:8px;z-index:6;padding:0!important;border:0!important;background:none!important}.ae-panel.ae-battle-mode .ae-head h2{display:none}
+.ae-panel.ae-battle-mode .ae-head .ae-x{width:30px;height:30px;border-radius:50%;background:#000a;border:1px solid #ffffff33}
+.ae-panel.ae-battle-mode>.ae-body{flex:1;overflow:auto;padding:0 10px calc(20px + env(safe-area-inset-bottom))!important;max-height:none!important}
+.ae-bv .ae-act-cd{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font:700 13px system-ui,sans-serif;font-style:normal;pointer-events:none;border-radius:inherit}
+.ae-bv .ae-bv-sec{position:relative;overflow:hidden}.ae-bv-timer{display:block;font-size:10.5px;color:#e5c678;margin-top:2px}
+.ae-bv-party{margin-top:8px;display:flex;flex-direction:column;gap:6px}.ae-bv-members{display:flex;flex-direction:column;gap:6px}
+.ae-bv-member{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#00000055;border:1px solid #ffffff1c}.ae-bv-member .ae-avatar{width:38px;height:38px}.ae-bv-member small{font-size:10.5px;opacity:.8}.ae-bv-member b{font-size:12.5px}
+.ae-bv{max-width:448px;margin:0 auto}.ae-bv-sub{display:block;font-size:10px;opacity:.75;font-weight:500;line-height:1.2;margin-top:2px;text-transform:none;letter-spacing:0}
+.ae-bv .combat-action{position:relative;overflow:hidden}.ae-bv .combat-action:disabled,.ae-bv button:disabled{opacity:.5}
+.ae-bv .ae-combo-glow{animation:ae-pulse .8s ease-in-out infinite;box-shadow:0 0 16px #ffd36a99!important;border-color:#ffd36a!important}
 .ae-horde-panel{max-height:96vh!important}.ae-horde-panel.is-blood{background:linear-gradient(#2a0707,#120404)!important;border-color:#c0303099!important;box-shadow:0 0 40px #a0101066!important}
 .ae-horde-hero{display:flex;flex-direction:column;gap:6px;padding:16px 14px;margin-bottom:10px;border-radius:14px;background:linear-gradient(#0008,#000c),url(/assets/arena-D132A-sN.webp) center/cover;border:1px solid #c9a35a55}
 .ae-horde-hero b{font:800 22px Georgia,serif;color:#ffe6a8}.ae-horde-hero span{font-size:13px;color:#e9dcc0;line-height:1.4}
@@ -1859,6 +2145,14 @@ html[data-interface=modern] section:has(>[data-ae-bag-merge]){border-color:#2b3a
 html[data-interface=modern] .ae-qbadge{top:-6px;right:-6px}
 /* modern «Мир»: compact header and current-land card */
 html[data-interface=modern] .world-current-landscape{height:92px!important;max-height:92px!important;object-fit:cover!important}
+/* «Мир»: the "go to the fields" card belongs to the Lands tab only */
+.world-hub:not([data-world-section="lands"]) .world-current{display:none!important}
+/* «Поселение»: compact place tiles, 3 per row */
+/* «Сумка» (modern): smaller item tiles, 5 per row */
+.modern-item-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px!important}
+.modern-item-card{min-height:0!important;padding:4px 3px 5px!important}.modern-item-card>div:nth-child(n+4){display:none!important}
+.modern-item-card>div:first-child{height:32px!important;margin-top:2px!important}.modern-item-card>div:first-child img{width:32px!important;height:32px!important}
+.modern-item-card>div:nth-child(2){min-height:22px!important;max-height:22px!important;font-size:8.5px!important;line-height:11px!important}.modern-item-card>div:nth-child(3){font-size:8.5px!important}
 html[data-interface=modern] .world-current-body{padding:8px 10px!important}html[data-interface=modern] .world-current-body h2{font-size:17px!important;line-height:1.2!important;margin:0 0 4px!important}
 .ae-qbadge{position:absolute;top:4px;right:6px;min-width:18px;height:18px;border-radius:9px;background:#e0443e;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;font-style:normal}
 .ae-quest.is-done{border-color:#e5c67899}.ae-quest.is-claimed{opacity:.6}.ae-quest .ae-bar{margin:6px 0}

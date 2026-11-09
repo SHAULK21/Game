@@ -1,0 +1,156 @@
+<main .shell-main flex-1 w-full mx-auto 
+  <div .folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3 
+    <section .bestiary-panel combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2 
+      <div .relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] border-[#a98951] 
+        <img .h-full w-full object-cover object-top 
+      <div .min-w-0 
+        <div .mb-1.5 flex items-center justify-between gap-2 
+          <span .truncate text-xs font-semibold text-[#e1d5c0] 
+            "Админ · Воин"
+          <span .shrink-0 font-mono text-[11px] text-[#d2b676] 
+            "Ур. 30"
+        <span .combat-turn-label mb-1 block text-[11px] font-semibold text-[#d5ba89] role=status
+          "Ваш ход — выберите действие"
+        <div .mb-1.5 
+          <div .mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums 
+            <span .text-[#918c82] 
+              "HP"
+            <span .text-[#d8d1c4] 
+              "900/900"
+          <div .progress-track h-2 role=progressbar aria-label=HP
+            <div .progress-fill is-hp 
+        <div . 
+          <div .mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums 
+            <span .text-[#918c82] 
+              "MANA"
+            <span .text-[#d8d1c4] 
+              "402/402"
+          <div .progress-track h-2 role=progressbar aria-label=MANA
+            <div .progress-fill is-mana 
+    <section .combat-scene relative isolate flex min-h-[334px] flex-col overflow-hidden rounded-2xl border border-[#756344]  
+      <div .absolute inset-0 -z-20 
+        <div .absolute inset-0 pointer-events-none data-battle-scene=plains
+          <img .h-full w-full object-cover object-center 
+          <div .absolute inset-0 bg-gradient-to-b from-slate-950/55 via-transparent to-slate-950/55 
+      <div .combat-scene-shade absolute inset-0 -z-10 
+      <div .combat-scene-header relative z-10 flex items-center justify-between gap-2 pb-2 text-[11px] 
+        <span .truncate font-semibold text-[#e0d2b7] 
+          "Зеленые равнины: Пастбища Новичков"
+        <div .flex shrink-0 items-center gap-2 
+          <span .truncate text-[#b4aea2] 
+            "Обычный поход"
+          <span .combat-round 
+            "Раунд 1"
+      <div .combat-player-art  
+        <div . 
+          <div .combat-player-breathe 
+            <img .h-full w-full object-contain object-bottom 
+        <span .combat-companion at-feet 
+          <img . 
+      <div .combat-monster-art   pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-e 
+        <img .h-full w-full object-contain object-right-bottom 
+      <div .combat-enemy-plaque relative z-10 mt-auto pb-1 ml-[25%] max-w-[75%] 
+        <div .mb-1 flex items-center gap-2 
+          <span .text-[11px] uppercase tracking-[.12em] text-[#c2b9a8] 
+            "Ур. 2"
+        <h1 .folio-title break-words text-xl font-bold leading-tight sm:text-2xl 
+          "Свирепый лесной волк"
+        <div .mt-3 max-w-sm 
+          <div .mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums 
+            <span .text-[#918c82] 
+              "Здоровье противника"
+            <span .text-[#d8d1c4] 
+              "113/193"
+          <div .progress-track h-2 role=progressbar aria-label=Здоровье противника
+            <div .progress-fill is-hp 
+        <div .mt-2 flex items-center gap-3 text-[11px] text-[#d0c8b9] 
+          <span .inline-flex items-center gap-1 
+            <span .inline-flex items-center justify-center shrink-0 text-[#bd8d6e] 
+              <img .block shrink-0 object-contain 
+            "22"
+          <span .inline-flex items-center gap-1 
+            <span .inline-flex items-center justify-center shrink-0 text-[#a8a69d] 
+              <img .block shrink-0 object-contain 
+            "5"
+      <div .combat-damage-layer 
+        <div .combat-damage-stack combat-damage-player 
+        <div .combat-damage-stack combat-damage-monster 
+    <div .combat-command-center space-y-2 
+      <p .bestiary-panel px-3 py-2 text-xs leading-relaxed text-[#d8d1c4] role=status
+        "Волк-спутник атаковал до первого хода: −80 HP противнику."
+      <details .bestiary-panel overflow-hidden 
+        <summary .flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs 
+          <span .inline-flex items-center justify-center shrink-0 text-[#c7a365] 
+            <img .block shrink-0 object-contain 
+          <span .min-w-0 flex-1 
+            <span .mr-1 text-[11px] text-[#918c82] 
+              "Возможный приём:"
+            <strong .text-[#d8d1c4] 
+              "Укрепление"
+            <span .mt-1 block text-[11px] leading-relaxed text-[#aaa49a] 
+              "Прогноз может ошибаться или измениться после вашего действия"
+          <span .shrink-0 font-mono text-[11px] text-[#d28f89] 
+            "×0%"
+        <p .border-t border-[#343638] px-3 py-2 text-[11px] text-[#aaa49a] 
+          "Точность чтения: 50% · Прогноз может ошибаться."
+      <div .bestiary-panel flex min-h-8 items-center justify-between gap-3 px-3 py-1 text-[11px] 
+        <span .flex items-center gap-1.5 font-bold text-[#d1ad67] 
+          <span .inline-flex items-center justify-center shrink-0 text-[#a48b60] 
+            <img .block shrink-0 object-contain 
+          "Боевая серия"
+        <span .font-mono text-[#c5c0b6] 
+          "0/6 · осталось 5"
+      <div .space-y-2 transition-all opacity-100 
+        <div .combat-action-grid grid grid-cols-2 gap-2 
+          <button .combat-action combat-action-attack rpg-button rpg-button-primary min-h-[76px] flex-col text-xs 
+            <span .inline-flex items-center justify-center shrink-0 text-[#a48b60] 
+              <img .block shrink-0 object-contain 
+            <span . 
+              "Атака"
+          <button .combat-action combat-action-skill rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs 
+            <span .inline-flex items-center justify-center shrink-0 text-[#a892bf] 
+              <img .block shrink-0 object-contain 
+            <span . 
+              "Навыки"
+          <button .combat-action combat-action-defend rpg-button rpg-button-secondary min-h-[76px] flex-col text-xs 
+            <span .inline-flex items-center justify-center shrink-0 text-[#a48b60] 
+              <img .block shrink-0 object-contain 
+            <span . 
+              "Защита (+25 MP)"
+          <button .combat-action combat-action-potion rpg-button min-h-[76px] flex-col text-xs rpg-button-secondary 
+            <span .inline-flex items-center justify-center shrink-0 text-[#76916b] 
+              <img .block shrink-0 object-contain 
+            <span . 
+              "Зелье (5)"
+        <div .combat-secondary-actions flex gap-2 
+          <button .combat-auto-toggle pointer-events-auto inline-flex min-h-11 flex-1 justify-center items-center gap-1.5 rounded 
+            <span .inline-flex items-center justify-center shrink-0 text-[#a48b60] 
+              <img .block shrink-0 object-contain 
+            <span . 
+              "Автобой · PREMIUM"
+          <button .rpg-button rpg-button-secondary min-h-11 flex-1 text-xs text-[#aaa49a] 
+            "Покинуть бой"
+    <details .bestiary-panel overflow-hidden 
+      <summary .flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 text-xs font-semibold text-[#cf 
+        <span .flex items-center gap-2 
+          <span .inline-flex items-center justify-center shrink-0 text-[#b99558] 
+            <img .block shrink-0 object-contain 
+          "Летопись боя"
+        <span .font-mono text-[11px] text-[#918c82] 
+          "3 записей"
+      <div .max-h-40 space-y-1 overflow-y-auto border-t border-[#343638] px-3 py-2 text-xs 
+        <div .flex items-start gap-1.5 font-mono text-[11px] leading-snug 
+          <span .combat-ink shrink-0 
+            "[1]"
+          <span .combat-ink 
+            "⚔️ В бой вступает Свирепый лесной волк (Ур. 2)! Серия: 6 про"
+        <div .flex items-start gap-1.5 font-mono text-[11px] leading-snug 
+          <span .combat-ink shrink-0 
+            "[1]"
+          <span .combat-ink 
+            "☠️ В этой вылазке 6 противников. После каждой победы можно п"
+        <div .flex items-start gap-1.5 font-mono text-[11px] leading-snug 
+          <span .combat-ink shrink-0 
+            "[1]"
+          <span .combat-ink 
+            "Волк-спутник атаковал до первого хода: −80 HP противнику."

@@ -1,0 +1,188 @@
+<main .flex-1 w-full max-w-md mx-auto
+  <div .p-3 space-y-3 max-w-lg mx-auto pb-24
+    <div .relative rounded-2xl overflow-hidden border border-slate-700/60 bg-[#070b14] h-[33vh] min-h-[220px] max-h-[300px] flex flex-col ju
+      <div .absolute inset-0 pointer-events-none
+        <img .h-full w-full object-cover object-center
+        <div .absolute inset-0 bg-gradient-to-b from-slate-950/55 via-transparent to-slate-950/55
+      <div .relative z-10 flex items-center justify-between text-[11px] font-mono border-b border-slate-800/80 pb-1.5
+        <div .flex items-center gap-1.5 text-cyan-300
+          <span .font-bold truncate max-w-[120px]
+            "Зеленые равнины: Пастбища Новичков"
+          <span .text-slate-600
+            "·"
+          <span .text-amber-300 text-[10px]
+            "[Обычный поход]"
+        <div .flex items-center gap-2
+          <span .text-slate-400 text-[10px]
+            "Раунд 1"
+          <div .px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border transition-all bg-cyan
+            <span .
+              "Ваш ход — выберите действие"
+      <div .relative z-10 flex-1 grid grid-cols-5 items-center gap-2 py-1
+        <div .col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 ring-1 ring-[#c3a775] bg-slate-950
+          <div .relative
+            <div .relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-cyan-400/60 shadow-md bg-slate-950
+              <img .w-full h-full object-cover object-top
+              <span .absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-cyan-300 py-0.5 truncate px-1
+                "Воин"
+              <span .absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400 shadow-sm
+            <span .combat-companion at-feet is-compact
+              <img .
+          <div .w-full mt-1.5 text-center
+            <div .flex items-center justify-between text-[11px] font-mono leading-none
+              <span .font-bold text-slate-200 truncate max-w-[70px]
+                "Админ"
+              <span .text-cyan-400 font-bold text-[10px]
+                "Ур. 30"
+            <div .mt-1
+              <div .flex justify-between text-[9px] font-mono text-emerald-400
+                <span .font-bold
+                  "HP"
+                <span .tabular-nums
+                  "900/900"
+              <div .h-1.5 bg-slate-950 rounded-full overflow-hidden border border-emerald-950 mt-0.5
+                <div .h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300 rounded-full
+            <div .mt-0.5
+              <div .flex justify-between text-[9px] font-mono text-indigo-400
+                <span .font-bold
+                  "MP"
+                <span .tabular-nums
+                  "402/402"
+              <div .h-1 bg-slate-950 rounded-full overflow-hidden border border-indigo-950
+                <div .h-full bg-gradient-to-r from-indigo-500 to-purple-400 transition-all duration-300 rounded-full
+        <div .col-span-1 flex flex-col items-center justify-center
+          <div .w-9 h-9 rounded-full flex items-center justify-center font-cinzel font-bold text-xs  transition-all bg-[#302c24] text-[#d5ba89] bo
+            "VS"
+          <div .mt-1 text-center
+            <span .text-[9px] font-mono font-bold block text-cyan-300
+              "Вы"
+        <div .col-span-2 flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300  opacity-80 bg-slate-900/40
+          <div .relative flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-2 border-red-500/60 shadow-m
+            <img .w-full h-full object-cover
+            <span .absolute bottom-0 inset-x-0 bg-slate-950/90 text-center text-[9px] font-mono text-red-300 py-0.5 truncate px-1
+              "Свирепый лесной волк"
+          <div .w-full mt-1.5 text-center
+            <div .flex items-center justify-between text-[11px] font-mono leading-none
+              <span .font-bold text-slate-200 truncate max-w-[70px]
+                "Свирепый лесной волк"
+              <span .text-red-400 font-bold text-[10px]
+                "Ур. 2"
+            <div .mt-1
+              <div .flex justify-between text-[9px] font-mono text-red-400
+                <span .font-bold
+                  "HP"
+                <span .tabular-nums
+                  "113/193"
+              <div .h-1.5 bg-slate-950 rounded-full overflow-hidden border border-red-950 mt-0.5
+                <div .h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 transition-all duration-300 rounded-full
+            <div .mt-1 flex items-center justify-between text-[9px] font-mono text-slate-400
+              <span .
+                "⚔️ 22"
+              <span .
+                "🛡️ 5"
+    <div .space-y-2
+      <div .p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono transition-all bg-[#252620] border-[#9d8459] text-[#d5
+        <div .flex items-center gap-2
+          <span .w-2 h-2 rounded-full bg-[#c3a775]
+          <span .font-semibold
+            "Ваш ход"
+          <span .text-[11px] text-slate-300 hidden sm:inline
+            "— Выберите действие"
+        <button .px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors bg-slate-800 text-slate-300 hover:text-white
+          "[svg]"
+          <span .
+            "Автобой · PREMIUM"
+      <p .rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-200
+        "Волк-спутник атаковал до первого хода: −80 HP прот"
+      <div .rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5
+        <div .flex items-center gap-2 text-amber-200 text-xs font-bold
+          <span .inline-flex items-center justify-center shrink-0 text-amber-300
+            "[svg]"
+          <span .
+            "Возможный приём врага"
+          <span .ml-auto text-[10px] text-slate-400
+            "после вашего хода"
+        <div .mt-1 flex items-center gap-2 text-[11px] font-mono
+          <span .text-lg
+            "⚔️"
+          <span .text-slate-100 font-bold
+            "Обычная атака"
+        <div .mt-1 text-[10px] text-slate-400
+          <p .
+            "Прогноз может ошибаться или измениться после вашег"
+          <p .
+            "Точность чтения: 50%"
+      <div .mb-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 p-2.5
+        <div .flex items-center justify-between text-[11px] font-mono
+          <span .text-amber-300 font-bold
+            "🔥 Боевая серия"
+          <span .text-slate-300
+            "0/7"
+        <div .mt-1 text-[10px] text-slate-400
+          "Одна энергия на всю серию · следующих врагов: 6"
+      <div .space-y-2 transition-all opacity-100
+        <div .grid grid-cols-3 gap-2
+          <button .ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 tran
+            "[svg]"
+            <span .
+              "Атака"
+          <button .ui-primary py-3 px-2 rounded-xl font-cinzel font-bold text-xs flex flex-col items-center justify-center gap-1 active:scale-95 tran
+            "[svg]"
+            <span .
+              "Навыки"
+          <button .py-3 px-2 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 font-cinz
+            "[svg]"
+            <span .
+              "Защита (+25 MP)"
+        <div .grid grid-cols-3 gap-2
+          <button .py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1.5 transition-all bg-emerald-950/60 border-e
+            "[svg]"
+            <span .
+              "Зелье (5)"
+          <button .py-2 px-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-medium flex items-
+            "[svg]"
+            <span .
+              "Скрыться"
+    <div .rounded-xl border border-slate-800 bg-[#070a12] p-2.5 h-36 flex flex-col
+      <div .text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between border-b border-slate-800/80 
+        <span .
+          "Журнал пошагового сражения"
+        <span .
+          "3 записей"
+      <div .flex-1 overflow-y-auto space-y-1 text-xs pr-1
+        <div .leading-snug flex items-start gap-1.5 font-mono text-[11px]
+          <span .text-slate-500 shrink-0
+            "[1]"
+          <span .text-slate-300
+            "⚔️ В бой вступает Свирепый лесной волк (Ур. 2)! Се"
+        <div .leading-snug flex items-start gap-1.5 font-mono text-[11px]
+          <span .text-slate-500 shrink-0
+            "[1]"
+          <span .text-slate-300
+            "☠️ В этой вылазке 7 противников. После каждой побе"
+        <div .leading-snug flex items-start gap-1.5 font-mono text-[11px]
+          <span .text-slate-500 shrink-0
+            "[1]"
+          <span .text-slate-300
+            "Волк-спутник атаковал до первого хода: −80 HP прот"
+    <div .p-2.5 rounded-xl bg-[#090e1a] border border-cyan-500/20 text-[10px] font-mono flex items-center justify-between text-slate-300
+      <span .
+        "🩸 Вампиризм:"
+        <strong .text-rose-400
+          "+0%"
+      <span .
+        "⚔️ Пробитие:"
+        <strong .text-amber-300
+          "0"
+      <span .
+        "🛡️ Броня:"
+        <strong .text-slate-200
+          "60"
+      <span .
+        "💨 Уклон:"
+        <strong .text-indigo-300
+          "10%"
+      <span .
+        "🎯 Крит:"
+        <strong .text-cyan-300
+          "11%"
