@@ -1424,12 +1424,33 @@
     const myName = (me()?.name || '').trim();
     for (const root of scope) for (const el of root.querySelectorAll('strong, b, span, div, p')) {
       if (el.childElementCount || el.closest('button, input, textarea, .ae-panel, nav, header') || el.classList.contains('ae-nick')) continue;
-      const t = (el.textContent || '').trim(); const id = nickMap.get(t);
+      const t = (el.textContent || '').trim(); const id = t === myName && myName ? uid() : nickMap.get(t);
+      if (id && !el.dataset.aeUid && t.length > 1) el.dataset.aeUid = id;
       if (!id || id === uid() || t === myName) continue;
       el.classList.add('ae-nick'); el.setAttribute('role', 'button'); el.tabIndex = 0;
       el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); openPlayerCard(id, t); });
     }
   }
+  // ---------- clan tag «[TAG]» before nicknames ----------
+  const clanTags = new Map(); let clanTagsAt = 0, clanTagsBusy = false;
+  async function loadClanTags(ids) {
+    if (clanTagsBusy) return; const want = ids.filter(id => !clanTags.has(id)).slice(0, 40);
+    if (!want.length && Date.now() - clanTagsAt < 120000) return;
+    clanTagsBusy = true; clanTagsAt = Date.now();
+    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) clanTags.set(String(p.id), p.clan || ''); for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
+    catch {} finally { clanTagsBusy = false; }
+  }
+  function paintClanTags() {
+    const els = [...document.querySelectorAll('[data-ae-uid]')]; if (!els.length) return;
+    loadClanTags([...new Set(els.map(e => e.dataset.aeUid))]);
+    for (const el of els) {
+      const tag = clanTags.get(el.dataset.aeUid), prev = el.previousElementSibling?.classList.contains('ae-clan-tag') ? el.previousElementSibling : null;
+      if (!tag) { prev?.remove(); continue; }
+      if (prev) { if (prev.textContent !== `[${tag}]`) prev.textContent = `[${tag}]`; continue; }
+      el.before(h('span', {class: 'ae-clan-tag', title: 'Клан'}, `[${tag}]`));
+    }
+  }
+  setInterval(() => { try { paintClanTags(); } catch {} }, 1500);
   function openPlayerCard(id, name) {
     let prof = null;
     const st = openPanel('👤 ' + name, body => {
@@ -1446,7 +1467,8 @@
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
   const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
-    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
+    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
+      pr.clan ? h('div', {class: 'ae-prof-clan'}, `🛡️ Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
       pr.asc ? h('div', {class: 'ae-asc-badge', 'data-asc': pr.asc.rank, title: 'Ранг вознесения'}, h('b', {}, pr.asc.rank), h('span', {}, `Вознесение · ${pr.asc.name}`))
         : h('div', {class: 'ae-asc-badge is-none'}, h('b', {}, '—'), h('span', {}, 'Вознесение не пройдено'))));
@@ -2622,6 +2644,8 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
+.ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
 .ae-admin-head{position:sticky;top:-16px;z-index:5;background:inherit;background-color:#0c0d1c;padding-top:6px;padding-bottom:6px}html[data-interface=fantasy] .ae-admin-head{background-color:#1b1712}
 .ae-wiki-table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0;table-layout:fixed}.ae-wiki-table th:first-child,.ae-wiki-table td:first-child{width:30%}.ae-wiki-table th,.ae-wiki-table td{border:1px solid #ffffff22;padding:4px 6px;text-align:center}.ae-wiki-table td:first-child,.ae-wiki-table th:first-child{text-align:left}.ae-wiki-table th{color:#e5ce96}
 .ae-clan-invite{margin:8px 0;gap:8px}.ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}

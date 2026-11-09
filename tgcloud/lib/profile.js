@@ -58,6 +58,7 @@ export function titlesOf(world, id, now) {
 const ASC = [['D', 'Страж порога', 1], ['C', 'Рыцарь зеркального щита', 15], ['B', 'Хранитель живого пламени', 30], ['A', 'Судья трёх стихий', 45],
   ['S', 'Повелитель разлома', 60], ['SS', 'Владыка пустоты', 75], ['SSS', 'Первый вознесённый', 85]];
 const ascOf = pr => { const a = ASC.find(x => x[0] === pr?.asc); return a ? {rank: a[0], name: a[1], step: ASC.indexOf(a) + 1} : null; };
+const clanOf = (world, id) => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); const c = m && rows(world, 'clans').find(x => same(x.id, m.clan_id)); return c ? {id: c.id, tag: c.tag, name: c.name, level: Number(c.level) || 1, role: m.role} : null; };
 const profileRow = (world, id) => rows(world, 'ae_profiles').find(x => same(x.u, id));
 export function publicProfile(world, id, now) {
   const p = player(world, id); if (!p) return null;
@@ -66,7 +67,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, asc: ascOf(pr), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, asc: ascOf(pr), clan: clanOf(world, id), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 export function handleProfileRequest(world, input, user, now) {
@@ -81,7 +82,7 @@ export function handleProfileRequest(world, input, user, now) {
   }
   if (method === 'POST' && path === '/api/ae-profile/batch') {
     const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 40).map(String);
-    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null}))});
+    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
   if (method === 'POST' && path === '/api/ae-profile/title') {
