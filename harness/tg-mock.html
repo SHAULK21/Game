@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html{zoom:2.5}*{box-sizing:border-box}body{margin:0;background:#0e1621;color:#e9eef3;font:15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;width:432px;height:768px}
+.top{height:56px;display:flex;align-items:center;gap:14px;padding:0 14px;background:#17212b;font-weight:700;font-size:19px}.top i{font-style:normal;opacity:.7;font-size:20px}
+.search{margin:8px 10px;height:38px;border-radius:19px;background:#242f3d;display:flex;align-items:center;padding:0 14px;color:#8a98a8;gap:8px}
+.search b{color:#e9eef3;font-weight:500}.caret{display:inline-block;width:2px;height:18px;background:#5ea3ff;animation:bl 1s steps(1) infinite}@keyframes bl{50%{opacity:0}}
+.list{transition:transform 1.6s cubic-bezier(.2,.7,.2,1)}
+.chat{display:flex;gap:12px;align-items:center;padding:9px 12px}.av{width:52px;height:52px;border-radius:50%;flex:0 0 52px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;background-size:cover;background-position:center}
+.meta{flex:1;min-width:0;border-bottom:1px solid #0b121a;padding-bottom:9px}.meta b{display:block;font-size:16px}.meta span{color:#8a98a8;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.time{color:#8a98a8;font-size:12px;align-self:flex-start;margin-top:4px}.badge{background:#5ea3ff;color:#fff;border-radius:11px;padding:1px 7px;font-size:12px;font-weight:700;margin-top:4px;display:inline-block}
+.cap{position:fixed;left:16px;right:16px;top:120px;z-index:9;text-align:center;font:900 30px/1.15 Georgia,serif;color:#fff3d0;text-shadow:0 2px 0 #000,0 0 18px #000,0 0 8px #000;opacity:0;transform:scale(.9);transition:all .3s}.cap.on{opacity:1;transform:none}
+.view{position:fixed;inset:0;background:#0e1621;transition:transform .45s ease, opacity .45s;transform:translateX(100%)}.view.on{transform:none}
+.bg{position:absolute;inset:56px 0 0;background:#0e1621 radial-gradient(#1b2836 1px,transparent 1px) 0 0/18px 18px}
+.msg{position:absolute;left:12px;right:60px;top:90px;background:#182533;border-radius:16px 16px 16px 4px;overflow:hidden}.msg img{display:block;width:100%;height:180px;object-fit:cover}.msg p{margin:0;padding:10px 12px;font-size:15px}
+.btn{position:absolute;left:12px;right:60px;top:396px;height:44px;border-radius:10px;background:#2b5278;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;transition:transform .15s,background .15s}.btn.tap{transform:scale(.95);background:#3a6e9f}
+.tapdot{position:absolute;width:46px;height:46px;border-radius:50%;background:#fff6;left:190px;top:395px;opacity:0;transform:scale(.4)}.tapdot.on{animation:tap .5s}@keyframes tap{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(1.6)}}
+.splash{position:fixed;inset:0;background:#000 url(/assets/splash/aethelgard-startup.webp) center/cover;opacity:0;transition:opacity .45s}.splash.on{opacity:1}
+</style></head><body>
+<div class="top"><i>☰</i>Чаты</div>
+<div class="search" id="search">🔍 <b id="q"></b><span class="caret"></span><span id="ph">Поиск</span></div>
+<div class="list" id="list"></div>
+<div class="view" id="view"><div class="top"><i>←</i><div class="av" style="width:36px;height:36px;flex:0 0 36px;background-image:url(/assets/sprites/generated/heroes/warrior.webp)"></div><div>Aethelgard RPG<br><span style="font-size:12px;font-weight:400;color:#8a98a8">бот</span></div></div>
+ <div class="bg"></div><div class="msg"><img src="/assets/story/coop-first-victory.webp"><p>⚔️ Добро пожаловать в Аэтельгард! Королевство ждёт героя. Нажми «Играть» — игра откроется прямо здесь.</p></div>
+ <div class="btn" id="btn">⚔️ Играть</div><div class="tapdot" id="tap"></div></div>
+<div class="splash" id="splash"></div>
+<div class="cap" id="cap"></div>
+<script>
+const chats=[['Мама','Ты поел? 🙂','12:41','#e17076','М',2],['Работа','Созвон перенесли на 15:00','12:30','#7bc862','Р',5],['Друзья 🎮','Кто сегодня в катку?','12:22','#65aadd','Д',12],['Новости','Главное за утро','11:58','#a695e7','Н',0],
+['Аня','Скинь фотки','11:40','#ee7aae','А',1],['Спорт','Счёт 2:1 🔥','11:02','#6ec9cb','С',0],['Брат','ахахах','10:47','#faa774','Б',0],['Учёба','Дедлайн завтра','10:15','#e17076','У',3],['Кино','Что посмотреть вечером?','09:50','#7bc862','К',0],['Магазин','Ваш заказ в пути','09:12','#65aadd','М',0],['Соседи','Кто оставил велосипед?','08:40','#a695e7','С',0],['Работа 2','Ок','вчера','#faa774','Р',0]];
+const L=document.getElementById('list');const row=(n,m,t,c,l,b,img)=>`<div class="chat"><div class="av" style="background:${img?'#222 url('+img+') center/cover':c}">${img?'':l}</div><div class="meta"><b>${n}</b><span>${m}</span></div><div style="text-align:right"><div class="time">${t}</div>${b?`<span class="badge">${b}</span>`:''}</div></div>`;
+L.innerHTML=chats.map(c=>row(...c)).join('');
+const cap=document.getElementById('cap');const setCap=(t,low)=>{cap.style.top=low?'470px':'120px';cap.classList.remove('on');setTimeout(()=>{cap.innerHTML=t;cap.classList.add('on')},120)};
+const at=(ms,f)=>setTimeout(f,ms);
+window.go=()=>{
+ setCap('Ты знал, что в Telegram<br>можно играть в RPG? 😳');
+ at(300,()=>L.style.transform='translateY(-330px)');at(1700,()=>L.style.transform='translateY(0)');
+ at(3000,()=>{setCap('Без скачивания ⚡',1);document.getElementById('ph').style.display='none';const q='@Aethelgardr_RPG_Bot';let i=0;const tick=setInterval(()=>{document.getElementById('q').textContent=q.slice(0,++i);if(i>=q.length)clearInterval(tick)},28);});
+ at(3650,()=>{L.style.transition='none';L.style.transform='none';L.innerHTML=row('Aethelgard RPG','бот · ⚔️ Фэнтези-RPG прямо в Telegram','','#222','A',0,'/assets/sprites/generated/heroes/warrior.webp');});
+ at(4050,()=>document.getElementById('view').classList.add('on'));
+ at(4900,()=>{document.getElementById('btn').classList.add('tap');document.getElementById('tap').classList.add('on')});
+ at(5150,()=>document.getElementById('btn').classList.remove('tap'));
+ at(5300,()=>document.getElementById('splash').classList.add('on'));
+};
+</script></body></html>
