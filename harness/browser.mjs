@@ -1,6 +1,6 @@
 import pw from '/opt/node-tools/node_modules/playwright/index.js'; const {chromium} = pw;
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
-export async function launch({engine = './engine-patched.js', userId = 437290420, setupWorld, localState} = {}) {
+export async function launch({engine = './engine-patched.js', userId = 437290420, setupWorld, localState, pageOptions} = {}) {
   const E = await import(engine);
   const {handleSocialRequest} = await import('../tgcloud/lib/social.js');
   const world = {tables: {}};
@@ -14,7 +14,7 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
   });
   await new Promise(r => server.listen(0, r));
   const browser = await chromium.launch();
-  const page = await browser.newPage({viewport: {width: 420, height: 860}});
+  const page = await browser.newPage(pageOptions || {viewport: {width: 420, height: 860}});
   const log = [];
   page.on('console', m => log.push(`[${m.type()}] ${m.text()}`));
   page.on('pageerror', e => log.push(`[pageerror] ${e.message}`));
