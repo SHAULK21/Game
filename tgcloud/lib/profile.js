@@ -54,6 +54,10 @@ export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);
   return TITLES.filter(t => t.id !== 'keeper' || c.admin).map(t => { const v = Math.max(0, Number(t.value(c)) || 0); return {id: t.id, icon: t.icon, name: t.name, desc: t.desc, earned: v >= t.need, progress: Math.min(v, t.need), need: t.need}; });
 }
+// Ascension rank: kept in the hero's save; the client reports it so other players can see it. Min level is a sanity check.
+const ASC = [['D', 'Страж порога', 1], ['C', 'Рыцарь зеркального щита', 15], ['B', 'Хранитель живого пламени', 30], ['A', 'Судья трёх стихий', 45],
+  ['S', 'Повелитель разлома', 60], ['SS', 'Владыка пустоты', 75], ['SSS', 'Первый вознесённый', 85]];
+const ascOf = pr => { const a = ASC.find(x => x[0] === pr?.asc); return a ? {rank: a[0], name: a[1], step: ASC.indexOf(a) + 1} : null; };
 const profileRow = (world, id) => rows(world, 'ae_profiles').find(x => same(x.u, id));
 export function publicProfile(world, id, now) {
   const p = player(world, id); if (!p) return null;
@@ -62,7 +66,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, asc: ascOf(pr), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 export function handleProfileRequest(world, input, user, now) {
@@ -77,7 +81,7 @@ export function handleProfileRequest(world, input, user, now) {
   }
   if (method === 'POST' && path === '/api/ae-profile/batch') {
     const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 40).map(String);
-    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src}))});
+    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
   if (method === 'POST' && path === '/api/ae-profile/title') {
@@ -85,6 +89,13 @@ export function handleProfileRequest(world, input, user, now) {
     const t = titlesOf(world, me, now).find(x => x.id === body.id);
     if (!t) return fail('Такого титула нет.', 404); if (!t.earned) return fail('Этот титул ещё не получен.');
     pr.title = t.id; return ok({profile: publicProfile(world, me, now)});
+  }
+  if (method === 'POST' && path === '/api/ae-profile/asc') {
+    const rank = String(body.rank || '');
+    if (rank === 'E' || !rank) { pr.asc = null; return ok({profile: publicProfile(world, me, now)}); }
+    const a = ASC.find(x => x[0] === rank); if (!a) return fail('Неизвестный ранг вознесения.');
+    if ((Number(player(world, me).level) || 1) < a[2]) return fail('Уровень героя слишком мал для этого ранга.');
+    pr.asc = rank; return ok({profile: publicProfile(world, me, now)});
   }
   if (method === 'POST' && path === '/api/ae-profile/avatar') {
     if (!AVATARS.some(a => a.id === body.id)) return fail('Такой аватарки нет.', 404);

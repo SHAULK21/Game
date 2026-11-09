@@ -1,7 +1,8 @@
 // Co-op dungeons: a leader opens a room, up to two allies join, the party walks through 7 halls.
 // Between halls the leader picks a path (allies can vote): fights, elites, traps/falls, treasure, shrines.
-// All combat is resolved on the server from server-side level/class, so clients cannot inflate stats.
+// Combat is resolved on the server; hero stats blend the level formula with the hero's reported gear stats (clamped).
 import {pushEvent, logQuest} from './arenaExtras.js';
+import {blendedStats, saveStats} from './heroStats.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
 const COOLDOWN = {attack: 900, power: 4500, heal: 4000, guard: 6000, spell: 1};
@@ -78,9 +79,11 @@ const alive = room => room.members.filter(m => !m.left && m.hp > 0);
 const present = room => room.members.filter(m => !m.left);
 const pick = w => { const total = Object.values(w).reduce((a, b) => a + b, 0); let r = Math.random() * total; for (const [k, v] of Object.entries(w)) { if ((r -= v) < 0) return k; } return Object.keys(w)[0]; };
 
-function memberStats(p) {
+function memberStats(p, world) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
-  return {level, classId: p?.class_id || 'warrior', healer: !!c.healer, maxHp: Math.round((160 + level * 48) * c.hp), atk: Math.round((18 + level * 7) * c.atk), def: Math.round((6 + level * 3) * c.def)};
+  const base = {level, classId: p?.class_id || 'warrior', healer: !!c.healer, maxHp: Math.round((160 + level * 48) * c.hp), atk: Math.round((18 + level * 7) * c.atk), def: Math.round((6 + level * 3) * c.def)};
+  const b = world ? blendedStats(world, p.telegram_id, p) : null; // gear and attributes count (blended with the level formula)
+  return b?.real ? {...base, maxHp: b.maxHp, atk: b.atk, def: b.def} : base;
 }
 function makeFoe(room, d, kind) {
   const n = present(room).length, boss = kind === 'boss', elite = kind === 'elite', scale = 1 + 0.65 * (n - 1);
@@ -260,7 +263,8 @@ export async function handleCoopRequest(world, input, user, now, notify) {
   }
   if (method === 'GET' && path === '/api/coop/room') return ok({room: room ? view(room, me) : null});
   if (method !== 'POST') return fail('Метод не поддерживается.', 405);
-  const meStats = memberStats(p), meMember = () => ({id: String(me), name: nameOf(p), ...meStats, hp: meStats.maxHp, next: {}});
+  if (input?.body?.stats) saveStats(world, me, input.body.stats, now);
+  const meStats = memberStats(p, world), meMember = () => ({id: String(me), name: nameOf(p), ...meStats, hp: meStats.maxHp, next: {}});
   if (path === '/api/coop/create') {
     if (room && ['lobby', 'active'].includes(room.status)) return fail('Вы уже в отряде. Сначала покиньте его.');
     const d = COOP_DUNGEONS.find(x => x.id === body.dungeonId);

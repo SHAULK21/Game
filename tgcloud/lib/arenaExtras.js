@@ -5,15 +5,17 @@ const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400
 const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_id, id));
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
+import {realStats, saveStats} from './heroStats.js';
 const DAY = 864e5;
 const CLASS = {warrior: {hp: 1.25, atk: 1.0, def: 1.3, name: 'Воин'}, knight: {hp: 1.3, atk: 0.9, def: 1.4, name: 'Рыцарь'}, paladin: {hp: 1.15, atk: 0.95, def: 1.2, heal: 1.4, name: 'Паладин'},
   berserker: {hp: 1.05, atk: 1.3, def: 0.85, name: 'Берсерк'}, rogue: {hp: 0.9, atk: 1.25, def: 0.8, crit: 0.2, name: 'Разбойник'}, assassin: {hp: 0.85, atk: 1.35, def: 0.75, crit: 0.22, name: 'Ассасин'},
   hunter: {hp: 0.95, atk: 1.2, def: 0.85, name: 'Лучник'}, mage: {hp: 0.8, atk: 1.4, def: 0.7, name: 'Маг'}, necromancer: {hp: 0.9, atk: 1.25, def: 0.8, name: 'Некромант'}, druid: {hp: 1.0, atk: 1.0, def: 0.95, heal: 1.4, name: 'Друид'}};
-function fighter(p) {
+function fighter(p, world) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
-  const maxHp = Math.round((160 + level * 48) * c.hp);
+  const real = world ? realStats(world, p.telegram_id, p) : null; // gear, attributes, talents — as in the main game
+  const maxHp = real ? real.maxHp : Math.round((160 + level * 48) * c.hp);
   return {id: String(p.telegram_id), name: nameOf(p), level, classId: p?.class_id || 'warrior', className: c.name, maxHp, hp: maxHp, maxMp: 60, mp: 60,
-    atk: Math.round((18 + level * 7) * c.atk), def: Math.round((6 + level * 3) * c.def), crit: c.crit || 0.1, heal: c.heal || 1, guard: false, skill: DUEL_SKILLS[skillOf(p?.class_id)], cd: 0, fx: {}};
+    atk: real ? real.atk : Math.round((18 + level * 7) * c.atk), def: real ? real.def : Math.round((6 + level * 3) * c.def), crit: real ? Math.max(0.05, real.crit) : c.crit || 0.1, real: !!real, heal: c.heal || 1, guard: false, skill: DUEL_SKILLS[skillOf(p?.class_id)], cd: 0, fx: {}};
 }
 // Class skills in duels: cooldown in turns. Effects last a number of turns.
 const skillOf = cls => cls === 'archer' ? 'hunter' : DUEL_SKILLS[cls] ? cls : 'warrior';
@@ -226,6 +228,7 @@ export async function handleDuel(world, path, method, body, me, now, notify) {
   if (method !== 'POST') return fail('Метод не поддерживается.', 405);
   if (path === '/api/duel/start') {
     if (mine) return ok({duel: duelView(mine)});
+    if (body.stats) saveStats(world, me, body.stats, now);
     let target = body.targetId ? player(world, body.targetId) : null;
     if (!target && typeof body.name === 'string') {
       const q = body.name.trim().replace(/^@/, '').toLocaleLowerCase();
@@ -234,7 +237,7 @@ export async function handleDuel(world, path, method, body, me, now, notify) {
     }
     if (!target || same(target.telegram_id, me)) return fail('Игрок не найден. Проверьте ник.', 404);
     if (!target.character_name && !(Number(target.level) > 1)) return fail('У этого игрока ещё нет героя.');
-    const d = {id: crypto.randomUUID(), attacker: String(me), defender: String(target.telegram_id), status: 'active', turn: 1, a: fighter(self), b: fighter(target), log: [], created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
+    const d = {id: crypto.randomUUID(), attacker: String(me), defender: String(target.telegram_id), status: 'active', turn: 1, a: fighter(self, world), b: fighter(target, world), log: [], created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
     d.log.push({text: `${d.a.name} вызывает ${d.b.name} на дуэль! Соперником управляет его тень.`}); d.intent = aiPick(d);
     rows(world, 'duels').push(d);
     return ok({duel: duelView(d)}, 201);

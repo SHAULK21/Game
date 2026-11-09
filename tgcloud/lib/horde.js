@@ -2,6 +2,7 @@
 // Every request resolves one or several exchanges instantly (auto-battle sends several at once).
 // Blood Moon: monsters hit harder and more often, wounded ones may flee and new ones run in; rewards are higher.
 import {logQuest} from './arenaExtras.js';
+import {blendedStats, baseStats, saveStats} from './heroStats.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -41,16 +42,21 @@ export function hero(p) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
   return {level, classId: p?.class_id || 'warrior', maxHp: Math.round((160 + level * 48) * c.hp), atk: Math.round((18 + level * 7) * c.atk), crit: c.crit || 0.14};
 }
+// The fighter uses the hero's gear/attributes (blended); monsters keep scaling from the level formula.
+function fighterOf(world, p) {
+  const base = hero(p), b = blendedStats(world, p.telegram_id, p), baseDef = baseStats(p).def;
+  return {base, hero: {...base, maxHp: b.maxHp, atk: b.atk, crit: b.crit ?? base.crit, def: b.def, guardMul: b.real ? Math.max(0.55, Math.min(1.5, (baseDef + 150) / ((b.def || baseDef) + 150))) : 1, real: b.real}};
+}
 function spawn(run) {
-  const n = run.spawned + 1, lvl = run.hero.level;
+  const n = run.spawned + 1, lvl = run.hero.level, ref = run.base || run.hero;
   const kind = n % 20 === 0 ? 'leader' : n % 10 === 0 ? 'elite' : 'normal';
   const pool = near(kind === 'leader' ? LEADERS : REGULARS, lvl);
   let [sprite, name] = pool[Math.floor(Math.random() * pool.length)];
   if (run.blood && kind === 'leader') [sprite, name] = BLOOD_LEADER;
   else if (run.blood && Math.random() < 0.6) [sprite, name] = BLOOD_REGULARS[Math.floor(Math.random() * BLOOD_REGULARS.length)];
   const grow = 1 + run.kills * TUNE.hpGrow, mult = kind === 'leader' ? TUNE.leaderHp : kind === 'elite' ? 1.8 : 1;
-  const hp = Math.round(run.hero.atk * rand(2.1, 2.7) * grow * mult);
-  const atk = Math.round(run.hero.maxHp * TUNE.atk * (1 + run.kills * TUNE.atkGrow) * (kind === 'leader' ? 1.4 : kind === 'elite' ? 1.25 : 1) * (run.blood ? 1.3 : 1));
+  const hp = Math.round(ref.atk * rand(2.1, 2.7) * grow * mult);
+  const atk = Math.round(ref.maxHp * TUNE.atk * (1 + run.kills * TUNE.atkGrow) * (kind === 'leader' ? 1.4 : kind === 'elite' ? 1.25 : 1) * (run.blood ? 1.3 : 1));
   run.spawned = n;
   return {uid: n, sprite, name: (kind === 'leader' ? 'Вожак: ' : kind === 'elite' ? 'Элита: ' : '') + name, kind, hp, maxHp: hp, atk};
 }
@@ -92,7 +98,7 @@ function exchange(world, me, run, action, now, events) {
   // monsters strike back
   const strikers = [run.queue[0], ...(run.blood ? run.queue.slice(1).filter(() => Math.random() < 0.3) : [])].filter(Boolean);
   for (const [i, m] of strikers.entries()) {
-    const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1)));
+    const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1)));
     run.hp = Math.max(0, run.hp - dmg); events.push({t: 'hurt', v: dmg, from: m.name});
     if (run.hp <= 0) break;
   }
@@ -122,9 +128,10 @@ export function handleHordeRequest(world, input, user, now) {
   if (path === '/api/horde/start') {
     if (run && run.status === 'active') return ok({run: view(run)});
     if (run && !run.claimed && (run.loot.gold || run.loot.exp)) return fail('Сначала заберите награду прошлого похода.');
-    const h = hero(p), weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
+    if (body.stats) saveStats(world, me, body.stats, now);
+    const {base, hero: h} = fighterOf(world, p), weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
     if (blood && !weekend && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
-    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, hero: h, hp: h.maxHp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
+    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, base, hero: h, hp: h.maxHp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
       loot: {gold: 0, exp: 0, fragments: 0}, log: [weekend ? '🌕 Выходные Кровавой луны! Награды ×2 — Орда беснуется!' : blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
     fillQueue(run); rows(world, 'horde_runs').push(run);
     return ok({run: view(run)}, 201);

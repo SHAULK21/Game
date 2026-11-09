@@ -22,10 +22,26 @@
     return el;
   };
   const cleanError = e => String(e?.message || e || 'Ошибка').replace(/ \(HTTP \d+\)$/, '');
+  // The hero's real combat stats (gear, attributes, talents, pet) as the game computes them.
+  const STATS_PATHS = /^\/api\/(horde\/start|duel\/start|coop\/create|coop\/join)$/;
+  function heroStatsPayload() {
+    const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
+    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, critChance: s.critChance};
+  }
   async function api(path, method = 'GET', body) {
     const b = B(); if (!b) throw new Error('Игра ещё загружается.');
+    if (method !== 'GET' && STATS_PATHS.test(path)) { const st = heroStatsPayload(); if (st) body = {...(body || {}), stats: st}; }
     return b.api(path, method === 'GET' ? {} : {method, body: JSON.stringify(body || {})});
   }
+  // Keep the server copy fresh so duel opponents fight against your current gear too.
+  let statsSent = '', statsSentAt = 0;
+  setInterval(() => {
+    try {
+      const st = heroStatsPayload(), j = st && JSON.stringify(st);
+      if (!j || j === statsSent || Date.now() - statsSentAt < 30e3 || document.documentElement.hasAttribute('data-in-combat')) return;
+      statsSentAt = Date.now(); api('/api/ae-stats', 'POST', {stats: st}).then(() => { statsSent = j; }, () => {});
+    } catch {}
+  }, 10e3);
   const uuid4 = () => crypto.randomUUID();
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
   let toastTimer;
@@ -922,7 +938,7 @@
           const r = await api('/api/promo/redeem', 'POST', {code, level: me()?.level || 1}), w = r.reward, b = B();
           b.setPlayer(p => { if (!p) return p; let inv = p.inventory;
             if (w.fragments) { inv = inv.slice(); const i = inv.findIndex(x => x.templateId === 'ascension_fragment' && !x.serverOwned && !x.isLocked); if (i >= 0) inv[i] = {...inv[i], stackCount: (inv[i].stackCount || 1) + w.fragments}; else inv.push({id: 'promo_' + uuid4(), templateId: 'ascension_fragment', name: 'Осколок вознесения', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '✦', stats: {}, sellPrice: 0, disassembleYield: {}, stackCount: w.fragments}); }
-            return {...p, inventory: inv, gold: (p.gold || 0) + w.gold, silver: (p.silver || 0) + w.silver, energy: w.energy ? Math.min(p.maxEnergy || 60, (p.energy || 0) + w.energy) : p.energy, arenaTickets: (p.arenaTickets || 0) + (w.arenaTickets || 0)}; });
+            return {...p, inventory: inv, gold: (p.gold || 0) + w.gold, silver: (p.silver || 0) + w.silver, energy: w.energy ? Math.min(p.maxEnergy || ENERGY_CAP, (p.energy || 0) + w.energy) : p.energy, arenaTickets: (p.arenaTickets || 0) + (w.arenaTickets || 0)}; });
           const parts = [w.premiumDays && `Premium на ${w.premiumDays} дн.`, w.gold && `${fmt(w.gold)} 🪙`, w.silver && `${fmt(w.silver)} 🥈`, w.fragments && `${w.fragments} ✦`, w.energy && `${w.energy} ⚡`, w.arenaTickets && `${w.arenaTickets} 🎟️`].filter(Boolean);
           toast(`«${r.title}»: ${parts.join(', ')}`); b.sound?.playVictory?.(); input.value = '';
           if (w.premiumDays) setTimeout(() => checkPremium(), 800);
@@ -982,11 +998,16 @@
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
   const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
     h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
-      pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула')));
+      pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
+      pr.asc ? h('div', {class: 'ae-asc-badge', 'data-asc': pr.asc.rank, title: 'Ранг вознесения'}, h('b', {}, pr.asc.rank), h('span', {}, `Вознесение · ${pr.asc.name}`))
+        : h('div', {class: 'ae-asc-badge is-none'}, h('b', {}, '—'), h('span', {}, 'Вознесение не пройдено'))));
   let myProfile = null;
   async function loadMyProfile() {
     try {
-      const r = await api('/api/ae-profile'); myProfile = r; applyHeaderAvatar();
+      let r = await api('/api/ae-profile');
+      const rank = me()?.ascension?.rank || 'E', shown = r.profile?.asc?.rank || 'E';
+      if (rank !== shown) { try { const u = await api('/api/ae-profile/asc', 'POST', {rank}); r = {...r, profile: u.profile}; } catch {} }
+      myProfile = r; applyHeaderAvatar();
       // announce titles earned since the last check
       const key = 'aeth_titles_seen_' + uid(), earned = r.titles.filter(t => t.earned).map(t => t.id), seenRaw = localStorage.getItem(key);
       if (seenRaw) { const seen = new Set(JSON.parse(seenRaw)); for (const t of r.titles.filter(t => t.earned && !seen.has(t.id))) popup({icon: '🏅', text: `Новый титул: ${t.icon} ${t.name}`, act: 'Надеть', fn: () => openProfile()}); }
@@ -1467,6 +1488,17 @@
 
   // ---------- pets: drawn icons instead of emoji ----------
   const PET_ICONS = {'🐺': ['pet_wolf', 'Снежный лютоволк'], '🐉': ['pet_dragon', 'Огненный дракончик'], '🧚': ['pet_fairy', 'Астральная фея'], '🗿': ['pet_golem', 'Адамантитовый големчик'], '🌌': ['pet_voidling', 'Эфирный пустотник']};
+  // ---------- energy cap: 100 for everyone (was 60). One-time raise; the gap is added to current energy. ----------
+  const ENERGY_CAP = 100;
+  function raiseEnergyCap() {
+    const b = B(), p = me(); if (!b?.setPlayer || !p || !(Number(p.maxEnergy) < ENERGY_CAP)) return;
+    const gap = ENERGY_CAP - Number(p.maxEnergy || 0);
+    b.setPlayer(c => c && Number(c.maxEnergy) < ENERGY_CAP ? {...c, maxEnergy: ENERGY_CAP, energy: Math.min(ENERGY_CAP, Number(c.energy || 0) + gap)} : c);
+    const k = 'aeth_energy100_' + uid();
+    if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setTimeout(() => toast(`⚡ Запас энергии увеличен до ${ENERGY_CAP}! +${gap} энергии в подарок`), 1500); }
+  }
+  setInterval(() => { try { raiseEnergyCap(); } catch (e) { console.warn('ae energy', e); } }, 2000);
+
   // ---------- pet hunger: satiety drains over a day; a hungry pet gives half its stats ----------
   const PET_DAY = 24 * 3600e3, HUNGRY_AT = 25;
   const petFoodKey = () => 'aeth_pet_food_' + uid();
@@ -2072,6 +2104,12 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-asc-badge{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 10px 3px 3px;border-radius:14px;border:1px solid #a78bfa88;background:linear-gradient(90deg,#4c1d9566,#1e1b4b66);font-size:12px;color:#ddd6fe;max-width:100%}
+.ae-asc-badge b{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 5px;border-radius:999px;background:linear-gradient(#a78bfa,#6d28d9);color:#fff;font:800 11.5px/1 system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 0 10px #8b5cf688}
+.ae-asc-badge span{line-height:1.25}
+.ae-asc-badge[data-asc=A] b,.ae-asc-badge[data-asc=B] b{background:linear-gradient(#60a5fa,#1d4ed8);box-shadow:0 0 10px #3b82f688}
+.ae-asc-badge[data-asc^=S] b{background:linear-gradient(#fde68a,#d97706);color:#2a1a05;box-shadow:0 0 14px #f59e0bbb}.ae-asc-badge[data-asc^=S]{border-color:#f59e0b99;color:#fde68a;background:linear-gradient(90deg,#78350f66,#1c1917aa)}
+.ae-asc-badge.is-none{border-color:#ffffff22;background:#ffffff08;color:#8b95a3}.ae-asc-badge.is-none b{background:#334155;box-shadow:none}
 .ae-invite-hero{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:14px;border:1px solid #e5ce9688;background:linear-gradient(135deg,#3a2a0ecc,#141a21);font-size:13px}
 .ae-invite-hero b{font-size:16px;color:#f3d27a}
 .ae-invite-link{padding:10px;border-radius:10px;background:#0b0f14;border:1px dashed #ffffff33;overflow-wrap:anywhere;font-size:12.5px}.ae-invite-link code{color:#e5ce96}
