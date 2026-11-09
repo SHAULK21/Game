@@ -838,6 +838,50 @@
       localStorage.setItem(autoKey(), on ? '0' : '1'); toast(on ? 'Автоодевание выключено' : '👑 Автоодевание включено'); document.querySelector('[data-ae-autoequip]')?.replaceWith(autoEquipToggle()); if (!on) autoEquip(true);
     }}, h('span', {class: 'ae-entry-icon'}, '👑'), h('span', {class: 'ae-grow'}, h('b', {}, `Автоодевание: ${on ? 'вкл' : 'выкл'}`), h('small', {}, 'Premium: сам надевает вещи, которые делают героя сильнее')), h('span', {class: 'ae-coop-go'}, on ? '✓' : '›'));
   }
+  // ---------- alchemy: show how many ingredients you have, and why a brew would fail ----------
+  function decorateAlchemy() {
+    const main = document.querySelector('main'); if (!main || !/Изученные рецепты/.test(main.textContent || '')) return;
+    const p = me(); if (!p) return;
+    const have = name => (p.inventory || []).reduce((n, i) => n + (i.name === name ? i.stackCount || 1 : 0), 0);
+    for (const el of main.querySelectorAll('span, div, code')) {
+      if (el.childElementCount) continue;
+      const m = (el.dataset.aeIng || el.textContent || '').trim().match(/^(.+?) x(\d+)$/); if (!m) continue;
+      if (!el.dataset.aeIng) el.dataset.aeIng = el.textContent.trim();
+      const n = have(m[1]), need = Number(m[2]), txt = `${m[1]} ${n}/${need}`;
+      if (el.textContent !== txt) el.textContent = txt;
+      el.classList.toggle('ae-ing-low', n < need); el.classList.toggle('ae-ing-ok', n >= need);
+    }
+    for (const btn of main.querySelectorAll('button')) {
+      const m = (btn.textContent || '').match(/Сварить\s*·\s*(\d+)\s*(?:энерги|⚗)/); if (!m) continue;
+      let card = btn; for (let i = 0; i < 6 && card && !card.querySelector('[data-ae-ing]'); i++) card = card.parentElement;
+      const missing = card ? [...card.querySelectorAll('.ae-ing-low')].map(e => e.dataset.aeIng.replace(/ x\d+$/, '')) : [];
+      const cost = Number(m[1]), en = p.alchemyEnergy ?? 0, lowEn = en < cost;
+      const note = missing.length ? `Не хватает: ${missing.join(', ')}` : lowEn ? `Мало энергии алхимии: ${en}/${cost} — восстановится примерно через ${Math.ceil((cost - en) * 20 / 60)} мин` : '';
+      let tag = btn.parentElement.querySelector(':scope > .ae-alch-note');
+      if (!note) { tag?.remove(); btn.classList.remove('ae-alch-blocked'); continue; }
+      if (!tag) { tag = h('div', {class: 'ae-alch-note'}); btn.after(tag); }
+      if (tag.textContent !== '⚠️ ' + note) tag.textContent = '⚠️ ' + note;
+      btn.classList.add('ae-alch-blocked');
+    }
+  }
+  setInterval(() => { try { decorateAlchemy(); } catch {} }, 1000);
+  // ---------- forge: a clear result after every upgrade attempt ----------
+  let forgeSnap = null;
+  function watchForge() {
+    const main = document.querySelector('main'), p = me();
+    if (!p || !main || !/Заточить до \+|Ковка\.\.\./.test(main.textContent || '')) { forgeSnap = null; return; }
+    const items = [...Object.values(p.equipped || {}).filter(Boolean), ...(p.inventory || [])];
+    const snap = {lv: new Map(items.map(i => [i.id, {lv: i.upgradeLevel || 0, name: i.name}])), gold: p.gold || 0, silver: p.silver || 0};
+    const prev = forgeSnap; forgeSnap = snap; if (!prev) return;
+    for (const [id, cur] of snap.lv) {
+      const was = prev.lv.get(id); if (!was || was.lv === cur.lv) continue;
+      if (cur.lv > was.lv) { bigBanner(`⚒️ ${cur.name}: +${was.lv} → +${cur.lv}!`, cur.lv >= 10); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }
+      else { bigBanner(`💥 Провал: ${cur.name} +${was.lv} → +${cur.lv}`, false); sfx.play('fail'); }
+      return;
+    }
+    if (snap.gold < prev.gold || snap.silver < prev.silver) { bigBanner('💥 Заточка не удалась — уровень сохранён', false); sfx.play('fail'); }
+  }
+  setInterval(() => { try { watchForge(); } catch {} }, 300);
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
@@ -2242,7 +2286,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -2258,6 +2302,9 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-ing-low{color:#fca5a5!important;border-color:#b91c1c!important}.ae-ing-ok{color:#86efac!important}
+.ae-alch-note{margin-top:6px;padding:6px 10px;border-radius:8px;background:#450a0a99;border:1px solid #b91c1c88;color:#fecaca;font-size:12px}
+.ae-alch-blocked{filter:grayscale(.6);opacity:.75}
 .ae-coop-skills{display:flex;flex-direction:column;gap:6px;margin:6px 0}
 .ae-coop-skills-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#cbd5e1}.ae-coop-skills-h b{color:#e5ce96}
 .ae-coop-skill-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}

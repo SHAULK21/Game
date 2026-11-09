@@ -1,0 +1,26 @@
+[
+ {
+  "name": "inv-modern-forge-item",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11.js",
+  "old": "X&&n&&(0,O.jsxs)(`button`,{onClick:()=>{P(null),n()}",
+  "new": "X&&n&&(0,O.jsxs)(`button`,{onClick:()=>{window.__aethForgeItem=K?.id;P(null),n()}"
+ },
+ {
+  "name": "inv-fantasy-forge-item",
+  "file": "InventoryScreen-tRt9SWVd-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11.js",
+  "old": "X&&n&&(0,A.jsxs)(`button`,{onClick:()=>{O(null),n()}",
+  "new": "X&&n&&(0,A.jsxs)(`button`,{onClick:()=>{window.__aethForgeItem=V?.id;O(null),n()}"
+ },
+ {
+  "name": "forge-a-preselect",
+  "file": "BlacksmithScreen-0Tnl48oX-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11.js",
+  "old": "[x,S]=(0,v.useState)(null)",
+  "new": "[x,S]=(0,v.useState)(()=>{let e=window.__aethForgeItem||null;return window.__aethForgeItem=null,e})"
+ },
+ {
+  "name": "forge-b-preselect",
+  "file": "BlacksmithScreen-Clge6VBj-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11.js",
+  "old": "[E,D]=(0,C.useState)(null)",
+  "new": "[E,D]=(0,C.useState)(()=>{let e=window.__aethForgeItem||null;return window.__aethForgeItem=null,e})"
+ }
+]
