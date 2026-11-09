@@ -2,7 +2,8 @@
 // Every request resolves one or several exchanges instantly (auto-battle sends several at once).
 // Blood Moon: monsters hit harder and more often, wounded ones may flee and new ones run in; rewards are higher.
 import {logQuest} from './arenaExtras.js';
-import {blendedStats, baseStats, saveStats} from './heroStats.js';
+import {blendedStats, baseStats, saveStats, kitOf} from './heroStats.js';
+import {castSkill, outMult, inMult} from './skills.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -45,7 +46,7 @@ export function hero(p) {
 // The fighter uses the hero's gear/attributes (blended); monsters keep scaling from the level formula.
 function fighterOf(world, p) {
   const base = hero(p), b = blendedStats(world, p.telegram_id, p), baseDef = baseStats(p).def;
-  return {base, hero: {...base, maxHp: b.maxHp, atk: b.atk, crit: b.crit ?? base.crit, def: b.def, guardMul: b.real ? Math.max(0.55, Math.min(1.5, (baseDef + 150) / ((b.def || baseDef) + 150))) : 1, real: b.real}};
+  return {base, hero: {...base, maxHp: b.maxHp, atk: b.atk, crit: b.crit ?? base.crit, def: b.def, maxMp: Math.max(60, Math.min(2000, b.maxMp || 100 + base.level * 8)), guardMul: b.real ? Math.max(0.55, Math.min(1.5, (baseDef + 150) / ((b.def || baseDef) + 150))) : 1, real: b.real}};
 }
 function spawn(run) {
   const n = run.spawned + 1, lvl = run.hero.level, ref = run.base || run.hero;
@@ -73,33 +74,55 @@ function milestone(run, events, now, world, me) {
   events.push({t: 'milestone', n: run.kills, gold, frag});
   run.log.push(`🏆 Веха ${run.kills} монстров! Сундук: +${gold} 🪙${frag ? ' и ✦ осколок' : ''}`);
 }
-function exchange(world, me, run, action, now, events) {
-  const front = run.queue[0], h = run.hero;
+function exchange(world, me, run, action, now, events, skillId) {
+  const front = run.queue[0], h = run.hero, kit = kitOf(world, me);
+  run.maxMp ||= h.maxMp || 100; run.mp ??= run.maxMp;
   if (action === 'potion') {
     if (run.potions <= 0) { events.push({t: 'info', text: 'Зелья закончились'}); action = 'attack'; }
     else { run.potions--; const v = Math.round(h.maxHp * 0.4); run.hp = Math.min(h.maxHp, run.hp + v); events.push({t: 'heal', v}); run.log.push(`🧪 Зелье: +${v} HP`); }
   }
+  if (action === 'skill') {
+    const sk = (kit.skills || []).find(x => x.id === skillId);
+    if (!sk || sk.mana > run.mp) action = 'attack';
+    else {
+      run.mp -= sk.mana;
+      const self = {hp: run.hp, maxHp: h.maxHp, mp: run.mp, maxMp: run.maxMp, atk: h.atk, crit: h.crit, barrier: run.barrier || 0, fury: run.fury || 0, name: 'Вы'};
+      let dealt = 0;
+      const r = castSkill({self, foe: front, kit, sk, ownLast: run.lastSkill, hit: (mult, ignoreDef) => { const dmg = Math.round(h.atk * rand(0.9, 1.1) * mult * outMult(self) * inMult(front) * (1 - (ignoreDef || 0) * 0)); front.hp = Math.max(0, front.hp - dmg); dealt += dmg; return dmg; }});
+      Object.assign(run, {hp: self.hp, mp: self.mp, barrier: self.barrier, fury: self.fury}); run.lastSkill = {id: sk.id};
+      if (dealt) events.push({t: 'hit', v: dealt, power: sk.mult >= 1.5});
+      if (self.hp > run.hp) events.push({t: 'heal', v: 0});
+      run.log.push(`${sk.icon} «${sk.name}»${r.parts.length ? ': ' + r.parts.join(', ') : ''}`);
+      action = 'done';
+    }
+  }
   if (action === 'attack' || action === 'power') {
     const power = action === 'power' && run.powerCd <= 0;
     if (power) run.powerCd = POWER_CD;
-    const crit = Math.random() < h.crit, dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1));
+    const crit = Math.random() < h.crit, dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1) * outMult(run) * inMult(front));
     front.hp = Math.max(0, front.hp - dmg); events.push({t: 'hit', v: dmg, crit, power});
-    if (front.hp <= 0) {
-      run.kills++; if (run.blood) run.bloodKills++;
-      reward(run, front.kind); events.push({t: 'kill', name: front.name, kind: front.kind});
-      run.log.push(`☠️ ${front.name} повержен${front.kind === 'leader' ? '! Вожак пал' : ''}`);
-      logQuest(world, me, 'horde_kill', now); if (run.blood) logQuest(world, me, 'horde_blood_kill', now);
-      const regen = Math.round(h.maxHp * (run.blood ? TUNE.regen * 0.85 : TUNE.regen)); run.hp = Math.min(h.maxHp, run.hp + regen);
-      run.queue.shift(); milestone(run, events, now, world, me); fillQueue(run);
-      if (run.blood && Math.random() < 0.3) { run.queue.push(spawn(run)); events.push({t: 'join'}); run.log.push('🩸 На запах крови прибежал ещё один монстр!'); }
-    }
+    run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.05));
+  }
+  if (front.hp > 0 && front.dots?.length) { for (const d of front.dots) { front.hp = Math.max(0, front.hp - d.per); d.left--; } front.dots = front.dots.filter(d => d.left > 0); }
+  if (front.hp <= 0) {
+    run.kills++; if (run.blood) run.bloodKills++;
+    reward(run, front.kind); events.push({t: 'kill', name: front.name, kind: front.kind});
+    run.log.push(`☠️ ${front.name} повержен${front.kind === 'leader' ? '! Вожак пал' : ''}`);
+    logQuest(world, me, 'horde_kill', now); if (run.blood) logQuest(world, me, 'horde_blood_kill', now);
+    const regen = Math.round(h.maxHp * ((run.blood ? TUNE.regen * 0.85 : TUNE.regen) + (kit.talents?.killRecovery || 0) / 200)); run.hp = Math.min(h.maxHp, run.hp + regen);
+    run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.08));
+    run.queue.shift(); milestone(run, events, now, world, me); fillQueue(run);
+    if (run.blood && Math.random() < 0.3) { run.queue.push(spawn(run)); events.push({t: 'join'}); run.log.push('🩸 На запах крови прибежал ещё один монстр!'); }
   }
   if (run.powerCd > 0) run.powerCd--;
   // monsters strike back
-  const strikers = [run.queue[0], ...(run.blood ? run.queue.slice(1).filter(() => Math.random() < 0.3) : [])].filter(Boolean);
+  if (run.fury > 0) run.fury--; if (run.queue[0]?.vuln > 0) run.queue[0].vuln--;
+  const stunnedFront = run.queue[0]?.stunned > 0 ? (run.queue[0].stunned--, true) : false;
+  const strikers = [stunnedFront ? null : run.queue[0], ...(run.blood ? run.queue.slice(1).filter(() => Math.random() < 0.3) : [])].filter(Boolean);
   for (const [i, m] of strikers.entries()) {
     const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1)));
-    run.hp = Math.max(0, run.hp - dmg); events.push({t: 'hurt', v: dmg, from: m.name});
+    let left = dmg; if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
+    run.hp = Math.max(0, run.hp - left); events.push({t: 'hurt', v: left, from: m.name});
     if (run.hp <= 0) break;
   }
   // Blood Moon: badly wounded monsters may flee, a fresh one takes the place
@@ -110,7 +133,7 @@ function exchange(world, me, run, action, now, events) {
   if (run.hp <= 0) { run.status = 'ended'; run.died = true; run.log.push('💀 Вы пали. Орда отступает — награды сохранены.'); events.push({t: 'dead'}); }
   run.log = run.log.slice(-14);
 }
-const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
+const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, mp: run.mp ?? run.maxMp ?? run.hero?.maxMp ?? 100, maxMp: run.maxMp || run.hero?.maxMp || 100, barrier: run.barrier || 0, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
   queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp})), loot: run.loot, log: run.log, claimed: !!run.claimed,
   next: MILESTONES.find(x => x > run.kills) || null});
 
@@ -131,7 +154,7 @@ export function handleHordeRequest(world, input, user, now) {
     if (body.stats) saveStats(world, me, body.stats, now);
     const {base, hero: h} = fighterOf(world, p), weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
     if (blood && !weekend && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
-    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, base, hero: h, hp: h.maxHp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
+    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, base, hero: h, hp: h.maxHp, maxMp: h.maxMp, mp: h.maxMp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
       loot: {gold: 0, exp: 0, fragments: 0}, log: [weekend ? '🌕 Выходные Кровавой луны! Награды ×2 — Орда беснуется!' : blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
     fillQueue(run); rows(world, 'horde_runs').push(run);
     return ok({run: view(run)}, 201);
@@ -140,9 +163,9 @@ export function handleHordeRequest(world, input, user, now) {
   run.updated_at = new Date(now).toISOString();
   if (path === '/api/horde/act') {
     if (run.status !== 'active') return fail('Поход окончен.');
-    const action = ['attack', 'power', 'potion'].includes(body.action) ? body.action : 'attack';
+    const action = ['attack', 'power', 'potion', 'skill'].includes(body.action) ? body.action : 'attack';
     const steps = Math.max(1, Math.min(MAX_STEPS, Number(body.steps) || 1)), events = [];
-    for (let i = 0; i < steps && run.status === 'active'; i++) exchange(world, me, run, i === 0 ? action : 'attack', now, events);
+    for (let i = 0; i < steps && run.status === 'active'; i++) exchange(world, me, run, i === 0 ? action : 'attack', now, events, body.skillId);
     return ok({run: view(run), events});
   }
   if (path === '/api/horde/leave') {

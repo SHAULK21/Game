@@ -5,7 +5,8 @@ const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400
 const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_id, id));
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
-import {realStats, saveStats} from './heroStats.js';
+import {realStats, saveStats, kitOf} from './heroStats.js';
+import {castSkill, outMult, inMult} from './skills.js';
 const DAY = 864e5;
 const CLASS = {warrior: {hp: 1.25, atk: 1.0, def: 1.3, name: 'Воин'}, knight: {hp: 1.3, atk: 0.9, def: 1.4, name: 'Рыцарь'}, paladin: {hp: 1.15, atk: 0.95, def: 1.2, heal: 1.4, name: 'Паладин'},
   berserker: {hp: 1.05, atk: 1.3, def: 0.85, name: 'Берсерк'}, rogue: {hp: 0.9, atk: 1.25, def: 0.8, crit: 0.2, name: 'Разбойник'}, assassin: {hp: 0.85, atk: 1.35, def: 0.75, crit: 0.22, name: 'Ассасин'},
@@ -14,22 +15,10 @@ function fighter(p, world) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
   const real = world ? realStats(world, p.telegram_id, p) : null; // gear, attributes, talents — as in the main game
   const maxHp = real ? real.maxHp : Math.round((160 + level * 48) * c.hp);
-  return {id: String(p.telegram_id), name: nameOf(p), level, classId: p?.class_id || 'warrior', className: c.name, maxHp, hp: maxHp, maxMp: 60, mp: 60,
-    atk: real ? real.atk : Math.round((18 + level * 7) * c.atk), def: real ? real.def : Math.round((6 + level * 3) * c.def), crit: real ? Math.max(0.05, real.crit) : c.crit || 0.1, real: !!real, heal: c.heal || 1, guard: false, skill: DUEL_SKILLS[skillOf(p?.class_id)], cd: 0, fx: {}};
+  const kit = world ? kitOf(world, p.telegram_id) : {skills: [], talents: {}}, maxMp = Math.max(60, Math.min(2000, real?.maxMp || 100 + level * 8));
+  return {id: String(p.telegram_id), name: nameOf(p), level, classId: p?.class_id || 'warrior', className: c.name, maxHp, hp: maxHp, maxMp, mp: maxMp, kit, potions: 2,
+    atk: real ? real.atk : Math.round((18 + level * 7) * c.atk), def: real ? real.def : Math.round((6 + level * 3) * c.def), crit: real ? Math.max(0.05, real.crit) : c.crit || 0.1, real: !!real, heal: c.heal || 1, guard: false};
 }
-// Class skills in duels: cooldown in turns. Effects last a number of turns.
-const skillOf = cls => cls === 'archer' ? 'hunter' : DUEL_SKILLS[cls] ? cls : 'warrior';
-const DUEL_SKILLS = {
-  warrior: {id: 'warrior', name: 'Боевой клич', icon: '📯', cd: 4, text: '+30% к урону на 3 хода'},
-  knight: {id: 'knight', name: 'Стена щитов', icon: '🧱', cd: 4, text: '−50% получаемого урона на 2 хода'},
-  paladin: {id: 'paladin', name: 'Свет небес', icon: '🌟', cd: 4, text: 'лечит 35% HP'},
-  berserker: {id: 'berserker', name: 'Кровавая ярость', icon: '🩸', cd: 3, text: 'удар ×3, стоит 10% своего HP'},
-  rogue: {id: 'rogue', name: 'Ядовитый клинок', icon: '🧪', cd: 3, text: 'удар ×1.3 и яд на 3 хода'},
-  assassin: {id: 'assassin', name: 'Удар в спину', icon: '🗡️', cd: 3, text: 'гарантированный крит ×2.6'},
-  hunter: {id: 'hunter', name: 'Метка охотника', icon: '🎯', cd: 4, text: 'враг получает +35% урона 3 хода'},
-  mage: {id: 'mage', name: 'Огненный шар', icon: '🔥', cd: 3, text: 'урон ×2.4 и поджог на 2 хода'},
-  necromancer: {id: 'necromancer', name: 'Похищение жизни', icon: '💀', cd: 3, text: 'урон ×1.8, лечит на половину урона'},
-  druid: {id: 'druid', name: 'Оплетающие корни', icon: '🌿', cd: 4, text: 'враг пропускает ход, +15% HP'}};
 const mitig = (dmg, def) => Math.max(1, Math.round(dmg * (1 - def / (def + 75))));
 
 // ---------- event feed: in-game popups for anything that happens to a player ----------
@@ -123,65 +112,65 @@ function handleQuests(world, path, method, body, userId, now) {
 }
 
 // ---------- duels ----------
+// Duels use the heroes' own skills and talents (kit), for mana; the opponent's shadow plays its kit too.
+const BASIC = {id: '__power', name: 'Мощный удар', icon: '💥', mana: 20, mult: 1.8, heal: 0, inf: null};
+const kitSkills = f => (f.kit?.skills?.length ? f.kit.skills : [BASIC]);
+const skillView = sk => ({id: sk.id, name: sk.name, icon: sk.icon, mana: sk.mana, desc: sk.desc || '', dmg: sk.mult, heal: sk.heal, fx: sk.inf?.type || null});
 function duelView(d) {
-  for (const f of [d.a, d.b]) { f.fx ||= {}; f.cd ??= 0; f.skill ||= DUEL_SKILLS[skillOf(f.classId)]; }
-  return {id: d.id, status: d.status, turn: d.turn, me: d.a, foe: d.b, log: d.log.slice(-14), logSize: d.log.length, reward: d.reward || null, ratingChange: d.ratingChange ?? null,
-    intent: d.status === 'active' ? (d.b.fx.stun ? '🌿 опутан корнями — пропустит ход' : intentOf(d)) : null, intentKind: d.intent || 'attack'};
+  const strip = f => ({...f, kit: undefined, skills: kitSkills(f).map(skillView)});
+  return {id: d.id, status: d.status, turn: d.turn, me: strip(d.a), foe: {...strip(d.b), skills: undefined}, log: d.log.slice(-14), logSize: d.log.length, reward: d.reward || null, ratingChange: d.ratingChange ?? null,
+    intent: d.status === 'active' ? (d.b.stunned ? '💫 оглушён — пропустит ход' : intentOf(d)) : null, intentKind: d.intent?.kind || 'attack'};
 }
 function aiPick(d) {
   const foe = d.b, me = d.a;
-  if (foe.cd <= 0 && Math.random() < 0.55) return 'skill';
-  if (foe.hp < foe.maxHp * 0.3 && foe.mp >= 25 && Math.random() < 0.6) return 'heal';
-  if (foe.mp >= 20 && Math.random() < 0.35) return 'power';
-  if (Math.random() < 0.12 || (me.fx.rage > 0 && Math.random() < 0.4)) return 'guard';
-  return 'attack';
+  if (foe.hp < foe.maxHp * 0.3 && foe.potions > 0 && Math.random() < 0.7) return {kind: 'potion'};
+  const can = kitSkills(foe).filter(s => s.mana <= foe.mp);
+  if (can.length && Math.random() < 0.6) { const sk = can.sort((a, b) => (b.mult + b.heal) - (a.mult + a.heal))[Math.floor(Math.random() * Math.min(2, can.length))]; return {kind: 'skill', id: sk.id}; }
+  if (foe.mp < foe.maxMp * 0.25 && Math.random() < 0.5) return {kind: 'guard'};
+  if (me.fury > 0 && Math.random() < 0.4) return {kind: 'guard'};
+  return {kind: 'attack'};
 }
-const INTENT_TEXT = {attack: 'обычный удар', power: 'сильный удар (×1.9)', heal: 'лечение', guard: 'защитная стойка'};
-function intentOf(d) { const a = d.intent || 'attack'; return a === 'skill' ? `${d.b.skill.icon} «${d.b.skill.name}» — ${d.b.skill.text}` : INTENT_TEXT[a]; }
+function intentOf(d) {
+  const i = d.intent || {kind: 'attack'};
+  if (i.kind === 'skill') { const sk = kitSkills(d.b).find(s => s.id === i.id); return sk ? `${sk.icon} «${sk.name}»${sk.mult >= 2 ? ' — мощный навык!' : ''}` : 'навык'; }
+  return {attack: 'обычный удар', guard: 'защитная стойка', potion: 'выпить зелье'}[i.kind] || 'обычный удар';
+}
 function aiMove(d, now) {
   const foe = d.b, me = d.a;
   if (foe.hp <= 0 || me.hp <= 0) return;
-  if (foe.fx.stun) { foe.fx.stun = 0; d.log.push({who: foe.id, text: `🌿 ${foe.name} опутан(а) корнями и пропускает ход`}); }
+  if (foe.stunned > 0) { foe.stunned--; d.log.push({who: foe.id, text: `💫 ${foe.name} оглушён(а) и пропускает ход`}); }
   else {
-    let action = d.intent || aiPick(d);
-    if (action === 'skill' && foe.cd > 0) action = 'attack';
-    if (action === 'power' && foe.mp < 20) action = 'attack';
-    if (action === 'heal' && foe.mp < 25) action = 'attack';
-    resolve(d, foe, me, action, now);
+    let i = d.intent || aiPick(d);
+    if (i.kind === 'skill') { const sk = kitSkills(foe).find(s => s.id === i.id); if (!sk || sk.mana > foe.mp) i = {kind: 'attack'}; }
+    if (i.kind === 'potion' && foe.potions <= 0) i = {kind: 'attack'};
+    resolve(d, foe, me, i.kind, now, i.id);
   }
   d.intent = aiPick(d);
 }
 function strike(d, actor, target, mult, {crit = null, ignoreDef = 0, label} = {}) {
   const isCrit = crit ?? Math.random() < actor.crit, dodge = crit ? false : Math.random() < 0.06;
-  const raw = actor.atk * rand(0.9, 1.1) * mult * (isCrit ? 1.6 : 1) * ((actor.fx.rage || 0) > 0 ? 1.3 : 1) * ((target.fx.mark || 0) > 0 ? 1.35 : 1);
-  const dmg = dodge ? 0 : Math.round(mitig(raw, target.def * (1 - ignoreDef)) * (target.guard ? 0.45 : 1) * ((target.fx.wall || 0) > 0 ? 0.5 : 1));
+  const raw = actor.atk * rand(0.9, 1.1) * mult * (isCrit ? 1.6 : 1) * outMult(actor) * inMult(target);
+  let dmg = dodge ? 0 : Math.round(mitig(raw, target.def * (1 - ignoreDef)) * (target.guard ? 0.45 : 1) * (target.kit?.talents?.defensiveStance ? 0.85 : 1));
+  if (target.barrier > 0 && dmg) { const ab = Math.min(target.barrier, dmg); target.barrier -= ab; dmg -= ab; }
   target.hp = Math.max(0, target.hp - dmg);
   d.log.push({who: actor.id, text: dodge ? `${target.name} уклоняется от удара ${actor.name}!` : `${label || actor.name + ' атакует'}: ${dmg}${isCrit ? ' (крит!)' : ''}${target.guard ? ' (блок)' : ''}`, dmg, crit: isCrit, to: target.id});
   return dmg;
 }
-function resolve(d, actor, target, action, now) {
+function resolve(d, actor, target, action, now, skillId) {
   actor.guard = false;
   if (action === 'attack') strike(d, actor, target, 1);
-  else if (action === 'power') { actor.mp -= 20; strike(d, actor, target, 1.9, {label: `${actor.name} проводит сильный удар`}); }
-  else if (action === 'heal') {
-    actor.mp -= 25; const amount = Math.round(actor.maxHp * 0.22 * actor.heal);
-    actor.hp = Math.min(actor.maxHp, actor.hp + amount); d.log.push({who: actor.id, text: `💚 ${actor.name} лечится: +${amount} HP`, heal: amount, to: actor.id});
+  else if (action === 'potion') {
+    actor.potions--; const amount = Math.round(actor.maxHp * 0.35);
+    actor.hp = Math.min(actor.maxHp, actor.hp + amount); d.log.push({who: actor.id, text: `🧪 ${actor.name} пьёт зелье: +${amount} HP`, heal: amount, to: actor.id});
   } else if (action === 'guard') {
-    actor.guard = true; actor.mp = Math.min(actor.maxMp, actor.mp + 15); d.log.push({who: actor.id, text: `🛡️ ${actor.name} встаёт в защиту (+15 MP)`});
+    actor.guard = true; const g = Math.round(actor.maxMp * (0.25 + (actor.kit?.talents?.blockMana || 0) / 100)); actor.mp = Math.min(actor.maxMp, actor.mp + g);
+    d.log.push({who: actor.id, text: `🛡️ ${actor.name} встаёт в защиту (+${g} MP)`});
   } else if (action === 'skill') {
-    const sk = actor.skill; actor.cd = sk.cd; const tag = `${sk.icon} ${actor.name} — «${sk.name}»`;
-    switch (sk.id) {
-      case 'warrior': actor.fx.rage = 3; d.log.push({who: actor.id, text: `${tag}: урон +30% на 3 хода`}); break;
-      case 'knight': actor.fx.wall = 2; d.log.push({who: actor.id, text: `${tag}: урон по нему −50% на 2 хода`}); break;
-      case 'paladin': { const a = Math.round(actor.maxHp * 0.35); actor.hp = Math.min(actor.maxHp, actor.hp + a); d.log.push({who: actor.id, text: `${tag}: +${a} HP`, heal: a, to: actor.id}); break; }
-      case 'berserker': { const cost = Math.round(actor.maxHp * 0.1); actor.hp = Math.max(1, actor.hp - cost); strike(d, actor, target, 3, {label: `${tag} (−${cost} своих HP)`}); break; }
-      case 'rogue': strike(d, actor, target, 1.3, {label: tag}); (target.fx.dots ||= []).push({icon: '🧪', name: 'Яд', per: Math.round(actor.atk * 0.55), left: 3}); break;
-      case 'assassin': strike(d, actor, target, 2.6, {crit: true, ignoreDef: 0.3, label: tag}); break;
-      case 'hunter': target.fx.mark = 3; d.log.push({who: actor.id, text: `${tag}: ${target.name} получает +35% урона 3 хода`}); break;
-      case 'mage': strike(d, actor, target, 2.4, {ignoreDef: 0.4, label: tag}); (target.fx.dots ||= []).push({icon: '🔥', name: 'Поджог', per: Math.round(actor.atk * 0.5), left: 2}); break;
-      case 'necromancer': { const dmg = strike(d, actor, target, 1.8, {label: tag}), hl = Math.round(dmg / 2); actor.hp = Math.min(actor.maxHp, actor.hp + hl); if (hl) d.log.push({who: actor.id, text: `💀 ${actor.name} вытягивает жизнь: +${hl} HP`, heal: hl, to: actor.id}); break; }
-      case 'druid': { target.fx.stun = 1; const a = Math.round(actor.maxHp * 0.15); actor.hp = Math.min(actor.maxHp, actor.hp + a); d.log.push({who: actor.id, text: `${tag}: ${target.name} пропустит ход, +${a} HP`, heal: a, to: actor.id}); break; }
-    }
+    const sk = kitSkills(actor).find(s => s.id === skillId); if (!sk) return strike(d, actor, target, 1);
+    actor.mp -= sk.mana; let dealt = 0;
+    const r = castSkill({self: actor, foe: target, kit: actor.kit, sk, ownLast: actor.lastSkill, hit: (mult, ignoreDef) => { const before = target.hp; strike(d, actor, target, mult, {ignoreDef, crit: false, label: `${sk.icon} ${actor.name} — «${sk.name}»`}); d.log.pop(); dealt = before - target.hp; return dealt; }});
+    actor.lastSkill = {id: sk.id};
+    d.log.push({who: actor.id, text: `${sk.icon} ${actor.name} — «${sk.name}»${r.parts.length ? ': ' + r.parts.join(', ') : ''}`, dmg: dealt || undefined, to: dealt ? target.id : undefined});
   }
   if (target.hp <= 0) d.log.push({text: `${target.name} повержен(а) в дуэли!`});
 }
@@ -189,10 +178,10 @@ function resolve(d, actor, target, action, now) {
 function endRound(d) {
   for (const f of [d.a, d.b]) {
     if (f.hp <= 0) continue;
-    for (const dot of f.fx.dots || []) { f.hp = Math.max(0, f.hp - dot.per); dot.left--; d.log.push({text: `${dot.icon} ${dot.name}: ${f.name} −${dot.per}`, dmg: dot.per, to: f.id}); }
-    f.fx.dots = (f.fx.dots || []).filter(x => x.left > 0);
-    for (const k of ['rage', 'wall', 'mark']) if (f.fx[k] > 0) f.fx[k]--;
-    if (f.cd > 0) f.cd--;
+    for (const dot of f.dots || []) { f.hp = Math.max(0, f.hp - dot.per); dot.left--; d.log.push({text: `${dot.icon} ${dot.name}: ${f.name} −${dot.per}`, dmg: dot.per, to: f.id}); }
+    f.dots = (f.dots || []).filter(x => x.left > 0);
+    if (f.fury > 0) f.fury--; if (f.vuln > 0) f.vuln--;
+    f.mp = Math.min(f.maxMp, f.mp + Math.round(f.maxMp * 0.05));
     if (f.hp <= 0) d.log.push({text: `${f.name} повержен(а) в дуэли!`});
   }
 }
@@ -244,19 +233,17 @@ export async function handleDuel(world, path, method, body, me, now, notify) {
   }
   if (path === '/api/duel/act') {
     if (!mine) return fail('Активной дуэли нет.', 404);
-    const action = String(body.action || '');
-    if (!['attack', 'power', 'heal', 'guard', 'skill', 'flee'].includes(action)) return fail('Неизвестное действие.');
-    for (const f of [mine.a, mine.b]) { f.fx ||= {}; f.cd ??= 0; f.skill ||= DUEL_SKILLS[skillOf(f.classId)]; }
+    let action = String(body.action || ''); if (action === 'heal') action = 'potion';
+    if (!['attack', 'skill', 'guard', 'potion', 'flee'].includes(action)) return fail('Неизвестное действие.');
+    for (const f of [mine.a, mine.b]) { f.kit ||= {skills: [], talents: {}}; f.potions ??= 2; }
     if (action === 'flee') { mine.a.hp = 0; mine.log.push({text: `${mine.a.name} сдаётся.`}); }
     else {
-      if (action === 'power' && mine.a.mp < 20) return fail('Нужно 20 MP.');
-      if (action === 'heal' && mine.a.mp < 25) return fail('Нужно 25 MP.');
-      if (action === 'skill' && mine.a.cd > 0) return fail(`Навык будет готов через ${mine.a.cd} ход.`);
-      if (mine.a.fx.stun) { mine.a.fx.stun = 0; mine.log.push({who: mine.a.id, text: `🌿 ${mine.a.name} опутан(а) корнями и пропускает ход`}); }
-      else resolve(mine, mine.a, mine.b, action, now);
+      if (action === 'potion' && mine.a.potions <= 0) return fail('Зелья закончились.');
+      if (action === 'skill') { const sk = kitSkills(mine.a).find(s => s.id === body.skillId); if (!sk) return fail('Навык не найден.'); if (mine.a.mp < sk.mana) return fail(`Нужно ${sk.mana} маны.`); }
+      if (mine.a.stunned > 0) { mine.a.stunned--; mine.log.push({who: mine.a.id, text: `💫 ${mine.a.name} оглушён(а) и пропускает ход`}); }
+      else resolve(mine, mine.a, mine.b, action, now, body.skillId);
       if (mine.b.hp > 0) aiMove(mine, now);
       if (mine.a.hp > 0 && mine.b.hp > 0) endRound(mine);
-      mine.a.mp = Math.min(mine.a.maxMp, mine.a.mp + 5); mine.b.mp = Math.min(mine.b.maxMp, mine.b.mp + 5);
     }
     mine.turn++; mine.updated_at = new Date(now).toISOString();
     if (mine.a.hp <= 0 || mine.b.hp <= 0 || mine.turn > 40) {

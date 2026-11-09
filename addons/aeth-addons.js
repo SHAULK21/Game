@@ -26,7 +26,60 @@
   const STATS_PATHS = /^\/api\/(horde\/start|duel\/start|coop\/create|coop\/join)$/;
   function heroStatsPayload() {
     const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
-    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, critChance: s.critChance};
+    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, critChance: s.critChance, maxMp: s.maxMp, kit: heroKit()};
+  }
+  // The hero's skills with the same math as the main combat: skill rank (level + main attribute) and the talent tree.
+  const MAIN_ATTR = {warrior: 'strength', berserker: 'strength', knight: 'vitality', rogue: 'agility', assassin: 'agility', archer: 'agility', hunter: 'agility', mage: 'intelligence', necromancer: 'intelligence', paladin: 'spirit', druid: 'spirit'};
+  function talentBonuses(talents) {
+    const t = {};
+    for (const n of talents || []) if (n.currentRank) for (const e of [n.effect, ...(n.effects || [])]) { if (!e?.stat) continue;
+      const v = n.branch === 'mastery' ? e.valuePerRank * (1 - Math.exp(-n.currentRank / 100)) : e.valuePerRank * n.currentRank; t[e.stat] = (t[e.stat] || 0) + v; }
+    return t;
+  }
+  function skillRank(p) { const a = p.attributes?.[MAIN_ATTR[p.classId]] || 0; return p.level >= 70 && a >= 250 ? 4 : p.level >= 40 && a >= 150 ? 3 : p.level >= 20 && a >= 80 ? 2 : 1; }
+  function heroKit(p = me()) {
+    if (!p?.skills) return null;
+    const t = talentBonuses(p.talents), rank = skillRank(p), RM = [1, 1.12, 1.25, 1.4];
+    const skills = p.skills.filter(k => (k.levelReq || 1) <= (p.level || 1)).map(k => {
+      const r = String(k.id).startsWith('asc_') ? 1 : rank, inf = k.inflicts;
+      return {id: k.id, name: k.name, icon: k.icon, desc: k.description || '', levelReq: k.levelReq || 1, type: k.damageType,
+        mana: Math.max(0, Math.ceil((k.manaCost || 0) * (1 - (t.manaCostReduction || 0) / 100))),
+        mult: (k.damageMultiplier || 0) * RM[r - 1] * (1 + (t.skillDamage || 0) / 100), heal: (k.healMultiplier || 0),
+        comboFrom: k.comboFrom || null, comboMult: k.comboMultiplier || 1.25, armorBreak: (k.armorBreak || 0) / 100, execT: k.executeThreshold || 0, execM: k.executeMultiplier || 1.5,
+        inflicts: inf ? {type: inf.type, chance: Math.min(1, (inf.chance ?? 1) * (1 + (t.effectChance || 0) / 100)), duration: (inf.duration || 1) + (t.effectDuration || 0) + (['shield', 'fury', 'fortify', 'haste'].includes(inf.type) ? (t.buffDuration || 0) : 0),
+          power: (inf.power || 0) * (inf.type === 'vulnerability' ? 1 + (t.vulnerabilityPower || 0) / 100 : 1)} : null};
+    });
+    const keep = ['alternatingDamage', 'executeDamage', 'afflictedDamage', 'offensiveStance', 'defensiveStance', 'skillManaReturn', 'critMana', 'shieldPower', 'defendHeal', 'blockMana', 'killRecovery', 'lowHpReduction', 'dotPower', 'healPower'];
+    return {skills, talents: Object.fromEntries(keep.filter(k => t[k]).map(k => [k, Math.round(t[k] * 100) / 100]))};
+  }
+  // The game's own «Навыки» menu (same markup as the monster fight), shared by co-op, duels and the Horde.
+  // Every skill costs mana only. combos: ids of skills that would trigger a combo right now.
+  function skillMenu({mp, disabled, combos = [], onUse, onClose}) {
+    const p = me(); if (!p?.skills?.length) return '';
+    const kit = heroKit(p), cost = id => kit?.skills.find(k => k.id === id)?.mana ?? null, rank = ['I', 'II', 'III', 'IV'][skillRank(p) - 1];
+    const tagRank = k => String(k.id).startsWith('asc_') ? `Ранг ${String(k.id).endsWith('_C') ? 'C' : p.ascension?.rank === 'SSS' ? 'SSS' : 'S'}` : rank;
+    const rows = p.skills.map(k => {
+      const locked = (p.level || 1) < (k.levelReq || 1), c = cost(k.id) ?? Math.ceil(k.manaCost || 0), enough = mp >= c, can = enough && !locked && !disabled, combo = combos.includes(k.id);
+      return {k, locked, c, enough, can, combo};
+    });
+    if (isModern()) {
+      return h('div', {class: 'bg-slate-900/95 border border-indigo-500/40 rounded-xl p-3 space-y-2 mt-2', 'data-ae-skill-menu': '1'},
+        h('div', {class: 'flex items-center justify-between text-xs text-indigo-300 font-cinzel font-bold border-b border-slate-800 pb-1'}, h('span', {}, 'Выберите заклинание или навык'), h('button', {class: 'text-slate-400 hover:text-white', type: 'button', onclick: onClose}, '✕')),
+        h('div', {class: 'grid grid-cols-1 gap-1.5'}, ...rows.map(({k, locked, c, enough, can, combo}) => h('button', {type: 'button', disabled: !can, 'data-combat-skill': k.id, onclick: () => can && onUse(k),
+          class: 'p-2 rounded-lg border flex items-start gap-2 justify-between text-left transition-all ' + (can ? (combo ? 'bg-cyan-950/40 border-cyan-400 hover:border-cyan-200 active:scale-98 cursor-pointer' : 'bg-slate-950 border-indigo-900/60 hover:border-indigo-400 active:scale-98 cursor-pointer') : 'bg-slate-950/40 border-slate-800 text-slate-500 cursor-not-allowed')},
+          h('div', {}, h('div', {class: 'text-xs font-bold text-slate-200 flex items-center gap-1.5'}, h('span', {}, k.icon || '✨'), h('span', {}, k.name), combo ? h('span', {class: 'text-[9px] text-cyan-300'}, '🔗 Связка') : '', h('span', {class: 'text-[9px] text-cyan-300'}, tagRank(k)),
+              k.isUltimate ? h('span', {class: 'text-[9px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-500 font-mono'}, 'УЛЬТ') : ''),
+            h('div', {class: 'text-[10px] text-slate-400'}, k.description || ''), locked ? h('div', {class: 'text-[10px] text-rose-400 font-mono'}, `🔒 С уровня ${k.levelReq}`) : ''),
+          h('div', {class: 'text-right shrink-0'}, h('span', {class: 'text-[10px] font-mono block ' + (enough ? 'text-indigo-300' : 'text-rose-400')}, `${c} MP`)))),
+          h('div', {class: 'col-span-full text-[10px] text-slate-500 p-2'}, '🔒 Неизвестный классовый навык. Откроется при развитии героя.')));
+    }
+    return h('section', {id: 'combat-skills', 'aria-label': 'Выберите заклинание или навык', class: 'combat-ledger p-3 space-y-2 mt-2', 'data-ae-skill-menu': '1'},
+      h('div', {class: 'combat-ledger-heading'}, h('span', {}, 'Выберите заклинание или навык'), h('button', {'aria-label': 'Закрыть список навыков', class: 'combat-ledger-close', type: 'button', onclick: onClose}, '×')),
+      h('div', {class: 'combat-skill-ledger'}, ...rows.map(({k, locked, c, enough, can, combo}) => h('button', {type: 'button', 'data-combat-skill': k.id, disabled: !can, class: 'combat-skill-entry ' + (combo ? 'is-combo' : ''), onclick: () => can && onUse(k)},
+        h('span', {class: 'combat-skill-copy'}, h('span', {class: 'combat-skill-heading'}, h('strong', {}, k.name), h('span', {class: 'combat-ink-tag'}, tagRank(k)), combo ? h('span', {class: 'combat-ink-tag'}, 'Связка') : '', k.isUltimate ? h('span', {class: 'combat-ink-tag'}, 'УЛЬТ') : ''),
+          h('span', {class: 'combat-skill-description'}, k.description || ''), locked ? h('span', {class: 'combat-unavailable'}, `Доступно с уровня ${k.levelReq}`) : ''),
+        h('span', {class: 'combat-mana-cost ' + (enough ? '' : 'combat-unavailable')}, `${c} MP`))),
+        h('p', {class: 'combat-ledger-note'}, 'Неизвестный классовый навык откроется при развитии героя.')));
   }
   async function api(path, method = 'GET', body) {
     const b = B(); if (!b) throw new Error('Игра ещё загружается.');
@@ -279,7 +332,7 @@
   }
   const COOP_ACTS = [['attack', '⚔️ Атака', 'быстрый удар'], ['power', '💥 Мощный удар', '×2.2 урона'], ['heal', '💚 Лечение', 'самому раненому'], ['guard', '🛡️ Прикрыть', '−60% урона, враг бьёт вас']];
   function openCoop() {
-    let state = null, friends = [], busy = false, cdEnd = {}, foeAt = 0, guardEnd = 0, chainEnd = 0, spellCd = 12000;
+    let state = null, friends = [], busy = false, cdEnd = {}, foeAt = 0, guardEnd = 0, chainEnd = 0, spellCd = 12000, skillsOpen = false;
     let prevFoe = null, prevHp = {}, seenLog = null, shakeUntil = 0; const hitUntil = {}, floats = [];
     // Turn server state changes into feedback: damage numbers, shakes, flashes, combo banners, party signals.
     const feel = room => {
@@ -311,7 +364,7 @@
       }
     };
     let lastKey = '';
-    const volatile = new Set(['nextIn', 'cooldowns', 'left', 'guardUntil', 'warcry', 'wall', 'mark']);
+    const volatile = new Set([]);
     const refresh = () => {
       const key = JSON.stringify(state, (k, v) => volatile.has(k) ? (typeof v === 'number' ? v > 0 : v ? 1 : 0) : v);
       if (key === lastKey && !floats.length) return paintCd();
@@ -320,9 +373,7 @@
     const absorb = room => {
       feel(room);
       const t = Date.now(), mine = room?.members?.find(m => String(m.id) === uid());
-      if (mine?.spell?.cd) spellCd = mine.spell.cd; chainEnd = room?.chain ? t + room.chain.left : 0;
-      if (mine?.cooldowns) for (const [k, v] of Object.entries(mine.cooldowns)) cdEnd[k] = t + v;
-      foeAt = room?.foe?.nextIn != null ? t + room.foe.nextIn : 0; guardEnd = mine?.guardUntil ? t + mine.guardUntil : 0;
+      cdEnd = {}; foeAt = 0; chainEnd = 0; guardEnd = 0; void t; void mine;
     };
     const load = async () => {
       try { state = await api('/api/coop/rooms'); absorb(state?.mine); } catch (e) { toast(cleanError(e)); }
@@ -376,33 +427,40 @@
       const meFight = room.members.find(m => String(m.id) === uid());
       battleMode(body, room.status === 'active' && room.phase === 'fight' && room.foe && meFight);
       if (room.status === 'active' && room.phase === 'fight' && room.foe && meFight) {
-        // Same screen as the game's monster fight; party, combo chain and signals sit under the actions.
-        const f = room.foe, sp = meFight.spell, dead = !meFight.hp, comboReady = !!room.chain?.preview, onMe = f.intent !== 'aoe' && f.intentText?.includes(meFight.name);
-        const fx = room.fx || {}, chips = [];
-        if (fx.warcry) chips.push('📯 +25% урона'); if (fx.wall) chips.push('🧱 −40% урона'); if (fx.mark) chips.push('🎯 метка'); for (const d0 of fx.dots || []) chips.push(`${d0.icon} ${d0.name} · ${d0.left}`);
+        // Same screen as the cave fight: every hero acts once per round, then the enemy. Skills for mana, cross-hero combos.
+        const f = room.foe, dead = !meFight.hp, mp = meFight.mp ?? 0, acted = !!meFight.acted, waiting = room.waiting || [];
+        const onMe = f.intent !== 'aoe' && f.intentText?.includes(meFight.name), kit = heroKit(), comboIds = room.combos || [];
+        const chips = [];
+        if (f.stunned) chips.push('💫 враг оглушён'); if (f.vuln) chips.push('🎯 враг уязвим'); for (const d0 of f.dots || []) chips.push(`${d0.icon} ${d0.name} · ${d0.left}`);
+        if (meFight.barrier) chips.push(`🛡️ ваш щит ${fmt(meFight.barrier)}`); if (meFight.fury) chips.push('📯 ярость +30%');
+        const turnText = dead ? 'Вы без сил — союзник может поднять вас зельем' : !acted ? 'Ваш ход — выберите действие' : waiting.length ? `Ждём хода: ${waiting.map(w => w.name).join(', ')}` : 'Ход врага…';
+        const act = (action, extra) => () => { if (dead || acted) return; sfx.play(action === 'guard' ? 'shield' : action === 'potion' ? 'potion' : action === 'skill' ? 'magic' : 'hit'); post('/api/coop/act', {action, ...(extra || {})}); };
         const party = h('div', {class: 'ae-bv-party'},
-          room.chain ? h('div', {class: 'ae-chain' + (room.chain.preview ? ' is-ready' : '')}, h('b', {}, room.chain.preview ? `⚡ ${room.chain.by} открыл(а) связку → ${room.chain.preview.icon} «${room.chain.preview.name}»` : '⚡ Связка открыта — ждём союзника'), h('small', {'data-ae-chain-timer': '1'}, '')) : '',
+          room.setup && String(room.setup.byId) !== uid() && room.setup.combo ? h('div', {class: 'ae-chain' + (comboIds.length ? ' is-ready' : '')}, h('b', {}, `⚡ ${room.setup.by}: ${room.setup.icon} «${room.setup.skill}»`),
+            h('div', {}, comboIds.length ? `Ваш атакующий навык сейчас даст связку «${room.setup.combo}»!` : `Готова связка «${room.setup.combo}» — нужен атакующий навык.`)) : '',
+          room.setup && String(room.setup.byId) === uid() && room.setup.combo ? h('div', {class: 'ae-chain'}, h('b', {}, `⚡ Вы подготовили связку «${room.setup.combo}»`), h('div', {}, 'Союзник может завершить её своим атакующим навыком.')) : '',
           chips.length ? h('div', {class: 'ae-chips'}, chips.map(c => h('span', {class: 'ae-chip'}, c))) : '',
           h('div', {class: 'ae-bv-members'}, room.members.filter(m => String(m.id) !== uid()).map(m => h('div', {class: 'ae-bv-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)},
-            h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'), h('small', {}, m.spell ? `${m.spell.icon} ${m.spell.name}` : ''))))),
+            h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
+              h('small', {}, `${m.hp ? (m.acted ? '✅ походил(а)' : '⏳ выбирает ход') : '💀 без сил'} · мана ${fmt(m.mp)}/${fmt(m.maxMp)}`)),
+            !m.hp && (meFight.potions || 0) > 0 && !acted ? h('button', {class: 'ae-btn', type: 'button', onclick: act('potion', {targetId: m.id})}, '🧪 Поднять') : ''))),
+          acted && waiting.length ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => confirm(`Не ждать ${waiting.map(w => w.name).join(', ')}? Их ход будет пропущен.`) && post('/api/coop/act', {action: 'hurry'})}, `⏩ Не ждать (${waiting.map(w => w.name).join(', ')})`) : '',
           h('div', {class: 'ae-pings'}, [['help', '🆘 Помощь'], ['guard', '🛡️ Прикрой'], ['combo', '⚡ Связка'], ['focus', '🎯 В атаку'], ['ok', '👍 Ок']].map(([k, t]) => h('button', {type: 'button', class: 'ae-ping', onclick: () => { sfx.play('bell', 0.25); post('/api/coop/ping', {kind: k}); }}, t))));
-        const fire = action => () => { if (dead || (cdEnd[action] || 0) > Date.now()) return; sfx.play(action === 'heal' ? 'magic' : action === 'guard' ? 'shield' : action === 'power' ? 'heavy' : action === 'spell' ? 'magic' : 'hit'); cdEnd[action] = Date.now() + (action === 'spell' ? spellCd : COOP_CD[action]); paintCd(); post('/api/coop/act', {action}); };
+        const menu = skillsOpen ? skillMenu({mp, disabled: dead || acted, combos: comboIds.map(c => c.id), onClose: () => { skillsOpen = false; st.rerender(); }, onUse: k => { skillsOpen = false; act('skill', {skillId: k.id})(); }}) : null;
         body.append(battleView({
-          location: room.dungeon.name, mode: `Зал ${room.stage}/${room.rooms}`, round: f.boss ? 'Босс' : f.elite ? 'Элита' : 'Враг',
-          scene: COOP_SCENES[room.dungeon.id] || '/assets/catacombs-DeUOVUij.webp', turn: dead ? 'Вы без сил — союзник может поднять вас' : 'Бой отряда — действуйте!', turnShort: 'Бой отряда',
-          hero: {name: meFight.name, cls: CLASS_RU2[meFight.classId] || meFight.classId, level: meFight.level, hp: meFight.hp, maxHp: meFight.maxHp, portrait: heroPortrait(meFight.classId), body: heroBody(meFight.classId)},
+          location: room.dungeon.name, mode: `Зал ${room.stage}/${room.rooms}`, round: `Раунд ${room.round || 1}`,
+          scene: COOP_SCENES[room.dungeon.id] || '/assets/catacombs-DeUOVUij.webp', turn: turnText, turnShort: acted ? 'Ожидание' : 'Ваш ход',
+          hero: {name: meFight.name, cls: CLASS_RU2[meFight.classId] || meFight.classId, level: meFight.level, hp: meFight.hp, maxHp: meFight.maxHp, mp, maxMp: meFight.maxMp || 100, mpLabel: 'MANA', portrait: heroPortrait(meFight.classId), body: heroBody(meFight.classId)},
           foe: {name: f.name, level: f.boss ? 'Босс' : f.elite ? 'Элита' : 'Враг', hp: f.hp, maxHp: f.maxHp, atk: f.atk, def: f.def, img: coopFoeImg(f.name)},
-          note: room.scene || f.desc,
-          intent: f.intentText ? {label: 'Следующий ход врага:', name: `${f.intentText}${onMe ? ' — это вы!' : ''}`, text: f.intent === 'aoe' ? '💡 Удар по всем: подлечите раненых заранее.' : onMe || f.intent === 'heavy' ? '💡 Нажмите «Прикрыть» — щит снизит урон на 60%.' : f.desc || '', value: '⏱'} : null,
+          note: (room.log || []).at(-1)?.text || room.scene || f.desc,
+          intent: f.intentText ? {label: 'Враг после хода отряда:', name: `${f.intentText}${onMe ? ' — это вы!' : ''}`, text: f.intent === 'aoe' ? '💡 Удар по всем: подлечитесь заранее.' : onMe || f.intent === 'heavy' ? '💡 «Защита» снизит урон вдвое и вернёт ману.' : (f.desc || '')} : null,
           series: {label: 'Отряд', value: `Зал ${room.stage} / ${room.rooms}`, sub: room.bonus ? `💰 Бонус награды +${Math.round(room.bonus * 100)}%` : ''},
-          actions: [{kind: 'attack', label: 'Атака', attr: {'data-ae-act': 'attack'}, cdSlot: true, onClick: fire('attack')},
-            {kind: 'skill', label: sp ? `${sp.name}${comboReady ? ' — СВЯЗКА!' : ''}` : 'Заклинание', attr: {'data-ae-act': 'spell'}, cdSlot: true, cls: comboReady ? 'ae-combo-glow' : '', onClick: fire('spell')},
-            {kind: 'defend', label: 'Прикрыть', attr: {'data-ae-act': 'guard'}, cdSlot: true, onClick: fire('guard')},
-            {kind: 'potion', label: 'Лечение', attr: {'data-ae-act': 'heal'}, cdSlot: true, onClick: fire('heal')}],
-          secondary: [{label: 'Мощный удар', attr: {'data-ae-act': 'power'}, cdSlot: true, kind: 'attack', onClick: fire('power')},
-            {label: 'Покинуть поход', kind: 'leave', onClick: () => confirm('Покинуть отряд?') && post('/api/coop/leave', {}, 'Вы покинули отряд').then(load)}],
-          log: room.log.map(l => l.text), extra: party}));
-        const intentEl = body.querySelector('.ae-bv details summary strong, .ae-bv .text-slate-100.font-bold'); if (intentEl) intentEl.after(h('small', {'data-ae-foe-timer': '1', class: 'ae-bv-timer'}, ''));
+          actions: [{kind: 'attack', label: 'Атака', disabled: dead || acted, onClick: act('attack')},
+            {kind: 'skill', label: 'Навыки', disabled: dead || acted, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { skillsOpen = !skillsOpen; st.rerender(); }},
+            {kind: 'defend', label: 'Защита (+25% MP)', disabled: dead || acted, onClick: act('guard')},
+            {kind: 'potion', label: `Зелье (${meFight.potions ?? 0})`, disabled: dead || acted || !(meFight.potions > 0), onClick: act('potion')}],
+          secondary: [{label: 'Покинуть поход', kind: 'leave', onClick: () => confirm('Покинуть отряд?') && post('/api/coop/leave', {}, 'Вы покинули отряд').then(load)}],
+          log: room.log.map(l => l.text), menu, extra: party}));
         if (shakeUntil > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
         if ((hitUntil[meFight.id] || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         return;
@@ -434,9 +492,9 @@
           : h('div', {class: 'ae-chain'}, h('b', {}, '⚡ Связка открыта'), h('div', {}, 'Союзник должен применить свою способность, пока не истекло время.'), h('small', {'data-ae-chain-timer': '1'}, '')));
       }
       if (room.status === 'active' && room.phase === 'choose') {
-        body.append(h('h3', {class: 'ae-h3'}, room.isHost ? 'Куда ведём отряд?' : 'Развилка — лидер выбирает путь'));
+        body.append(h('h3', {class: 'ae-h3'}, 'Куда ведём отряд? Выбрать может любой'));
         for (const o of room.options) body.append(h('div', {class: 'ae-card ae-path' + (room.myVote === o.id ? ' is-voted' : '')}, h('div', {class: 'ae-row'}, h('span', {class: 'ae-entry-icon'}, o.icon), h('div', {class: 'ae-grow'}, h('b', {}, o.name), h('div', {class: 'ae-sub'}, o.hint)), o.votes ? h('span', {class: 'ae-badge'}, '🗳 ' + o.votes) : ''),
-          room.isHost ? h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { sfx.play('page'); post('/api/coop/choose', {optionId: o.id}); }}, 'Вести отряд сюда') : h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => post('/api/coop/vote', {optionId: o.id}, 'Голос отдан')}, room.myVote === o.id ? 'Ваш голос ✓' : 'Предложить этот путь')));
+          true ? h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { sfx.play('page'); post('/api/coop/choose', {optionId: o.id}); }}, 'Вести отряд сюда') : h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => post('/api/coop/vote', {optionId: o.id}, 'Голос отдан')}, room.myVote === o.id ? 'Ваш голос ✓' : 'Предложить этот путь')));
       }
       for (const m of room.members) body.append(h('div', {class: 'ae-card ae-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `${m.name}${String(m.id) === uid() ? ' (вы)' : ''}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`),
         h('span', {class: 'ae-sub'}, `${CLASS_RU[m.classId] || m.classId} · ${m.level} ур.${m.guardUntil > 0 ? ' · 🛡️ щит' : ''}`)), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
@@ -467,7 +525,7 @@
         body.append(h('div', {class: 'ae-pings'}, [['help', '🆘'], ['guard', '🛡️'], ['combo', '⚡'], ['focus', '🎯'], ['ok', '👍']].map(([k, ic]) => h('button', {type: 'button', class: 'ae-ping', title: 'Сигнал отряду',
           onclick: () => { sfx.play('bell', 0.25); post('/api/coop/ping', {kind: k}); }}, ic + ' ' + {help: 'Помощь', guard: 'Прикрой', combo: 'Связка', focus: 'В атаку', ok: 'Ок'}[k]))));
         body.append(h('details', {class: 'ae-combos'}, h('summary', {}, '📜 Связки стихий — как работают'),
-          h('p', {class: 'ae-sub'}, 'Примените способность сразу после союзника (за 5 с) — сработает связка двух стихий. Третий герой подряд — тройная связка с огромным уроном.'),
+          h('p', {class: 'ae-sub'}, 'Примените способность сразу после союзника (в течение 4 действий отряда) — сработает связка двух стихий. Третий герой подряд — тройная связка с огромным уроном.'),
           ...[['🔥🌿', 'Огонь + Природа', 'Лесной пожар — горение 3 хода'], ['☯️', 'Свет + Тьма', 'Сумеречный разлом — мощный взрыв'], ['😈', 'Огонь + Тьма', 'Адское пламя — мощный взрыв'],
             ['☀️', 'Огонь + Свет', 'Священный огонь — урон и лечение отряда'], ['☠️', 'Природа + Тьма', 'Гнилая чума — яд 3 хода'], ['🌳', 'Свет + Природа', 'Благословение рощи — урон и лечение'],
             ['🌪️', 'Сила + Природа', 'Удар бури — враг оглушён'], ['🤜', 'Сила + Сила', 'Двойной натиск — враг оглушён'], ['⚔️', 'Сила + Свет', 'Клятва рыцарей — урон и лечение'], ['☄️', 'Сила + Огонь', 'Пылающий натиск — взрыв'], ['🌑', 'Сила + Тьма', 'Удар из тьмы — взрыв']]
@@ -487,12 +545,12 @@
         if (cdEl) { const pct = Math.min(100, 100 * left / full); cdEl.style.display = left ? 'flex' : 'none'; cdEl.style.background = `linear-gradient(90deg,#000c ${pct}%,#0006 ${pct}%)`; cdEl.textContent = left ? (left / 1000).toFixed(1) + ' с' : ''; }
       }
       const ft = st.body.querySelector('[data-ae-foe-timer]');
-      if (ft) { const l = Math.max(0, foeAt - t); ft.textContent = l > 150 ? `Следующий ход через ${(l / 1000).toFixed(1)} с` : 'Враг атакует!'; }
+      const sl = state?.mine?.foe?.stepsLeft; if (ft) ft.textContent = state?.mine?.foe?.stunned ? '💫 Враг оглушён — пропустит ход' : sl ? (sl <= 1 ? '⚠️ Враг ударит после следующего действия!' : `Враг ударит через ${sl} действ. отряда`) : '';
       const ct = st.body.querySelector('[data-ae-chain-timer]');
-      if (ct) { const l = Math.max(0, chainEnd - t); ct.textContent = l ? `Осталось ${(l / 1000).toFixed(1)} с` : 'Время вышло'; }
+      const cl = state?.mine?.chain?.left; if (ct) ct.textContent = cl ? `Успейте за ${cl} действ. отряда` : 'Время вышло';
     }
     const baseRender = st.rerender; st.rerender = () => { baseRender(); paintCd(); requestAnimationFrame(showFloats); };
-    st.timers.push(setInterval(load, 1200), setInterval(paintCd, 100));
+    let pollAt = 0; st.timers.push(setInterval(() => { const fight = state?.mine?.status === 'active' && state.mine.phase === 'fight'; if (Date.now() - pollAt < (fight ? 600 : 1500)) return; pollAt = Date.now(); load(); }, 200));
     load(); api('/api/friends').then(r => { friends = r.friends || []; }).catch(() => {});
   }
 
@@ -837,7 +895,8 @@
 
   // ---------- duels (turn-based PvP vs the opponent's shadow) ----------
   function openDuel(prefill = '') {
-    let info = null, duel = null, busy = false, name = prefill;
+    let info = null, duel = null, busy = false, name = prefill, skillsOpen = false;
+    const rerender = () => st.rerender();
     const load = async () => { try { info = await api('/api/duel'); duel = info.active; } catch (e) { toast(cleanError(e)); } st.rerender(); };
     let prev = null, shake = {}; const floats = [];
     const feel = d => {
@@ -874,23 +933,24 @@
       if (prev == null) feel(duel);
       battleMode(body, duel.status === 'active');
       if (duel.status === 'active') {
-        const D = duel, mm = D.me, ff = D.foe, sk = mm.skill, cd = mm.cd || 0;
-        const fxText = f => { const fx = f.fx || {}, c = []; if (f.guard) c.push('🛡️ защита'); if (fx.rage) c.push('📯 +30% урона'); if (fx.wall) c.push('🧱 −50% урона'); if (fx.mark) c.push('🎯 метка'); if (fx.stun) c.push('🌿 опутан'); for (const d0 of fx.dots || []) c.push(`${d0.icon} ${d0.name}`); return c.join(' · '); };
-        const doAct = a => () => act('/api/duel/act', {action: a});
+        const D = duel, mm = D.me, ff = D.foe;
+        const fxText = f => { const c = []; if (f.guard) c.push('🛡️ защита'); if (f.barrier) c.push(`🛡️ щит ${f.barrier}`); if (f.fury) c.push('📯 ярость'); if (f.vuln) c.push('🎯 уязвим'); if (f.stunned) c.push('💫 оглушён'); for (const d0 of f.dots || []) c.push(`${d0.icon} ${d0.name}`); return c.join(' · '); };
+        const doAct = (a, extra) => () => act('/api/duel/act', {action: a, ...(extra || {})});
         body.append(battleView({
           location: 'Арена дуэлей', mode: 'PvP-дуэль', round: `Ход ${D.turn}`, scene: '/assets/arena-D132A-sN.webp',
-          turn: mm.fx?.stun ? 'Вы опутаны корнями — ход будет пропущен' : 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
+          turn: mm.stunned ? 'Вы оглушены — ход будет пропущен' : 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
           hero: {name: mm.name, cls: mm.className, level: mm.level, hp: mm.hp, maxHp: mm.maxHp, mp: mm.mp, maxMp: mm.maxMp, mpLabel: 'MANA', portrait: heroPortrait(mm.classId), body: heroBody(mm.classId)},
           foe: {name: ff.name, level: `${ff.className} · Ур. ${ff.level}`, hp: ff.hp, maxHp: ff.maxHp, atk: ff.atk, def: ff.def, img: isModern() ? heroPortrait(ff.classId) : heroBody(ff.classId), mirror: true},
           note: [fxText(mm) && `Вы: ${fxText(mm)}`, fxText(ff) && `Соперник: ${fxText(ff)}`].filter(Boolean).join(' | ') || (D.log || []).at(-1)?.text,
-          intent: D.intent ? {label: 'Тень соперника готовит:', name: D.intent, text: /сильный|×|Огненный|Удар в спину|ярость/.test(D.intent) ? '💡 Встаньте в защиту — урон по вам снизится.' : ''} : null,
-          series: {label: 'Дуэль', value: `MP соперника ${ff.mp}/${ff.maxMp}`, sub: sk ? `${sk.icon} ${sk.name}: ${sk.text}` : ''},
+          intent: D.intent ? {label: 'Тень соперника готовит:', name: D.intent, text: /мощный навык|навык/.test(D.intent) ? '💡 Встаньте в защиту — урон по вам снизится.' : ''} : null,
+          series: {label: 'Дуэль', value: `Мана соперника ${ff.mp}/${ff.maxMp}`, sub: 'Навыки и таланты героев — как в обычном бою'},
           actions: [{kind: 'attack', label: 'Атака', disabled: busy, onClick: doAct('attack')},
-            {kind: 'skill', label: sk ? (cd ? `${sk.name} · ${cd}` : sk.name) : 'Навык', disabled: busy || cd > 0, cls: cd ? '' : 'ae-combo-glow', onClick: doAct('skill')},
-            {kind: 'defend', label: 'Защита (+15 MP)', disabled: busy, onClick: doAct('guard')},
-            {kind: 'potion', label: 'Лечение (25 MP)', disabled: busy || mm.mp < 25, onClick: doAct('heal')}],
-          secondary: [{label: 'Сильный удар (20 MP)', kind: 'attack', disabled: busy || mm.mp < 20, onClick: doAct('power')}, {label: 'Сдаться', kind: 'leave', onClick: () => confirm('Сдаться?') && act('/api/duel/act', {action: 'flee'})}],
-          log: (D.log || []).map(l => l.text)}));
+            {kind: 'skill', label: 'Навыки', disabled: busy, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { skillsOpen = !skillsOpen; rerender(); }},
+            {kind: 'defend', label: 'Защита (+25% MP)', disabled: busy, onClick: doAct('guard')},
+            {kind: 'potion', label: `Зелье (${mm.potions ?? 0})`, disabled: busy || !(mm.potions > 0), onClick: doAct('potion')}],
+          secondary: [{label: 'Сдаться', kind: 'leave', onClick: () => confirm('Сдаться?') && act('/api/duel/act', {action: 'flee'})}],
+          log: (D.log || []).map(l => l.text),
+          menu: skillsOpen ? skillMenu({mp: mm.mp, disabled: busy, onClose: () => { skillsOpen = false; rerender(); }, onUse: k => { skillsOpen = false; doAct('skill', {skillId: k.id})(); }}) : null}));
         if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
         if ((shake.me || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         requestAnimationFrame(() => { while (floats.length) { const f = floats.shift(), el = body.querySelector(f.side === 'me' ? '[data-bv-hero]' : '[data-bv-foe]'); if (!el) continue;
@@ -1915,6 +1975,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 <div class="rounded-xl border border-slate-800 bg-[#070a12] p-2.5 h-36 flex flex-col"><div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between border-b border-slate-800/80 pb-1"><span>Журнал пошагового сражения</span><span>${(o.log || []).length} записей</span></div><div class="flex-1 overflow-y-auto space-y-1 text-xs pr-1">${logRows.map(l => `<div class="leading-snug flex items-start gap-1.5 font-mono text-[11px]"><span class="text-slate-300">${E(l)}</span></div>`).join('')}</div></div></div>`;
     }
     root.querySelectorAll('[data-bv]').forEach(b => { const fn = handlers[Number(b.getAttribute('data-bv'))]; if (fn) b.addEventListener('click', e => { e.preventDefault(); if (!b.disabled) fn(e); }); });
+    if (o.menu) root.querySelector('.space-y-2.transition-all')?.append(o.menu);
     if (o.extra) root.querySelector('[data-bv-extra]')?.append(o.extra);
     if (o.extraTop) root.querySelector('[data-bv-extra-top]')?.append(o.extraTop);
     return root;
@@ -1962,7 +2023,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
     api('/api/ae-referrals').then(r => { d = r; }, e => { err = cleanError(e); }).finally(() => { if (openPanelState === st) st.rerender(); });
   }
   function openHorde() {
-    let info = null, run = null, busy = false, auto = false, alive = true, shake = {};
+    let info = null, run = null, busy = false, auto = false, alive = true, shake = {}, skillsOpen = false;
     const floats = [];
     const sprite = id => `/assets/sprites/generated/monsters/${id}.webp`;
     const load = async () => { try { info = await api('/api/horde'); run = info.run; } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
@@ -1980,16 +2041,17 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
     };
     const showFloats = () => { while (floats.length) { const f = floats.shift(), el = st.body.querySelector(f.at === 'hero' ? '[data-bv-hero], [data-hz="hero"]' : '[data-bv-foe], [data-hz="foe"]'); if (!el) continue;
       const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.35)}px;top:${r.top + r.height * 0.25}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 900); } };
-    const act = async (action, steps = 1) => {
+    const act = async (action, steps = 1, skillId) => {
       if (busy || !run || run.status !== 'active') return; busy = true;
-      try { const r = await api('/api/horde/act', 'POST', {action, steps}); run = r.run; feel(r.events); if (action !== 'attack' || steps === 1) sfx.tick?.(); }
+      try { const r = await api('/api/horde/act', 'POST', {action, steps, skillId}); run = r.run; feel(r.events); if (action !== 'attack' || steps === 1) sfx.tick?.(); }
       catch (e) { toast(cleanError(e)); auto = false; } finally { busy = false; if (openPanelState === st) st.rerender(); }
     };
     // Auto-battle: back-to-back requests, several exchanges each, no artificial pauses.
     const autoLoop = async () => {
       while (auto && alive && run?.status === 'active') {
-        const a = run.hp < run.maxHp * 0.35 && run.potions > 0 ? 'potion' : run.powerCd === 0 ? 'power' : 'attack';
-        const t = Date.now(); await act(a, 3);
+        const best = (heroKit()?.skills || []).filter(k => k.mult > 0 && k.mana <= (run.mp || 0)).sort((x, y) => y.mult - x.mult)[0];
+        const a = run.hp < run.maxHp * 0.35 && run.potions > 0 ? 'potion' : best ? 'skill' : run.powerCd === 0 ? 'power' : 'attack';
+        const t = Date.now(); await act(a, 3, best?.id);
         const rest = 300 - (Date.now() - t); if (rest > 0) await new Promise(r => setTimeout(r, rest)); // keep a visible rhythm on very fast connections
 
       }
@@ -2038,17 +2100,18 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
         body.append(battleView({
           location: run.blood ? 'Орда · Кровавая луна' : 'Орда монстров', mode: run.weekend ? 'Выходные луны ×3.5' : run.blood ? 'Кровавая луна ×1.75' : 'Быстрый бой', round: `☠️ ${run.kills}`,
           scene: run.blood ? '/assets/rift-DTdreQra.webp' : '/assets/arena-D132A-sN.webp', turn: auto ? 'Автобой — бой идёт сам' : 'Ваш ход — выберите действие', turnShort: auto ? 'Автобой' : 'Ваш ход',
-          hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.potions, maxMp: 3, mpLabel: 'Зелья', portrait: heroPortrait(cls), body: heroBody(cls)},
+          hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp ?? 0, maxMp: run.maxMp || 100, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
           foe: {name: front.name, level: front.kind === 'leader' ? 'Вожак' : front.kind === 'elite' ? 'Элита' : 'Монстр орды', hp: front.hp, maxHp: front.maxHp, img: sprite(front.sprite)},
           note: (run.log || []).at(-1),
           intent: q.length ? {label: 'Следом бегут:', name: q.map(m => m.name).join(', '), text: run.blood ? 'Кровавая луна: монстры бьют сильнее, раненые могут сбежать, на их место прибегают новые.' : '', value: `+${q.length}`} : null,
           series: {label: 'Орда', value: next ? `${run.kills} / ${next}` : `${run.kills} · все вехи`, sub: `Добыча: ${rewardText(run.loot) || '—'}`},
           actions: [{kind: 'attack', label: 'Атака', onClick: () => { if (!auto) act('attack'); }},
-            {kind: 'skill', label: run.powerCd > 0 ? `Мощный удар · ${run.powerCd}` : 'Мощный удар', disabled: run.powerCd > 0, onClick: () => { if (!auto) act('power'); }},
+            {kind: 'skill', label: 'Навыки', disabled: auto, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { if (!auto) { skillsOpen = !skillsOpen; st.rerender(); } }},
             {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => { if (!auto) act('potion'); }}],
           secondary: [{auto: true, on: auto, label: auto ? '⏸ Автобой: вкл' : 'Автобой', onClick: () => { auto = !auto; st.rerender(); if (auto) autoLoop(); }},
             {label: 'Уйти с добычей', onClick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}],
-          log: run.log || []}));
+          log: run.log || [],
+          menu: skillsOpen ? skillMenu({mp: run.mp ?? 0, disabled: auto, onClose: () => { skillsOpen = false; st.rerender(); }, onUse: k => { skillsOpen = false; act('skill', 1, k.id); }}) : null}));
         if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
         if ((shake.hero || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         requestAnimationFrame(showFloats);
@@ -2104,6 +2167,13 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-coop-skills{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.ae-coop-skills-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#cbd5e1}.ae-coop-skills-h b{color:#e5ce96}
+.ae-coop-skill-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ae-coop-skill{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;min-height:52px;padding:6px 10px;border-radius:12px;border:1px solid #7c6a4a;background:linear-gradient(#2a2216,#17120c);color:#f1e6cc;cursor:pointer;font:inherit}
+html[data-interface=modern] .ae-coop-skill{border-color:#334155;background:#111a2b;color:#e2e8f0}
+.ae-coop-skill-i{grid-row:1/3;font-size:22px}.ae-coop-skill b{font-size:12.5px;line-height:1.15}.ae-coop-skill small{font-size:11px;color:#93c5fd}
+.ae-coop-skill.is-off{opacity:.45;cursor:default}.ae-coop-skill.is-combo{border-color:#facc15;box-shadow:0 0 0 1px #facc15,0 0 16px #facc1566;animation:aePlaceBob 1.4s ease-in-out infinite}.ae-coop-skill.is-combo small{color:#fde047}.ae-coop-skill:not(.is-off):active{transform:scale(.97)}
 .ae-asc-badge{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 10px 3px 3px;border-radius:14px;border:1px solid #a78bfa88;background:linear-gradient(90deg,#4c1d9566,#1e1b4b66);font-size:12px;color:#ddd6fe;max-width:100%}
 .ae-asc-badge b{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 5px;border-radius:999px;background:linear-gradient(#a78bfa,#6d28d9);color:#fff;font:800 11.5px/1 system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 0 10px #8b5cf688}
 .ae-asc-badge span{line-height:1.25}

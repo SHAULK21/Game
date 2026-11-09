@@ -2,36 +2,18 @@
 // Between halls the leader picks a path (allies can vote): fights, elites, traps/falls, treasure, shrines.
 // Combat is resolved on the server; hero stats blend the level formula with the hero's reported gear stats (clamped).
 import {pushEvent, logQuest} from './arenaExtras.js';
-import {blendedStats, saveStats} from './heroStats.js';
+import {blendedStats, saveStats, kitOf} from './heroStats.js';
+import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf} from './skills.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
-const COOLDOWN = {attack: 900, power: 4500, heal: 4000, guard: 6000, spell: 1};
-// Each class has its own spell. Two different heroes casting within COMBO_MS chain into a combo; a third makes a triple.
-export const SPELLS = {
-  warrior: {name: 'Боевой клич', icon: '📯', el: 'phys', cd: 15000, text: '+25% урона всему отряду на 6 с'},
-  knight: {name: 'Стена щитов', icon: '🧱', el: 'holy', cd: 18000, text: '−40% урона по отряду на 6 с'},
-  paladin: {name: 'Свет небес', icon: '🌟', el: 'holy', cd: 16000, text: 'лечит весь отряд на 20%'},
-  berserker: {name: 'Кровавая ярость', icon: '🩸', el: 'phys', cd: 12000, text: 'удар ×3.2, стоит 10% вашего HP'},
-  rogue: {name: 'Ядовитый клинок', icon: '🧪', el: 'nature', cd: 12000, text: 'удар ×1.3 и яд на 3 хода врага'},
-  assassin: {name: 'Удар в спину', icon: '🗡️', el: 'shadow', cd: 12000, text: 'гарантированный крит ×2.6'},
-  hunter: {name: 'Метка охотника', icon: '🎯', el: 'nature', cd: 16000, text: 'враг получает +30% урона 8 с'},
-  mage: {name: 'Огненный шар', icon: '🔥', el: 'fire', cd: 12000, text: 'урон ×2.6 и поджог на 2 хода'},
-  necromancer: {name: 'Похищение жизни', icon: '💀', el: 'shadow', cd: 12000, text: 'урон ×1.8, лечит вас на половину урона'},
-  druid: {name: 'Оплетающие корни', icon: '🌿', el: 'nature', cd: 18000, text: 'враг пропускает ход (+3 с), отряд +10% HP'}};
-export const ELEMENT_RU = {phys: '⚔️ Сила', holy: '✨ Свет', nature: '🌿 Природа', shadow: '🌑 Тьма', fire: '🔥 Огонь'};
-const COMBO_MS = 5000;
-const COMBOS = {'fire+nature': ['🔥🌿', 'Лесной пожар', 'dot'], 'holy+shadow': ['☯️', 'Сумеречный разлом', 'burst'], 'fire+shadow': ['😈', 'Адское пламя', 'burst'], 'fire+holy': ['☀️', 'Священный огонь', 'heal'],
-  'nature+shadow': ['☠️', 'Гнилая чума', 'dot'], 'holy+nature': ['🌳', 'Благословение рощи', 'heal'], 'fire+phys': ['☄️', 'Пылающий натиск', 'burst'], 'nature+phys': ['🌪️', 'Удар бури', 'stun'],
-  'phys+shadow': ['🌑', 'Удар из тьмы', 'burst'], 'holy+phys': ['⚔️', 'Клятва рыцарей', 'heal'], 'phys+phys': ['🤜', 'Двойной натиск', 'stun']};
-const comboOf = (a, b) => COMBOS[[a, b].sort().join('+')] || ['💫', 'Слияние стихий', 'burst'];
-export const COMBO_LIST = Object.entries(COMBOS).map(([k, [icon, name, kind]]) => ({els: k.split('+'), icon, name, kind}));
-const GUARD_MS = 5000;
+// Turn-based like the caves: every hero acts once per round (attack, any of their skills for mana, guard, potion),
+// then the enemy acts. No timers at all. Skills come from the hero's own skill list and talent tree (see skills.js);
+// a skill used right after an ally's setup skill triggers a cross-hero combo.
+const ACTIONS = new Set(['attack', 'skill', 'guard', 'potion', 'hurry']);
+const POTIONS = 3, GUARD_MP = 0.25;
 // Tuned by simulation: a full run takes ~1.5–4 min; careless duos at the minimum level often fall to the boss.
 const HP_TUNE = {goblin_cave: 1.4, spider_den: 1.3, crypt_depths: 0.75, rift_gate: 0.35};
-const ATK_TUNE = 2.4;
-let nowRef = 0; const clock = () => nowRef || Date.now();
-// The enemy acts on its own clock and announces its next move, so the party can react (guard, heal).
-const enemyMs = (room, foe) => Math.round((foe.boss ? 2600 : foe.elite ? 2800 : 3000) / (1 + 0.2 * (present(room).length - 1)));
+const ATK_TUNE = 2.4 * 0.55; // turn-based: the enemy acts once per round (tuned by simulation)
 const FOE_INFO = {
   'Гоблин-разведчик': 'Шустрый и трусливый. Бьёт исподтишка, но быстро выдыхается.', 'Гоблин-лучник': 'Держится в тени и пускает стрелы в самого раненого.',
   'Гоблин-шаман': 'Бормочет заклинания над костями. Опасен, если затянуть бой.', 'Гоблин-громила': 'Огромная дубина и толстая шкура. Удары медленные, но тяжёлые.',
@@ -83,7 +65,8 @@ function memberStats(p, world) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
   const base = {level, classId: p?.class_id || 'warrior', healer: !!c.healer, maxHp: Math.round((160 + level * 48) * c.hp), atk: Math.round((18 + level * 7) * c.atk), def: Math.round((6 + level * 3) * c.def)};
   const b = world ? blendedStats(world, p.telegram_id, p) : null; // gear and attributes count (blended with the level formula)
-  return b?.real ? {...base, maxHp: b.maxHp, atk: b.atk, def: b.def} : base;
+  const maxMp = Math.max(60, Math.min(2000, b?.maxMp || 100 + level * 8));
+  return b?.real ? {...base, maxHp: b.maxHp, atk: b.atk, def: b.def, crit: b.crit || 0.12, maxMp} : {...base, maxMp};
 }
 function makeFoe(room, d, kind) {
   const n = present(room).length, boss = kind === 'boss', elite = kind === 'elite', scale = 1 + 0.65 * (n - 1);
@@ -98,19 +81,18 @@ function rollIntent(room, foe) {
   const t = team[Math.floor(Math.random() * team.length)];
   foe.intent = aoe ? {kind: 'aoe'} : {kind: heavy ? 'heavy' : 'strike', targetId: t.id, targetName: t.name};
 }
-function spawn(room, foe, now) { room.foe = foe; rollIntent(room, foe); foe.nextAt = now + enemyMs(room, foe) + 1500; }
-function tick(world, room, now) {
-  const foe = room.foe;
-  if (room.status !== 'active' || room.phase !== 'fight' || !foe || foe.hp <= 0) return;
-  const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId);
-  if (!foe.nextAt) foe.nextAt = now + enemyMs(room, foe);
-  const ms = enemyMs(room, foe);
-  if (now - foe.nextAt > 3 * ms) foe.nextAt = now - ms + 1;   // nobody was watching: no backlog of free hits
-  for (let i = 0; i < 2 && now >= foe.nextAt && room.status === 'active' && room.foe === foe; i++) {
-    const at = foe.nextAt; foe.nextAt += ms;
-    if (applyDots(room, at)) { foeDown(world, room, d, at); return; }
-    enemyTurn(room, at);
-  }
+function spawn(room, foe, now) { room.foe = foe; rollIntent(room, foe); for (const m of present(room)) m.acted = false; room.round = (room.round || 0) + 1; }
+const waitingFor = room => alive(room).filter(m => !m.acted);
+// Everyone alive has acted (or the round was hurried): dots tick, then the enemy acts and a new round starts.
+function endRound(world, room, now) {
+  const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId), foe = room.foe;
+  if (!foe || foe.hp <= 0) return;
+  if (applyDots(room, now)) { foeDown(world, room, d, now); return; }
+  if (foe.stunned > 0) { foe.stunned--; log(room, `💫 ${foe.name} оглушён и пропускает ход`, now); rollIntent(room, foe); }
+  else enemyTurn(room, now);
+  if (foe.vuln > 0) foe.vuln--;
+  for (const m of present(room)) { m.acted = false; if (m.fury > 0) m.fury--; }
+  room.round = (room.round || 0) + 1;
 }
 function applyDots(room, now) {
   const foe = room.foe; if (!foe?.dots?.length) return false;
@@ -119,54 +101,22 @@ function applyDots(room, now) {
   return foe.hp <= 0;
 }
 function foeDown(world, room, d, now) {
-  log(room, `Победа над врагом «${room.foe.name}»!`, now); room.chain = null; room.fx = {};
+  log(room, `Победа над врагом «${room.foe.name}»!`, now); room.lastSkill = null;
   for (const m of present(room)) logQuest(world, m.id, 'coop_kill', now);
+  for (const m of alive(room)) { const kr = kitOf(world, m.id).talents?.killRecovery || 0; m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * (0.15 + kr / 100))); m.mp = Math.min(m.maxMp, (m.mp || 0) + Math.round(m.maxMp * 0.2)); }
   if (room.stage >= ROOMS) finish(world, room, d, now);
-  else { for (const m of alive(room)) m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.15)); offerPaths(room, now); }
+  else offerPaths(room, now);
 }
-const dmgMods = (room, now) => ((room.fx?.warcry || 0) > now ? 1.25 : 1) * ((room.foe?.markUntil || 0) > now ? 1.3 : 1);
 function hitFoe(room, self, mult, now, {ignoreDef = 0} = {}) {
   const def = room.foe.def * (1 - ignoreDef);
-  const dmg = Math.max(1, Math.round(self.atk * rand(0.9, 1.1) * mult * dmgMods(room, now) * (1 - def / (def + 75))));
+  const dmg = Math.max(1, Math.round(self.atk * rand(0.9, 1.1) * mult * outMult(self) * inMult(room.foe) * (1 - def / (def + 75))));
   room.foe.hp = Math.max(0, room.foe.hp - dmg); return dmg;
-}
-function castSpell(world, room, self, now) {
-  const sp = SPELLS[self.classId] || SPELLS.warrior, foe = room.foe, team = alive(room); let note = '';
-  switch (self.classId in SPELLS ? self.classId : 'warrior') {
-    case 'warrior': room.fx = {...room.fx, warcry: now + 6000}; note = 'отряд бьёт на 25% сильнее'; break;
-    case 'knight': room.fx = {...room.fx, wall: now + 6000}; note = 'урон по отряду −40%'; break;
-    case 'paladin': for (const m of present(room)) if (m.hp > 0) m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.2)); note = 'отряд +20% HP'; break;
-    case 'berserker': { const cost = Math.round(self.maxHp * 0.1); self.hp = Math.max(1, self.hp - cost); note = `−${hitFoe(room, self, 3.2, now)} (−${cost} своих HP)`; break; }
-    case 'rogue': { const dmg = hitFoe(room, self, 1.3, now); (foe.dots ||= []).push({icon: '🧪', name: 'Яд', per: Math.round(self.atk * 0.7), left: 3}); note = `−${dmg} и яд`; break; }
-    case 'assassin': note = `−${hitFoe(room, self, 2.6 * 1.6, now, {ignoreDef: 0.3})} (крит!)`; break;
-    case 'hunter': foe.markUntil = now + 8000; note = 'враг получает +30% урона'; break;
-    case 'mage': { const dmg = hitFoe(room, self, 2.6, now, {ignoreDef: 0.4}); (foe.dots ||= []).push({icon: '🔥', name: 'Поджог', per: Math.round(self.atk * 0.6), left: 2}); note = `−${dmg} и поджог`; break; }
-    case 'necromancer': { const dmg = hitFoe(room, self, 1.8, now), heal = Math.round(dmg / 2); self.hp = Math.min(self.maxHp, self.hp + heal); note = `−${dmg}, +${heal} HP себе`; break; }
-    case 'druid': foe.nextAt = (foe.nextAt || now) + 3000; for (const m of team) m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.1)); note = 'враг пропускает ход, отряд +10% HP'; break;
-  }
-  log(room, `${sp.icon} ${self.name} — «${sp.name}»: ${note}`, now);
-  // combo chain
-  const ch = room.chain;
-  if (ch && now - ch.at <= COMBO_MS && !ch.ids.includes(String(self.id)) && foe.hp > 0) {
-    const prev = ch.els[ch.els.length - 1], [icon, name, kind] = comboOf(prev, sp.el), triple = ch.ids.length >= 2;
-    const partner = present(room).find(m => same(m.id, ch.ids[ch.ids.length - 1]));
-    const base = (self.atk + (partner?.atk || self.atk)) * (triple ? 1.9 : 1.2) * (kind === 'burst' ? 1.5 : 1);
-    const def = foe.def * 0.5, dmg = Math.max(1, Math.round(base * rand(0.95, 1.05) * dmgMods(room, now) * (1 - def / (def + 75))));
-    foe.hp = Math.max(0, foe.hp - dmg);
-    let extra = '';
-    if (kind === 'dot') { (foe.dots ||= []).push({icon, name, per: Math.round(base * 0.35), left: 3}); extra = ', враг горит/гниёт 3 хода'; }
-    if (kind === 'heal') { for (const m of present(room)) if (m.hp > 0) m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * 0.12)); extra = ', отряд +12% HP'; }
-    if (kind === 'stun') { foe.nextAt = (foe.nextAt || now) + 2000; extra = ', враг оглушён (+2 с)'; }
-    logQuest(world, self.id, 'coop_combo', now); if (partner) logQuest(world, partner.id, 'coop_combo', now);
-    log(room, `${triple ? '🌟 ТРОЙНАЯ СВЯЗКА! ' : '⚡ СВЯЗКА! '}${icon} «${name}» (${partner?.name || ''} + ${self.name}): −${dmg}${extra}`, now);
-    if (triple) room.chain = null; else { ch.ids.push(String(self.id)); ch.els.push(sp.el); ch.at = now; ch.by = self.name; }
-  } else room.chain = {ids: [String(self.id)], els: [sp.el], at: now, by: self.name};
 }
 function intentText(room) {
   const i = room.foe?.intent; if (!i) return '';
-  const guard = alive(room).find(m => (m.guardUntil || 0) > clock());
+  const guard = alive(room).find(m => m.guard);
   if (i.kind === 'aoe') return 'набирает силу для удара по всему отряду';
-  const who = guard && i.kind !== 'aoe' ? `${guard.name} (прикрывает)` : i.targetName;
+  const who = guard ? `${guard.name} (прикрывает)` : i.targetName;
   return i.kind === 'heavy' ? `готовит сокрушительный удар — цель: ${who}, ×1.7 урона` : `атакует — цель: ${who}`;
 }
 const log = (room, text, now) => { room.log.push({at: new Date(now).toISOString(), text}); room.log = room.log.slice(-50); };
@@ -175,19 +125,22 @@ function expire(world, now) {
   for (const r of rows(world, 'coop_rooms')) if (['lobby', 'active'].includes(r.status) && Date.parse(r.updated_at) < now - IDLE_MS) r.status = 'expired';
   world.tables.coop_rooms = rows(world, 'coop_rooms').filter(r => Date.parse(r.updated_at) > now - 24 * 3600e3);
 }
-function view(room, me) {
-  const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId);
-  return {id: room.id, dungeon: {id: d.id, name: d.name, minLevel: d.minLevel, maxLevel: d.maxLevel}, status: room.status, phase: room.phase, hostId: room.hostId, stage: room.stage, rooms: ROOMS,
+function view(room, me, world) {
+  const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId), last = room.lastSkill;
+  const meM = room.members.find(m => same(m.id, me));
+  // Cross-hero combo the viewer can trigger right now (ally's last skill set it up).
+  const myKit = world ? kitOf(world, me) : {skills: []};
+  const combos = last && !same(last.by, me) && room.foe ? myKit.skills.map(sk => { const c = crossPreview(last.sk, sk); return c ? {id: sk.id, ...c} : null; }).filter(Boolean) : [];
+  return {id: room.id, dungeon: {id: d.id, name: d.name, minLevel: d.minLevel, maxLevel: d.maxLevel}, status: room.status, phase: room.phase, hostId: room.hostId, stage: room.stage, rooms: ROOMS, round: room.round || 1,
     foe: room.foe ? {name: room.foe.name, boss: room.foe.boss, elite: room.foe.elite, hp: room.foe.hp, maxHp: room.foe.maxHp, atk: room.foe.atk, def: room.foe.def, desc: room.foe.desc || FOE_INFO[room.foe.name] || '',
-      intent: room.foe.intent?.kind || null, intentText: intentText(room), nextIn: room.foe.nextAt ? Math.max(0, room.foe.nextAt - clock()) : null} : null,
+      intent: room.foe.intent?.kind || null, intentText: intentText(room), stunned: room.foe.stunned || 0, vuln: room.foe.vuln || 0, dots: (room.foe.dots || []).map(x => ({icon: x.icon, name: x.name, left: x.left}))} : null,
     scene: room.scene || '',
-    fx: {warcry: Math.max(0, (room.fx?.warcry || 0) - clock()), wall: Math.max(0, (room.fx?.wall || 0) - clock()), mark: Math.max(0, (room.foe?.markUntil || 0) - clock()), dots: (room.foe?.dots || []).map(x => ({icon: x.icon, name: x.name, left: x.left}))},
-    chain: room.chain && clock() - room.chain.at <= COMBO_MS && room.foe ? {by: room.chain.by, ids: room.chain.ids, els: room.chain.els, left: COMBO_MS - (clock() - room.chain.at), next: room.chain.ids.length >= 2 ? 'triple' : 'combo',
-      preview: (() => { const mm = room.members.find(m => same(m.id, me)); if (!mm || room.chain.ids.includes(String(me))) return null; const [icon, name, kind] = comboOf(room.chain.els[room.chain.els.length - 1], (SPELLS[mm.classId] || SPELLS.warrior).el); return {icon, name, kind}; })()} : null,
+    setup: last && room.foe ? {by: last.name, byId: String(last.by), icon: last.sk.icon, skill: last.sk.name, kind: setupOf(last.sk), combo: CROSS[setupOf(last.sk)]?.[1] || null} : null, combos,
+    waiting: room.foe ? waitingFor(room).map(m => ({id: String(m.id), name: m.name})) : [],
     options: room.phase === 'choose' ? room.options.map(o => ({id: o.id, name: o.name, icon: o.icon, hint: o.hint, votes: Object.values(room.votes || {}).filter(v => v === o.id).length})) : [],
     myVote: room.votes?.[String(me)] || null, bonus: room.bonus || 0, log: room.log.slice(-18), isHost: same(room.hostId, me),
-    members: present(room).map(m => ({id: m.id, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guardUntil: Math.max(0, (m.guardUntil || 0) - clock()), spell: {...(SPELLS[m.classId] || SPELLS.warrior), elRu: ELEMENT_RU[(SPELLS[m.classId] || SPELLS.warrior).el]},
-      cooldowns: same(m.id, me) ? Object.fromEntries(Object.entries(m.next || {}).map(([k, v]) => [k, Math.max(0, v - clock())])) : undefined})),
+    members: present(room).map(m => ({id: m.id, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
+      mp: m.mp ?? m.maxMp ?? 100, maxMp: m.maxMp || 100, acted: !!m.acted, potions: same(m.id, me) ? (m.potions ?? POTIONS) : undefined})),
     reward: room.rewards?.[String(me)] || null};
 }
 const tellParty = (world, room, except, icon, text, now) => { for (const m of present(room)) if (!same(m.id, except)) pushEvent(world, m.id, icon, text, 'coop', {roomId: room.id}, now); };
@@ -196,7 +149,7 @@ function offerPaths(room, now) {
   if (room.stage >= ROOMS) { room.phase = 'fight'; room.foe = null; return; }
   const pool = PATHS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
   room.options = pool.map(p => ({id: p.id, name: p.name, icon: p.icon, hint: p.hint})); room.votes = {}; room.phase = 'choose'; room.foe = null;
-  log(room, `Развилка перед залом ${room.stage + 1}. Лидер выбирает путь, союзники могут голосовать.`, now);
+  log(room, `Развилка перед залом ${room.stage + 1}. Путь может выбрать любой участник.`, now);
 }
 function enterHall(world, room, d, pathId, now) {
   room.stage++;
@@ -218,21 +171,24 @@ function enterHall(world, room, d, pathId, now) {
   }
   offerPaths(room, now);
 }
+const kitOf0 = m => m.talents || {};
 function enemyTurn(room, now) {
   const team = alive(room);
   if (!team.length || !room.foe || room.foe.hp <= 0) return;
   if (!room.foe.intent) rollIntent(room, room.foe);
   const it = room.foe.intent; room.foe.hits++;
   const aoe = it.kind === 'aoe', heavy = it.kind === 'heavy';
-  const guard = team.find(m => (m.guardUntil || 0) > now);
+  const guard = team.find(m => m.guard);
   const aimed = team.find(m => same(m.id, it.targetId)) || team[Math.floor(Math.random() * team.length)];
   const targets = aoe ? team : [guard || aimed];
   for (const t of targets) {
-    const raw = room.foe.atk * rand(0.85, 1.15) * (aoe ? 0.7 : heavy ? 1.7 : 1) * ((room.fx?.wall || 0) > now ? 0.6 : 1), mit = t.def / (t.def + 75), shield = (t.guardUntil || 0) > now ? 0.4 : 1;
-    const dmg = Math.max(1, Math.round(raw * (1 - mit) * shield));
+    const raw = room.foe.atk * rand(0.85, 1.15) * (aoe ? 0.7 : heavy ? 1.7 : 1) * (kitOf0(t).defensiveStance ? 0.85 : 1), mit = t.def / (t.def + 75), shield = t.guard ? 0.5 : 1;
+    let dmg = Math.max(1, Math.round(raw * (1 - mit) * shield));
+    if (t.barrier > 0) { const ab = Math.min(t.barrier, dmg); t.barrier -= ab; dmg -= ab; }
     t.hp = Math.max(0, t.hp - dmg);
     log(room, `${aoe ? '🌀' : heavy ? '💢' : '🗡️'} ${room.foe.name} ${aoe ? 'бьёт по всему отряду: ' : heavy ? 'сокрушает ' : 'бьёт '}${t.name} на ${dmg}${shield < 1 ? ' (щит)' : ''}${t.hp === 0 ? ' — герой без сил!' : ''}`, now);
   }
+  for (const m of team) m.guard = false;
   rollIntent(room, room.foe);
   if (!alive(room).length) { room.status = 'failed'; room.phase = 'end'; log(room, 'Отряд пал. Подземелье не пройдено.', now); }
 }
@@ -250,21 +206,19 @@ export async function handleCoopRequest(world, input, user, now, notify) {
   if (!path.startsWith('/api/coop')) return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = user.id, p = player(world, me);
   if (!p) return fail('Сначала создайте персонажа.', 404);
-  nowRef = now;
   expire(world, now);
   const stamp = new Date(now).toISOString();
   let room = myRoom(world, me);
-  if (room) tick(world, room, now);
   if (method === 'GET' && path === '/api/coop/rooms') {
     const lvl = Number(p.level) || 1;
     const open = rows(world, 'coop_rooms').filter(r => r.status === 'lobby' && present(r).length < MAX_MEMBERS)
       .map(r => ({...view(r, me), fits: lvl >= COOP_DUNGEONS.find(d => d.id === r.dungeonId).minLevel}));
-    return ok({dungeons: COOP_DUNGEONS.map(({id, name, minLevel, maxLevel}) => ({id, name, minLevel, maxLevel})), open, mine: room ? view(room, me) : null});
+    return ok({dungeons: COOP_DUNGEONS.map(({id, name, minLevel, maxLevel}) => ({id, name, minLevel, maxLevel})), open, mine: room ? view(room, me, world) : null});
   }
-  if (method === 'GET' && path === '/api/coop/room') return ok({room: room ? view(room, me) : null});
+  if (method === 'GET' && path === '/api/coop/room') return ok({room: room ? view(room, me, world) : null});
   if (method !== 'POST') return fail('Метод не поддерживается.', 405);
   if (input?.body?.stats) saveStats(world, me, input.body.stats, now);
-  const meStats = memberStats(p, world), meMember = () => ({id: String(me), name: nameOf(p), ...meStats, hp: meStats.maxHp, next: {}});
+  const meStats = memberStats(p, world), meMember = () => ({id: String(me), name: nameOf(p), ...meStats, hp: meStats.maxHp, mp: meStats.maxMp, potions: POTIONS, talents: kitOf(world, me).talents || {}});
   if (path === '/api/coop/create') {
     if (room && ['lobby', 'active'].includes(room.status)) return fail('Вы уже в отряде. Сначала покиньте его.');
     const d = COOP_DUNGEONS.find(x => x.id === body.dungeonId);
@@ -274,7 +228,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     room = {id: crypto.randomUUID(), dungeonId: d.id, hostId: String(me), status: 'lobby', phase: 'lobby', stage: 0, members: [meMember()], foe: null, options: [], votes: {}, bonus: 0, log: [], created_at: stamp, updated_at: stamp};
     log(room, `${nameOf(p)} открыл(а) комнату «${d.name}». Ждём союзников.`, now);
     rows(world, 'coop_rooms').push(room);
-    return ok({room: view(room, me)}, 201);
+    return ok({room: view(room, me, world)}, 201);
   }
   if (path === '/api/coop/join') {
     const target = rows(world, 'coop_rooms').find(r => r.id === body.roomId);
@@ -288,7 +242,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     target.updated_at = stamp; log(target, `${nameOf(p)} присоединяется к отряду.`, now);
     tellParty(world, target, me, '🛡️', `${nameOf(p)} присоединился(ась) к вашему отряду в «${d.name}».`, now);
     notify?.(world, target.hostId, `⚔️ ${nameOf(p)} присоединился(ась) к вашему отряду в «${d.name}».`, 'coop-join', now);
-    return ok({room: view(target, me)});
+    return ok({room: view(target, me, world)});
   }
   if (!room) return fail('Вы не в отряде.', 404);
   const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId), self = room.members.find(m => same(m.id, me));
@@ -314,48 +268,72 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     if (!same(room.hostId, me)) return fail('Начать может только лидер отряда.');
     if (room.status !== 'lobby') return fail('Поход уже начат.');
     if (present(room).length < 2) return fail('Нужно минимум 2 героя.');
+    for (const m of present(room)) { m.potions = POTIONS; m.mp = m.maxMp || 100; }
     room.status = 'active'; room.stage = 1; room.phase = 'fight'; room.scene = (SCENES[d.id] || [''])[0]; spawn(room, makeFoe(room, d, 'fight'), now);
     log(room, `Отряд входит в «${d.name}». Зал 1: ${room.foe.name}.`, now);
     tellParty(world, room, me, '⚔️', `Лидер начал поход в «${d.name}»! Откройте кооп, чтобы сражаться.`, now);
-    return ok({room: view(room, me)});
+    return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/vote' || path === '/api/coop/choose') {
     if (room.status !== 'active' || room.phase !== 'choose') return fail('Сейчас нет развилки.');
     const opt = room.options.find(o => o.id === body.optionId);
     if (!opt) return fail('Такого пути нет.');
-    if (path === '/api/coop/vote') { room.votes[String(me)] = opt.id; log(room, `${self.name} предлагает: «${opt.name}».`, now); return ok({room: view(room, me)}); }
-    if (!same(room.hostId, me)) return fail('Путь выбирает лидер отряда.');
+    if (path === '/api/coop/vote') { room.votes[String(me)] = opt.id; log(room, `${self.name} предлагает: «${opt.name}».`, now); return ok({room: view(room, me, world)}); }
     enterHall(world, room, d, opt.id, now);
-    return ok({room: view(room, me)});
+    return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/act') {
     if (room.status !== 'active' || room.phase !== 'fight' || !room.foe) return fail('Сейчас нельзя сражаться.');
     const action = String(body.action || '');
-    if (!COOLDOWN[action]) return fail('Неизвестное действие.');
-    if (self.hp <= 0) return fail('Вы без сил. Дождитесь лечения союзника или святилища.');
-    self.next ||= {};
-    if ((self.next[action] || 0) > now) return fail('Действие ещё восстанавливается.');
-    self.next[action] = now + (action === 'spell' ? (SPELLS[self.classId] || SPELLS.warrior).cd : COOLDOWN[action]);
-    if (action === 'spell') castSpell(world, room, self, now);
-    else if (action === 'attack' || action === 'power') {
-      const crit = Math.random() < 0.12, mult = (action === 'power' ? 2.2 : 1) * (crit ? 1.6 : 1);
-      const dmg = hitFoe(room, self, mult, now);
-      log(room, `${self.name}${action === 'power' ? ' проводит мощный удар' : ' атакует'}: ${dmg}${crit ? ' (крит!)' : ''}`, now);
-    } else if (action === 'heal') {
-      const team = present(room), target = team.find(m => same(m.id, body.targetId)) || team.slice().sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
-      const revive = target.hp === 0, amount = Math.round(target.maxHp * (revive ? 0.3 : self.healer ? 0.4 : 0.25));
-      target.hp = Math.min(target.maxHp, target.hp + amount);
-      log(room, revive ? `${self.name} поднимает ${target.name} (+${amount} HP)` : `${self.name} лечит ${target.name}: +${amount} HP`, now);
-    } else if (action === 'guard') { self.guardUntil = now + GUARD_MS; log(room, `${self.name} прикрывает отряд щитом и берёт удар на себя`, now); }
+    if (!ACTIONS.has(action)) return fail('Неизвестное действие.');
+    self.maxMp ||= 100; self.mp ??= self.maxMp; self.potions ??= POTIONS;
+    const kit = kitOf(world, me); self.talents = kit.talents || {};
+    if (action === 'hurry') {  // the ally is away: their turn is skipped
+      if (!self.acted) return fail('Сначала сделайте свой ход.');
+      const w = waitingFor(room); if (!w.length) return fail('Все уже походили.');
+      log(room, `⏩ ${self.name} не ждёт: ${w.map(m => m.name).join(', ')} пропускает ход`, now);
+      endRound(world, room, now); return ok({room: view(room, me, world)});
+    }
+    if (self.hp <= 0) return fail('Вы без сил. Союзник может поднять вас лечением, или дождитесь святилища.');
+    if (self.acted) return fail(`Вы уже походили. Ждём: ${waitingFor(room).map(m => m.name).join(', ')}.`);
+    const t = kit.talents || {};
+    if (action === 'skill') {
+      const sk = kit.skills.find(x => x.id === body.skillId); if (!sk) return fail('Навык не найден — откройте окно заново.');
+      if (self.mp < sk.mana) return fail(`Недостаточно маны: нужно ${sk.mana}.`);
+      self.mp -= sk.mana;
+      const team = alive(room), last = room.lastSkill;
+      const healTarget = sk.heal > 0 ? (team.find(m => same(m.id, body.targetId)) || present(room).filter(m => m.hp > 0 || sk.heal > 0).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]) : null;
+      const r = castSkill({self, foe: room.foe, kit, sk, ownLast: self.lastSkill, allyLast: last && !same(last.by, me) ? last.sk : null, allyName: last?.name,
+        hit: (mult, ignoreDef) => hitFoe(room, self, mult, now, {ignoreDef}), healTarget});
+      if (r.combo) { log(room, `⚡ СВЯЗКА! ${r.combo.icon} «${r.combo.name}» (${r.combo.with} + ${self.name})`, now); logQuest(world, me, 'coop_combo', now); if (last) logQuest(world, last.by, 'coop_combo', now); }
+      log(room, `${sk.icon} ${self.name} — «${sk.name}»${r.parts.length ? ': ' + r.parts.join(', ') : ''}`, now);
+      self.lastSkill = {id: sk.id};
+      room.lastSkill = r.combo ? null : {by: String(me), name: self.name, sk};
+    } else if (action === 'attack') {
+      const crit = Math.random() < (self.crit || 0.12), dmg = hitFoe(room, self, crit ? 1.6 : 1, now);
+      if (crit && t.critMana) self.mp = Math.min(self.maxMp, self.mp + Math.round(self.maxMp * t.critMana / 100));
+      log(room, `${self.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}`, now);
+    } else if (action === 'guard') {
+      self.guard = true; const mpGain = Math.round(self.maxMp * (GUARD_MP + (t.blockMana || 0) / 100)); self.mp = Math.min(self.maxMp, self.mp + mpGain);
+      const heal = t.defendHeal ? Math.round(self.maxHp * t.defendHeal / 100) : 0; if (heal) self.hp = Math.min(self.maxHp, self.hp + heal);
+      log(room, `🛡️ ${self.name} в защите: прикрывает отряд, +${mpGain} MP${heal ? `, +${heal} HP` : ''}`, now);
+    } else if (action === 'potion') {
+      if (self.potions <= 0) return fail('Зелья закончились.');
+      self.potions--; const team = present(room), target = team.find(m => same(m.id, body.targetId)) || self;
+      const revive = target.hp === 0, amount = Math.round(target.maxHp * (revive ? 0.3 : 0.4)); target.hp = Math.min(target.maxHp, target.hp + amount);
+      log(room, revive ? `🧪 ${self.name} поднимает ${target.name} зельем (+${amount} HP)` : `🧪 ${self.name} пьёт зелье${target !== self ? ' за ' + target.name : ''}: +${amount} HP (осталось ${self.potions})`, now);
+    }
+    self.acted = true;
     if (room.foe && room.foe.hp <= 0) foeDown(world, room, d, now);
-    return ok({room: view(room, me)});
+    else if (!waitingFor(room).length) endRound(world, room, now);
+    return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/ping') {
     const PINGS = {help: '🆘 Нужна помощь!', guard: '🛡️ Прикрой меня!', combo: '⚡ Готов к связке — жмите способность!', focus: '🎯 Все в атаку!', ok: '👍 Принято'};
     const text = PINGS[body.kind]; if (!text) return fail('Неизвестный сигнал.');
     if ((self.pingAt || 0) > now - 1500) return fail('Не так часто.');
     self.pingAt = now; log(room, `📣 ${self.name}: ${text}`, now);
-    return ok({room: view(room, me)});
+    return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/claim') {
     const reward = room.rewards?.[String(me)];
