@@ -585,7 +585,7 @@
     ['✦ Вознесение героя', `<p>Арена → «Вознесение». Ранги E → D → C → B → A → S → SS → SSS: победите хранителя и потратьте серебро и <b>Осколки вознесения</b> (с боссов, элит, Орды, коопа, рынка). Ваш ранг вознесения виден всем в профиле.</p>`],
     ['🤝 Кооп-подземелья', `<p>Меню → «Кооп». Лидер открывает комнату, союзники присоединяются (по ссылке в общем чате или приглашению другу). 7 залов, на развилках путь может выбрать любой участник: бой, элита, ловушка, сокровище или святилище. В конце — босс.</p><p>Бой <b>пошаговый, как в пещерах</b>: каждый герой делает ход, затем бьёт враг. Атака, Навыки, Защита (+25% маны) и Зелья (ими можно поднять павшего союзника). Если союзник отошёл — «⏩ Не ждать».</p><p><b>⚡ Связки героев</b>: союзник оглушил или заморозил врага — ваш атакующий навык даёт «Удар по беззащитному» ×1.5; уязвимость — «Сокрушение уязвимого» ×1.4; кровотечение, яд или поджог — «Детонация» ×1.35; ярость, щит или лечение — тоже усиливают. Подходящие навыки подсвечиваются.</p>`],
     ['🌕 Орда', `<p>Меню → «Орда»: бесконечные волны монстров, быстрые бои и автобой (сам выбирает сильнейший навык). Каждый 20-й враг — вожак, сундуки на 20, 40 и 60 убийствах. Стоит 10 энергии.</p><p><b>Кровавая луна</b> (с 10 уровня): лунные чудовища, враги сильнее, награда ×1.75. <b>Выходные Кровавой луны</b> — по субботам и воскресеньям каждый поход идёт в Кровавую луну с наградой ×2 для всех уровней.</p>`],
-    ['🏟️ Арена и дуэли', `<p>Билеты арены: до 5 в сутки (обновляются в 00:00 UTC). <b>Дуэли</b>: вызовите любого героя по нику — с вами сражается его тень с его снаряжением, навыками и талантами. Есть рейтинг и награды, дуэли считаются в задания.</p>`],
+    ['🏟️ Арена и дуэли', `<p>Билеты арены: каждый день в 00:00 UTC их становится не меньше 5. <b>Дополнительные билеты</b> дают задания («Задания» в быстрой панели): 3 боя на арене (+2), 2 победы на арене (+1), кооп-подземелье, 3 дуэли и 40 монстров Орды (по +1), недельные задания (+3…+5). Лишние билеты сверх 5 не сгорают. <b>Дуэли</b>: вызовите любого героя по нику — с вами сражается его тень с его снаряжением, навыками и талантами. Есть рейтинг и награды, дуэли считаются в задания.</p>`],
     ['📜 Задания и титулы', `<p><b>Доска поручений</b> — задания жителей и короля. <b>«Задания»</b> (быстрая панель) — ежедневные и недельные задания за кооп, дуэли и Орду с наградами и осколками.</p><p><b>Профиль</b>: 23 титула за подвиги, круглые аватарки, ранг вознесения и статистика. Профиль других игроков открывается по нажатию на ник.</p>`],
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
     ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
@@ -715,7 +715,14 @@
     if (host && !host.querySelector('[data-ae-admin-promo]')) host.append(adminPromoBlock());
     if (host && !host.querySelector('[data-ae-admin-news]')) host.append(adminNewsBlock());
     if (host && !host.querySelector('[data-ae-admin-level]')) host.append(adminLevelBlock());
-    if (host && !host.querySelector('[data-ae-admin-stats]')) host.prepend(adminStatsBlock());
+    if (host && !host.querySelector('[data-ae-admin-stats]')) {
+      // under the console's own header (with its ✕), never above it
+      let head = title; while (head && head.parentElement !== host) head = head.parentElement;
+      if (head) { head.after(adminStatsBlock()); head.classList.add('ae-admin-head'); } else host.append(adminStatsBlock());
+    }
+    // a misplaced block from an older version: move it under the header
+    const misplaced = host?.firstElementChild?.matches?.('[data-ae-admin-stats]') ? host.firstElementChild : null;
+    if (misplaced) { let head = title; while (head && head.parentElement !== host) head = head.parentElement; if (head) head.after(misplaced); }
   }
 
 
@@ -1113,6 +1120,16 @@
     const row = anchor.parentElement; if (!row || row.parentElement.querySelector(':scope > [data-ae-respec]')) return;
     row.after(respecButton());
   }
+  // ---------- arena: report each finished arena fight (for the arena quests) ----------
+  let arenaSnap = null;
+  function arenaTick() {
+    const p = me(); if (!p) return;
+    const cur = {uid: p.userId, rating: Number(p.arenaRating) || 0, tickets: Number(p.arenaTickets) || 0};
+    const prev = arenaSnap; arenaSnap = cur; if (!prev || prev.uid !== cur.uid || prev.rating === cur.rating) return;
+    const won = cur.rating > prev.rating;
+    api('/api/quests/arena', 'POST', {won}).then(() => refreshQuestBadge?.()).catch(() => {});
+  }
+  setInterval(() => { try { arenaTick(); } catch {} }, 1500);
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
@@ -1161,7 +1178,20 @@
   const LIGHT_RE = /кож|ткан|шёлк|шелк|охотн|следопыт|странник|рекрут|стартов|прост|льнян|ученик|новичк|лесн|пастух|крестьян/i;
   const HUES = [0, 0, 28, -28, 150, 205, 265];
   const hashStr = str => { let x = 2166136261; for (const c of str) { x ^= c.codePointAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+  // Our own finds and crystals have their own painted icons (by kind × rarity).
+  const OWN_WEAPON = [[/^Секира/, 'axe'], [/^Молот/, 'hammer'], [/^Кинжал/, 'dagger'], [/^Лук/, 'bow'], [/^Посох/, 'staff']];
+  function ownIcon(item) {
+    const t = String(item?.templateId || '');
+    let m = t.match(/^ae_gem_([a-z]+)$/); if (m) return '/assets/items/gear/gem_' + m[1] + '.webp';
+    m = t.match(/^ae_gear_(uncommon|rare|epic|legendary)_([a-z]+)_\d+$/) || t.match(/^ae_leg_([a-z]+)_\d+$/);
+    if (!m) return null;
+    const rarity = m.length === 3 ? m[1] : 'legendary', type = m.length === 3 ? m[2] : m[1];
+    let kind = type === 'offhand' ? 'shield' : type;
+    if (type === 'weapon') { kind = (OWN_WEAPON.find(([re]) => re.test(item.name || '')) || [0, null])[1]; if (!kind) return null; } // swords: the game's own sword icon for now
+    return `/assets/items/gear/gear_${kind}_${rarity}.webp`;
+  }
   function iconInfo(item) {
+    const own = ownIcon(item); if (own) return {src: own, hue: 0};
     const n = baseName(item || {});
     for (const [re, f] of RES_ICONS) if (re.test(n)) return {src: '/assets/sprites/generated/ui/resources/' + f + '.webp', hue: 0};
     // Gear: the slot type decides the picture (a pants item named «…клинка» must not get a sword); the name only picks the weapon kind.
@@ -1639,14 +1669,14 @@
   function applyReward(w, b = B()) {
     b.setPlayer(p => { if (!p) return p; let inv = p.inventory;
       if (w.fragments) { inv = inv.slice(); const i = inv.findIndex(x => x.templateId === 'ascension_fragment' && !x.serverOwned && !x.isLocked); if (i >= 0) inv[i] = {...inv[i], stackCount: (inv[i].stackCount || 1) + w.fragments}; else inv.push({id: 'quest_' + uuid4(), templateId: 'ascension_fragment', name: 'Осколок вознесения', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '✦', stats: {}, sellPrice: 0, disassembleYield: {}, stackCount: w.fragments}); }
-      const n = {...p, inventory: inv, gold: (p.gold || 0) + (w.gold || 0), silver: (p.silver || 0) + (w.silver || 0)};
+      const n = {...p, inventory: inv, gold: (p.gold || 0) + (w.gold || 0), silver: (p.silver || 0) + (w.silver || 0), arenaTickets: (p.arenaTickets || 0) + (w.tickets || 0)};
       return w.exp && b.gainExp ? b.gainExp(n, w.exp).player : n; });
   }
-  const rewardText = w => [w.gold && `${fmt(w.gold)} 🪙`, w.silver && `${fmt(w.silver)} 🥈`, w.exp && `${fmt(w.exp)} опыта`, w.fragments && `${w.fragments} ✦ осколок`].filter(Boolean).join(' · ');
+  const rewardText = w => [w.gold && `${fmt(w.gold)} 🪙`, w.silver && `${fmt(w.silver)} 🥈`, w.exp && `${fmt(w.exp)} опыта`, w.fragments && `${w.fragments} ✦ осколок`, w.tickets && `${w.tickets} 🎟️ ${w.tickets === 1 ? 'билет' : w.tickets < 5 ? 'билета' : 'билетов'} арены`].filter(Boolean).join(' · ');
   function openSpecialQuests() {
     let quests = null;
     const load = async () => { try { quests = questCache = (await api('/api/quests/special')).quests; } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
-    const st = openPanel('📜 Задания: кооп и PvP', body => {
+    const st = openPanel('📜 Задания: кооп, PvP, арена', body => {
       if (!quests) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       body.append(h('p', {class: 'ae-note'}, 'Проходите кооп-подземелья с друзьями и сражайтесь в дуэлях — за это дают золото, опыт и осколки вознесения. Ежедневные задания обновляются в 00:00 UTC, недельные — в понедельник.'));
       for (const [period, title] of [['day', '☀️ Ежедневные'], ['week', '📅 Недельные']]) {
@@ -2537,6 +2567,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-admin-head{position:sticky;top:-16px;z-index:5;background:inherit;background-color:#0c0d1c;padding-top:6px;padding-bottom:6px}html[data-interface=fantasy] .ae-admin-head{background-color:#1b1712}
 .ae-wiki-table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0;table-layout:fixed}.ae-wiki-table th:first-child,.ae-wiki-table td:first-child{width:30%}.ae-wiki-table th,.ae-wiki-table td{border:1px solid #ffffff22;padding:4px 6px;text-align:center}.ae-wiki-table td:first-child,.ae-wiki-table th:first-child{text-align:left}.ae-wiki-table th{color:#e5ce96}
 .ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
 .ae-forge-up{position:absolute;right:2px;bottom:2px;z-index:2;padding:0 5px;border-radius:6px;background:#1a1306e6;border:1px solid #e5ce96;color:#ffd77a;font:800 11px/16px system-ui,sans-serif;pointer-events:none}
@@ -2859,5 +2890,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

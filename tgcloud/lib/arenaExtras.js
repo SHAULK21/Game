@@ -82,17 +82,20 @@ export function logQuest(world, userId, kind, now, n = 1) {
   if (list.length > 20000 || Math.random() < 0.02) world.tables.ae_quest_log = list.filter(r => Date.parse(r.at) > now - 8 * DAY);
 }
 const SPECIAL_QUESTS = [
-  {id: 'd_coop_win', period: 'day', kind: 'coop_win', need: 1, icon: '🏰', title: 'Пройти кооп-подземелье', reward: L => ({gold: 300 + L * 25, exp: 200 + L * 30})},
+  {id: 'd_coop_win', period: 'day', kind: 'coop_win', need: 1, icon: '🏰', title: 'Пройти кооп-подземелье', reward: L => ({gold: 300 + L * 25, exp: 200 + L * 30, tickets: 1})},
   {id: 'd_coop_kill', period: 'day', kind: 'coop_kill', need: 8, icon: '👹', title: 'Победить 8 врагов в кооп-подземельях', reward: L => ({silver: 300 + L * 15, exp: 150 + L * 20})},
   {id: 'd_coop_combo', period: 'day', kind: 'coop_combo', need: 3, icon: '⚡', title: 'Сделать 3 связки способностей в коопе', reward: () => ({fragments: 1})},
-  {id: 'd_duel_fight', period: 'day', kind: 'duel_fight', need: 3, icon: '⚔️', title: 'Провести 3 дуэли', reward: L => ({gold: 150 + L * 15, silver: 200})},
+  {id: 'd_duel_fight', period: 'day', kind: 'duel_fight', need: 3, icon: '⚔️', title: 'Провести 3 дуэли', reward: L => ({gold: 150 + L * 15, silver: 200, tickets: 1})},
   {id: 'd_duel_win', period: 'day', kind: 'duel_win', need: 2, icon: '🏆', title: 'Победить в 2 дуэлях', reward: L => ({gold: 250 + L * 20, exp: 150 + L * 25})},
   {id: 'd_horde_20', period: 'day', kind: 'horde_kill', need: 20, icon: '🗡️', title: 'Орда: победить 20 монстров', reward: L => ({gold: 200 + L * 10, exp: 150 + L * 15})},
-  {id: 'd_horde_40', period: 'day', kind: 'horde_kill', need: 40, icon: '⚔️', title: 'Орда: победить 40 монстров', reward: L => ({gold: 350 + L * 18, silver: 300})},
+  {id: 'd_horde_40', period: 'day', kind: 'horde_kill', need: 40, icon: '⚔️', title: 'Орда: победить 40 монстров', reward: L => ({gold: 350 + L * 18, silver: 300, tickets: 1})},
   {id: 'd_horde_60', period: 'day', kind: 'horde_kill', need: 60, icon: '🔥', title: 'Орда: победить 60 монстров', reward: () => ({fragments: 1, silver: 600})},
   {id: 'w_horde_blood', period: 'week', kind: 'horde_blood_kill', need: 30, icon: '🌕', title: 'Кровавая луна: 30 монстров за неделю', reward: L => ({gold: 1000 + L * 40, fragments: 1})},
-  {id: 'w_coop_win', period: 'week', kind: 'coop_win', need: 5, icon: '🛡️', title: 'Пройти 5 кооп-подземелий за неделю', reward: L => ({gold: 1500 + L * 60, fragments: 2})},
-  {id: 'w_duel_win', period: 'week', kind: 'duel_win', need: 10, icon: '👑', title: '10 побед в дуэлях за неделю', reward: L => ({gold: 1200 + L * 50, fragments: 1})}];
+  {id: 'w_coop_win', period: 'week', kind: 'coop_win', need: 5, icon: '🛡️', title: 'Пройти 5 кооп-подземелий за неделю', reward: L => ({gold: 1500 + L * 60, fragments: 2, tickets: 3})},
+  {id: 'w_duel_win', period: 'week', kind: 'duel_win', need: 10, icon: '👑', title: '10 побед в дуэлях за неделю', reward: L => ({gold: 1200 + L * 50, fragments: 1, tickets: 3})},
+  {id: 'd_arena_fight', period: 'day', kind: 'arena_fight', need: 3, icon: '🏟️', title: 'Провести 3 боя на арене', reward: L => ({gold: 150 + L * 12, tickets: 2})},
+  {id: 'd_arena_win', period: 'day', kind: 'arena_win', need: 2, icon: '🥇', title: 'Победить 2 раза на арене', reward: L => ({silver: 300 + L * 10, tickets: 1})},
+  {id: 'w_arena_win', period: 'week', kind: 'arena_win', need: 12, icon: '🏆', title: '12 побед на арене за неделю', reward: L => ({gold: 1000 + L * 40, fragments: 1, tickets: 5})}];
 function periodStart(period, now) {
   const d = new Date(now); d.setUTCHours(0, 0, 0, 0);
   if (period === 'week') d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
@@ -404,6 +407,13 @@ export function handleTrade(world, path, method, body, me, now, notify) {
   return fail('API не найден.', 404);
 }
 
+// The arena fight itself runs in the game client; it reports each finished fight here (capped per day).
+function reportArena(world, userId, body, now) {
+  const from = periodStart('day', now), n = rows(world, 'ae_quest_log').filter(r => same(r.u, userId) && r.k === 'arena_fight' && Date.parse(r.at) >= from).length;
+  if (n >= 30) return ok({ok: true, capped: true});
+  logQuest(world, userId, 'arena_fight', now); if (body.won === true) logQuest(world, userId, 'arena_win', now);
+  return ok({ok: true});
+}
 export function handleExtras(world, input, user, now, notify) {
   const path = String(input?.path || '').split('?')[0], method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {};
   if (path === '/api/social/pulse' && method === 'GET') return pulse(world, user.id);
@@ -426,6 +436,7 @@ export function handleExtras(world, input, user, now, notify) {
     return ok({ok: true, name: nameOf(target), level});
   }
   if (path === '/api/news' || path === '/api/admin/news') return handleNews(world, path, method, body, user, now);
+  if (path === '/api/quests/arena' && method === 'POST') return reportArena(world, user.id, body, now);
   if (path.startsWith('/api/quests/special')) return handleQuests(world, path, method, body, user.id, now);
   if (path === '/api/items/deposit' && method === 'POST') return handleDeposit(world, body, user.id, now);
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);

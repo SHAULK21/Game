@@ -1,0 +1,22 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 14, energy: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+save.player.level = 30; save.player.inventory.push({id: 'gear-1', templateId: 'x', name: 'Клинок сумеречного леса', type: 'weapon', rarity: 'uncommon', level: 12, upgradeLevel: 2, stats: {attack: 80}, icon: '⚔️', sellPrice: 40, disassembleYield: {}, stackCount: 1}); ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']);
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); new E.NativePool(w, () => Date.now()).ensurePlayer({id: 555, displayName: 'Борис'});
+  Object.assign(w.tables.players.find(p => p.telegram_id == 555), {character_name: 'Борис', level: 16, class_id: 'druid'}); w.tables.players.find(p => p.telegram_id == 437290420).level = 14; }, engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(5000); await p.setViewportSize({width: 390, height: 844}); p.on('dialog', d => d.accept());
+await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {}); await p.waitForTimeout(250); }
+const P = () => p.evaluate(k => JSON.parse(localStorage.getItem(k)).player, key);
+await p.waitForTimeout(5000);
+for (const t of ['Позже']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {});
+await p.evaluate(() => { const b = window.__aethBridge, o = window.__aethOpen; const items = []; for (const r of ['uncommon', 'rare', 'epic', 'legendary']) for (let i = 0; i < 4; i++) items.push(o.gear(r));
+  b.setPlayer(x => ({...x, maxInventorySlots: 80, inventory: [...x.inventory, ...items, {id: 'g1', templateId: 'ae_gem_vamp', name: 'Кристалл вампиризма', type: 'material', rarity: 'epic', level: 1, upgradeLevel: 0, icon: '🩸', stats: {}, sellPrice: 50, disassembleYield: {}, stackCount: 2}]})); });
+await p.locator('nav button, nav a').filter({hasText: 'Сумка'}).first().click({force: true}); await p.waitForTimeout(1500);
+const srcs = await p.evaluate(() => [...document.querySelectorAll('[data-inventory-item] img')].map(i => i.getAttribute('src')).filter(s => /items\/gear/.test(s)));
+console.log('own icons on tiles:', srcs.length, srcs.slice(0, 4));
+const bad = await p.evaluate(async () => { let n = 0; for (const i of document.querySelectorAll('[data-inventory-item] img')) if (/items\/gear/.test(i.src) && !(i.complete && i.naturalWidth)) n++; return n; });
+console.log('broken:', bad);
+await p.screenshot({path: `gear-icons-${style}.png`, fullPage: true});
+await s.close();
