@@ -1,3 +1,4 @@
+import {placeOf} from './clanPlus.js';
 // Titles earned across the whole game + a chosen avatar (game characters only). Others see both on the player card.
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -58,7 +59,7 @@ export function titlesOf(world, id, now) {
 const ASC = [['D', 'Страж порога', 1], ['C', 'Рыцарь зеркального щита', 15], ['B', 'Хранитель живого пламени', 30], ['A', 'Судья трёх стихий', 45],
   ['S', 'Повелитель разлома', 60], ['SS', 'Владыка пустоты', 75], ['SSS', 'Первый вознесённый', 85]];
 const ascOf = pr => { const a = ASC.find(x => x[0] === pr?.asc); return a ? {rank: a[0], name: a[1], step: ASC.indexOf(a) + 1} : null; };
-const clanOf = (world, id) => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); const c = m && rows(world, 'clans').find(x => same(x.id, m.clan_id)); return c ? {id: c.id, tag: c.tag, name: c.name, level: Number(c.level) || 1, role: m.role} : null; };
+const clanOf = (world, id) => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); const c = m && rows(world, 'clans').find(x => same(x.id, m.clan_id)); return c ? {id: c.id, tag: c.tag, name: c.name, level: Number(c.level) || 1, role: m.role, emblem: rows(world, 'ae_clan_meta').find(x => same(x.clan, c.id))?.emblem || '🛡️'} : null; };
 const profileRow = (world, id) => rows(world, 'ae_profiles').find(x => same(x.u, id));
 export function publicProfile(world, id, now) {
   const p = player(world, id); if (!p) return null;
@@ -82,7 +83,7 @@ export function handleProfileRequest(world, input, user, now) {
   }
   if (method === 'POST' && path === '/api/ae-profile/batch') {
     const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 40).map(String);
-    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null}))});
+    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
   if (method === 'POST' && path === '/api/ae-profile/title') {

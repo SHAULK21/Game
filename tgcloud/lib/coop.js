@@ -1,6 +1,7 @@
 // Co-op dungeons: a leader opens a room, up to two allies join, the party walks through 7 halls.
 // Between halls the leader picks a path (allies can vote): fights, elites, traps/falls, treasure, shrines.
 // Combat is resolved on the server; hero stats blend the level formula with the hero's reported gear stats (clamped).
+import {clanCredit} from './clanPlus.js';
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf, gemProcs} from './skills.js';
@@ -196,7 +197,13 @@ function finish(world, room, d, now) {
   room.status = 'won'; room.phase = 'end'; room.rewards = {};
   const team = present(room), mult = (1 + 0.1 * (team.length - 1)) * (1 + (room.bonus || 0));
   for (const m of team) logQuest(world, m.id, 'coop_win', now);
-  for (const m of team) room.rewards[String(m.id)] = {gold: Math.round(d.gold * mult), silver: Math.round(d.silver * mult), exp: Math.round(d.exp * mult), fragment: Math.random() < 0.35 + (room.bonus || 0) * 0.3, claimed: false};
+  const clanId = id => rows(world, 'clan_members').find(x => String(x.telegram_id) === String(id))?.clan_id;
+  for (const m of team) {
+    const c = clanId(m.id), mates = c ? team.filter(o => o !== m && String(clanId(o.id)) === String(c)).length : 0, cm = mates ? 1.2 : 1;
+    room.rewards[String(m.id)] = {gold: Math.round(d.gold * mult * cm), silver: Math.round(d.silver * mult * cm), exp: Math.round(d.exp * mult * cm), fragment: Math.random() < 0.35 + (room.bonus || 0) * 0.3 + (mates ? 0.1 : 0), claimed: false, clanBonus: mates > 0};
+    clanCredit(world, m.id, {dungeons: 1}, now);
+  }
+  if (team.some(m => room.rewards[String(m.id)].clanBonus)) log(room, '🛡️ Соклановцы в отряде: +20% к награде и шанс осколка выше!', now);
   log(room, `Победа! «${d.boss}» больше не угрожает королевству. Заберите награду.`, now);
   tellParty(world, room, null, '🏆', `Отряд прошёл «${d.name}»! Заберите награду в кооп-подземельях.`, now);
 }

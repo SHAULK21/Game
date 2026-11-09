@@ -590,7 +590,7 @@
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
     ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
     ['💰 Рынок и торговля', `<p>Вещи можно выставить на рынок для других игроков (из сумки — кнопка «На рынок»); выручка идёт в кошелёк рынка, налог 3% (с Premium — 0%). Другу можно продать вещь напрямую: «🤝 Продать другу». Местным жителям продаётся добыча по дневному спросу.</p>`],
-    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
+    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>🏰 Штаб клана</b> (кнопка в Доме клана): <b>ежедневный сундук</b>; <b>бонусы</b> всем участникам — +2% опыта и золота и +3% к шансу редкой добычи за каждый уровень клана (до +30% / +45%); <b>задание дня и недели</b> — общая цель на весь клан, награду получает каждый; <b>вклад</b> — очки за монстров, боссов, дуэли и арену, подземелья, руду, зелья и рейд; <b>рейтинг недели</b> — топ-3 кланов получают золото в казну, опыт и бонус чемпиона (медаль у тега); <b>война кланов</b> — раз в неделю клан сражается с соперником по очкам вклада.</p><p><b>🐲 Рейд</b> — настоящий пошаговый бой со Стражем врат раз в сутки: 12 ходов, навыки, защита, зелья и три фазы босса. Навык с эффектом (оглушение, яд, щит…) оставляет <b>связку</b> следующему соклановцу — его атакующий навык станет сильнее.</p><p><b>Поиск и заявки</b>: «🔍 Найти клан» показывает все кланы; в открытые можно вступить сразу, в закрытые — подать заявку (глава и офицеры принимают её в Штабе). Глава может задать <b>эмблему</b> и <b>приветствие</b> новичкам, а неактивных 3+ дня исключать прямо из списка вклада. В кооп-подземельях с соклановцем награда <b>+20%</b>.</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
     ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
     ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
     ['🔔 Уведомления и новости', `<p>Включите уведомления — бот напомнит о полной энергии, билетах арены, голодном питомце, выходных Кровавой луны, вызовах и друзьях. Все обновления — в меню «Что нового» и в канале <a href="https://t.me/Aethelgardo" target="_blank" rel="noopener">t.me/Aethelgardo</a>.</p>`],
@@ -1052,7 +1052,7 @@
     const k = {kills: p.statsSummary.monstersKilled || 0, bosses: p.statsSummary.bossesDefeated || 0, uid: p.userId};
     const prev = killSnap; killSnap = k; if (!prev || prev.uid !== k.uid) return;
     const dk = Math.max(0, Math.min(5, k.kills - prev.kills)), db = Math.max(0, Math.min(3, k.bosses - prev.bosses)); if (!dk && !db) return;
-    const lm = luckInfo(p).legMul, found = [];
+    const lm = luckInfo(p).legMul * (1 + (clanX?.clan ? clanX.bonus?.loot || 0 : 0) / 100), found = [];
     for (let i = 0; i < Math.max(0, dk - db); i++) { const r = rollLoot(false, lm); if (r) found.push(r); }
     for (let i = 0; i < db; i++) found.push(rollLoot(true, lm));
     const room = (p.maxInventorySlots || 40) - (p.inventory || []).length; if (!found.length || room <= 0) return;
@@ -1432,12 +1432,12 @@
     }
   }
   // ---------- clan tag «[TAG]» before nicknames ----------
-  const clanTags = new Map(); let clanTagsAt = 0, clanTagsBusy = false;
+  const clanTags = new Map(), clanMeta = new Map(); let clanTagsAt = 0, clanTagsBusy = false;
   async function loadClanTags(ids) {
     if (clanTagsBusy) return; const want = ids.filter(id => !clanTags.has(id)).slice(0, 40);
     if (!want.length && Date.now() - clanTagsAt < 120000) return;
     clanTagsBusy = true; clanTagsAt = Date.now();
-    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) clanTags.set(String(p.id), p.clan || ''); for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
+    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
     catch {} finally { clanTagsBusy = false; }
   }
   function paintClanTags() {
@@ -1446,8 +1446,9 @@
     for (const el of els) {
       const tag = clanTags.get(el.dataset.aeUid), prev = el.previousElementSibling?.classList.contains('ae-clan-tag') ? el.previousElementSibling : null;
       if (!tag) { prev?.remove(); continue; }
-      if (prev) { if (prev.textContent !== `[${tag}]`) prev.textContent = `[${tag}]`; continue; }
-      el.before(h('span', {class: 'ae-clan-tag', title: 'Клан'}, `[${tag}]`));
+      const cm = clanMeta.get(el.dataset.aeUid) || {}, txt = `${cm.place ? MEDAL[cm.place] : ''}[${tag}]`, cls = 'ae-clan-tag' + (cm.place ? ' is-p' + cm.place : '');
+      if (prev) { if (prev.textContent !== txt) prev.textContent = txt; if (prev.className !== cls) prev.className = cls; continue; }
+      el.before(h('span', {class: cls, title: cm.place ? `Клан — ${cm.place}-е место недели` : 'Клан'}, txt));
     }
   }
   setInterval(() => { try { paintClanTags(); } catch {} }, 1500);
@@ -1468,7 +1469,7 @@
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
   const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
     h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
-      pr.clan ? h('div', {class: 'ae-prof-clan'}, `🛡️ Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
+      pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
       pr.asc ? h('div', {class: 'ae-asc-badge', 'data-asc': pr.asc.rank, title: 'Ранг вознесения'}, h('b', {}, pr.asc.rank), h('span', {}, `Вознесение · ${pr.asc.name}`))
         : h('div', {class: 'ae-asc-badge is-none'}, h('b', {}, '—'), h('span', {}, 'Вознесение не пройдено'))));
@@ -1610,6 +1611,221 @@
       h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: openClanInvite}, '👥 Позвать друзей'),
       h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: shareClan}, '📢 В общий чат')));
   }
+  // ---------- Clan HQ: bonuses, daily chest, clan quests, contribution, rating, wars, requests, settings ----------
+  let clanX = null, clanXAt = 0;
+  async function loadClanX(force) {
+    if (!force && clanX && Date.now() - clanXAt < 600000) return clanX;
+    try { clanX = await api('/api/ae-clanx'); clanXAt = Date.now(); } catch { }
+    return clanX;
+  }
+  const ROLE_RU = {owner: 'Глава', officer: 'Офицер', quartermaster: 'Казначей', veteran: 'Ветеран', member: 'Участник', recruit: 'Новичок'};
+  const MEDAL = {1: '🥇', 2: '🥈', 3: '🥉'};
+  const pbar = (cur, max, label, cls = '') => h('div', {class: 'ae-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
+  function openClanHQ(startTab = 'main') {
+    let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '';
+    const load = async () => { try { d = await api('/api/ae-clanx'); clanX = d; clanXAt = Date.now(); err = ''; } catch (e) { err = cleanError(e); } rer(); };
+    const rer = () => { if (openPanelState === st) st.rerender(); };
+    const loadTab = async t => {
+      try { if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
+      rer();
+    };
+    const go = t => { tab = t; rer(); loadTab(t); };
+    const claimGoal = async g => { try { const r = await api('/api/ae-clanx/goal/claim', 'POST', {key: g.key}); applyReward(r.reward); sfx.play('coins'); bigBanner(`🎯 Награда клана: ${rewardText(r.reward)}`, false); await load(); } catch (e) { toast(cleanError(e)); } };
+    const openChest = async () => { try { const r = await api('/api/ae-clanx/chest', 'POST', {}); applyReward(r.reward); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} bigBanner(`🎁 Клановый сундук: ${rewardText(r.reward)}`, !!r.reward.fragments); await load(); } catch (e) { toast(cleanError(e)); } };
+    const st = openPanel('🏰 Штаб клана', body => {
+      if (err) return body.append(h('p', {class: 'ae-empty'}, err));
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      if (!d.clan) { body.append(h('p', {class: 'ae-empty'}, 'Вы не состоите в клане.'), h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); openClanSearch(); }}, '🔍 Найти клан')); return; }
+      const c = d.clan, officer = ['owner', 'officer'].includes(d.role), place = d.season.find(x => x.clan === c.id)?.place;
+      body.append(h('div', {class: 'ae-hq-head'}, h('span', {class: 'ae-hq-emblem'}, c.emblem || '🛡️'),
+        h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`, place ? ' ' + MEDAL[place] : ''), h('div', {class: 'ae-sub'}, `Ур. ${c.level} · ${c.members}/${c.max} участников · вы: ${ROLE_RU[d.role] || d.role}`),
+          pbar(c.xp % 1000, 1000, c.level >= 15 ? 'Максимальный уровень' : `До ур. ${c.level + 1}: ${fmt(c.xp % 1000)} / 1000 XP`, 'is-mp'))));
+      const tabs = [['main', '🏰 Штаб'], ['members', '📊 Вклад'], ['top', '🏆 Рейтинг'], ...(officer ? [['requests', `📨 Заявки${d.requests ? ' ' + d.requests : ''}`], ['settings', '⚙️']] : [])];
+      body.append(h('div', {class: 'ae-tabs'}, tabs.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => go(k)}, l))));
+      if (tab === 'main') {
+        const b = d.bonus;
+        body.append(h('div', {class: 'ae-hq-bonus'}, h('b', {}, '✨ Бонусы клана для всех участников'),
+          h('div', {class: 'ae-hq-pills'}, h('span', {}, `+${b.exp}% опыта`), h('span', {}, `+${b.gold}% золота`), h('span', {}, `+${b.loot}% к шансу редкой добычи`)),
+          h('small', {}, b.champion ? `${MEDAL[b.champion]} Включая бонус чемпиона недели. ` : '', 'Растут с уровнем клана: +2% опыта и золота, +3% к добыче за каждый уровень.')));
+        body.append(h('div', {class: 'ae-card ae-hq-chest' + (d.chest.ready ? ' is-ready' : '')}, h('span', {class: 'ae-hq-ic'}, '🎁'),
+          h('div', {class: 'ae-grow'}, h('b', {}, 'Ежедневный сундук клана'), h('div', {class: 'ae-sub'}, `${fmt(d.chest.preview.gold)} 🪙 · ${fmt(d.chest.preview.silver)} 🥈 · ${fmt(d.chest.preview.exp)} опыта · ✦ ${d.chest.preview.fragChance}%${d.chest.preview.ticketChance ? ` · 🎟️ ${d.chest.preview.ticketChance}%` : ''}`)),
+          d.chest.ready ? h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: openChest}, 'Открыть') : h('span', {class: 'ae-sub'}, `через ${untilText(d.chest.next)}`)));
+        body.append(h('h3', {class: 'ae-h3'}, '🎯 Задания клана'));
+        for (const g of d.goals) body.append(h('div', {class: 'ae-card ae-hq-goal' + (g.done ? ' is-done' : '')},
+          h('div', {class: 'ae-row'}, h('span', {class: 'ae-hq-ic'}, g.icon), h('div', {class: 'ae-grow'}, h('b', {}, g.name), h('div', {class: 'ae-sub'}, `${g.kind === 'day' ? 'Задание дня' : 'Задание недели'}${g.past ? ' (прошлое)' : g.endsAt ? ' · осталось ' + untilText(g.endsAt) : ''} · награда каждому: ${rewardText(g.reward)}`))),
+          pbar(g.prog, g.target, `${fmt(g.prog)} / ${fmt(g.target)}`),
+          g.canClaim ? h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => claimGoal(g)}, '🎁 Забрать награду') : g.claimed ? h('div', {class: 'ae-sub ae-good'}, '✅ Награда получена') : g.done ? h('div', {class: 'ae-sub'}, 'Выполнено до вашего вступления') : ''));
+        body.append(h('p', {class: 'ae-sub'}, 'Засчитывается всё, что делают участники: монстры, боссы, дуэли и арена, подземелья, добыча руды, зелья и рейд. Награду получает каждый участник клана.'));
+        const r = d.raid;
+        body.append(h('div', {class: 'ae-card ae-hq-raid'}, h('div', {class: 'ae-row'}, h('span', {class: 'ae-hq-ic'}, '🐲'), h('div', {class: 'ae-grow'}, h('b', {}, 'Страж клановых врат'), h('div', {class: 'ae-sub'}, r.hp > 0 ? `Пошаговый бой: 12 ходов, навыки и связки с соклановцами. Сброс через ${untilText(r.resetAt)}.` : 'Повержен на этой неделе!'))),
+          pbar(r.hp, r.max, `${fmt(r.hp)} / ${fmt(r.max)} HP`, 'is-foe'),
+          h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', disabled: (!r.run && (r.doneToday || r.hp <= 0)), onclick: () => { closePanel(); openClanRaid(); }},
+            r.run ? (r.run.status === 'active' ? '⚔️ Продолжить бой' : '🎁 Итоги боя') : r.hp <= 0 ? 'Страж повержен' : r.doneToday ? 'Бой уже был сегодня' : '⚔️ В бой со Стражем')));
+        const w = d.war;
+        body.append(h('div', {class: 'ae-card ae-hq-war'}, h('b', {}, '⚔️ Война кланов'), w && w.foe ? [
+          h('div', {class: 'ae-hq-vs'}, h('span', {}, `${c.emblem} [${c.tag}]`), h('b', {}, `${fmt(w.mine)} : ${fmt(w.theirs)}`), h('span', {}, `[${w.foe.tag}] ${w.foe.emblem}`)),
+          h('div', {class: 'ae-sub'}, `Против «${w.foe.name}» (ур. ${w.foe.level}). Очки вклада всех участников до конца недели (${untilText(w.endsAt)}). Победа: +2000 🪙 в казну и +300 опыта клана, ничья: +1000, поражение: +500.`)]
+          : h('div', {class: 'ae-sub'}, 'Соперник пока не найден — война начнётся, как только появится ещё один клан. Новые войны стартуют каждую неделю.')));
+        body.append(h('div', {class: 'ae-pill'}, `📊 Ваш вклад за неделю: ${fmt(d.myPts)} · клан: ${fmt(d.weekPts)}`));
+        body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openClanInvite(); }}, '👥 Позвать друзей'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openCoop(); }}, '🤝 Кооп с соклановцами')));
+        body.append(h('p', {class: 'ae-sub'}, '🤝 Если в кооп-подземелье с вами соклановец — награда +20% и выше шанс осколка.'));
+      }
+      if (tab === 'members') {
+        if (!mem) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+        if (mem.mvp) body.append(h('div', {class: 'ae-pill'}, `👑 Лучший прошлой недели: ${mem.mvp.name} — ${fmt(mem.mvp.pts)} очков`));
+        body.append(h('p', {class: 'ae-sub'}, 'Очки за неделю: монстр 1, босс 5, подземелье 8, победа в дуэли или на арене 4, зелье 1, 5 руды 1, бой со Стражем 10 + 1 за каждые 100 урона.'));
+        mem.members.forEach((m, i) => body.append(h('div', {class: 'ae-card ae-row ae-hq-mem' + (m.away >= 3 ? ' is-away' : '')},
+          h('span', {class: 'ae-hq-rank'}, i < 3 && m.week ? MEDAL[i + 1] : `${i + 1}`), h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}),
+          h('div', {class: 'ae-grow'}, h('b', {}, m.name), h('div', {class: 'ae-sub'}, `${ROLE_RU[m.role] || m.role} · ур. ${m.level} · ${m.away <= 0 ? 'сегодня в игре' : m.away >= 3 ? `⚠️ не заходил ${m.away} дн.` : `был ${m.away} дн. назад`}`),
+            h('div', {class: 'ae-sub'}, `⚔️ ${m.detail.kills} · 👹 ${m.detail.bosses} · 🤺 ${m.detail.duels} · 🏰 ${m.detail.dungeons} · 🐲 ${fmt(m.raid)}`)),
+          h('div', {class: 'ae-hq-pts'}, h('b', {}, fmt(m.week)), h('small', {}, `всего ${fmt(m.total)}`)),
+          d.role === 'owner' && m.role !== 'owner' && m.away >= 3 ? h('button', {class: 'ae-btn', type: 'button', onclick: async () => {
+            if (!confirm(`Исключить ${m.name} из клана? Не заходил ${m.away} дн.`)) return;
+            try { await api('/api/clan/manage', 'POST', {action: 'kick', targetId: m.id}); toast(`${m.name} исключён`); loadTab('members'); } catch (e) { toast(cleanError(e)); } }}, 'Исключить') : '')));
+        if (d.role === 'owner') body.append(h('p', {class: 'ae-sub'}, 'Неактивных 3+ дня глава может исключить прямо здесь. Если сам глава не заходит 3 дня, лидерство переходит к самому сильному активному участнику.'));
+      }
+      if (tab === 'top') {
+        if (!topD) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+        body.append(h('div', {class: 'ae-hq-bonus'}, h('b', {}, `🏆 Рейтинг недели · итоги через ${untilText(topD.endsAt)}`),
+          h('small', {}, `Топ-3 по очкам вклада получают в казну ${topD.prizes.map(fmt).join(' / ')} 🪙, опыт клана и бонус чемпиона на неделю (+5/+3/+2% к опыту и золоту). У участников тег клана отмечается медалью.`)));
+        topD.week.forEach((x, i) => body.append(h('div', {class: 'ae-card ae-row' + (x.id === c.id ? ' ae-hq-mine' : '')}, h('span', {class: 'ae-hq-rank'}, i < 3 && x.week ? MEDAL[i + 1] : `${i + 1}`), h('span', {class: 'ae-hq-ic'}, x.emblem),
+          h('div', {class: 'ae-grow'}, h('b', {}, `[${x.tag}] ${x.name}`, x.place ? ' ' + MEDAL[x.place] : ''), h('div', {class: 'ae-sub'}, `ур. ${x.level} · ${x.members}/${x.max} · урон рейду ${fmt(x.raid)}`)), h('div', {class: 'ae-hq-pts'}, h('b', {}, fmt(x.week)), h('small', {}, 'очков')))));
+        if (topD.season.length) body.append(h('p', {class: 'ae-sub'}, 'Прошлая неделя: ' + topD.season.map(x => `${MEDAL[x.place]} [${x.tag}] ${fmt(x.pts)}`).join(' · ')));
+      }
+      if (tab === 'requests') {
+        if (!reqs) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+        if (!reqs.length) body.append(h('p', {class: 'ae-empty'}, 'Новых заявок нет. Закройте открытый набор в настройках клана — тогда игроки смогут вступать только по заявке или приглашению.'));
+        for (const q of reqs) body.append(h('div', {class: 'ae-card'}, h('div', {class: 'ae-row'}, h('img', {class: 'ae-avatar', src: heroPortrait(q.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, q.name), h('div', {class: 'ae-sub'}, `ур. ${q.level} · ${CLASS_RU2[q.classId] || q.classId}`))),
+          q.msg ? h('p', {class: 'ae-sub'}, `«${q.msg}»`) : '',
+          h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: async () => { try { await api('/api/ae-clanx/request/decide', 'POST', {id: q.id, accept: true}); toast(`${q.name} принят(а) в клан`); sfx.play('bell'); await load(); loadTab('requests'); } catch (e) { toast(cleanError(e)); } }}, '✅ Принять'),
+            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: async () => { try { await api('/api/ae-clanx/request/decide', 'POST', {id: q.id, accept: false}); await load(); loadTab('requests'); } catch (e) { toast(cleanError(e)); } }}, 'Отклонить'))));
+      }
+      if (tab === 'settings') {
+        const welcome = h('textarea', {class: 'ae-input', rows: '3', maxlength: '200', placeholder: 'Например: Привет! Бей Стража каждый день и заходи в чат 🙂'}); welcome.value = c.welcome || '';
+        let emblem = c.emblem || '🛡️';
+        const grid = h('div', {class: 'ae-hq-emblems'}, d.emblems.map(e => h('button', {type: 'button', class: 'ae-hq-em' + (e === emblem ? ' is-on' : ''), onclick: ev => { emblem = e; grid.querySelectorAll('.ae-hq-em').forEach(b => b.classList.toggle('is-on', b === ev.currentTarget)); }}, e)));
+        body.append(h('h3', {class: 'ae-h3'}, 'Эмблема клана'), grid, h('h3', {class: 'ae-h3'}, 'Приветствие новичкам'), welcome,
+          h('p', {class: 'ae-sub'}, 'Каждый новый участник увидит это сообщение при входе в игру.'),
+          h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: async () => { try { await api('/api/ae-clanx/settings', 'POST', {welcome: welcome.value, emblem}); toast('Сохранено'); await load(); } catch (e) { toast(cleanError(e)); } }}, '💾 Сохранить'),
+          h('p', {class: 'ae-sub'}, 'Описание клана, открытый набор, минимальный уровень, роли, исключение и передача лидерства — в Доме клана (блок «Устройство клана»).'));
+      }
+    }, {cls: 'ae-hq-panel'});
+    load().then(() => { if (tab !== 'main') loadTab(tab); });
+  }
+  // ---------- the Gate Guardian: a real turn-based fight ----------
+  function openClanRaid() {
+    let run = null, busy = false, skillsOpen = false, err = '';
+    const rer = () => { if (openPanelState === st) st.rerender(); };
+    const act = async (action, skillId) => {
+      if (busy || !run || run.status !== 'active') return; busy = true;
+      const before = run.foe.hp, hp0 = run.hp;
+      try { run = (await api('/api/ae-clanx/raid/act', 'POST', {action, skillId})).run; sfx.play(run.foe.hp < before ? 'hit' : 'tick', 0.4);
+        if (run.foe.hp < before) floatAt('[data-bv-foe]', '−' + fmt(before - run.foe.hp), 'is-dmg'); if (run.hp < hp0) floatAt('[data-bv-hero]', '−' + fmt(hp0 - run.hp), 'is-hurt');
+        if (run.status === 'ended') { sfx.play(run.result?.defeated ? 'coins' : 'fail', 0.5); loadClanX(true); } }
+      catch (e) { toast(cleanError(e)); } finally { busy = false; rer(); }
+    };
+    const floatAt = (sel, text, cls) => requestAnimationFrame(() => { const el = st.body.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * 0.45}px;top:${r.top + r.height * 0.25}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); });
+    const claim = async () => { try { const r = await api('/api/ae-clanx/raid/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); toast('Награда: ' + rewardText(r.reward)); } closePanel(); setTimeout(() => clickPlace('clan'), 300); } catch (e) { toast(cleanError(e)); } };
+    const st = openPanel('🐲 Страж клановых врат', body => {
+      if (err) return body.append(h('p', {class: 'ae-empty'}, err), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openClanHQ(); }}, '← В штаб клана'));
+      if (!run) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      battleMode(body, run.status === 'active');
+      if (run.status === 'active') {
+        const cls = me()?.classId || 'warrior', ph = run.phase;
+        body.append(battleView({location: 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: '/assets/catacombs-DeUOVUij.webp',
+          turn: 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
+          hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
+          foe: {name: 'Страж клановых врат', level: 'Рейдовый босс', hp: run.foe.hp, maxHp: run.foe.maxHp, img: '/assets/sprites/generated/monsters/v_cr_colossus.webp'},
+          note: run.log.at(-1),
+          intent: run.heavyNext ? {label: 'Страж готовит:', name: '💢 Сокрушающий удар', text: 'Двойной урон на следующем ходу — самое время встать в защиту.', value: '×2'} : {label: 'Фаза:', name: ph.name, text: ph.text},
+          series: {label: 'Урон за бой', value: fmt(run.dealt), sub: run.ally ? `🤝 Связка от ${run.ally.name} ждёт ваш атакующий навык` : 'Ваш навык с эффектом станет связкой для следующего соклановца'},
+          actions: [{kind: 'attack', label: 'Атака', onClick: () => act('attack')},
+            {kind: 'skill', label: 'Навыки', attr: {'aria-expanded': String(skillsOpen)}, onClick: () => { skillsOpen = !skillsOpen; rer(); }},
+            {kind: 'defend', label: 'Защита', sub: '−50% урона, +мана', onClick: () => act('defend')},
+            {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => act('potion')}],
+          secondary: [{label: 'Отступить', onClick: async () => { if (!confirm('Отступить? Нанесённый урон засчитается, но новый бой — только завтра.')) return; try { run = (await api('/api/ae-clanx/raid/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } rer(); }}],
+          log: run.log, menu: skillsOpen ? skillMenu({mp: run.mp, onClose: () => { skillsOpen = false; rer(); }, onUse: k => { skillsOpen = false; act('skill', k.id); }}) : null}));
+        return;
+      }
+      const r = run.result || {};
+      body.append(h('div', {class: 'ae-card ae-result ' + (r.defeated ? 'is-win' : '')}, h('b', {}, r.defeated ? '🏆 Страж клановых врат повержен!' : `⚔️ Урон по Стражу: ${fmt(r.total || run.dealt)}`),
+        h('div', {class: 'ae-sub'}, `Здоровье Стража: ${fmt(run.foe.hp)} / ${fmt(run.foe.maxHp)}${r.combos ? ` · связок с соклановцами: ${r.combos}` : ''}`),
+        r.item?.item_json ? h('div', {class: 'ae-sub ae-good'}, `🎁 Недельный трофей рейда: ${r.item.item_json.name} — в «Моих серверных вещах» клана`) : '',
+        r.reward ? h('div', {class: 'ae-sub'}, `Награда за бой: ${rewardText(r.reward)}`) : ''));
+      body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: claim}, '🎁 Забрать и вернуться'));
+      body.append(h('div', {class: 'ae-log'}, run.log.slice().reverse().slice(0, 8).map(l => h('div', {}, l))));
+    }, {cls: 'ae-horde-panel'});
+    (async () => {
+      try { const o = await api('/api/ae-clanx'); const cur = o?.raid?.run;
+        run = cur || (await api('/api/ae-clanx/raid/start', 'POST', {})).run; } catch (e) { err = cleanError(e); }
+      rer();
+    })();
+  }
+  // ---------- clan search + join requests ----------
+  function openClanSearch() {
+    let d = null, onlyOpen = false;
+    const load = async () => { try { d = await api('/api/ae-clanx/search'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const st = openPanel('🔍 Поиск клана', body => {
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      if (d.inClan) body.append(h('p', {class: 'ae-note'}, 'Вы уже в клане. Чтобы перейти в другой, сначала выйдите из текущего в Доме клана.'));
+      else body.append(h('div', {class: 'ae-hq-bonus'}, h('b', {}, 'Зачем клан?'), h('small', {}, 'Ежедневный сундук, до +30% опыта и золота, клановые задания с наградой каждому, рейд на Стража врат, войны кланов и +20% в кооп-подземельях с соклановцами.')));
+      body.append(h('div', {class: 'ae-tabs'}, [[false, 'Все кланы'], [true, 'Открытый набор']].map(([v, l]) => h('button', {type: 'button', class: 'ae-tab' + (onlyOpen === v ? ' is-on' : ''), onclick: () => { onlyOpen = v; st.rerender(); }}, l))));
+      const list = d.clans.filter(c => !onlyOpen || c.open);
+      if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Кланов пока нет — создайте первый в Доме клана!'));
+      for (const c of list) {
+        const low = d.myLevel < c.minLevel, full = c.members >= c.max;
+        body.append(h('div', {class: 'ae-card'}, h('div', {class: 'ae-row'}, h('span', {class: 'ae-hq-ic'}, c.emblem),
+          h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`, c.place ? ' ' + MEDAL[c.place] : ''), h('div', {class: 'ae-sub'}, `ур. ${c.level} · ${c.members}/${c.max} · активны ${c.active} · с ${c.minLevel} ур. · ${c.open ? '🟢 открытый набор' : '🔒 по заявке'}`))),
+          c.desc ? h('p', {class: 'ae-sub'}, c.desc) : '',
+          d.inClan ? '' : full ? h('div', {class: 'ae-sub'}, 'Мест нет') : low ? h('div', {class: 'ae-sub'}, `Нужен ${c.minLevel} уровень`)
+            : c.open ? h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: async () => { try { await api(`/api/clan/${c.id}/join`, 'POST', {}); sfx.play('bell'); bigBanner(`🛡️ Вы вступили в клан [${c.tag}] «${c.name}»!`, false); closePanel(); setTimeout(() => clickPlace('clan'), 500); } catch (e) { toast(cleanError(e)); } }}, '🛡️ Вступить')
+            : c.requested ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: async () => { try { await api('/api/ae-clanx/request/cancel', 'POST', {clanId: c.id}); toast('Заявка отозвана'); load(); } catch (e) { toast(cleanError(e)); } }}, '⏳ Заявка отправлена · отозвать')
+            : h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: async () => { const msg = prompt('Пара слов главе клана (необязательно):', '') ?? null; if (msg === null) return;
+              try { await api('/api/ae-clanx/request', 'POST', {clanId: c.id, msg}); toast('Заявка отправлена — глава получит уведомление'); sfx.play('bell'); load(); } catch (e) { toast(cleanError(e)); } }}, '📨 Подать заявку')));
+      }
+    });
+    load();
+  }
+  // HQ / search buttons in the Clan House; the native «Удар» opens the real fight.
+  function injectClanHQ() {
+    const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
+    if (leave && !leave.parentElement.querySelector(':scope > [data-ae-clan-hq]')) {
+      const n = clanX?.clan ? (clanX.chest?.ready ? 1 : 0) + (clanX.goals || []).filter(g => g.canClaim).length + (clanX.requests || 0) : 0;
+      leave.before(h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide ae-hq-btn', 'data-ae-clan-hq': '1', onclick: () => openClanHQ()}, '🏰 Штаб клана', h('small', {}, 'сундук · задания · вклад · рейтинг · война'), n ? h('i', {class: 'ae-hq-badge'}, String(n)) : ''));
+      loadClanX(true).then(() => { const b = document.querySelector('[data-ae-clan-hq]'); const k = clanX?.clan ? (clanX.chest?.ready ? 1 : 0) + (clanX.goals || []).filter(g => g.canClaim).length + (clanX.requests || 0) : 0; if (b && k && !b.querySelector('.ae-hq-badge')) b.append(h('i', {class: 'ae-hq-badge'}, String(k))); });
+    }
+    const strike = [...document.querySelectorAll('main button')].find(b => /^Удар$/.test((b.textContent || '').trim()) && /Страж клановых врат/.test(b.closest('section, div')?.parentElement?.textContent || ''));
+    if (strike && !strike.dataset.aeRaid) {
+      strike.dataset.aeRaid = '1'; strike.textContent = '⚔️ В бой';
+      strike.addEventListener('click', e => { e.preventDefault(); e.stopImmediatePropagation(); openClanRaid(); }, true);
+      const note = [...strike.closest('section, div').parentElement.querySelectorAll('p')].find(p => /Один удар в сутки/.test(p.textContent || ''));
+      if (note && !note.dataset.aeRaid) { note.dataset.aeRaid = '1'; note.textContent = 'Пошаговый бой раз в сутки: 12 ходов, навыки, защита и связки с соклановцами. ' + note.textContent.replace(/^Один удар в сутки\.\s*/, ''); }
+    }
+    if (!leave && !document.querySelector('[data-ae-clan-search]')) {
+      const create = [...document.querySelectorAll('main button')].find(b => /Создать клан/.test(b.textContent || ''));
+      if (create) create.parentElement.before(h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide ae-hq-btn', 'data-ae-clan-search': '1', onclick: () => openClanSearch()}, '🔍 Найти клан', h('small', {}, 'открытые кланы и заявки в закрытые')));
+    }
+  }
+  // Report activity to the clan (kills, bosses, dungeons, ore, potions) and apply clan bonuses to battle rewards.
+  let cxSnap = null, cxPend = {}, cxFlushAt = 0, bonusSnap = null;
+  function clanTick() {
+    const p = me(), b = B(); if (!p?.statsSummary) return;
+    const s = p.statsSummary, cur = {uid: p.userId, kills: s.monstersKilled || 0, bosses: s.bossesDefeated || 0, dungeons: s.dungeonsCleared || 0, ores: s.oresMined || 0, potions: s.potionsCrafted || 0};
+    if (cxSnap && cxSnap.uid === cur.uid) for (const k of ['kills', 'bosses', 'dungeons', 'ores', 'potions']) { const dlt = cur[k] - cxSnap[k]; if (dlt > 0 && dlt < 60) cxPend[k] = (cxPend[k] || 0) + dlt; }
+    cxSnap = cur;
+    if (Object.keys(cxPend).length && Date.now() - cxFlushAt > 20000) { cxFlushAt = Date.now(); const send = cxPend; cxPend = {}; api('/api/ae-clanx/progress', 'POST', send).catch(() => {}); }
+    const bn = clanX?.clan ? clanX.bonus : null, won = s.battlesWon || 0;
+    const prev = bonusSnap; bonusSnap = {uid: p.userId, won, gold: p.gold || 0, exp: p.exp || 0, level: p.level || 1};
+    if (!bn || !prev || prev.uid !== p.userId || won <= prev.won || won - prev.won > 3 || !b?.setPlayer) return;
+    const dg = (p.gold || 0) - prev.gold, de = (p.level || 1) === prev.level ? (p.exp || 0) - prev.exp : 0;
+    const addG = dg > 0 ? Math.round(dg * bn.gold / 100) : 0, addE = de > 0 ? Math.round(de * bn.exp / 100) : 0;
+    if (!addG && !addE) return;
+    b.setPlayer(x => { if (!x) return x; const n = {...x, gold: (x.gold || 0) + addG}; return addE && b.gainExp ? b.gainExp(n, addE).player : n; });
+    bonusSnap.gold += addG;
+    const el = h('div', {class: 'ae-clan-bonus-pop'}, `🛡️ Бонус клана: ${[addG && `+${fmt(addG)} 🪙`, addE && `+${fmt(addE)} опыта`].filter(Boolean).join(' · ')}`); document.body.append(el); setTimeout(() => el.remove(), 2200);
+  }
+  setInterval(() => { try { clanTick(); } catch (e) { console.warn('ae clan', e); } }, 1000);
+  setTimeout(() => loadClanX(), 6000); setInterval(() => loadClanX(), 600000);
   function renderChatItems() {
     for (const el of document.querySelectorAll('main *, .game-dialog-backdrop *')) {
       if (!el.childElementCount && COOP_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
@@ -1707,7 +1923,7 @@
     }
     if (e.kind === 'trade_paid' && b) { if (!tradeDone().has('paid:' + e.data?.offerId)) { markTrade('paid:' + e.data?.offerId); b.setPlayer(p => p && {...p, gold: (p.gold || 0) + (Number(e.data?.gold) || 0)}); } }
     if (e.kind === 'trade_return' && b && e.data?.item) { if (!tradeDone().has('ret:' + e.data.offerId)) { markTrade('ret:' + e.data.offerId); giveItem(e.data.item); } }
-    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : [null, null];
+    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
     popup({icon: e.icon || '🔔', text: e.text, act: act[0], fn: act[1]});
   }
 
@@ -2628,7 +2844,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -2646,6 +2862,21 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-tabs{flex-shrink:0}.ae-hq-panel .ae-body>*,.ae-horde-panel .ae-body>*{flex-shrink:0}
+.ae-hq-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}.ae-hq-head b{font-size:16px}.ae-hq-emblem{font-size:34px;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:#ffffff10;border:1px solid #e5ce9655}
+.ae-hq-bonus{padding:10px 12px;border-radius:12px;border:1px solid #e5ce9655;background:linear-gradient(135deg,#e5ce9618,#ffffff05);margin:8px 0;display:flex;flex-direction:column;gap:6px}.ae-hq-bonus small{opacity:.8;font-size:12px;line-height:1.35}
+.ae-hq-pills{display:flex;flex-wrap:wrap;gap:6px}.ae-hq-pills span{padding:3px 9px;border-radius:999px;background:#22c55e22;border:1px solid #22c55e66;color:#bbf7d0;font-size:12px;font-weight:700}
+.ae-hq-ic{font-size:24px;width:34px;text-align:center;flex:none}.ae-hq-chest.is-ready{border-color:#facc15aa;box-shadow:0 0 0 1px #facc1544,0 0 18px #facc1522}
+.ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
+.ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
+.ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
+.ae-hq-mem.is-away{opacity:.72}.ae-hq-mine{border-color:#facc15aa}
+.ae-hq-emblems{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.ae-hq-em{font-size:24px;padding:6px 0;border-radius:10px;border:1px solid #ffffff22;background:#ffffff08;cursor:pointer}.ae-hq-em.is-on{border-color:#facc15;background:#facc1522}
+.ae-hq-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0}.ae-hq-btn small{opacity:.8;font-size:11px;font-weight:500}.ae-hq-badge{position:absolute;top:-6px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font:700 12px/20px system-ui;font-style:normal}
+.ae-clan-tag.is-p1{border-color:#facc15;box-shadow:0 0 6px #facc1588}.ae-clan-tag.is-p2{border-color:#cbd5e1;box-shadow:0 0 5px #cbd5e188}.ae-clan-tag.is-p3{border-color:#d97706;box-shadow:0 0 5px #d9770688}
+.ae-clan-bonus-pop{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:9999;padding:6px 12px;border-radius:999px;background:#14532dee;border:1px solid #22c55e;color:#dcfce7;font:700 12.5px system-ui;pointer-events:none;animation:aeFadeUp 2.2s ease forwards}
+@keyframes aeFadeUp{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-10px)}}
+
 .ae-admin-head{position:sticky;top:-16px;z-index:5;background:inherit;background-color:#0c0d1c;padding-top:6px;padding-bottom:6px}html[data-interface=fantasy] .ae-admin-head{background-color:#1b1712}
 .ae-wiki-table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0;table-layout:fixed}.ae-wiki-table th:first-child,.ae-wiki-table td:first-child{width:30%}.ae-wiki-table th,.ae-wiki-table td{border:1px solid #ffffff22;padding:4px 6px;text-align:center}.ae-wiki-table td:first-child,.ae-wiki-table th:first-child{text-align:left}.ae-wiki-table th{color:#e5ce96}
 .ae-clan-invite{margin:8px 0;gap:8px}.ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
@@ -2969,5 +3200,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

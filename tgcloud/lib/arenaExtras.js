@@ -5,6 +5,7 @@ const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400
 const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_id, id));
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
+import {creditDuel} from './clanPlus.js';
 import {realStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, outMult, inMult, gemProcs} from './skills.js';
 const DAY = 864e5;
@@ -261,7 +262,7 @@ export async function handleDuel(world, path, method, body, me, now, notify) {
     if (mine.a.hp <= 0 || mine.b.hp <= 0 || mine.turn > 40) {
       if (mine.turn > 40 && mine.a.hp > 0 && mine.b.hp > 0) { if (mine.a.hp / mine.a.maxHp >= mine.b.hp / mine.b.maxHp) mine.b.hp = 0; else mine.a.hp = 0; mine.log.push({text: 'Время вышло — победа по очкам здоровья.'}); }
       const {defender} = finishDuel(world, mine, now);
-      logQuest(world, me, 'duel_fight', now); if (mine.status === 'won') logQuest(world, me, 'duel_win', now);
+      logQuest(world, me, 'duel_fight', now); if (mine.status === 'won') { logQuest(world, me, 'duel_win', now); creditDuel(world, me, now); }
       notify?.(world, mine.defender, mine.status === 'won' ? `⚔️ ${mine.a.name} победил(а) вашу тень в дуэли. Ответьте вызовом!` : `🛡️ Ваша тень отразила вызов ${mine.a.name} в дуэли!`, 'duel:' + me, now);
     }
     return ok({duel: duelView(mine)});
@@ -411,7 +412,7 @@ export function handleTrade(world, path, method, body, me, now, notify) {
 function reportArena(world, userId, body, now) {
   const from = periodStart('day', now), n = rows(world, 'ae_quest_log').filter(r => same(r.u, userId) && r.k === 'arena_fight' && Date.parse(r.at) >= from).length;
   if (n >= 30) return ok({ok: true, capped: true});
-  logQuest(world, userId, 'arena_fight', now); if (body.won === true) logQuest(world, userId, 'arena_win', now);
+  logQuest(world, userId, 'arena_fight', now); if (body.won === true) { logQuest(world, userId, 'arena_win', now); creditDuel(world, userId, now); }
   return ok({ok: true});
 }
 export function handleExtras(world, input, user, now, notify) {
