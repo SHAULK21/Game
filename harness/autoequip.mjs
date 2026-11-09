@@ -15,5 +15,8 @@ await p.waitForTimeout(1500); console.log('start:', await eq(), await pw());
 await p.waitForTimeout(9000);
 console.log('after:', await eq(), await pw());
 console.log('toasts:', await p.locator('.ae-toast').allInnerTexts());
+await p.reload(); await p.waitForTimeout(1500);
+const changes = await p.evaluate(async () => { let last = '', n = 0; for (let i = 0; i < 160; i++) { const e = JSON.stringify(window.__aethBridge?.player?.equipped || {}); if (last && e !== last) n++; last = e; await new Promise(r => setTimeout(r, 60)); } return n; });
+console.log('equip changes in 10s after reload:', changes, '|', await eq());
 console.log(s.log.filter(l => /pageerror|ae autoequip/.test(l)).slice(0, 3).join('\n'));
 await s.close();

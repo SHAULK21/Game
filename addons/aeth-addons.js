@@ -789,32 +789,46 @@
   }
   const quickScore = i => Object.values(i.stats || {}).reduce((a, v) => a + (Number(v) || 0), 0) * (1 + 0.1 * (i.upgradeLevel || 0)) * (1 + 0.1 * (ascOf(i) || 0));
   const frame = () => new Promise(r => setTimeout(r, 120));
+  // Items already judged are remembered on the device, so a restart re-checks nothing; only new items are tried.
+  const autoSeenKey = () => 'aeth_autoequip_seen_' + uid();
+  const autoSeenIds = () => { try { return new Set(JSON.parse(localStorage.getItem(autoSeenKey()) || '[]')); } catch { return new Set(); } };
+  const rememberJudged = ids => { const s = autoSeenIds(); ids.forEach(x => s.add(x)); localStorage.setItem(autoSeenKey(), JSON.stringify([...s].slice(-400))); };
+  // Silent swap (the game's own local equip, without its click sound and vibration).
+  const swapLocal = (slot, item) => B().setPlayer(x => {
+    if (!x || !x.inventory.some(i => i.id === item.id)) return x;
+    const worn = x.equipped?.[slot], inv = x.inventory.filter(i => i.id !== item.id);
+    if (worn) inv.push({...worn, isEquipped: false});
+    return {...x, inventory: inv, equipped: {...x.equipped, [slot]: {...item, isEquipped: true}}};
+  });
   async function autoEquip(force) {
-    const b = B(), p = me(); if (!b?.equipItem || !p || autoBusy || !autoOn()) return;
+    const b = B(), p = me(); if (!b?.setPlayer || !p || autoBusy || !autoOn()) return;
     if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat') || openPanelState) return;
     const sig = (p.inventory || []).map(i => i.id).join(',') + '|' + p.level; if (!force && sig === autoSeen) return; autoSeen = sig;
+    const judged = force ? new Set() : autoSeenIds(), lvlKey = 'L' + p.level;
+    const fresh = (p.inventory || []).filter(i => AUTO_SLOTS.includes(i.type) && !judged.has(i.id + '@' + lvlKey) && !judged.has(i.id));
+    if (!fresh.length) return;
     if (!(await isPremium())) return;
-    autoBusy = true; const done = [];
+    autoBusy = true; const done = [], checked = [];
     try {
       for (const slot of AUTO_SLOTS) {
         const cur = me(); if (!cur || cur.worldJourney || document.documentElement.hasAttribute('data-in-combat')) break;
         const worn = cur.equipped?.[slot];
-        const cands = (cur.inventory || []).filter(i => i.type === slot && !i.serverOwned && !i.isLocked && !i.boundToClan && !i.isEquipped && (i.level || 1) <= (cur.level || 1))
-          .sort((a, c) => quickScore(c) - quickScore(a)).slice(0, 3);
+        const cands = fresh.filter(i => i.type === slot && cur.inventory.some(x => x.id === i.id) && !i.serverOwned && !i.isLocked && !i.boundToClan && !i.isEquipped && (i.level || 1) <= (cur.level || 1))
+          .filter(i => !worn || quickScore(i) > quickScore(worn) * 0.9).sort((a, c) => quickScore(c) - quickScore(a)).slice(0, 2);
         for (const c of cands) {
-          if (worn && quickScore(c) < quickScore(worn) * 0.6) continue;
-          const before = heroPower(B().stats, cur.classId), prevId = me().equipped?.[slot]?.id;
-          const r = await b.equipItem(c); if (r && r.success === false) continue;
-          await frame();
+          const before = heroPower(B().stats, cur.classId), prev = me().equipped?.[slot];
+          swapLocal(slot, c); await frame();
           const after = heroPower(B().stats, cur.classId);
-          if (after > before * 1.002) { done.push({name: c.name, gain: after - before}); }
-          else if (prevId) { const back = me().inventory.find(i => i.id === prevId); if (back) { await b.equipItem(back); await frame(); } }
-          else { /* the slot was empty before: keep it on only if not worse */ if (after < before) { const ue = me().equipped?.[slot]; if (ue) b.setPlayer(x => x && {...x, equipped: Object.fromEntries(Object.entries(x.equipped).filter(([k]) => k !== slot)), inventory: [...x.inventory, {...ue, isEquipped: false}]}); } else done.push({name: c.name, gain: after - before}); }
+          if (after > before * 1.002) done.push(c.name);
+          else if (prev) swapLocal(slot, me().inventory.find(i => i.id === prev.id) || prev);
+          else B().setPlayer(x => { const ue = x?.equipped?.[slot]; if (!ue || ue.id !== c.id) return x; const eq = {...x.equipped}; delete eq[slot]; return {...x, equipped: eq, inventory: [...x.inventory, {...ue, isEquipped: false}]}; });
+          if (after <= before * 1.002) await frame();
         }
       }
+      checked.push(...fresh.map(i => i.id + '@' + lvlKey));
     } catch (e) { console.warn('ae autoequip', e); }
-    finally { autoBusy = false; autoSeen = (me()?.inventory || []).map(i => i.id).join(',') + '|' + me()?.level; }
-    if (done.length) { toast(`👑 Автоодевание: ${done.map(d => d.name).join(', ')}`); sfx.play('page'); }
+    finally { rememberJudged(checked); autoBusy = false; autoSeen = (me()?.inventory || []).map(i => i.id).join(',') + '|' + me()?.level; }
+    if (done.length) { toast(`👑 Автоодевание: ${done.join(', ')}`); sfx.play('page'); }
   }
   setInterval(() => { autoEquip().catch(() => {}); }, 4000);
   function autoEquipToggle() {
