@@ -136,10 +136,12 @@
   const free = i => !i.isEquipped && !i.isLocked && !i.boundToClan;
   const mergeKey = i => [baseName(i).toLocaleLowerCase(), i.rarity, i.type, ascOf(i)].join('|');
   const rank = i => (Number(i.level) || 0) * 1000 + (Number(i.upgradeLevel) || 0);
+  // Worn items never merge — including server-held ones, which carry no isEquipped flag (the slot lives on the hero).
+  const wornIds = p => new Set(Object.values(p?.equipped || {}).filter(Boolean).map(e => e.id));
   function mergeGroups(p) {
-    const groups = new Map();
+    const groups = new Map(), worn = wornIds(p);
     for (const i of p.inventory || []) {
-      if (!isGear(i) || !free(i) || ascOf(i) >= MAX_ASC) continue;
+      if (!isGear(i) || !free(i) || worn.has(i.id) || i.equippedSlot || i.equipped_slot || ascOf(i) >= MAX_ASC) continue;
       const key = mergeKey(i);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(i);
@@ -184,7 +186,12 @@
     const release = b.busy ? b.busy() : () => {};
     try {
       const claimed = new Map();
-      for (const it of sameStack ? [base0] : [base0, donor0]) if (it.serverOwned) claimed.set(it.id, await claimFromServer(it));
+      for (const it of sameStack ? [base0] : [base0, donor0]) if (it.serverOwned) {
+        try { claimed.set(it.id, await claimFromServer(it)); }
+        catch (e) {
+          if (claimed.size) b.setPlayer(cur => cur && {...cur, inventory: [...cur.inventory.filter(i => !claimed.has(i.id)), ...claimed.values()]}); // keep what was already released
+          if (/недоступ/i.test(cleanError(e))) throw new Error(`«${baseName(it)}» с сервера сейчас надета или выставлена на рынок — снимите её или верните с рынка.`); throw e; }
+      }
       const base = claimed.get(base0.id) || base0, donor = sameStack ? base : (claimed.get(donor0.id) || donor0);
       const result = {...mergedItem(base, donor), id: 'merge_' + uuid4()};
       const consumed = sameStack ? [base0.id, base.id] : [base0.id, base.id, donor0.id, donor.id];
@@ -763,6 +770,60 @@
 
 
   // ---------- merge button right inside the bag ----------
+  // ---------- Premium: auto-equip better gear ----------
+  // Each candidate is tried on for real and kept only if the hero's combat power (the game's own stats) goes up.
+  const AUTO_SLOTS = ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'];
+  const CASTER = new Set(['mage', 'necromancer', 'druid', 'paladin']);
+  const autoKey = () => 'aeth_autoequip_' + uid();
+  const autoOn = () => localStorage.getItem(autoKey()) !== '0';
+  let premiumActive = null, premiumAt = 0, autoBusy = false, autoSeen = '';
+  async function isPremium() {
+    if (premiumActive !== null && Date.now() - premiumAt < 10 * 60e3) return premiumActive;
+    premiumAt = Date.now(); try { premiumActive = !!(await api('/api/premium/status'))?.active; } catch { premiumActive = premiumActive || false; }
+    return premiumActive;
+  }
+  function heroPower(st, cls) {
+    if (!st) return 0;
+    const atk = CASTER.has(cls) ? Math.max(st.magicAttack || 0, st.attack || 0) : Math.max(st.attack || 0, (st.magicAttack || 0) * 0.5);
+    return atk * 3 + (st.defense || 0) * 1.5 + (st.magicDefense || 0) + (st.maxHp || 0) * 0.25 + (st.maxMp || 0) * 0.05 + (st.critChance || 0) * 8 + (st.critDamage || 0) * 0.5 + (st.speed || 0) + (st.evasion || 0) * 3;
+  }
+  const quickScore = i => Object.values(i.stats || {}).reduce((a, v) => a + (Number(v) || 0), 0) * (1 + 0.1 * (i.upgradeLevel || 0)) * (1 + 0.1 * (ascOf(i) || 0));
+  const frame = () => new Promise(r => setTimeout(r, 120));
+  async function autoEquip(force) {
+    const b = B(), p = me(); if (!b?.equipItem || !p || autoBusy || !autoOn()) return;
+    if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat') || openPanelState) return;
+    const sig = (p.inventory || []).map(i => i.id).join(',') + '|' + p.level; if (!force && sig === autoSeen) return; autoSeen = sig;
+    if (!(await isPremium())) return;
+    autoBusy = true; const done = [];
+    try {
+      for (const slot of AUTO_SLOTS) {
+        const cur = me(); if (!cur || cur.worldJourney || document.documentElement.hasAttribute('data-in-combat')) break;
+        const worn = cur.equipped?.[slot];
+        const cands = (cur.inventory || []).filter(i => i.type === slot && !i.serverOwned && !i.isLocked && !i.boundToClan && !i.isEquipped && (i.level || 1) <= (cur.level || 1))
+          .sort((a, c) => quickScore(c) - quickScore(a)).slice(0, 3);
+        for (const c of cands) {
+          if (worn && quickScore(c) < quickScore(worn) * 0.6) continue;
+          const before = heroPower(B().stats, cur.classId), prevId = me().equipped?.[slot]?.id;
+          const r = await b.equipItem(c); if (r && r.success === false) continue;
+          await frame();
+          const after = heroPower(B().stats, cur.classId);
+          if (after > before * 1.002) { done.push({name: c.name, gain: after - before}); }
+          else if (prevId) { const back = me().inventory.find(i => i.id === prevId); if (back) { await b.equipItem(back); await frame(); } }
+          else { /* the slot was empty before: keep it on only if not worse */ if (after < before) { const ue = me().equipped?.[slot]; if (ue) b.setPlayer(x => x && {...x, equipped: Object.fromEntries(Object.entries(x.equipped).filter(([k]) => k !== slot)), inventory: [...x.inventory, {...ue, isEquipped: false}]}); } else done.push({name: c.name, gain: after - before}); }
+        }
+      }
+    } catch (e) { console.warn('ae autoequip', e); }
+    finally { autoBusy = false; autoSeen = (me()?.inventory || []).map(i => i.id).join(',') + '|' + me()?.level; }
+    if (done.length) { toast(`👑 Автоодевание: ${done.map(d => d.name).join(', ')}`); sfx.play('page'); }
+  }
+  setInterval(() => { autoEquip().catch(() => {}); }, 4000);
+  function autoEquipToggle() {
+    const on = autoOn();
+    return h('button', {type: 'button', class: 'ae-bag-merge ae-autoequip' + (on ? ' has-pairs' : ''), 'data-ae-autoequip': '1', onclick: async () => {
+      if (!(await isPremium())) { toast('👑 Автоодевание доступно с Aethelgard Premium.'); return; }
+      localStorage.setItem(autoKey(), on ? '0' : '1'); toast(on ? 'Автоодевание выключено' : '👑 Автоодевание включено'); document.querySelector('[data-ae-autoequip]')?.replaceWith(autoEquipToggle()); if (!on) autoEquip(true);
+    }}, h('span', {class: 'ae-entry-icon'}, '👑'), h('span', {class: 'ae-grow'}, h('b', {}, `Автоодевание: ${on ? 'вкл' : 'выкл'}`), h('small', {}, 'Premium: сам надевает вещи, которые делают героя сильнее')), h('span', {class: 'ae-coop-go'}, on ? '✓' : '›'));
+  }
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
@@ -772,6 +833,7 @@
       btn = h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-bag-merge': '1', onclick: openMerge}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}), h('small', {})), h('span', {class: 'ae-coop-go'}, '›'));
       anchor.parentElement.insertBefore(btn, anchor.nextSibling);
     }
+    if (!anchor.parentElement.querySelector(':scope > [data-ae-autoequip]')) btn.after(autoEquipToggle());
     const label = n ? `Объединить одинаковые · ${n}` : 'Объединить одинаковые', sub = n ? 'Есть пары для ★ — нажмите, чтобы выбрать' : 'Пар одинаковых вещей пока нет';
     if (btn.querySelector('b').textContent !== label) { btn.querySelector('b').textContent = label; btn.querySelector('small').textContent = sub; btn.classList.toggle('has-pairs', !!n); }
   }
@@ -1903,18 +1965,32 @@
     api('/api/ae-admin/stats').then(r => { d = r; }, e => { err = cleanError(e); }).finally(() => { if (openPanelState === st) st.rerender(); });
   }
   function adminNewsBlock() {
+    let editId = null;
     const title = h('input', {class: 'ae-input', placeholder: 'Заголовок, например: Обновление: связки в коопе', maxlength: 120});
     const text = h('textarea', {class: 'ae-input ae-news-input', rows: 8, placeholder: 'Текст поста (как в канале). **жирный**, `ПРОМОКОД`'});
     const toChannel = h('input', {type: 'checkbox'});
-    const publish = async () => {
+    const mode = h('div', {class: 'ae-sub'}), go = h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button'}, 'Опубликовать'), cancel = h('button', {class: 'ae-btn ae-wide', type: 'button', style: 'display:none'}, 'Отменить правку');
+    const list = h('div', {class: 'ae-admin-list'});
+    const chMsg = c => c === 'sent' ? ' и в канале' : c === 'edited' ? ', в канале тоже изменено' : c === 'deleted' ? ', из канала тоже удалено' : c === 'not-in-channel' ? ' (в канале этого поста нет — правьте там вручную)' : c ? ` (канал: ${String(c).replace(/^failed: /, '')})` : '';
+    const setEdit = post => { editId = post?.id || null; title.value = post?.title || ''; text.value = post?.text || '';
+      mode.textContent = post ? `✏️ Правка поста «${post.title}»${post.inChannel ? ' — изменится и в канале' : ''}` : ''; go.textContent = post ? 'Сохранить изменения' : 'Опубликовать'; cancel.style.display = post ? '' : 'none';
+      toChannel.checked = false; toChannel.parentElement && (toChannel.parentElement.style.display = post?.inChannel ? 'none' : ''); if (post) title.scrollIntoView({behavior: 'smooth', block: 'center'}); };
+    const load = async () => { try { const r = await api('/api/admin/news'); list.replaceChildren(...(r.posts || []).map(p => h('div', {class: 'ae-row ae-card'},
+      h('div', {class: 'ae-grow'}, h('b', {}, p.title), h('div', {class: 'ae-sub'}, `${new Date(p.at).toLocaleDateString('ru-RU')}${p.inChannel ? ' · 📣 в канале' : ''}`)),
+      h('button', {class: 'ae-btn', type: 'button', title: 'Изменить', onclick: () => setEdit(p)}, '✏️'),
+      h('button', {class: 'ae-btn', type: 'button', title: 'Удалить', onclick: async () => { if (!confirm(`Удалить «${p.title}»${p.inChannel ? ' — и из канала' : ''}?`)) return;
+        try { const r2 = await api('/api/admin/news', 'DELETE', {id: p.id}); toast('Удалено из игры' + chMsg(r2.channel)); if (editId === p.id) setEdit(null); await load(); await loadNews(); paintNewsBadges(); } catch (e) { toast(cleanError(e)); } }}, '🗑')))); } catch {} };
+    go.onclick = async () => {
       if (!title.value.trim() || text.value.trim().length < 10) return toast('Заполните заголовок и текст.');
-      if (!confirm('Опубликовать новость в игре' + (toChannel.checked ? ' и в канале' : '') + '?')) return;
-      try { const r = await api('/api/admin/news', 'POST', {title: title.value, text: text.value, toChannel: toChannel.checked, operationId: uuid4()});
-        toast('Опубликовано в игре' + (r.channel === 'sent' ? ' и в канале' : r.channel ? ` (канал: ${r.channel.replace(/^failed: /, '')})` : '')); title.value = ''; text.value = ''; await loadNews(); paintNewsBadges(); }
+      if (!confirm(editId ? 'Сохранить изменения поста?' : 'Опубликовать новость в игре' + (toChannel.checked ? ' и в канале' : '') + '?')) return;
+      try { const r = await api('/api/admin/news', 'POST', {title: title.value, text: text.value, toChannel: toChannel.checked, editId: editId || undefined, operationId: editId ? undefined : uuid4()});
+        toast((editId ? 'Изменено в игре' : 'Опубликовано в игре') + chMsg(r.channel)); setEdit(null); await load(); await loadNews(); paintNewsBadges(); }
       catch (e) { toast(cleanError(e)); }
     };
-    return h('section', {class: 'ae-admin-premium', 'data-ae-admin-news': '1'}, h('div', {class: 'ae-h3'}, '📰 Новости («Что нового»)'), h('div', {class: 'ae-sub'}, 'Текст появится в меню «Что нового» у всех игроков. Галочка отправит его и в канал — работает, если бот администратор канала с правом публикации.'),
-      title, text, h('label', {class: 'ae-row ae-sub'}, toChannel, ' Отправить и в канал t.me/Aethelgardo'), h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: publish}, 'Опубликовать'));
+    cancel.onclick = () => setEdit(null);
+    load();
+    return h('section', {class: 'ae-admin-premium', 'data-ae-admin-news': '1'}, h('div', {class: 'ae-h3'}, '📰 Новости («Что нового»)'), h('div', {class: 'ae-sub'}, 'Текст появится в меню «Что нового» у всех игроков. Правка и удаление поста меняют его и в канале.'),
+      mode, title, text, h('label', {class: 'ae-row ae-sub'}, toChannel, ' Отправить и в канал t.me/Aethelgardo'), go, cancel, h('div', {class: 'ae-h3'}, 'Опубликованные'), list);
   }
   // ---------- one battle screen for every add-on fight: a copy of the game's own monster-combat markup ----------
   // Same classes as the native combat screen, so each interface style (fantasy / modern) dresses it exactly the same way.
@@ -2481,5 +2557,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite()};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite()};
 })();

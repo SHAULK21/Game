@@ -39,10 +39,7 @@ async function handle(input, ctx) {
         allowsWriteToPm: user.allows_write_to_pm === true}, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
       validateNativeWorld(world); return response;
     }, {maxAttempts: input.path === '/api/admin/broadcasts' && String(input.method).toUpperCase() === 'POST' ? 32 : 8});
-    if (input.path === '/api/admin/news' && reply.status === 201 && input.body?.toChannel) {
-      try { await api.sendMessage({chat_id: '@Aethelgardo', text: `${reply.body.post.title}\n\n${reply.body.post.text}`.slice(0, 4096), link_preview_options: {is_disabled: true}}); reply.body.channel = 'sent'; }
-      catch (e) { reply.body.channel = 'failed: ' + (e?.description || e?.message || 'ошибка'); }
-    }
+    if (input.path === '/api/admin/news' && reply.status < 300) reply.body.channel = await syncChannel(input, reply.body);
     if (input.path === '/api/admin/premium/grant' && reply.status === 200 && !reply.body?.replayed)
       await sendPremiumWelcome(Number(input.body.targetId), Number(input.body.days), true);
     if (reply.effect?.method === 'createInvoiceLink') {
@@ -57,4 +54,33 @@ async function handle(input, ctx) {
     console.error('Native game request failed:', error?.code || error?.name || 'UNKNOWN');
     return {status: 503, body: {code: 'RESULT_UNKNOWN', error: 'Результат пока неизвестен. Восстановите операцию перед следующим действием.'}};
   }
+}
+
+// ---------- news → the game's Telegram channel: send, edit and delete the channel copy of a post ----------
+const CHANNEL = '@Aethelgardo';
+const escHtml = t => String(t).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const channelText = post => `<b>${escHtml(post.title)}</b>\n\n${escHtml(post.text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`\n]{1,60})`/g, '<code>$1</code>')}`.slice(0, 4096);
+async function rememberChannelMsg(postId, msgId) {
+  await nativeTransactions.update(PRODUCTION_DOCUMENT, world => {
+    const post = (world.tables.ae_news || []).find(x => x.id === postId); if (post) post.channel = msgId ? {chat: CHANNEL, id: msgId} : undefined;
+    validateNativeWorld(world); return null;
+  });
+}
+async function syncChannel(input, body) {
+  const method = String(input.method || 'GET').toUpperCase();
+  try {
+    if (method === 'DELETE' || input.body?.delete) {
+      const msg = body.removed?.channel; if (!msg) return body.removed ? 'not-in-channel' : undefined;
+      await api.deleteMessage({chat_id: msg.chat, message_id: msg.id}); return 'deleted';
+    }
+    if (method !== 'POST' || !body.post || body.replayed) return undefined;
+    const post = body.post, payload = {text: channelText(post), parse_mode: 'HTML', link_preview_options: {is_disabled: true}};
+    if (body.edited && post.channel) {
+      try { await api.editMessageText({chat_id: post.channel.chat, message_id: post.channel.id, ...payload}); return 'edited'; }
+      catch (e) { if (/not modified/i.test(e?.description || '')) return 'edited'; throw e; }
+    }
+    if (!input.body?.toChannel) return body.edited ? 'not-in-channel' : undefined;
+    const sent = await api.sendMessage({chat_id: CHANNEL, ...payload});
+    await rememberChannelMsg(post.id, sent?.message_id); return 'sent';
+  } catch (e) { return 'failed: ' + (e?.description || e?.message || 'ошибка'); }
 }

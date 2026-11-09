@@ -46,16 +46,25 @@ function handleNews(world, path, method, body, user, now) {
   if (method === 'GET' && path === '/api/news') return ok({posts: list.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30).map(({id, title, text, at}) => ({id, title, text, at}))});
   if (path === '/api/admin/news') {
     if (!user.isAdmin) return fail('Недостаточно прав.', 403);
+    if (method === 'GET') return ok({posts: list.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 20).map(({id, title, text, at, channel}) => ({id, title, text, at, inChannel: !!channel}))});
+    if (method === 'DELETE' || (method === 'POST' && body.delete)) {
+      const removed = list.find(x => x.id === body.id); world.tables.ae_news = list.filter(x => x.id !== body.id);
+      return ok({ok: true, removed: removed || null});
+    }
     if (method === 'POST') {
       const title = String(body.title || '').trim().slice(0, 120), text = String(body.text || '').trim().slice(0, 6000);
       if (!title || text.length < 10) return fail('Нужны заголовок и текст поста.');
+      if (body.editId) {  // edit an existing post (the channel copy is edited by the endpoint after the transaction)
+        const post = list.find(x => x.id === body.editId); if (!post) return fail('Пост не найден.', 404);
+        Object.assign(post, {title, text, edited_at: new Date(now).toISOString()});
+        return ok({post, edited: true});
+      }
       const opId = String(body.operationId || '');
       const dup = opId && list.find(x => x.op === opId); if (dup) return ok({post: dup, replayed: true});
       const post = {id: crypto.randomUUID(), op: opId || null, title, text, at: new Date(now).toISOString()};
       list.push(post); world.tables.ae_news = list.slice(-60);
       return ok({post}, 201);
     }
-    if (method === 'DELETE' || (method === 'POST' && body.delete)) { world.tables.ae_news = list.filter(x => x.id !== body.id); return ok({ok: true}); }
   }
   return fail('API не найден.', 404);
 }
