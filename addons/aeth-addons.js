@@ -565,22 +565,35 @@
 
   // ---------- 9. wiki ----------
   const WIKI = [
-    ['🚀 С чего начать', `<p>Создайте героя и выберите класс. Первые бои проходят на <b>Зелёных равнинах</b> (ур. 1–8). Каждое путешествие в локацию и бой тратят <b>энергию</b> ⚡ (максимум 60, восстанавливается по 1 каждые 2 минуты). Энергию также даёт бесплатная кружка пива в Таверне.</p><p>Заходите в <b>Поселение</b>: здесь кузница, алхимик, рынок, арена, дом клана, приют спутников, таверна, причал и шахтёрский двор.</p>`],
-    ['⚔️ Бои', `<p>Бой пошаговый: <b>Атака</b>, <b>Навыки</b> (тратят ману), <b>Защита</b> (снижает урон и даёт ману), <b>Зелье</b> и <b>Скрыться</b>. Над врагом показан прогноз его следующего приёма — защищайтесь перед сильным ударом.</p><p>Урон уменьшается защитой цели: физический — по формуле защита/(защита+75), магический — защита/(защита+90). Пробитие снижает защиту врага. Крит увеличивает урон. Сопротивления срезают урон своего типа.</p><p><b>Автобой</b> (Premium) сам ведёт бой по вашим настройкам: порог лечения, навыки, отступление.</p>`],
-    ['🧙 Классы', `<p><b>Воин</b>, <b>Рыцарь</b> — танки с высокой защитой. <b>Берсерк</b> — физический урон. <b>Разбойник</b> — скорость. <b>Ассасин</b> — взрывной урон. <b>Лучник</b> — дальний бой. <b>Маг</b> — магический урон. <b>Некромант</b> — тёмная магия и проклятия. <b>Паладин</b> — святой воин и лекарь. <b>Друид</b> — природа и лечение.</p><p>Носить можно оружие и броню любого класса по уровню, но бонус класса работает только у своего класса.</p>`],
-    ['🗺️ Локации', `<p>Равнины (1–8) → Шепчущий лес (5–12) → Забытый склеп (8–18) → Тёмный лес (12–25) → Гиблые болота (25–40) → Пылающая пустыня (40–55) → Проклятые земли (55–75) → Демонический разлом (75–90) → Драконий сандор (90–120).</p><p>В каждой локации есть режимы охоты: обычный, «Священный свет» (легче), «Густой туман» (засады, больше добычи) и другие. Победа над местным боссом открывает новые режимы и награду за освоение региона.</p>`],
-    ['🛡️ Снаряжение и заточка', `<p>Предметы бывают обычные, необычные, редкие, эпические, легендарные и мифические. В <b>Кузнице</b> предмет затачивается (+1, +2…) рудой из шахты: чем выше заточка, тем более редкая руда нужна. Каждая ступень даёт +6% к характеристикам. При неудаче заточка может сорваться — смотрите шанс успеха.</p>`],
-    ['⚒️ Объединение (★)', `<p>Новое! Два <b>одинаковых</b> предмета (тот же предмет, редкость и уровень) можно объединить в один со звездой вознесения ★. Каждая ★ даёт <b>+10%</b> к базовым характеристикам, максимум ★5. Заточка сохраняется лучшая из двух. Стоимость — серебро.</p><p>Где: Ещё → Ещё возможности → «Объединение». Предметы должны лежать в сумке: не надеты, не заперты, не клановые.</p>`],
-    ['✦ Вознесение героя', `<p>Арена → вкладка «Вознесение». Ранги E → D → C → B → A → S → SS → SSS. Для ранга нужно победить хранителя и потратить серебро и <b>Осколки вознесения</b>. Осколки: первое освоение равнин, опасная серия в Густом тумане, первые боссы зон, шанс с боссов (40%) и элит (25%), рынок, а теперь и кооп-подземелья. Осколки с рынка тоже засчитываются.</p>`],
-    ['🏰 Подземелья и кооп', `<p>Подземелья проходятся по комнатам: выбирайте путь, сражайтесь, в конце — босс и ценная добыча.</p><p><b>Кооп-подземелья</b>: Ещё → «Кооп-подземелья». Лидер открывает комнату, до двух союзников присоединяются (или их зовут из списка друзей — придёт сообщение в Telegram). Отряд проходит 5 залов, последний — босс. Действия: Атака, Мощный удар, Лечение (поднимает павшего союзника), Прикрыть (принимает удары на себя). Награда — каждому участнику.</p>`],
-    ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> даёт руду для заточки и материалы для питомцев; уровень горного дела открывает новые жилы. <b>Алхимия</b> — зелья и боевые склянки. <b>Рыбалка</b> — улов для продажи и рецептов, тратит выносливость.</p>`],
-    ['🐾 Спутники', `<p>Спутник (питомец) помогает в бою и даёт пассивный бонус. Лютоволк доступен сразу. Остальных создают в Приюте спутников из материалов шахты: <b>Астральная фея — горное дело 15</b>, <b>Адамантитовый големчик — 25</b>, <b>Огненный дракончик — 35</b>, <b>Эфирный пустотник — 45</b>.</p>`],
-    ['💰 Рынок', `<p>Вещи из серверного реестра можно продать другим игрокам; выручка идёт в отдельный кошелёк рынка. Налог продавца 3% (с Premium — 0%). Непроданные лоты возвращаются через 7 дней. Локальный лут продаётся местным жителям — цена зависит от дневного спроса.</p>`],
-    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Еженедельный рейд на Стража клановых врат: удар раз в сутки, за победу клан получает опыт и казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p>`],
-    ['🏟️ Арена и PvP', `<p>Билеты арены: до 5 в сутки, обновляются в 00:00 UTC; с боссов шанс 25% получить билет (до 3 в сутки). Победа +25 очков рейтинга, поражение −15. PvP с игроками — отдельный рейтинг.</p>`],
-    ['👥 Друзья и личка', `<p>Ещё → «Друзья». Ищите героя по имени, @username или ID и отправляйте заявку. Друзьям можно писать в личные сообщения, звать их в кооп. О новых заявках и сообщениях бот пишет в Telegram.</p>`],
-    ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и его настройки, автопродолжение серии, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
-    ['🔔 Уведомления и новости', `<p>Включите уведомления — бот напомнит о полной энергии, билетах арены и событиях. Новости игры: <a href="https://t.me/Aethelgardo" target="_blank" rel="noopener">t.me/Aethelgardo</a>.</p>`],
+    ['🚀 С чего начать', `<p>Создайте героя и выберите класс. Первые бои проходят на <b>Зелёных равнинах</b> (ур. 1–8). Путешествия и бои тратят <b>энергию</b> ⚡: запас <b>100</b>, восстанавливается по 1 каждые 2 минуты. Энергию также дают пиво и самогон в Таверне.</p><p><b>Поселение</b> — сердце игры: рынок, доска поручений, мастерская, кузница, алхимик, арена, дом клана, приют спутников, таверна, причал и шахта. Значки на карточках подсказывают, куда стоит зайти: «🎟️ билеты», «⚗️ можно варить», «🍖 питомец голоден», «✨ загляните».</p>`],
+    ['⚔️ Бои', `<p>Бой пошаговый: <b>Атака</b>, <b>Навыки</b> (меню всех навыков героя за ману), <b>Защита</b> (меньше урона и +мана), <b>Зелье</b> и <b>Скрыться</b>. Над врагом показан прогноз его следующего приёма — встаньте в защиту перед сильным ударом.</p><p>Урон уменьшается защитой цели; пробивание брони, крит и сила крита его увеличивают. Вампиризм возвращает часть урона здоровьем. <b>Автобой</b> (Premium) сам ведёт бой по вашим настройкам.</p>`],
+    ['✨ Навыки и таланты', `<p>У каждого класса 3–4 навыка, один из них — <b>ульта</b>. <b>Ранг навыка</b> (I–IV) растёт с уровнем и главной характеристикой класса и усиливает урон до ×1.4. Некоторые навыки работают <b>в связке</b>: применённые подряд, они бьют сильнее (метка «Связка»).</p><p><b>Дерево талантов</b> даёт урон навыков, экономию маны, силу и длительность эффектов, добивание, стойки, возврат маны и многое другое. Новые навыки открываются с развитием героя.</p><p>Навыки и таланты работают <b>во всех боях</b>: с монстрами, в коопе, дуэлях и Орде. В коопе, дуэлях и Орде навыки ограничены только маной.</p>`],
+    ['🧙 Классы и характеристики', `<p><b>Воин</b>, <b>Рыцарь</b> — танки. <b>Берсерк</b> — физический урон. <b>Разбойник</b>, <b>Ассасин</b> — скорость и взрывной урон. <b>Лучник</b> — дальний бой. <b>Маг</b>, <b>Некромант</b> — магия. <b>Паладин</b>, <b>Друид</b> — урон и лечение.</p><p>За каждый уровень — 5 очков характеристик. <b>🍀 Удача</b> повышает шанс, что найденная вещь станет на ступень реже, и чаще приносит легендарные находки (подробности — в Профиле).</p><p><b>♻️ Сброс характеристик</b>: экран героя или Профиль → «Сбросить». Возвращаются все вложенные очки, уровень, вещи, навыки и таланты не меняются. Первый сброс бесплатный, далее — 50 серебра за уровень героя.</p>`],
+    ['🗺️ Локации', `<p>Равнины (1–8) → Шепчущий лес (5–12) → Забытый склеп (8–18) → Тёмный лес (12–25) → Гиблые болота (25–40) → Пылающая пустыня (40–55) → Проклятые земли (55–75) → Демонический разлом (75–90) → Драконий сандор (90–120).</p><p>В каждой земле свои режимы охоты и свои уникальные монстры. Победа над местным боссом открывает новые режимы и награду за освоение региона.</p>`],
+    ['🛡️ Снаряжение', `<p>Редкости: обычные, необычные, редкие, эпические, легендарные и мифические. Носить можно вещи любого класса по уровню.</p><p><b>🎁 Находки</b>: после каждой победы есть шанс найти новую вещь под ваш уровень, с босса — всегда. Точные шансы — в разделе «🎲 Редкость и шансы».</p><p><b>👑 Автоодевание</b> (Premium): герой сам надевает вещи, которые делают его сильнее. Переключатель — в сумке.</p>`],
+    ['🎲 Редкость и шансы', `<p><b>Редкости</b> (от слабых к сильным): обычная → необычная (×1.15 к характеристикам) → редкая (×1.35) → эпическая (×1.65) → легендарная (×2.1) → мифическая.</p>
+<table class="ae-wiki-table"><tr><th>Источник</th><th>Необ.</th><th>Ред.</th><th>Эпич.</th><th>Лег.</th></tr>
+<tr><td>Монстр</td><td>7%</td><td>4%</td><td>2%</td><td>0,8%</td></tr>
+<tr><td>Босс (всегда)</td><td>—</td><td>25%</td><td>50%</td><td>25%</td></tr>
+<tr><td>Мастерская</td><td>27%</td><td>14%</td><td>8%</td><td>5%</td></tr></table>
+<p>Плюс обычная добыча монстров и боссов по их собственному списку (например, легендарные клинки с боссов зон). Находки создаются под ваш уровень; у эпических одно особое свойство, у легендарных — два.</p>
+<p><b>🍀 Удача</b>: шансы находок умножаются на 1 + (удача − 8) / 40 (до ×3), а у каждой новой вещи есть шанс <b>удача × 0,4%</b> (до 25%) стать на ступень реже. Ваши точные цифры — в Профиле.</p>
+<p>Гнёзда для кристаллов: обычные и необычные — 1, редкие и эпические — 2, легендарные и выше — 3.</p>`],
+    ['⚒️ Кузница и заточка', `<p>Заточка от +0 до +25, каждая ступень даёт +6% к характеристикам. До +5 — гарантированно, пороги +5/+10/+15/+20 сохраняются при провале. Нужны руда из шахты и трофеи монстров — список и где их добыть написаны прямо в кузнице.</p><p>Нажмите <b>«В кузницу»</b> в меню предмета — кузница откроется сразу с ним. Результат каждой попытки показывается крупно, номер заточки на картинке предмета обновляется сразу.</p>`],
+    ['💎 Кристаллы', `<p>Кристалл вставляется в снаряжение и <b>навсегда</b> добавляет характеристику. Где: Меню или Сумка → «Кристаллы». Кристаллы можно <b>создать</b> из материалов (+300 серебра) или <b>купить</b> за золото.</p><p>Вампиризм, регенерация HP и маны, шанс и сила крита, пробивание брони, уклонение, меткость. <b>Кристаллы крови, яда и пламени</b> дают шанс наложить кровотечение, отравление или поджог при ударе — во всех боях.</p><p>Гнёзда: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3.</p>`],
+    ['★ Объединение', `<p>Два <b>одинаковых</b> предмета (название, редкость и ★) объединяются в один со звездой вознесения: каждая ★ даёт <b>+10%</b> к характеристикам, максимум ★5. Остаются лучший уровень и лучшая заточка. Стоимость — серебро. Где: Сумка → «Объединить одинаковые». Надетые, запертые и клановые вещи не участвуют.</p>`],
+    ['✦ Вознесение героя', `<p>Арена → «Вознесение». Ранги E → D → C → B → A → S → SS → SSS: победите хранителя и потратьте серебро и <b>Осколки вознесения</b> (с боссов, элит, Орды, коопа, рынка). Ваш ранг вознесения виден всем в профиле.</p>`],
+    ['🤝 Кооп-подземелья', `<p>Меню → «Кооп». Лидер открывает комнату, союзники присоединяются (по ссылке в общем чате или приглашению другу). 7 залов, на развилках путь может выбрать любой участник: бой, элита, ловушка, сокровище или святилище. В конце — босс.</p><p>Бой <b>пошаговый, как в пещерах</b>: каждый герой делает ход, затем бьёт враг. Атака, Навыки, Защита (+25% маны) и Зелья (ими можно поднять павшего союзника). Если союзник отошёл — «⏩ Не ждать».</p><p><b>⚡ Связки героев</b>: союзник оглушил или заморозил врага — ваш атакующий навык даёт «Удар по беззащитному» ×1.5; уязвимость — «Сокрушение уязвимого» ×1.4; кровотечение, яд или поджог — «Детонация» ×1.35; ярость, щит или лечение — тоже усиливают. Подходящие навыки подсвечиваются.</p>`],
+    ['🌕 Орда', `<p>Меню → «Орда»: бесконечные волны монстров, быстрые бои и автобой (сам выбирает сильнейший навык). Каждый 20-й враг — вожак, сундуки на 20, 40 и 60 убийствах. Стоит 10 энергии.</p><p><b>Кровавая луна</b> (с 10 уровня): лунные чудовища, враги сильнее, награда ×1.75. <b>Выходные Кровавой луны</b> — по субботам и воскресеньям каждый поход идёт в Кровавую луну с наградой ×2 для всех уровней.</p>`],
+    ['🏟️ Арена и дуэли', `<p>Билеты арены: до 5 в сутки (обновляются в 00:00 UTC). <b>Дуэли</b>: вызовите любого героя по нику — с вами сражается его тень с его снаряжением, навыками и талантами. Есть рейтинг и награды, дуэли считаются в задания.</p>`],
+    ['📜 Задания и титулы', `<p><b>Доска поручений</b> — задания жителей и короля. <b>«Задания»</b> (быстрая панель) — ежедневные и недельные задания за кооп, дуэли и Орду с наградами и осколками.</p><p><b>Профиль</b>: 23 титула за подвиги, круглые аватарки, ранг вознесения и статистика. Профиль других игроков открывается по нажатию на ник.</p>`],
+    ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
+    ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
+    ['💰 Рынок и торговля', `<p>Вещи можно выставить на рынок для других игроков (из сумки — кнопка «На рынок»); выручка идёт в кошелёк рынка, налог 3% (с Premium — 0%). Другу можно продать вещь напрямую: «🤝 Продать другу». Местным жителям продаётся добыча по дневному спросу.</p>`],
+    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Казна клана тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p>`],
+    ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
+    ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
+    ['🔔 Уведомления и новости', `<p>Включите уведомления — бот напомнит о полной энергии, билетах арены, голодном питомце, выходных Кровавой луны, вызовах и друзьях. Все обновления — в меню «Что нового» и в канале <a href="https://t.me/Aethelgardo" target="_blank" rel="noopener">t.me/Aethelgardo</a>.</p>`],
   ];
   function openWiki() {
     openPanel('📖 Вики Аэтельгарда', body => {
@@ -991,21 +1004,39 @@
   const LEG_NAMES = {
     weapon: {warrior: ['Меч', 'Секира'], knight: ['Меч'], paladin: ['Молот'], berserker: ['Секира'], rogue: ['Кинжал'], assassin: ['Кинжал'], archer: ['Лук'], hunter: ['Лук'], mage: ['Посох'], necromancer: ['Посох'], druid: ['Посох']},
     offhand: 'Щит', helmet: 'Шлем', armor: 'Доспех', pants: 'Поножи', gloves: 'Перчатки', boots: 'Сапоги', amulet: 'Амулет', ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', artifact: 'Реликвия'};
-  const LEG_EPITHETS = ['Рассвета', 'Падшей звезды', 'Громовержца', 'Лунной охотницы', 'Вечного пламени', 'Безмолвия', 'Древних королей', 'Небесного стража', 'Кровавой луны', 'Драконьего сердца', 'Бездны', 'Первородного света'];
+  // Names by rarity; legendary epithets also change with the level tier.
+  const GEAR_EPITHETS = {
+    uncommon: ['путника', 'странника', 'лесника', 'дозорного', 'следопыта', 'ополченца', 'наёмника', 'охотника'],
+    rare: ['ветерана', 'серебряной гвардии', 'северного ветра', 'каменного сердца', 'горного клана', 'ночного дозора', 'лунного света', 'королевской стражи'],
+    epic: ['героя', 'бури', 'пламенной клятвы', 'тени', 'звёздного света', 'грома', 'древнего ордена', 'полуночи'],
+    legendary: ['Рассвета', 'Падшей звезды', 'Громовержца', 'Лунной охотницы', 'Вечного пламени', 'Безмолвия', 'Древних королей', 'Небесного стража', 'Кровавой луны', 'Драконьего сердца', 'Бездны', 'Первородного света']};
+  const GEAR_MULT = {uncommon: 1.15, rare: 1.35, epic: 1.65, legendary: 2.1};
+  const GEAR_BONUS = {uncommon: 0, rare: 0, epic: 1, legendary: 2};
   const LEG_BONUS = ['vampirism', 'critChance', 'critDamage', 'hpRegen', 'evasion', 'armorPenetration', 'bleedChance', 'burnChance', 'poisonChance'];
   const LEG_ICON = {weapon: '⚔️', offhand: '🛡️', helmet: '🪖', armor: '🥋', pants: '👖', gloves: '🧤', boots: '👢', amulet: '📿', ring: '💍', belt: '🎗️', cloak: '🧥', artifact: '🔮'};
-  function makeLegendary(p) {
+  function makeGear(p, rarity = 'legendary') {
     const L = Math.max(1, 1 + Math.floor(((p.level || 1) - 1) / 4) * 4), types = Object.keys(LEG_NAMES), type = types[Math.floor(Math.random() * types.length)];
-    const base = type === 'weapon' ? (LEG_NAMES.weapon[p.classId] || ['Меч'])[Math.floor(Math.random() * (LEG_NAMES.weapon[p.classId] || ['Меч']).length)] : LEG_NAMES[type];
-    const epithet = LEG_EPITHETS[Math.min(LEG_EPITHETS.length - 1, Math.floor(L / 9))], m = 2.1, st = {};
-    const caster = CASTER.has(p.classId);
-    if (type === 'weapon') { st[caster ? 'magicAttack' : 'attack'] = Math.round((12 + L * 3) * m); st.critChance = 3 + Math.floor(L / 15); }
+    const pool = type === 'weapon' ? (LEG_NAMES.weapon[p.classId] || ['Меч']) : [LEG_NAMES[type]], base = pool[Math.floor(Math.random() * pool.length)];
+    const eps = GEAR_EPITHETS[rarity], epithet = rarity === 'legendary' ? eps[Math.min(eps.length - 1, Math.floor(L / 9))] : eps[Math.floor(Math.random() * eps.length)];
+    const m = GEAR_MULT[rarity] || 1, st = {}, caster = CASTER.has(p.classId);
+    if (type === 'weapon') { st[caster ? 'magicAttack' : 'attack'] = Math.round((12 + L * 3) * m); st.critChance = Math.round((2 + L / 15) * (m > 1.5 ? 1.5 : 1)); }
     else if (type === 'armor') { st.defense = Math.round((6 + L * 2) * m); st.magicDefense = Math.round((4 + L) * m); st.maxHp = Math.round((25 + L * 9) * m); }
     else if (['helmet', 'offhand', 'pants', 'gloves', 'boots', 'belt', 'cloak'].includes(type)) { st.defense = Math.round((3 + L) * m); st.magicDefense = Math.round((2 + L * 0.6) * m); st.maxHp = Math.round((12 + L * 4) * m); }
-    else { st[caster ? 'magicAttack' : 'attack'] = Math.round((4 + L) * m); st.maxHp = Math.round((10 + L * 3) * m); st.critChance = 2 + Math.floor(L / 20); }
-    const bonus = LEG_BONUS[Math.floor(Math.random() * LEG_BONUS.length)], bg = GEMS.find(g => g.stat === bonus); st[bonus] = (st[bonus] || 0) + Math.round((bg?.value || 3) * 1.5);
-    return {id: 'leg_' + uuid4(), templateId: `ae_leg_${type}_${L}`, name: `${base} ${epithet}`, type, rarity: 'legendary', level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
-      description: `Легендарная находка. Особое свойство: ${STAT_RU[bonus] || bonus}.`, stats: st, sellPrice: 60 + L * 25, disassembleYield: {silver: 30 + L * 6}, stackCount: 1};
+    else { st[caster ? 'magicAttack' : 'attack'] = Math.round((4 + L) * m); st.maxHp = Math.round((10 + L * 3) * m); st.critChance = 1 + Math.floor(L / 20); }
+    const bonuses = [], picks = LEG_BONUS.slice().sort(() => Math.random() - 0.5).slice(0, GEAR_BONUS[rarity] || 0);
+    for (const bonus of picks) { const bg = GEMS.find(g => g.stat === bonus); st[bonus] = (st[bonus] || 0) + Math.round((bg?.value || 3) * (rarity === 'legendary' ? 1.5 : 1)); bonuses.push(STAT_RU[bonus] || bonus); }
+    const word = {uncommon: 'Необычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная'}[rarity];
+    return {id: 'loot_' + uuid4(), templateId: `ae_gear_${rarity}_${type}_${L}`, name: `${base} ${epithet}`, type, rarity, level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
+      description: `${word} находка.${bonuses.length ? ' Особые свойства: ' + bonuses.join(', ') + '.' : ''}`, stats: st, sellPrice: Math.round((20 + L * 10) * m), disassembleYield: {silver: Math.round((10 + L * 3) * m)}, stackCount: 1};
+  }
+  const makeLegendary = p => makeGear(p, 'legendary');
+  // Drop table after a victory (luck multiplies the chances).
+  function rollLoot(boss, luckMul) {
+    const r = Math.random();
+    if (boss) return r < Math.min(0.6, 0.25 * luckMul) ? 'legendary' : r < 0.75 ? 'epic' : 'rare';
+    const t = [['legendary', 0.008], ['epic', 0.02], ['rare', 0.04], ['uncommon', 0.07]]; let acc = 0;
+    for (const [rar, c] of t) { acc += c * luckMul; if (r < acc) return rar; }
+    return null;
   }
   let killSnap = null;
   function legendaryTick() {
@@ -1013,12 +1044,16 @@
     const k = {kills: p.statsSummary.monstersKilled || 0, bosses: p.statsSummary.bossesDefeated || 0, uid: p.userId};
     const prev = killSnap; killSnap = k; if (!prev || prev.uid !== k.uid) return;
     const dk = Math.max(0, Math.min(5, k.kills - prev.kills)), db = Math.max(0, Math.min(3, k.bosses - prev.bosses)); if (!dk && !db) return;
-    const lm = luckInfo(p).legMul;
-    let roll = false; for (let i = 0; i < dk - db; i++) if (Math.random() < 0.02 * lm) roll = true; for (let i = 0; i < db; i++) if (Math.random() < Math.min(0.6, 0.25 * lm)) roll = true;
-    if (!roll || (p.inventory || []).length >= (p.maxInventorySlots || 40)) return;
-    const item = makeLegendary(p);
-    b.setPlayer(cur => cur && cur.inventory.length < (cur.maxInventorySlots || 40) ? {...cur, inventory: [...cur.inventory, item]} : cur);
-    setTimeout(() => { bigBanner(`🌟 Легендарная находка: ${item.name}!`, true); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }, 600);
+    const lm = luckInfo(p).legMul, found = [];
+    for (let i = 0; i < Math.max(0, dk - db); i++) { const r = rollLoot(false, lm); if (r) found.push(r); }
+    for (let i = 0; i < db; i++) found.push(rollLoot(true, lm));
+    const room = (p.maxInventorySlots || 40) - (p.inventory || []).length; if (!found.length || room <= 0) return;
+    const items = found.slice(0, room).map(r => makeGear(p, r));
+    b.setPlayer(cur => cur && cur.inventory.length + items.length <= (cur.maxInventorySlots || 40) ? {...cur, inventory: [...cur.inventory, ...items]} : cur);
+    for (const it of items) {
+      if (it.rarity === 'legendary' || it.rarity === 'epic') setTimeout(() => { bigBanner(`${it.rarity === 'legendary' ? '🌟 Легендарная' : '💜 Эпическая'} находка: ${it.name}!`, it.rarity === 'legendary'); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }, 600);
+      else setTimeout(() => toast(`🎁 Находка: ${it.name} (${RARITY_RU[it.rarity]})`), 600);
+    }
   }
   setInterval(() => { try { legendaryTick(); } catch (e) { console.warn('ae legendary', e); } }, 1000);
   // ---------- luck: better rarity on found gear and more legendary finds ----------
@@ -1032,7 +1067,7 @@
     const p = me(), b = B(); if (!p?.inventory || !b?.setPlayer) return;
     const ids = new Set(p.inventory.map(i => i.id));
     if (!knownGear || knownGear.uid !== p.userId) { knownGear = {uid: p.userId, ids}; return; }
-    const fresh = p.inventory.filter(i => !knownGear.ids.has(i.id) && isGear(i) && !i.serverOwned && RARITY_UP[i.rarity] && !/^(leg_|merge_|trade_|srv_|coop_|gem_)/.test(i.id));
+    const fresh = p.inventory.filter(i => !knownGear.ids.has(i.id) && isGear(i) && !i.serverOwned && RARITY_UP[i.rarity] && !/^(leg_|loot_|merge_|trade_|srv_|coop_|gem_)/.test(i.id));
     knownGear.ids = ids;
     const {bump} = luckInfo(p);
     for (const it of fresh) {
@@ -2226,13 +2261,13 @@
     let editId = null;
     const title = h('input', {class: 'ae-input', placeholder: 'Заголовок, например: Обновление: связки в коопе', maxlength: 120});
     const text = h('textarea', {class: 'ae-input ae-news-input', rows: 8, placeholder: 'Текст поста (как в канале). **жирный**, `ПРОМОКОД`'});
-    const toChannel = h('input', {type: 'checkbox'});
+    const toChannel = h('input', {type: 'checkbox', checked: true});
     const mode = h('div', {class: 'ae-sub'}), go = h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button'}, 'Опубликовать'), cancel = h('button', {class: 'ae-btn ae-wide', type: 'button', style: 'display:none'}, 'Отменить правку');
     const list = h('div', {class: 'ae-admin-list'});
     const chMsg = c => c === 'sent' ? ' и в канале' : c === 'edited' ? ', в канале тоже изменено' : c === 'deleted' ? ', из канала тоже удалено' : c === 'not-in-channel' ? ' (в канале этого поста нет — правьте там вручную)' : c ? ` (канал: ${String(c).replace(/^failed: /, '')})` : '';
     const setEdit = post => { editId = post?.id || null; title.value = post?.title || ''; text.value = post?.text || '';
       mode.textContent = post ? `✏️ Правка поста «${post.title}»${post.inChannel ? ' — изменится и в канале' : ''}` : ''; go.textContent = post ? 'Сохранить изменения' : 'Опубликовать'; cancel.style.display = post ? '' : 'none';
-      toChannel.checked = false; toChannel.parentElement && (toChannel.parentElement.style.display = post?.inChannel ? 'none' : ''); if (post) title.scrollIntoView({behavior: 'smooth', block: 'center'}); };
+      toChannel.checked = true; toChannel.parentElement && (toChannel.parentElement.style.display = post?.inChannel ? 'none' : ''); if (post) title.scrollIntoView({behavior: 'smooth', block: 'center'}); };
     const load = async () => { try { const r = await api('/api/admin/news'); list.replaceChildren(...(r.posts || []).map(p => h('div', {class: 'ae-row ae-card'},
       h('div', {class: 'ae-grow'}, h('b', {}, p.title), h('div', {class: 'ae-sub'}, `${new Date(p.at).toLocaleDateString('ru-RU')}${p.inChannel ? ' · 📣 в канале' : ''}`)),
       h('button', {class: 'ae-btn', type: 'button', title: 'Изменить', onclick: () => setEdit(p)}, '✏️'),
@@ -2502,6 +2537,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-wiki-table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0;table-layout:fixed}.ae-wiki-table th:first-child,.ae-wiki-table td:first-child{width:30%}.ae-wiki-table th,.ae-wiki-table td{border:1px solid #ffffff22;padding:4px 6px;text-align:center}.ae-wiki-table td:first-child,.ae-wiki-table th:first-child{text-align:left}.ae-wiki-table th{color:#e5ce96}
 .ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
 .ae-forge-up{position:absolute;right:2px;bottom:2px;z-index:2;padding:0 5px;border-radius:6px;background:#1a1306e6;border:1px solid #e5ce96;color:#ffd77a;font:800 11px/16px system-ui,sans-serif;pointer-events:none}
 .ae-forge-up.is-pop{animation:aeForgePop .6s ease-out}@keyframes aeForgePop{0%{transform:scale(1.9);color:#fff;box-shadow:0 0 16px #ffd77a}100%{transform:scale(1)}}
@@ -2823,5 +2859,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me())};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();
