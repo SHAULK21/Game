@@ -590,7 +590,7 @@
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
     ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
     ['💰 Рынок и торговля', `<p>Вещи можно выставить на рынок для других игроков (из сумки — кнопка «На рынок»); выручка идёт в кошелёк рынка, налог 3% (с Premium — 0%). Другу можно продать вещь напрямую: «🤝 Продать другу». Местным жителям продаётся добыча по дневному спросу.</p>`],
-    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Казна клана тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p>`],
+    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p>`],
     ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
     ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
     ['🔔 Уведомления и новости', `<p>Включите уведомления — бот напомнит о полной энергии, билетах арены, голодном питомце, выходных Кровавой луны, вызовах и друзьях. Все обновления — в меню «Что нового» и в канале <a href="https://t.me/Aethelgardo" target="_blank" rel="noopener">t.me/Aethelgardo</a>.</p>`],
@@ -1009,7 +1009,7 @@
   }
   // ---------- legendary finds: an extra chance after every victory (the base game has very few legendaries) ----------
   const LEG_NAMES = {
-    weapon: {warrior: ['Меч', 'Секира'], knight: ['Меч'], paladin: ['Молот'], berserker: ['Секира'], rogue: ['Кинжал'], assassin: ['Кинжал'], archer: ['Лук'], hunter: ['Лук'], mage: ['Посох'], necromancer: ['Посох'], druid: ['Посох']},
+    weapon: {warrior: ['Меч', 'Секира', 'Копьё'], knight: ['Меч', 'Копьё'], paladin: ['Молот', 'Булава'], berserker: ['Секира', 'Молот'], rogue: ['Кинжал'], assassin: ['Кинжал'], archer: ['Лук'], hunter: ['Лук'], mage: ['Посох', 'Жезл'], necromancer: ['Посох', 'Коса'], druid: ['Посох', 'Жезл']},
     offhand: 'Щит', helmet: 'Шлем', armor: 'Доспех', pants: 'Поножи', gloves: 'Перчатки', boots: 'Сапоги', amulet: 'Амулет', ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', artifact: 'Реликвия'};
   // Names by rarity; legendary epithets also change with the level tier.
   const GEAR_EPITHETS = {
@@ -1033,7 +1033,8 @@
     const bonuses = [], picks = LEG_BONUS.slice().sort(() => Math.random() - 0.5).slice(0, GEAR_BONUS[rarity] || 0);
     for (const bonus of picks) { const bg = GEMS.find(g => g.stat === bonus); st[bonus] = (st[bonus] || 0) + Math.round((bg?.value || 3) * (rarity === 'legendary' ? 1.5 : 1)); bonuses.push(STAT_RU[bonus] || bonus); }
     const word = {uncommon: 'Необычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная'}[rarity];
-    return {id: 'loot_' + uuid4(), templateId: `ae_gear_${rarity}_${type}_${L}`, name: `${base} ${epithet}`, type, rarity, level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
+    const variant = Math.random() < 0.5 ? 1 : 2;
+    return {id: 'loot_' + uuid4(), templateId: `ae_gear_${rarity}_${type}_${L}${variant === 2 ? '_v2' : ''}`, name: `${base} ${epithet}`, type, rarity, level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
       description: `${word} находка.${bonuses.length ? ' Особые свойства: ' + bonuses.join(', ') + '.' : ''}`, stats: st, sellPrice: Math.round((20 + L * 10) * m), disassembleYield: {silver: Math.round((10 + L * 3) * m)}, stackCount: 1};
   }
   const makeLegendary = p => makeGear(p, 'legendary');
@@ -1179,16 +1180,22 @@
   const HUES = [0, 0, 28, -28, 150, 205, 265];
   const hashStr = str => { let x = 2166136261; for (const c of str) { x ^= c.codePointAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
   // Our own finds and crystals have their own painted icons (by kind × rarity).
-  const OWN_WEAPON = [[/^Секира/, 'axe'], [/^Молот/, 'hammer'], [/^Кинжал/, 'dagger'], [/^Лук/, 'bow'], [/^Посох/, 'staff']];
+  const OWN_ART_LIST = ["gear_amulet_epic", "gear_amulet_legendary", "gear_amulet_rare", "gear_amulet_uncommon", "gear_armor_epic", "gear_armor_legendary", "gear_armor_rare", "gear_armor_uncommon", "gear_artifact_epic", "gear_artifact_legendary", "gear_artifact_rare", "gear_artifact_uncommon", "gear_axe_epic", "gear_axe_legendary", "gear_axe_rare", "gear_axe_uncommon", "gear_belt_epic", "gear_belt_legendary", "gear_belt_rare", "gear_belt_uncommon", "gear_boots_epic", "gear_boots_legendary", "gear_boots_rare", "gear_boots_uncommon", "gear_bow_epic", "gear_bow_legendary", "gear_bow_rare", "gear_bow_uncommon", "gear_cloak_epic", "gear_cloak_legendary", "gear_cloak_rare", "gear_cloak_uncommon", "gear_dagger_epic", "gear_dagger_legendary", "gear_dagger_rare", "gear_dagger_uncommon", "gear_gloves_epic", "gear_gloves_legendary", "gear_gloves_rare", "gear_gloves_uncommon", "gear_hammer_epic", "gear_hammer_legendary", "gear_hammer_rare", "gear_hammer_uncommon", "gear_helmet_epic", "gear_helmet_legendary", "gear_helmet_rare", "gear_helmet_uncommon", "gear_pants_epic", "gear_pants_legendary", "gear_pants_rare", "gear_pants_uncommon", "gear_ring_epic", "gear_ring_legendary", "gear_ring_rare", "gear_ring_uncommon", "gear_shield_epic", "gear_shield_legendary", "gear_shield_rare", "gear_shield_uncommon", "gear_staff_epic", "gear_staff_legendary", "gear_staff_rare", "gear_staff_uncommon"];
+  const OWN_WEAPON = [[/^Секира/, 'axe'], [/^Молот/, 'hammer'], [/^Кинжал/, 'dagger'], [/^Лук/, 'bow'], [/^Посох/, 'staff'], [/^Копь/, 'spear'], [/^Булава/, 'mace'], [/^Коса/, 'scythe'], [/^Жезл/, 'wand'], [/^Меч/, 'sword']];
+  // pictures that exist (filled in as art arrives); a missing v2 falls back to v1, a missing new kind to the nearest old one
+  const OWN_ART = new Set(OWN_ART_LIST);
+  const KIND_FALLBACK = {spear: 'sword', mace: 'hammer', scythe: 'staff', wand: 'staff'};
   function ownIcon(item) {
     const t = String(item?.templateId || '');
     let m = t.match(/^ae_gem_([a-z]+)$/); if (m) return '/assets/items/gear/gem_' + m[1] + '.webp';
-    m = t.match(/^ae_gear_(uncommon|rare|epic|legendary)_([a-z]+)_\d+$/) || t.match(/^ae_leg_([a-z]+)_\d+$/);
+    m = t.match(/^ae_gear_(uncommon|rare|epic|legendary)_([a-z]+)_\d+(?:_v(\d))?$/) || t.match(/^ae_leg_([a-z]+)_\d+$/);
     if (!m) return null;
-    const rarity = m.length === 3 ? m[1] : 'legendary', type = m.length === 3 ? m[2] : m[1];
+    const isGear = t.startsWith('ae_gear_'), rarity = isGear ? m[1] : 'legendary', type = isGear ? m[2] : m[1], v = isGear && m[3] === '2' ? 2 : 1;
     let kind = type === 'offhand' ? 'shield' : type;
-    if (type === 'weapon') { kind = (OWN_WEAPON.find(([re]) => re.test(item.name || '')) || [0, null])[1]; if (!kind) return null; } // swords: the game's own sword icon for now
-    return `/assets/items/gear/gear_${kind}_${rarity}.webp`;
+    if (type === 'weapon') kind = (OWN_WEAPON.find(([re]) => re.test(item.name || '')) || [0, 'sword'])[1];
+    const pick = k => [v === 2 && `gear_${k}_${rarity}_2`, `gear_${k}_${rarity}`].filter(Boolean).find(f => OWN_ART.has(f));
+    const f = pick(kind) || (KIND_FALLBACK[kind] && pick(KIND_FALLBACK[kind]));
+    return f ? `/assets/items/gear/${f}.webp` : null; // no picture yet (e.g. swords): the game's own icon
   }
   function iconInfo(item) {
     const own = ownIcon(item); if (own) return {src: own, hue: 0};
@@ -1537,11 +1544,59 @@
         catch (err) { toast(/уже в отряде|Сначала покиньте/i.test(cleanError(err)) ? 'Вы уже в другом отряде — сначала покиньте его.' : cleanError(err).replace('Комната уже недоступна.', 'Отряд уже ушёл в поход или распущен.')); }
       }}, low ? `с ${o.mn} ур.` : 'Вступить'));
   }
+  // ---------- clans: invite friends, post an invitation to the global chat ----------
+  const CLAN_RE = /⟦ae:k:([A-Za-z0-9+/=]+)⟧/;
+  async function joinClanByCode(code) {
+    try { const r = await api('/api/ae-clan/join', 'POST', {code}); sfx.play('bell'); bigBanner(`🛡️ Вы вступили в клан [${r.clan.tag}] «${r.clan.name}»!`, false); setTimeout(() => clickPlace('clan'), 700); }
+    catch (e) { toast(cleanError(e)); }
+  }
+  async function shareClan() {
+    try {
+      const r = await api('/api/ae-clan/share', 'POST', {}), c = r.clan, k = 'aeth_clan_shared_' + c.id, last = Number(localStorage.getItem(k) || 0);
+      if (Date.now() - last < 120000) return toast(`Приглашение уже в чате. Повторить можно через ${Math.ceil((120000 - (Date.now() - last)) / 1000)} с.`);
+      const o = {c: r.code, n: c.name, t: c.tag, l: c.level, m: c.members, x: c.max, ml: c.minLevel};
+      await api('/api/chat/global', 'POST', {text: `🛡️ Клан [${c.tag}] «${c.name}» набирает героев ⟦ae:k:${enc(o)}⟧`});
+      localStorage.setItem(k, String(Date.now())); toast('Приглашение в клан отправлено в общий чат'); sfx.play('page');
+    } catch (e) { toast(cleanError(e)); }
+  }
+  function clanChatCard(o) {
+    const lvl = me()?.level || 1, low = lvl < (o.ml || 1), full = o.m >= o.x;
+    return h('div', {class: 'ae-chat-item ae-chat-coop', onclick: e => e.stopPropagation()}, h('span', {class: 'ae-entry-icon'}, '🛡️'),
+      h('span', {class: 'ae-grow'}, h('b', {}, `Клан [${o.t}] «${o.n}»`), h('small', {}, `ур. клана ${o.l} · ${o.m}/${o.x} участников${o.ml > 1 ? ` · с ${o.ml} ур.` : ''}`)),
+      h('button', {type: 'button', class: 'ae-btn ae-primary', disabled: low || full, onclick: e => { e.stopPropagation(); if (confirm(`Вступить в клан «${o.n}»?`)) joinClanByCode(o.c); }}, full ? 'Мест нет' : low ? `с ${o.ml} ур.` : 'Вступить'));
+  }
+  function openClanInvite() {
+    let friends = null, clan = null;
+    const st = openPanel('🛡️ Позвать в клан', body => {
+      if (!friends) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      if (!clan) return body.append(h('p', {class: 'ae-empty'}, 'Вы не состоите в клане.'));
+      body.append(h('div', {class: 'ae-pill'}, `[${clan.tag}] «${clan.name}» · ${clan.members}/${clan.max} участников`));
+      body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); shareClan(); }}, '📢 Пригласить в общий чат'));
+      body.append(h('p', {class: 'ae-sub'}, 'Приглашение в чате действует сутки, по нему могут вступить до 15 героев — даже если набор в клан закрыт. Друзья получают личное приглашение и сообщение от бота.'));
+      body.append(h('h3', {class: 'ae-h3'}, 'Друзья'));
+      if (!friends.length) body.append(h('p', {class: 'ae-empty'}, 'Друзей пока нет — добавьте их в разделе «Друзья».'));
+      for (const f of friends) body.append(h('div', {class: 'ae-row ae-card'}, h('span', {class: 'ae-dot' + (f.online ? ' is-on' : '')}), h('b', {class: 'ae-grow'}, `${f.name} (${f.level})`),
+        f.inClan ? h('span', {class: 'ae-sub'}, 'уже в клане') : h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async ev => {
+          try { await api('/api/ae-clan/invite', 'POST', {friendId: f.id}); ev.target.disabled = true; ev.target.textContent = 'Приглашён ✓'; toast(`Приглашение отправлено: ${f.name}`); sfx.play('bell'); } catch (e) { toast(cleanError(e)); } }}, 'Позвать')));
+    });
+    Promise.all([api('/api/friends').then(r => r.friends || []), api('/api/ae-clan').then(r => r.clan)]).then(([f, c]) => { friends = f; clan = c; }, e => { friends = []; toast(cleanError(e)); }).finally(() => { if (openPanelState === st) st.rerender(); });
+  }
+  function injectClanInvite() {
+    const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
+    if (!leave || leave.parentElement.querySelector(':scope > [data-ae-clan-invite]')) return;
+    leave.before(h('div', {class: 'ae-row ae-clan-invite', 'data-ae-clan-invite': '1'},
+      h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: openClanInvite}, '👥 Позвать друзей'),
+      h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: shareClan}, '📢 В общий чат')));
+  }
   function renderChatItems() {
     for (const el of document.querySelectorAll('main *, .game-dialog-backdrop *')) {
       if (!el.childElementCount && COOP_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
         const m = el.textContent.match(COOP_RE), o = dec(m[1]);
         if (o && o.r) { const before = el.textContent.replace(COOP_RE, '').replace(/🛡️ Ищу отряд в «[^»]*» \(ур\. [^)]*\)/, '').trim(); el.replaceChildren(before ? h('span', {}, before + ' ') : '', coopCard(o)); continue; }
+      }
+      if (!el.childElementCount && CLAN_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
+        const m = el.textContent.match(CLAN_RE), o = dec(m[1]);
+        if (o && o.c) { const before = el.textContent.replace(CLAN_RE, '').replace(/🛡️ Клан \[[^\]]*\] «[^»]*» набирает героев/, '').trim(); el.replaceChildren(before ? h('span', {}, before + ' ') : '', clanChatCard(o)); continue; }
       }
       if (el.childElementCount || !TOKEN_RE.test(el.textContent || '') || el.closest('.ae-chat-item, textarea, input')) continue;
       const m = (el.textContent || '').match(TOKEN_RE), o = m && dec(m[1]); if (!o) continue;
@@ -1630,7 +1685,7 @@
     }
     if (e.kind === 'trade_paid' && b) { if (!tradeDone().has('paid:' + e.data?.offerId)) { markTrade('paid:' + e.data?.offerId); b.setPlayer(p => p && {...p, gold: (p.gold || 0) + (Number(e.data?.gold) || 0)}); } }
     if (e.kind === 'trade_return' && b && e.data?.item) { if (!tradeDone().has('ret:' + e.data.offerId)) { markTrade('ret:' + e.data.offerId); giveItem(e.data.item); } }
-    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : [null, null];
+    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : [null, null];
     popup({icon: e.icon || '🔔', text: e.text, act: act[0], fn: act[1]});
   }
 
@@ -2551,7 +2606,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -2569,7 +2624,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   const css = `
 .ae-admin-head{position:sticky;top:-16px;z-index:5;background:inherit;background-color:#0c0d1c;padding-top:6px;padding-bottom:6px}html[data-interface=fantasy] .ae-admin-head{background-color:#1b1712}
 .ae-wiki-table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0;table-layout:fixed}.ae-wiki-table th:first-child,.ae-wiki-table td:first-child{width:30%}.ae-wiki-table th,.ae-wiki-table td{border:1px solid #ffffff22;padding:4px 6px;text-align:center}.ae-wiki-table td:first-child,.ae-wiki-table th:first-child{text-align:left}.ae-wiki-table th{color:#e5ce96}
-.ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
+.ae-clan-invite{margin:8px 0;gap:8px}.ae-respec{margin:8px 0;border-color:#a78bfa88!important;color:#ddd6fe!important}
 .ae-forge-up{position:absolute;right:2px;bottom:2px;z-index:2;padding:0 5px;border-radius:6px;background:#1a1306e6;border:1px solid #e5ce96;color:#ffd77a;font:800 11px/16px system-ui,sans-serif;pointer-events:none}
 .ae-forge-up.is-pop{animation:aeForgePop .6s ease-out}@keyframes aeForgePop{0%{transform:scale(1.9);color:#fff;box-shadow:0 0 16px #ffd77a}100%{transform:scale(1)}}
 .ae-gem-row .ae-gem-i{font-size:26px;width:34px;text-align:center}.ae-gem-recipe{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ae-gem-recipe span{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid #ffffff22}

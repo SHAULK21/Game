@@ -75,6 +75,51 @@ async function handleReferrals(world, me, native) {
   return ok({url: r.body.url, rewardDays: r.body.rewardDays || 3, requiredLevel: r.body.requiredLevel || REF_LEVEL, count: rewarded.size, invited});
 }
 
+// ---------- clan invites: personal (friends) and public (a code posted to the global chat) ----------
+const clanOfPlayer = (world, id) => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); return m ? {m, clan: rows(world, 'clans').find(c => same(c.id, m.clan_id))} : {}; };
+const clanCard = (world, clan) => clan && ({id: clan.id, name: clan.name, tag: clan.tag, level: Number(clan.level) || 1, members: rows(world, 'clan_members').filter(x => same(x.clan_id, clan.id)).length, max: Number(clan.max_members) || 30, minLevel: Number(clan.min_join_level) || 1});
+const newCode = () => crypto.randomUUID().replace(/-/g, '').slice(0, 10);
+function handleClanInvites(world, path, method, body, me, now, notify) {
+  const p = player(world, me); if (!p) return fail('Сначала создайте персонажа.', 404);
+  const list = rows(world, 'ae_clan_invites');
+  world.tables.ae_clan_invites = list.filter(x => Date.parse(x.expires) > now);
+  const {m, clan} = clanOfPlayer(world, me);
+  if (method === 'GET' && path === '/api/ae-clan') return ok({clan: clanCard(world, clan), role: m?.role || null});
+  if (path === '/api/ae-clan/invite') {
+    if (!clan) return fail('Сначала вступите в клан.');
+    const friend = String(body.friendId || ''), fp = player(world, friend);
+    const linked = rows(world, 'friendships').some(f => f.status === 'accepted' && ((same(f.a, me) && same(f.b, friend)) || (same(f.b, me) && same(f.a, friend))));
+    if (!fp || !linked) return fail('Приглашать можно только друзей.');
+    if (clanOfPlayer(world, friend).clan) return fail('Друг уже состоит в клане.');
+    const sent = rows(world, 'ae_clan_invites').filter(x => same(x.by, me) && Date.parse(x.at) > now - DAY).length; if (sent >= 30) return fail('Сегодня отправлено слишком много приглашений.');
+    const inv = {code: newCode(), clan: clan.id, by: String(me), to: friend, uses: 1, at: iso(now), expires: iso(now + 7 * DAY)};
+    rows(world, 'ae_clan_invites').push(inv);
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: friend, icon: '🛡️', text: `${nameOf(p)} зовёт вас в клан [${clan.tag}] «${clan.name}»`, kind: 'clan-invite', data: {code: inv.code, clan: clanCard(world, clan)}, at: iso(now), acked: false});
+    notify?.(world, friend, `🛡️ ${nameOf(p)} зовёт вас в клан [${clan.tag}] «${clan.name}». Откройте игру, чтобы вступить.`, 'clan-invite:' + me, now);
+    return ok({invited: true});
+  }
+  if (path === '/api/ae-clan/share') {
+    if (!clan) return fail('Сначала вступите в клан.');
+    const inv = {code: newCode(), clan: clan.id, by: String(me), to: null, uses: 15, at: iso(now), expires: iso(now + DAY)};
+    rows(world, 'ae_clan_invites').push(inv);
+    return ok({code: inv.code, clan: clanCard(world, clan)});
+  }
+  if (path === '/api/ae-clan/join') {
+    const inv = rows(world, 'ae_clan_invites').find(x => x.code === String(body.code || ''));
+    if (!inv || inv.uses <= 0) return fail('Приглашение устарело.');
+    if (inv.to && !same(inv.to, me)) return fail('Это приглашение для другого игрока.');
+    if (clan) return fail('Вы уже состоите в клане.');
+    const target = rows(world, 'clans').find(c => same(c.id, inv.clan)); if (!target) return fail('Клан не найден.');
+    if ((Number(p.level) || 1) < (Number(target.min_join_level) || 1)) return fail(`Нужен ${target.min_join_level} уровень.`);
+    if (rows(world, 'clan_members').filter(x => same(x.clan_id, target.id)).length >= (Number(target.max_members) || 30)) return fail('Клан заполнен.');
+    rows(world, 'clan_members').push({clan_id: target.id, telegram_id: Number(me), role: 'recruit', joined_at: iso(now), raid_damage: 0, last_raid_attack: null});
+    p.clan_id = target.id; p.updated_at = iso(now); inv.uses--;
+    notify?.(world, inv.by, `🛡️ ${nameOf(p)} вступил(а) в клан «${target.name}» по вашему приглашению!`, 'clan-joined:' + me, now);
+    return ok({joined: true, clan: clanCard(world, target)});
+  }
+  return fail('API не найден.', 404);
+}
+
 // ---------- analytics: section visits from the client + admin report ----------
 const dayKey = t => iso(t).slice(0, 10);
 function track(world, me, sections, now) {
@@ -117,9 +162,10 @@ function report(world, now) {
 export async function handleLiveRequest(world, input, user, now, native, notify) {
   try { weekendAnnounce(world, now); refJoinNotice(world, String(user.id), now, notify); } catch (e) { console.warn('live prelude', e?.message); }
   const path = String(input?.path || '').split('?')[0];
-  if (!path.startsWith('/api/ae-pet') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
+  if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (path === '/api/ae-pet') { if (!player(world, me)) return fail('Сначала создайте персонажа.', 404); return handlePet(world, body, me, now); }
+  if (path.startsWith('/api/ae-clan')) return handleClanInvites(world, path, method, body, me, now, notify);
   if (path === '/api/ae-referrals') { if (!player(world, me)) return fail('Сначала создайте персонажа.', 404); return handleReferrals(world, me, native); }
   if (path === '/api/ae-stats') { const r = saveStats(world, me, body.stats, now); return r ? ok({ok: true}) : fail('Нет данных.'); }
   if (path === '/api/ae-track') return track(world, me, body.s, now);
