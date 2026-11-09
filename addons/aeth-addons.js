@@ -1775,7 +1775,8 @@
     if (id === 'arena' && (p.arenaTickets || 0) > 0) { const n = p.arenaTickets; return ['ready', `🎟️ ${n} ${plural(n, 'билет', 'билета', 'билетов')}`]; }
     if (id === 'alchemy' && (p.alchemyEnergy || 0) >= (p.maxAlchemyEnergy || 100)) return ['ready', '⚗️ Можно варить'];
     if (id === 'chat' && p.energy < p.maxEnergy) return ['ready', '⚡ Энергия +25'];
-    if (id === 'quests') { const n = (questCache || []).filter(q => !q.claimed && q.progress >= q.need).length; if (n) return ['ready', `🎁 ${n} ${plural(n, 'награда', 'награды', 'наград')}`]; }
+    // The board's own quests (not the co-op/PvP/Horde «Задания» — those have their badge on the quick bar).
+    if (id === 'quests') { const n = (B()?.quests || []).filter(q => q.completed && !q.claimed).length; if (n) return ['ready', `🎁 ${n} ${plural(n, 'награда', 'награды', 'наград')}`]; }
     if (placeSeen()[id] !== today()) return ['new', '✨ Загляните'];
     return null;
   }

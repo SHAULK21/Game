@@ -1,1 +1,0 @@
-import{o as e}from"./locale-Btfa3u8U.js";import{s as t,t as n}from"./GameScreens-CX80KEtT.js";import{t as r}from"./registration-ByDI3m42.js";import{FantasyBetaLayout as i}from"./FantasyBetaLayout-w0y68Fbh.js";var a=e();function o(){return(0,a.jsx)(t.Provider,{value:r,children:(0,a.jsx)(n,{Content:i})})}export{o as default};

@@ -14,6 +14,7 @@ const dismissStory = async () => { const b = p.locator(".ae-story button"); if (
 await dismissStory(); await p.waitForTimeout(6000); await p.locator('.ae-x').click().catch(() => {});
 for (const t of ['Позже']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {});
 await p.waitForTimeout(4500);
+console.log('board quests:', await p.evaluate(() => JSON.stringify((window.__aethBridge.quests || []).map(q => [q.id, q.completed, q.claimed]))));
 console.log(await p.evaluate(() => [...document.querySelectorAll('[data-settlement-place]')].map(t => t.dataset.settlementPlace + '=' + (t.dataset.aeBadge || '-')).join('\n')));
 await p.screenshot({path: `badges-${style}.png`, fullPage: true});
 await p.evaluate(() => document.querySelector('[data-settlement-place="clan"]').click()); await p.waitForTimeout(800);
