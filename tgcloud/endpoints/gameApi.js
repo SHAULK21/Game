@@ -25,7 +25,9 @@ async function handle(input, ctx) {
   try {
     const reply = await nativeTransactions.update(PRODUCTION_DOCUMENT, async world => {
       if (Math.random() < 0.01) pruneWorld(world, at);
-      const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at);
+      const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
+      const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
+      const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at, native);
       if (social) return social;
       if (input.path === '/api/profile/sync' && input.body) {
         const synced = syncCanonicalProfile(world, user.id, input.body, at);

@@ -39,7 +39,7 @@
   // ---------- panel ----------
   let openPanelState = null;
   function openPanel(title, render, {onClose, cls} = {}) {
-    closePanel();
+    closePanel(); try { logVisit('Окно: ' + title); } catch {}
     const body = h('div', {class: 'ae-body'});
     const close = h('button', {class: 'ae-x', 'aria-label': 'Закрыть', onclick: () => closePanel()}, '×');
     const root = h('div', {class: 'ae-backdrop', onclick: e => { if (e.target === root) closePanel(); }},
@@ -619,6 +619,7 @@
     if (host && !host.querySelector('[data-ae-admin-promo]')) host.append(adminPromoBlock());
     if (host && !host.querySelector('[data-ae-admin-news]')) host.append(adminNewsBlock());
     if (host && !host.querySelector('[data-ae-admin-level]')) host.append(adminLevelBlock());
+    if (host && !host.querySelector('[data-ae-admin-stats]')) host.prepend(adminStatsBlock());
   }
 
 
@@ -1305,7 +1306,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -1484,16 +1485,27 @@
     if (hungry && !pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: true, stats: Object.fromEntries(Object.entries(base).map(([k, v]) => [k, Math.floor(v / 2)]))}} : c);
     else if (!hungry && pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: false, stats: {...base}}} : c);
   }
-  function feedPet(how) {
+  // The server keeps satiety (so it follows the player across devices and the bot can remind); the device caches it.
+  let petSyncAt = 0;
+  async function petSync(force) {
+    if (!uid() || (!force && Date.now() - petSyncAt < 10 * 60e3)) return; petSyncAt = Date.now();
+    try { const r = await api('/api/ae-pet', 'POST', {local: petFood()}); localStorage.setItem(petFoodKey(), JSON.stringify({v: r.sat, t: Date.now()})); } catch { petSyncAt = 0; }
+  }
+  let feeding = false;
+  async function feedPet(how) {
     const b = B(), p = me(); if (!b || !p?.activePet) return toast('Нет активного питомца.');
+    if (feeding) return;
     const sat = petSat(); if (sat >= 99) return toast('Питомец сыт и не хочет есть.');
-    let add = 0;
-    if (how === 'food') { const it = feedables()[0]; if (!it) return toast('В сумке нет мяса или рыбы.'); add = 40;
-      b.setPlayer(c => c && {...c, inventory: c.inventory.flatMap(i => i.id !== it.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])}); }
-    else { const cost = how === 'feast' ? 30 : 10; if ((p.gold || 0) < cost) return toast(`Нужно ${cost} золота.`); add = how === 'feast' ? 100 : 50;
-      b.setPlayer(c => c && {...c, gold: Math.max(0, (c.gold || 0) - cost)}); }
-    localStorage.setItem(petFoodKey(), JSON.stringify({v: Math.min(100, sat + add), t: Date.now()})); localStorage.removeItem(petFoodKey() + '_warned');
-    sfx.play('potion'); toast(`🐾 ${p.activePet.name} доволен! Сытость ${Math.round(Math.min(100, sat + add))}%`);
+    const it = how === 'food' ? feedables()[0] : null, cost = how === 'feast' ? 30 : how === 'bowl' ? 10 : 0;
+    if (how === 'food' && !it) return toast('В сумке нет мяса или рыбы.');
+    if (cost && (p.gold || 0) < cost) return toast(`Нужно ${cost} золота.`);
+    feeding = true; let r;
+    try { r = await api('/api/ae-pet', 'POST', {action: 'feed', how}); } catch (e) { feeding = false; return toast(cleanError(e)); }
+    feeding = false;
+    if (it) b.setPlayer(c => c && {...c, inventory: c.inventory.flatMap(i => i.id !== it.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])});
+    if (cost) b.setPlayer(c => c && {...c, gold: Math.max(0, (c.gold || 0) - cost)});
+    localStorage.setItem(petFoodKey(), JSON.stringify({v: r.sat, t: Date.now()})); localStorage.removeItem(petFoodKey() + '_warned');
+    sfx.play('potion'); toast(`🐾 ${p.activePet.name} доволен! Сытость ${Math.round(r.sat)}%`);
     setTimeout(() => { applyPetHunger(); document.querySelectorAll('.ae-petfood').forEach(e => e.replaceWith(petFoodCard())); paintPlaceBadges(); if (openPanelState?.root.querySelector('.ae-petfood')) openPanelState.rerender(); }, 50);
   }
   function petFoodCard() {
@@ -1502,7 +1514,7 @@
     return h('div', {class: 'ae-petfood' + (hungry ? ' is-hungry' : '')},
       h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, hungry ? `🍖 ${pet?.name || 'Питомец'} голоден!` : `🍖 Сытость: ${pet?.name || 'питомец'}`), h('span', {class: 'ae-petfood-pct'}, sat + '%')),
       h('div', {class: 'ae-petfood-bar'}, h('i', {style: `width:${sat}%`})),
-      h('p', {class: 'ae-note'}, hungry ? 'Голодный питомец даёт только половину характеристик. Покормите его!' : `Сытый питомец даёт полные бонусы. Проголодается примерно через ${hrs} ч.`),
+      h('p', {class: 'ae-note'}, hungry ? 'Голодный питомец даёт только половину характеристик. Покормите его!' : `Сытый питомец даёт полные бонусы. Проголодается примерно через ${hrs} ч — бот напомнит в Telegram, если уведомления включены.`),
       h('div', {class: 'ae-petfood-btns'},
         h('button', {type: 'button', class: 'ae-btn', disabled: !food.length, onclick: () => feedPet('food')}, food.length ? `🥩 ${food[0].name} · +40%` : '🥩 Мясо/рыба · нет'),
         h('button', {type: 'button', class: 'ae-btn', disabled: gold < 10, onclick: () => feedPet('bowl')}, '🥣 Миска корма · 10 🪙 · +50%'),
@@ -1518,7 +1530,7 @@
     if (cur) cur.replaceWith(card); else if (anchor.classList.contains('pet-codex-card')) anchor.after(card); else anchor.append(card);
   }
   function petHungerTick() {
-    if (!me()) return; applyPetHunger();
+    if (!me()) return; petSync(); applyPetHunger();
     if (!petHungry()) return;
     const k = petFoodKey() + '_warned'; if (localStorage.getItem(k) || openPanelState || document.documentElement.hasAttribute('data-in-combat')) return;
     localStorage.setItem(k, String(Date.now())); sfx.play('bell');
@@ -1585,6 +1597,7 @@
   // ---------- modern «Меню»: one style, no duplicates, add-on features as a native group ----------
   // Line icons in the menu's own style (stroke = currentColor, 28×28 like the game's icons)
   const LINE = {
+    invite: '<circle cx="11" cy="10" r="4"/><path d="M3.5 23c.7-4 3.7-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.2M21 14v8M17 18h8"/>',
     coop: '<path d="M5 24V12a9 9 0 0 1 18 0v12M3.5 24h21M11 24v-6a3 3 0 0 1 6 0v6M9 13.5h10"/>',
     duel: '<path d="M5 5l12 12M5 5h3.5L19 15.5M5 5v3.5L15.5 19M23 5L11 17M23 5h-3.5L9 15.5M23 5v3.5L12.5 19M8 20l-3 3M20 20l3 3M7 18l3 3M21 18l-3 3"/>',
     quests: '<path d="M9 5h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V7a2 2 0 0 0-2-2h3M6 5a2 2 0 0 0-2 2v2h4M12 11h7M12 15h7M12 19h4"/>',
@@ -1597,7 +1610,7 @@
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
   const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
-    ['friends', 'Друзья', () => openFriends()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
+    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
       const group = h('section', {class: 'mechanics-group', 'data-ae-group': '1'}, h('header', {}, h('h2', {}, 'Приключения'), h('p', {}, 'Вместе и против всех')),
@@ -1640,12 +1653,28 @@
     if (pet && pet.getAttribute('src') !== '/assets/pets/place-icon-v1.webp') pet.setAttribute('src', '/assets/pets/place-icon-v1.webp');
   }
 
+  // ---------- analytics: which sections players open (batched, sent once a minute) ----------
+  const visitQ = [], visitLast = {};
+  function logVisit(key) {
+    key = String(key || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (!key || Date.now() - (visitLast[key] || 0) < 30e3) return; visitLast[key] = Date.now(); visitQ.push(key);
+  }
+  async function flushVisits() { if (!visitQ.length || !uid()) return; const s = visitQ.splice(0, 30); try { await api('/api/ae-track', 'POST', {s}); } catch { visitQ.unshift(...s.slice(0, 30 - visitQ.length)); } }
+  setInterval(flushVisits, 60e3);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushVisits(); });
+  document.addEventListener('click', e => {
+    const nav = e.target.closest?.('nav button, nav a, .bottom-nav button, [class*="bottom-nav"] button');
+    if (nav) logVisit('Меню: ' + (nav.innerText || nav.getAttribute('aria-label') || ''));
+    const place = e.target.closest?.('[data-settlement-place]');
+    if (place) logVisit('Поселение: ' + (place.querySelector('strong')?.textContent || place.dataset.settlementPlace));
+  }, true);
   // ---------- settlement tiles: live notification badges that pull players into each place ----------
   const placeSeenKey = () => 'aeth_place_seen_' + uid();
   const today = () => new Date().toLocaleDateString('sv');
   const placeSeen = () => { try { return JSON.parse(localStorage.getItem(placeSeenKey()) || '{}'); } catch { return {}; } };
   const PLACE_HINT = {};
   const plural = (n, one, few, many) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many; };
+  const clickPlace = id => { const b = document.querySelector(`[data-settlement-place="${id}"]`); if (b) b.click(); else toast('Это место доступно в поселении.'); };
   function placeBadge(id, p) {
     const now = Date.now(), cast = p.fishing?.cast, exp = p.miningExpedition;
     if (id === 'pets' && p.activePet) { const sat = petSat(); if (sat < HUNGRY_AT) return ['warn', '🍖 Питомец голоден']; if (sat < 50) return ['info', '🍖 Пора покормить']; }
@@ -1745,6 +1774,41 @@
     };
     tryShow();
   }, 7000);
+  // ---------- admin: player analytics ----------
+  function adminStatsBlock() {
+    return h('section', {class: 'ae-admin-premium', 'data-ae-admin-stats': '1'}, h('h3', {}, '📊 Аналитика игроков'),
+      h('p', {class: 'ae-sub'}, 'Активность по дням, возвраты новичков, популярные разделы и где игроки бросают игру.'),
+      h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => openAdminStats()}, 'Открыть аналитику'));
+  }
+  function openAdminStats() {
+    let d = null, err = '';
+    const st = openPanel('📊 Аналитика', body => {
+      if (err) return body.append(h('p', {class: 'ae-empty'}, err));
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Считаю…'));
+      const pct = r => r?.pct == null ? '—' : r.pct + '%';
+      const tile = (v, l, sub) => h('div', {class: 'ae-stat'}, h('b', {}, String(v)), h('span', {}, l), sub ? h('small', {}, sub) : '');
+      body.append(h('div', {class: 'ae-stat-grid'}, tile(d.dau, 'Сегодня', 'игроков'), tile(d.wau, 'За 7 дней'), tile(d.mau, 'За 30 дней'), tile(d.total, 'Всего героев')));
+      body.append(h('h3', {class: 'ae-h3'}, 'Возвращаются ли новички'));
+      body.append(h('div', {class: 'ae-stat-grid'}, tile(pct(d.retention.d1), 'На 2-й день', `из ${d.retention.d1.base}`), tile(pct(d.retention.d3), 'На 4-й день', `из ${d.retention.d3.base}`), tile(pct(d.retention.d7), 'На 8-й день', `из ${d.retention.d7.base}`)));
+      body.append(h('p', {class: 'ae-sub'}, 'Доля игроков, зарегистрированных за последние 30 дней, которые зашли снова через 1, 3 и 7 дней.'));
+      body.append(h('h3', {class: 'ae-h3'}, 'Игроки по дням (14 дней)'));
+      const max = Math.max(1, ...d.daily.map(x => x.dau));
+      body.append(h('div', {class: 'ae-chart'}, d.daily.map(x => h('div', {class: 'ae-chart-col', title: `${x.day}: ${x.dau} игроков, ${x.new} новых`},
+        h('span', {class: 'ae-chart-v'}, x.dau ? String(x.dau) : ''), h('i', {style: `height:${Math.round(100 * x.dau / max)}%`}, h('em', {style: `height:${x.dau ? Math.round(100 * x.new / x.dau) : 0}%`})), h('small', {}, x.day.slice(8))))));
+      body.append(h('p', {class: 'ae-sub'}, 'Высота столбца — все игроки дня, светлая часть — новички.'));
+      body.append(h('h3', {class: 'ae-h3'}, 'Популярные разделы (7 дней)'));
+      if (!d.sections.length) body.append(h('p', {class: 'ae-empty'}, 'Данные начнут копиться после обновления.'));
+      const smax = Math.max(1, ...d.sections.map(x => x.users));
+      for (const x of d.sections) body.append(h('div', {class: 'ae-hbar'}, h('span', {}, x.s), h('i', {style: `width:${Math.round(100 * x.users / smax)}%`}), h('b', {}, `${x.users} чел · ${x.n}`)));
+      body.append(h('h3', {class: 'ae-h3'}, `Где бросают игру (${d.quit.n} не заходят 3+ дня)`));
+      if (!d.quit.list.length) body.append(h('p', {class: 'ae-empty'}, 'Пока таких нет.'));
+      const qmax = Math.max(1, ...d.quit.list.map(x => x.n));
+      for (const x of d.quit.list) body.append(h('div', {class: 'ae-hbar is-quit'}, h('span', {}, x.k), h('i', {style: `width:${Math.round(100 * x.n / qmax)}%`}), h('b', {}, String(x.n))));
+      body.append(h('p', {class: 'ae-sub'}, 'Последний экран игры и уровень героя у тех, кто перестал заходить.'));
+      body.append(h('div', {class: 'ae-pill'}, `🤖 Запустили бота: ${d.botUsers} · уведомления включены: ${d.notifyOn}`));
+    });
+    api('/api/ae-admin/stats').then(r => { d = r; }, e => { err = cleanError(e); }).finally(() => { if (openPanelState === st) st.rerender(); });
+  }
   function adminNewsBlock() {
     const title = h('input', {class: 'ae-input', placeholder: 'Заголовок, например: Обновление: связки в коопе', maxlength: 120});
     const text = h('textarea', {class: 'ae-input ae-news-input', rows: 8, placeholder: 'Текст поста (как в канале). **жирный**, `ПРОМОКОД`'});
@@ -1835,6 +1899,36 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- «Орда»: fast endless fights, auto-battle without delays, Blood Moon ----------
   const HORDE_COST = 10;
+  const untilText = at => { const ms = Math.max(0, Date.parse(at) - Date.now()), d = Math.floor(ms / 864e5), hh = Math.floor(ms % 864e5 / 3600e3), mm = Math.floor(ms % 3600e3 / 60e3);
+    return d ? `${d} д ${hh} ч` : hh ? `${hh} ч ${mm} мин` : `${mm} мин`; };
+  // ---------- invite a friend: personal link; both get Premium when the friend reaches level 10 ----------
+  function openInvite() {
+    let d = null, err = '';
+    const share = () => {
+      const text = 'Присоединяйся ко мне в Аэтельгарде — RPG прямо в Telegram! ⚔️ Охота на монстров, кооп-подземелья, дуэли и Орда. Перейди по ссылке:';
+      const link = `https://t.me/share/url?url=${encodeURIComponent(d.url)}&text=${encodeURIComponent(text)}`;
+      try { Telegram.WebApp.openTelegramLink(link); } catch { window.open(link, '_blank'); }
+      logVisit('Приглашение: поделиться');
+    };
+    const copy = () => { navigator.clipboard?.writeText(d.url).then(() => toast('Ссылка скопирована'), () => toast(d.url)); logVisit('Приглашение: копировать'); };
+    const st = openPanel('🎁 Пригласить друга', body => {
+      if (err) return body.append(h('p', {class: 'ae-empty'}, err));
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      body.append(h('div', {class: 'ae-invite-hero'}, h('b', {}, `👑 Premium на ${d.rewardDays} дня — вам и другу`),
+        h('span', {}, `Отправьте другу свою ссылку. Когда его герой достигнет ${d.requiredLevel} уровня, вы оба получите игровой Premium: автобой, офлайн-добычу и рынок без налога.`)));
+      body.append(h('div', {class: 'ae-invite-link'}, h('code', {}, d.url)));
+      body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: share}, '📨 Отправить другу'), h('button', {class: 'ae-btn', type: 'button', onclick: copy}, '📋 Копировать')));
+      body.append(h('p', {class: 'ae-sub'}, 'Друг должен впервые открыть игру именно по вашей ссылке. Бот сообщит вам, когда он придёт и когда награда будет начислена.'));
+      body.append(h('h3', {class: 'ae-h3'}, `Ваши приглашённые${d.invited.length ? ` (${d.invited.length})` : ''}`));
+      if (!d.invited.length) body.append(h('p', {class: 'ae-empty'}, 'Пока никого — самое время позвать друзей!'));
+      for (const f of d.invited) body.append(h('div', {class: 'ae-card ae-row ae-invite-row'},
+        h('img', {src: heroPortrait(f.classId || 'warrior'), alt: ''}),
+        h('div', {class: 'ae-grow'}, h('b', {}, f.name), f.rewarded ? h('div', {class: 'ae-sub ae-good'}, `✅ Награда получена — Premium на ${d.rewardDays} дня`)
+          : h('div', {}, h('div', {class: 'ae-bar'}, h('i', {style: `width:${Math.min(100, 100 * f.level / d.requiredLevel)}%`}), h('span', {}, `ур. ${f.level} из ${d.requiredLevel}`))))));
+      if (d.count) body.append(h('div', {class: 'ae-pill'}, `🏆 Наград за друзей получено: ${d.count}`));
+    });
+    api('/api/ae-referrals').then(r => { d = r; }, e => { err = cleanError(e); }).finally(() => { if (openPanelState === st) st.rerender(); });
+  }
   function openHorde() {
     let info = null, run = null, busy = false, auto = false, alive = true, shake = {};
     const floats = [];
@@ -1890,9 +1984,16 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
       if (!run || (run.status === 'ended' && run.claimed)) {
         body.append(h('div', {class: 'ae-horde-hero'}, h('b', {}, 'Орда монстров'), h('span', {}, 'Бесконечный поток врагов, мгновенные бои и автобой. Добыча за каждого монстра, сундуки на 20, 40 и 60 убийствах.')));
         body.append(h('div', {class: 'ae-pill'}, `🏆 Рекорд: ${info.best.kills || 0} · 🌕 ${info.best.bloodKills || 0}`));
-        body.append(h('button', {class: 'ae-btn ae-primary ae-wide ae-horde-go', type: 'button', disabled: energy < HORDE_COST, onclick: () => start(false)}, h('b', {}, '⚔️ В Орду'), h('small', {}, `${HORDE_COST} ⚡ · обычный режим`)));
-        body.append(h('button', {class: 'ae-btn ae-wide ae-horde-go is-blood', type: 'button', disabled: energy < HORDE_COST || lvl < 10, onclick: () => start(true)}, h('b', {}, '🌕 Кровавая луна'),
-          h('small', {}, lvl < 10 ? 'откроется с 10 уровня' : `${HORDE_COST} ⚡ · монстры сильнее и злее, награда ×1.75`)));
+        const wk = info.weekend || {};
+        if (wk.on) {
+          body.append(h('div', {class: 'ae-weekend is-on'}, h('b', {}, '🌕 Выходные Кровавой луны!'), h('span', {}, `Каждый поход — Кровавая луна, награды ×2 (итого ×3.5 к обычной Орде). До конца: ${untilText(wk.endsAt)}.`)));
+          body.append(h('button', {class: 'ae-btn ae-wide ae-horde-go is-blood', type: 'button', disabled: energy < HORDE_COST, onclick: () => start(true)}, h('b', {}, '🌕 В Кровавую Орду ×2'), h('small', {}, `${HORDE_COST} ⚡ · лунные чудовища и двойная добыча`)));
+        } else {
+          body.append(h('button', {class: 'ae-btn ae-primary ae-wide ae-horde-go', type: 'button', disabled: energy < HORDE_COST, onclick: () => start(false)}, h('b', {}, '⚔️ В Орду'), h('small', {}, `${HORDE_COST} ⚡ · обычный режим`)));
+          body.append(h('button', {class: 'ae-btn ae-wide ae-horde-go is-blood', type: 'button', disabled: energy < HORDE_COST || lvl < 10, onclick: () => start(true)}, h('b', {}, '🌕 Кровавая луна'),
+            h('small', {}, lvl < 10 ? 'откроется с 10 уровня' : `${HORDE_COST} ⚡ · монстры сильнее и злее, награда ×1.75`)));
+          if (wk.nextAt) body.append(h('div', {class: 'ae-weekend'}, h('b', {}, '🗓️ Выходные Кровавой луны'), h('span', {}, `Каждую субботу и воскресенье Кровавая луна для всех с двойной наградой. Начнутся через ${untilText(wk.nextAt)}.`)));
+        }
         if (energy < HORDE_COST) body.append(h('p', {class: 'ae-sub'}, 'Не хватает энергии — она восстанавливается со временем, а в таверне есть пиво и самогон.'));
         body.append(h('details', {class: 'ae-combos'}, h('summary', {}, '📜 Как играть'), h('div', {class: 'ae-sub', html: '• Каждое нажатие — мгновенный обмен ударами. <b>Автобой</b> бьёт без пауз.<br>• Каждый 10-й монстр — элита, каждый 20-й — вожак.<br>• После каждой победы вы немного восстанавливаете здоровье, с собой 3 зелья.<br>• Погибнете — поход закончится, но вся добыча останется вашей.<br>• 🌕 <b>Кровавая луна</b>: монстры бьют сильнее и чаще, раненые убегают, на их место прибегают новые.<br>• Ежедневные задания: 20, 40 и 60 монстров Орды; недельное — 30 в Кровавую луну.'})));
         body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => openSpecialQuests()}, '📜 Задания Орды'));
@@ -1903,7 +2004,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
       if (run.status === 'active' && front) {
         const cls = me()?.classId || 'warrior', q = run.queue.slice(1);
         body.append(battleView({
-          location: run.blood ? 'Орда · Кровавая луна' : 'Орда монстров', mode: run.blood ? 'Кровавая луна ×1.75' : 'Быстрый бой', round: `☠️ ${run.kills}`,
+          location: run.blood ? 'Орда · Кровавая луна' : 'Орда монстров', mode: run.weekend ? 'Выходные луны ×3.5' : run.blood ? 'Кровавая луна ×1.75' : 'Быстрый бой', round: `☠️ ${run.kills}`,
           scene: run.blood ? '/assets/rift-DTdreQra.webp' : '/assets/arena-D132A-sN.webp', turn: auto ? 'Автобой — бой идёт сам' : 'Ваш ход — выберите действие', turnShort: auto ? 'Автобой' : 'Ваш ход',
           hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.potions, maxMp: 3, mpLabel: 'Зелья', portrait: heroPortrait(cls), body: heroBody(cls)},
           foe: {name: front.name, level: front.kind === 'leader' ? 'Вожак' : front.kind === 'elite' ? 'Элита' : 'Монстр орды', hp: front.hp, maxHp: front.maxHp, img: sprite(front.sprite)},
@@ -1971,6 +2072,21 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 
   // ---------- styles ----------
   const css = `
+.ae-invite-hero{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:14px;border:1px solid #e5ce9688;background:linear-gradient(135deg,#3a2a0ecc,#141a21);font-size:13px}
+.ae-invite-hero b{font-size:16px;color:#f3d27a}
+.ae-invite-link{padding:10px;border-radius:10px;background:#0b0f14;border:1px dashed #ffffff33;overflow-wrap:anywhere;font-size:12.5px}.ae-invite-link code{color:#e5ce96}
+.ae-invite-row img{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e5ce9666}.ae-invite-row .ae-bar{margin-top:4px;height:16px}
+.ae-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px}
+.ae-stat{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff17;text-align:center}
+.ae-stat b{font-size:20px;color:#e5ce96}.ae-stat span{font-size:11.5px;color:#cbd5e1}.ae-stat small{font-size:10.5px;color:#8b95a3}
+.ae-chart{display:flex;align-items:flex-end;gap:3px;height:130px;padding:6px 2px 0;border-bottom:1px solid #ffffff22}
+.ae-chart-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.ae-chart-col i{position:relative;display:block;width:100%;min-height:2px;border-radius:4px 4px 0 0;background:#c79a3e}.ae-chart-col i em{position:absolute;left:0;right:0;bottom:0;background:#f3e2b6;border-radius:0}
+.ae-chart-v{font-size:9.5px;color:#cbd5e1;height:12px}.ae-chart-col small{font-size:9px;color:#8b95a3;margin-top:2px}
+.ae-hbar{position:relative;display:flex;align-items:center;gap:6px;min-height:26px;padding:0 8px;border-radius:8px;background:#ffffff08;overflow:hidden;font-size:12px}
+.ae-hbar i{position:absolute;inset:0 auto 0 0;background:#c79a3e33;z-index:0}.ae-hbar.is-quit i{background:#ef444433}.ae-hbar span{position:relative;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ae-hbar b{position:relative;font-size:11.5px;color:#e5ce96}
+.ae-weekend{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;border:1px dashed #b9474788;background:#2a0d0d66;color:#f3d6d6;font-size:12.5px}
+.ae-weekend b{color:#fca5a5;font-size:13.5px}.ae-weekend.is-on{border-style:solid;border-color:#ef4444;background:linear-gradient(135deg,#450a0acc,#1f0707cc);box-shadow:0 0 18px #ef444444}
 [data-settlement-place]{position:relative!important;overflow:visible!important}
 .ae-place-badge{position:absolute;top:-8px;right:-4px;z-index:3;max-width:calc(100% - 4px);height:20px;padding:0 8px;border-radius:999px;font:700 10.5px/20px system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 2px 8px #0009}
 .ae-place-badge.is-info{background:linear-gradient(#f59e0b,#b45309);color:#fff;border:1px solid #fde68a}
@@ -2256,5 +2372,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name)};
+  window.__aethOpen = {merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), invite: () => openInvite()};
 })();

@@ -30,8 +30,11 @@ import {handleCoopRequest} from './coop.js';
 import {handleExtras, pushEvent} from './arenaExtras.js';
 import {handleHordeRequest} from './horde.js';
 import {handleProfileRequest} from './profile.js';
+import {handleLiveRequest} from './live.js';
 
-export async function handleSocialRequest(world, input, user, now) {
+export async function handleSocialRequest(world, input, user, now, native) {
+  const live = await handleLiveRequest(world, input, user, now, native, notify);
+  if (live) return live;
   const horde = handleHordeRequest(world, input, user, now);
   if (horde) return horde;
   const profile = handleProfileRequest(world, input, user, now);

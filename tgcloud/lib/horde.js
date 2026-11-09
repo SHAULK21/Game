@@ -20,15 +20,24 @@ const REGULARS = [['m_wolf', 'Свирепый волк', 2], ['m_goblin', 'Го
   ['m_spider', 'Ядовитый тарантул', 12], ['v_fo_wisp', 'Тёмный дух чащи', 15], ['v_sw_toad', 'Болотный вепрь-трупоед', 27], ['v_sw_leech', 'Болотный кровосос', 28], ['m_sand_scorpion', 'Барханный скорпион', 40],
   ['m_sand_guard', 'Песчаный страж', 45], ['m_cursed_soldier', 'Проклятый легионер', 55], ['m_blood_hound', 'Кровавый гончий', 62], ['m_ash_imp', 'Пепельный бес', 75], ['m_rift_drake', 'Дракончик разлома', 82],
   ['m_peak_guard', 'Страж драконьего пика', 90], ['m_scale_hunter', 'Чешуйчатый охотник', 100]];
-const LEADERS = [['m_queen_bat', 'Королева мышей', 10], ['v_cr_vampbat', 'Вампирша-нетопырь', 14], ['v_cr_colossus', 'Костяной колосс', 16], ['m_stone_golem', 'Каменный голем', 18], ['m_spider_queen', 'Матка арахнидов', 22],
+export const LEADERS = [['m_queen_bat', 'Королева мышей', 10], ['v_cr_vampbat', 'Вампирша-нетопырь', 14], ['v_cr_colossus', 'Костяной колосс', 16], ['m_stone_golem', 'Каменный голем', 18], ['m_spider_queen', 'Матка арахнидов', 22],
   ['v_sw_golem', 'Трясинный голем', 34], ['v_sw_queen', 'Болотная матка', 38], ['v_de_colossus', 'Песчаный колосс', 48], ['m_death_knight_boss', 'Рыцарь Смерти Мортред', 50], ['v_de_knight', 'Пустынный рыцарь Сахрим', 52],
   ['v_cu_lord', 'Проклятый владыка Кхарн', 70], ['m_demon_lord', 'Повелитель Бездны Малгор', 80], ['v_ri_serpent', 'Огненный змей разлома', 88], ['v_dr_priest', 'Драконий жрец Велкар', 98], ['m_dragon_boss', 'Древний дракон Аэтельгор', 100]];
 // Blood Moon only: its own monsters (any level, scaled like the rest)
 const BLOOD_REGULARS = [['bm_werewolf', 'Кровавый волколак'], ['bm_ghoul', 'Лунный упырь'], ['bm_bat_swarm', 'Рой кровопийц'], ['bm_hound', 'Гончая багровой луны'], ['bm_cultist', 'Культист луны']];
 const BLOOD_LEADER = ['bm_moon_lord', 'Вестник Кровавой луны'];
+// Blood Moon weekend: Saturday and Sunday (Moscow time) every run is a Blood Moon run with double rewards.
+const MSK = 3 * 3600e3;
+export function bloodWeekend(now) {
+  const d = new Date(now + MSK), day = d.getUTCDay(), on = day === 6 || day === 0;
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - (day === 0 ? 1 : 0)) - MSK);
+  const end = new Date(start.getTime() + 2 * 864e5);
+  const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + ((6 - day + 7) % 7 || 7)) - MSK);
+  return {on, key: start.toISOString().slice(0, 10), endsAt: on ? end.toISOString() : null, nextAt: on ? null : next.toISOString()};
+}
 const near = (list, lvl) => { const pool = list.filter(x => x[2] <= lvl + 3 && x[2] >= lvl - 30); return pool.length ? pool : [list.reduce((a, b) => Math.abs(b[2] - lvl) < Math.abs(a[2] - lvl) ? b : a)]; };
 
-function hero(p) {
+export function hero(p) {
   const level = Math.max(1, Math.min(120, Number(p?.level) || 1)), c = CLASS[p?.class_id] || CLASS.warrior;
   return {level, classId: p?.class_id || 'warrior', maxHp: Math.round((160 + level * 48) * c.hp), atk: Math.round((18 + level * 7) * c.atk), crit: c.crit || 0.14};
 }
@@ -47,13 +56,13 @@ function spawn(run) {
 }
 function fillQueue(run) { const want = run.blood ? 3 : 2; while (run.queue.length < want) run.queue.push(spawn(run)); }
 function reward(run, kind) {
-  const L = run.hero.level, m = (kind === 'leader' ? 8 : kind === 'elite' ? 3 : 1) * (run.blood ? 1.75 : 1);
+  const L = run.hero.level, m = (kind === 'leader' ? 8 : kind === 'elite' ? 3 : 1) * (run.blood ? 1.75 : 1) * (run.weekend ? 2 : 1);
   run.loot.gold += Math.round((2 + L * 0.3) * m); run.loot.exp += Math.round((10 + L * 3) * m);
   if (kind === 'leader' && Math.random() < 0.25) run.loot.fragments++;
 }
 function milestone(run, events, now, world, me) {
   const k = MILESTONES.indexOf(run.kills); if (k < 0) return;
-  const L = run.hero.level, gold = (60 + L * 8) * (k + 1), frag = k >= 1 ? 1 : 0;
+  const L = run.hero.level, gold = (60 + L * 8) * (k + 1) * (run.weekend ? 2 : 1), frag = k >= 1 ? 1 : 0;
   run.loot.gold += gold; run.loot.fragments += frag;
   events.push({t: 'milestone', n: run.kills, gold, frag});
   run.log.push(`🏆 Веха ${run.kills} монстров! Сундук: +${gold} 🪙${frag ? ' и ✦ осколок' : ''}`);
@@ -95,7 +104,7 @@ function exchange(world, me, run, action, now, events) {
   if (run.hp <= 0) { run.status = 'ended'; run.died = true; run.log.push('💀 Вы пали. Орда отступает — награды сохранены.'); events.push({t: 'dead'}); }
   run.log = run.log.slice(-14);
 }
-const view = run => run && ({id: run.id, status: run.status, blood: run.blood, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
+const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
   queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp})), loot: run.loot, log: run.log, claimed: !!run.claimed,
   next: MILESTONES.find(x => x > run.kills) || null});
 
@@ -109,14 +118,14 @@ export function handleHordeRequest(world, input, user, now) {
   let run = rows(world, 'horde_runs').filter(r => same(r.user, me)).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
   if (run && run.status === 'active' && Date.parse(run.updated_at) < now - 30 * 60e3) { run.status = 'ended'; run.log.push('Поход прерван: вы долго отсутствовали.'); }
   const best = rows(world, 'horde_best').find(b => same(b.user, me));
-  if (method === 'GET') return ok({run: view(run), best: best || {kills: 0, bloodKills: 0}, cost: HORDE_COST});
+  if (method === 'GET') return ok({run: view(run), best: best || {kills: 0, bloodKills: 0}, cost: HORDE_COST, weekend: bloodWeekend(now)});
   if (path === '/api/horde/start') {
     if (run && run.status === 'active') return ok({run: view(run)});
     if (run && !run.claimed && (run.loot.gold || run.loot.exp)) return fail('Сначала заберите награду прошлого похода.');
-    const h = hero(p), blood = !!body.blood;
-    if (blood && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
-    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, hero: h, hp: h.maxHp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
-      loot: {gold: 0, exp: 0, fragments: 0}, log: [blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
+    const h = hero(p), weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
+    if (blood && !weekend && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
+    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, hero: h, hp: h.maxHp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
+      loot: {gold: 0, exp: 0, fragments: 0}, log: [weekend ? '🌕 Выходные Кровавой луны! Награды ×2 — Орда беснуется!' : blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
     fillQueue(run); rows(world, 'horde_runs').push(run);
     return ok({run: view(run)}, 201);
   }

@@ -23,7 +23,8 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
     const lat = Number(process.env.AE_LATENCY || 0); if (lat && input.path !== '/api/items/owned') await new Promise(r => setTimeout(r, lat));
     const snapshotFirst = input.path === '/api/items/owned' && lat;
     const user = {id: userId, displayName: 'Admin', username: 'admin'};
-    const res = (await handleSocialRequest(world, input, {...user, isAdmin: user.id === E.ADMIN_TELEGRAM_ID}, Date.now())) || await E.handleProgressRequest(world, input, user, {now: () => Date.now(), isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
+    const nowT = Number(process.env.AE_NOW) || Date.now(); const native = sub => E.handleProgressRequest(world, sub, user, {now: () => nowT, isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
+    const res = (await handleSocialRequest(world, input, {...user, isAdmin: user.id === E.ADMIN_TELEGRAM_ID}, nowT, native)) || await E.handleProgressRequest(world, input, user, {now: () => Date.now(), isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
     E.validateNativeWorld(world);
     calls.push({path: input.path, method: input.method, status: res.status, body: JSON.stringify(res.body).slice(0, 300)});
     if (snapshotFirst) await new Promise(r => setTimeout(r, Number(process.env.AE_LATENCY) * 4));
