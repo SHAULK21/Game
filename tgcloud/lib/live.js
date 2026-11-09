@@ -159,8 +159,32 @@ function report(world, now) {
     botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
 }
 
+// ---------- clan succession: a leader away for 3+ days hands the clan to the highest-level active member ----------
+const seenAt = p => Date.parse(p?.last_seen_at || p?.updated_at || 0) || 0;
+export function clanSuccession(world, now, notify) {
+  const moved = [];
+  for (const clan of rows(world, 'clans')) {
+    const ownerId = clan.owner_telegram_id, owner = player(world, ownerId);
+    if (owner && seenAt(owner) >= now - 3 * DAY) continue;
+    const members = rows(world, 'clan_members').filter(m => same(m.clan_id, clan.id) && !same(m.telegram_id, ownerId));
+    const heir = members.map(m => ({m, p: player(world, m.telegram_id)})).filter(x => x.p && seenAt(x.p) >= now - 3 * DAY)
+      .sort((a, b) => (Number(b.p.level) || 1) - (Number(a.p.level) || 1) || (Number(b.p.arena_rating) || 0) - (Number(a.p.arena_rating) || 0) || seenAt(b.p) - seenAt(a.p))[0];
+    if (!heir) continue;
+    const old = rows(world, 'clan_members').find(m => same(m.clan_id, clan.id) && same(m.telegram_id, ownerId));
+    if (old) old.role = 'officer';
+    heir.m.role = 'owner'; clan.owner_telegram_id = heir.m.telegram_id; clan.updated_at = iso(now);
+    const tag = `[${clan.tag}] «${clan.name}»`;
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: String(heir.m.telegram_id), icon: '👑', text: `Глава клана ${tag} не заходил 3 дня — теперь вы глава клана!`, kind: 'clan-leader', at: iso(now), acked: false});
+    notify?.(world, heir.m.telegram_id, `👑 Глава клана ${tag} не заходил 3 дня. Лидерство перешло к вам как к самому сильному активному участнику!`, 'clan-leader:' + clan.id + ':' + heir.m.telegram_id, now);
+    if (owner) notify?.(world, ownerId, `🛡️ Вы не заходили 3 дня, и лидерство в клане ${tag} перешло к ${nameOf(heir.p)}. Вы остались офицером.`, 'clan-leader-lost:' + clan.id + ':' + ownerId, now);
+    moved.push({clan: clan.id, from: String(ownerId), to: String(heir.m.telegram_id)});
+  }
+  return moved;
+}
+
 export async function handleLiveRequest(world, input, user, now, native, notify) {
   try { weekendAnnounce(world, now); refJoinNotice(world, String(user.id), now, notify); } catch (e) { console.warn('live prelude', e?.message); }
+  try { clanSuccession(world, now, notify); } catch (e) { console.warn('clan succession', e?.message); }
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
