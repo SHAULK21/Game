@@ -70,7 +70,14 @@ function handleNews(world, path, method, body, user, now) {
 }
 
 // ---------- special quests: co-op and PvP (daily + weekly) ----------
+// Lifetime counters (titles are earned from these; the quest log above is pruned after 8 days).
+export function bumpStat(world, userId, kind, n = 1) {
+  const list = rows(world, 'ae_stats'); let r = list.find(x => same(x.u, userId));
+  if (!r) { r = {u: String(userId), c: {}}; list.push(r); }
+  r.c[kind] = (r.c[kind] || 0) + n;
+}
 export function logQuest(world, userId, kind, now, n = 1) {
+  bumpStat(world, userId, kind, n);
   const list = rows(world, 'ae_quest_log'); for (let i = 0; i < n; i++) list.push({u: String(userId), k: kind, at: new Date(now).toISOString()});
   if (list.length > 20000 || Math.random() < 0.02) world.tables.ae_quest_log = list.filter(r => Date.parse(r.at) > now - 8 * DAY);
 }
@@ -80,6 +87,10 @@ const SPECIAL_QUESTS = [
   {id: 'd_coop_combo', period: 'day', kind: 'coop_combo', need: 3, icon: '⚡', title: 'Сделать 3 связки способностей в коопе', reward: () => ({fragments: 1})},
   {id: 'd_duel_fight', period: 'day', kind: 'duel_fight', need: 3, icon: '⚔️', title: 'Провести 3 дуэли', reward: L => ({gold: 150 + L * 15, silver: 200})},
   {id: 'd_duel_win', period: 'day', kind: 'duel_win', need: 2, icon: '🏆', title: 'Победить в 2 дуэлях', reward: L => ({gold: 250 + L * 20, exp: 150 + L * 25})},
+  {id: 'd_horde_20', period: 'day', kind: 'horde_kill', need: 20, icon: '🗡️', title: 'Орда: победить 20 монстров', reward: L => ({gold: 200 + L * 10, exp: 150 + L * 15})},
+  {id: 'd_horde_40', period: 'day', kind: 'horde_kill', need: 40, icon: '⚔️', title: 'Орда: победить 40 монстров', reward: L => ({gold: 350 + L * 18, silver: 300})},
+  {id: 'd_horde_60', period: 'day', kind: 'horde_kill', need: 60, icon: '🔥', title: 'Орда: победить 60 монстров', reward: () => ({fragments: 1, silver: 600})},
+  {id: 'w_horde_blood', period: 'week', kind: 'horde_blood_kill', need: 30, icon: '🌕', title: 'Кровавая луна: 30 монстров за неделю', reward: L => ({gold: 1000 + L * 40, fragments: 1})},
   {id: 'w_coop_win', period: 'week', kind: 'coop_win', need: 5, icon: '🛡️', title: 'Пройти 5 кооп-подземелий за неделю', reward: L => ({gold: 1500 + L * 60, fragments: 2})},
   {id: 'w_duel_win', period: 'week', kind: 'duel_win', need: 10, icon: '👑', title: '10 побед в дуэлях за неделю', reward: L => ({gold: 1200 + L * 50, fragments: 1})}];
 function periodStart(period, now) {
@@ -293,7 +304,7 @@ export function handlePromo(world, path, method, body, user, now) {
     if (!p) return fail('Сначала создайте персонажа.');
     const level = Math.max(Number(p.level) || 1, Math.min(Number(body.level) || 0, (Number(p.level) || 1) + 10));
     if (level < pack.minLevel) return fail(`Этот промокод доступен с ${pack.minLevel} уровня.`);
-    c.usesLeft--; c.usedBy.push(String(user.id));
+    c.usesLeft--; c.usedBy.push(String(user.id)); bumpStat(world, user.id, 'promo');
     if (pack.premiumDays) p.premium_until = new Date(Math.max(now, Date.parse(p.premium_until || 0) || 0) + pack.premiumDays * DAY).toISOString();
     return ok({title: pack.title, reward: {gold: pack.gold || 0, silver: pack.silver || 0, fragments: pack.fragments || 0, energy: pack.energy || 0, arenaTickets: pack.arenaTickets || 0, premiumDays: pack.premiumDays || 0}, usesLeft: c.usesLeft});
   }
@@ -378,6 +389,7 @@ export function handleTrade(world, path, method, body, me, now, notify) {
     if (t.status !== 'pending') return fail('Сделка уже закрыта.');
     if (Math.floor(Number(body.gold) || 0) < t.price) return fail('Недостаточно золота.');
     t.status = 'accepted'; t.updated_at = new Date(now).toISOString();
+    bumpStat(world, t.seller, 'trade_sold'); bumpStat(world, me, 'trade_bought');
     pushEvent(world, t.seller, '💰', `${nameOf(player(world, me))} купил(а) «${t.item.name}». +${t.price} золота`, 'trade_paid', {gold: t.price, offerId: t.id}, now);
     notify?.(world, t.seller, `💰 ${nameOf(player(world, me))} купил(а) у вас «${t.item.name}» за ${t.price} 🪙.`, 'trade-paid:' + t.id, now);
     return ok({item: t.item, price: t.price});

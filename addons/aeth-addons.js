@@ -900,13 +900,71 @@
     }
   }
   function openPlayerCard(id, name) {
-    openPanel('👤 ' + name, body => {
+    let prof = null;
+    const st = openPanel('👤 ' + name, body => {
+      if (prof) body.append(profileHeader(prof), h('div', {class: 'ae-prof-stats'},
+        h('span', {}, `⚔️ Рейтинг дуэлей ${prof.stats.duelRating}`), h('span', {}, `🤝 Кооп-побед ${prof.stats.coopWins}`), h('span', {}, `🌕 Рекорд Орды ${prof.stats.hordeBest}`), h('span', {}, `🏅 Титулов ${prof.titlesEarned}`)));
       body.append(h('div', {class: 'ae-grid2'},
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => { try { await api('/api/friends/request', 'POST', {targetId: id}); toast('Заявка в друзья отправлена'); } catch (e) { toast(cleanError(e)); } }}, '👥 В друзья'),
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => openChat({id, name})}, '💬 Написать'),
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => { closePanel(); openDuel(name); }}, '⚔️ Дуэль'),
         h('button', {class: 'ae-btn', type: 'button', onclick: () => closePanel()}, 'Закрыть')));
     });
+    api('/api/ae-profile/card?id=' + encodeURIComponent(id)).then(r => { prof = r.profile; if (openPanelState === st) st.rerender(); }, () => {});
+  }
+  // ---------- profile: titles + avatar (game characters only, round) ----------
+  const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
+  const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
+    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
+      pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула')));
+  let myProfile = null;
+  async function loadMyProfile() {
+    try {
+      const r = await api('/api/ae-profile'); myProfile = r; applyHeaderAvatar();
+      // announce titles earned since the last check
+      const key = 'aeth_titles_seen_' + uid(), earned = r.titles.filter(t => t.earned).map(t => t.id), seenRaw = localStorage.getItem(key);
+      if (seenRaw) { const seen = new Set(JSON.parse(seenRaw)); for (const t of r.titles.filter(t => t.earned && !seen.has(t.id))) popup({icon: '🏅', text: `Новый титул: ${t.icon} ${t.name}`, act: 'Надеть', fn: () => openProfile()}); }
+      localStorage.setItem(key, JSON.stringify(earned));
+      return r;
+    } catch { return null; }
+  }
+  setInterval(() => { if (uid() && !document.hidden) loadMyProfile(); }, 120000);
+  function applyHeaderAvatar() {
+    const src = myProfile?.profile?.avatar?.src; if (!src) return;
+    for (const img of document.querySelectorAll('header img.modern-avatar, header .shell-hero-portrait img')) {
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      if (!img.dataset.aeProfile) { img.dataset.aeProfile = '1'; img.classList.add('ae-header-avatar'); img.title = 'Профиль: титул и аватарка';
+        img.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); openProfile(); }, true); }
+    }
+  }
+  setTimeout(() => { if (uid()) loadMyProfile(); }, 5000);
+  function openProfile(tab = 'titles') {
+    let data = myProfile;
+    const st = openPanel('👤 Профиль', body => {
+      if (!data) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const pr = data.profile;
+      body.append(profileHeader(pr));
+      body.append(h('div', {class: 'ae-tabs'}, [['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка']].map(([k, l]) =>
+        h('button', {type: 'button', class: 'ae-pill-btn' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      if (tab === 'avatars') {
+        body.append(h('p', {class: 'ae-sub'}, 'Выберите аватарку — её увидят другие игроки в вашем профиле.'));
+        body.append(h('div', {class: 'ae-avatar-grid'}, data.avatars.map(a => h('button', {type: 'button', class: 'ae-avatar-pick' + (a.id === pr.avatar.id ? ' is-on' : ''), title: a.name, onclick: async () => {
+          try { const r = await api('/api/ae-profile/avatar', 'POST', {id: a.id}); data.profile = r.profile; myProfile = data; applyHeaderAvatar(); sfx.play('page'); st.rerender(); } catch (e) { toast(cleanError(e)); }
+        }}, h('img', {class: 'ae-avatar', src: a.src, alt: ''}), h('small', {}, a.name)))));
+        return;
+      }
+      const list = data.titles.slice().sort((a, b) => (b.earned - a.earned) || (b.progress / b.need - a.progress / a.need));
+      for (const t of list) {
+        const on = pr.title?.id === t.id;
+        body.append(h('div', {class: 'ae-card ae-title-row' + (t.earned ? '' : ' is-locked') + (on ? ' is-on' : '')},
+          h('span', {class: 'ae-title-icon'}, t.earned ? t.icon : '🔒'),
+          h('div', {class: 'ae-grow'}, h('b', {}, t.name), h('div', {class: 'ae-sub'}, t.desc), !t.earned && t.need > 1 ? h('div', {class: 'ae-bar'}, h('i', {style: `width:${100 * t.progress / t.need}%`}), h('span', {}, `${fmt(t.progress)} / ${fmt(t.need)}`)) : ''),
+          t.earned ? h('button', {type: 'button', class: 'ae-btn' + (on ? '' : ' ae-primary'), onclick: async () => {
+            try { const r = await api('/api/ae-profile/title', 'POST', {id: on ? null : t.id}); data.profile = r.profile; myProfile = data; toast(on ? 'Титул снят' : `Титул «${t.name}» надет`); sfx.play('page'); st.rerender(); } catch (e) { toast(cleanError(e)); }
+          }}, on ? 'Снять' : 'Надеть') : ''));
+      }
+    });
+    loadMyProfile().then(r => { if (r) { data = r; if (openPanelState === st) st.rerender(); } });
   }
 
   // ---------- items in chat ----------
@@ -1065,7 +1123,8 @@
     return h('div', {class: 'ae-quick', 'data-ae-quick': '1'},
       h('button', {type: 'button', class: 'ae-quick-btn', onclick: () => openDuel()}, h('span', {}, '⚔️'), h('b', {}, 'Дуэли'), h('small', {}, 'PvP по нику')),
       h('button', {type: 'button', class: 'ae-quick-btn', onclick: () => openCoop()}, h('span', {}, '🤝'), h('b', {}, 'Кооп'), h('small', {}, 'Подземелья отрядом')),
-      h('button', {type: 'button', class: 'ae-quick-btn', 'data-ae-quests-btn': '1', onclick: () => openSpecialQuests()}, h('span', {}, '📜'), h('b', {}, 'Задания'), h('small', {}, 'за кооп и PvP'), questBadge()));
+      h('button', {type: 'button', class: 'ae-quick-btn', onclick: () => openHorde()}, h('span', {}, '🌕'), h('b', {}, 'Орда'), h('small', {}, 'быстрые бои')),
+      h('button', {type: 'button', class: 'ae-quick-btn', 'data-ae-quests-btn': '1', onclick: () => openSpecialQuests()}, h('span', {}, '📜'), h('b', {}, 'Задания'), h('small', {}, 'кооп, PvP, орда'), questBadge()));
   }
   // ---------- special quests: co-op and PvP ----------
   let questCache = null;
@@ -1181,7 +1240,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['📰', 'Что нового', 'Обновления игры', () => openNews()], ['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -1407,10 +1466,12 @@
     merge: '<path d="M14 4l2.6 5.3 5.9.9-4.2 4.1 1 5.8L14 17.4l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/>',
     friends: '<circle cx="10" cy="9.5" r="3.5"/><circle cx="19.5" cy="10.5" r="2.8"/><path d="M3.5 22.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5M16 16.6c1-.6 2.2-.9 3.5-.9 2.8 0 5 2.2 5 5.3"/>',
     promo: '<rect x="5" y="12" width="18" height="11" rx="1.5"/><path d="M4 8.5h20V12H4zM14 8.5V23M14 8.5c-1.5-3-5.2-4-6.2-2.1s2 3 6.2 2.1zm0 0c1.5-3 5.2-4 6.2-2.1s-2 3-6.2 2.1z"/>',
+    profile: '<circle cx="14" cy="10" r="4.5"/><path d="M5.5 23.5c.8-4.4 4.3-7 8.5-7s7.7 2.6 8.5 7"/><path d="M20.5 4.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="currentColor" stroke="none"/>',
+    horde: '<path d="M14 4c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.5 3 5.6V21a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3.4c1.8-1.1 3-3 3-5.6 0-4.6-3.5-8-8.5-8z"/><circle cx="10.6" cy="12.6" r="1.8"/><circle cx="17.4" cy="12.6" r="1.8"/><path d="M12 22v-2.4M16 22v-2.4"/>',
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['news', 'Что нового', openNews], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
@@ -1483,11 +1544,50 @@
       cur?.remove(); if (want) b.append(h('i', {class: 'ae-qbadge'}, want));
     }
   }
+  // ---------- welcome window: greeting + what changed since the last visit ----------
+  const visitKey = () => 'aeth_last_visit_' + uid();
+  const DAY_MS = 864e5;
+  const daysWord = n => n % 10 === 1 && n % 100 !== 11 ? 'день' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дня' : 'дней';
+  function showWelcome(posts, awayDays) {
+    const p = me(), name = p?.characterName || p?.name || 'герой', seenBefore = localStorage.getItem(newsSeenKey()) || '';
+    const unread = posts.filter(x => x.at > seenBefore), list = unread.length ? unread : posts.slice(0, 1);
+    const long = awayDays >= 3;
+    const close = () => { if (posts[0]) localStorage.setItem(newsSeenKey(), posts[0].at); paintNewsBadges(); root.classList.add('is-out'); setTimeout(() => root.remove(), 300); sfx.play('page'); };
+    const items = list.slice(0, 5).map((n, i) => h('details', {class: 'ae-welcome-item', open: i === 0 ? true : null},
+      h('summary', {}, h('b', {}, n.title), h('small', {}, new Date(n.at).toLocaleDateString('ru-RU', {day: 'numeric', month: 'long'}))), h('div', {class: 'ae-news-text', html: newsHtml(n.text)})));
+    const root = h('div', {class: 'ae-story ae-welcome', role: 'dialog', 'aria-label': 'Добро пожаловать'},
+      h('div', {class: 'ae-story-card'}, h('img', {src: '/assets/story/royal-return.webp', alt: ''}),
+        h('div', {class: 'ae-story-text'},
+          h('small', {}, long ? `Вас не было ${awayDays} ${daysWord(awayDays)}` : 'Новости королевства'),
+          h('h2', {}, long ? `С возвращением, ${name}!` : `Рады видеть, ${name}!`),
+          h('p', {}, long ? 'Пока вы странствовали, Аэтельгард изменился. Вот что нового:' : unread.length > 1 ? `Вышло обновлений: ${unread.length}. Вот что нового:` : 'В игре вышло обновление:'),
+          h('div', {class: 'ae-welcome-list'}, items),
+          unread.length > 5 ? h('p', {class: 'ae-sub'}, `И ещё ${unread.length - 5} — в разделе «Что нового».`) : '',
+          h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { close(); openNews(); }}, 'Все обновления'),
+            h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: close}, long ? 'В бой!' : 'Отлично')))));
+    root.addEventListener('click', e => { const c = e.target.closest('.ae-copy'); if (!c) return; navigator.clipboard?.writeText(c.textContent).then(() => toast('Промокод скопирован: ' + c.textContent), () => toast(c.textContent)); });
+    document.body.append(root); sfx.play('bell');
+  }
   setTimeout(async () => {
-    if (!uid()) return; await loadNews(); paintNewsBadges();
-    const latest = newsCache?.[0], seen = localStorage.getItem(newsSeenKey());
-    if (latest && (!seen || latest.at > seen)) popup({icon: '📰', text: `Вышло обновление: ${latest.title}`, act: 'Читать', fn: openNews});
-  }, 9000);
+    if (!uid()) return;
+    const lastVisit = Number(localStorage.getItem(visitKey()) || 0), now = Date.now();
+    const awayDays = lastVisit ? Math.floor((now - lastVisit) / DAY_MS) : 0;
+    localStorage.setItem(visitKey(), String(now)); setInterval(() => localStorage.setItem(visitKey(), String(Date.now())), 60000);
+    await loadNews(); paintNewsBadges();
+    if (!newsCache?.length) return;
+    const seen = localStorage.getItem(newsSeenKey());
+    // A brand-new player: no window over the tutorial, just mark everything as read.
+    if (!lastVisit && !seen) { localStorage.setItem(newsSeenKey(), newsCache[0].at); paintNewsBadges(); return; }
+    const hasUnread = newsCache[0].at > (seen || '');
+    if (!hasUnread && awayDays < 7) return;
+    // Wait for a calm moment: no battle, journey, open panel or story scene.
+    const tryShow = () => {
+      const busy = document.documentElement.hasAttribute('data-in-combat') || me()?.worldJourney || openPanelState || document.querySelector('.ae-story, .fantasy-travel-overlay, .world-travel-overlay, .game-dialog-backdrop');
+      if (busy) return setTimeout(tryShow, 3000);
+      showWelcome(newsCache, awayDays);
+    };
+    tryShow();
+  }, 7000);
   function adminNewsBlock() {
     const title = h('input', {class: 'ae-input', placeholder: 'Заголовок, например: Обновление: связки в коопе', maxlength: 120});
     const text = h('textarea', {class: 'ae-input ae-news-input', rows: 8, placeholder: 'Текст поста (как в канале). **жирный**, `ПРОМОКОД`'});
@@ -1502,6 +1602,104 @@
     return h('section', {class: 'ae-admin-premium', 'data-ae-admin-news': '1'}, h('div', {class: 'ae-h3'}, '📰 Новости («Что нового»)'), h('div', {class: 'ae-sub'}, 'Текст появится в меню «Что нового» у всех игроков. Галочка отправит его и в канал — работает, если бот администратор канала с правом публикации.'),
       title, text, h('label', {class: 'ae-row ae-sub'}, toChannel, ' Отправить и в канал t.me/Aethelgardo'), h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: publish}, 'Опубликовать'));
   }
+  // ---------- «Орда»: fast endless fights, auto-battle without delays, Blood Moon ----------
+  const HORDE_COST = 10;
+  function openHorde() {
+    let info = null, run = null, busy = false, auto = false, alive = true, shake = {};
+    const floats = [];
+    const sprite = id => `/assets/sprites/generated/monsters/${id}.webp`;
+    const load = async () => { try { info = await api('/api/horde'); run = info.run; } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const feel = events => {
+      for (const ev of events || []) {
+        if (ev.t === 'hit') { floats.push({at: 'foe', text: (ev.crit ? '💥' : '') + '−' + fmt(ev.v), cls: ev.crit || ev.power ? 'is-dmg is-big' : 'is-dmg'}); shake.foe = Date.now() + 260; }
+        if (ev.t === 'hurt') { floats.push({at: 'hero', text: '−' + fmt(ev.v), cls: 'is-hurt'}); shake.hero = Date.now() + 260; }
+        if (ev.t === 'heal') floats.push({at: 'hero', text: '+' + fmt(ev.v), cls: 'is-heal'});
+        if (ev.t === 'kill') { sfx.play(ev.kind === 'normal' ? 'hit' : 'heavy', 0.35); if (ev.kind === 'leader') bigBanner(`👑 ${ev.name} повержен!`, false); }
+        if (ev.t === 'flee') floats.push({at: 'foe', text: '💨 убегает', cls: 'is-heal'});
+        if (ev.t === 'join') floats.push({at: 'queue', text: '🩸 +1', cls: 'is-hurt'});
+        if (ev.t === 'milestone') { bigBanner(`🏆 Веха ${ev.n}! Сундук: +${fmt(ev.gold)} 🪙${ev.frag ? ' и ✦' : ''}`, ev.n >= 60); sfx.play('coins', 0.5); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }
+        if (ev.t === 'dead') { auto = false; sfx.play('fail'); }
+      }
+    };
+    const showFloats = () => { while (floats.length) { const f = floats.shift(), el = st.body.querySelector(`[data-hz="${f.at}"]`); if (!el) continue;
+      const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.35)}px;top:${r.top + r.height * 0.25}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 900); } };
+    const act = async (action, steps = 1) => {
+      if (busy || !run || run.status !== 'active') return; busy = true;
+      try { const r = await api('/api/horde/act', 'POST', {action, steps}); run = r.run; feel(r.events); if (action !== 'attack' || steps === 1) sfx.tick?.(); }
+      catch (e) { toast(cleanError(e)); auto = false; } finally { busy = false; if (openPanelState === st) st.rerender(); }
+    };
+    // Auto-battle: back-to-back requests, several exchanges each, no artificial pauses.
+    const autoLoop = async () => {
+      while (auto && alive && run?.status === 'active') {
+        const a = run.hp < run.maxHp * 0.35 && run.potions > 0 ? 'potion' : run.powerCd === 0 ? 'power' : 'attack';
+        const t = Date.now(); await act(a, 3);
+        const rest = 300 - (Date.now() - t); if (rest > 0) await new Promise(r => setTimeout(r, rest)); // keep a visible rhythm on very fast connections
+
+      }
+      if (openPanelState === st) st.rerender();
+    };
+    const start = async blood => {
+      const p = me(); if (!p) return;
+      if ((p.energy || 0) < HORDE_COST) return toast(`Нужно ${HORDE_COST} энергии.`);
+      if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return toast('Сначала завершите бой или путь.');
+      try { const r = await api('/api/horde/start', 'POST', {blood}); run = r.run;
+        B()?.setPlayer(x => x && {...x, energy: Math.max(0, (x.energy || 0) - HORDE_COST)}); sfx.play(blood ? 'heavy' : 'whoosh'); st.rerender(); }
+      catch (e) { toast(cleanError(e)); }
+    };
+    const claim = async () => {
+      try { const r = await api('/api/horde/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); B()?.sound?.playVictory?.(); toast('Добыча: ' + rewardText(r.reward)); }
+        run = null; await load(); refreshQuestBadge(); }
+      catch (e) { toast(cleanError(e)); }
+    };
+    const bar = (cur, max, cls, label) => h('div', {class: 'ae-bar ' + (cls || '')}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
+    const st = openPanel('🌕 Орда', body => {
+      body.closest('.ae-panel')?.classList.toggle('is-blood', !!run?.blood && run.status === 'active');
+      if (!info) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const lvl = me()?.level || 1, energy = me()?.energy || 0;
+      if (!run || (run.status === 'ended' && run.claimed)) {
+        body.append(h('div', {class: 'ae-horde-hero'}, h('b', {}, 'Орда монстров'), h('span', {}, 'Бесконечный поток врагов, мгновенные бои и автобой. Добыча за каждого монстра, сундуки на 20, 40 и 60 убийствах.')));
+        body.append(h('div', {class: 'ae-pill'}, `🏆 Рекорд: ${info.best.kills || 0} · 🌕 ${info.best.bloodKills || 0}`));
+        body.append(h('button', {class: 'ae-btn ae-primary ae-wide ae-horde-go', type: 'button', disabled: energy < HORDE_COST, onclick: () => start(false)}, h('b', {}, '⚔️ В Орду'), h('small', {}, `${HORDE_COST} ⚡ · обычный режим`)));
+        body.append(h('button', {class: 'ae-btn ae-wide ae-horde-go is-blood', type: 'button', disabled: energy < HORDE_COST || lvl < 10, onclick: () => start(true)}, h('b', {}, '🌕 Кровавая луна'),
+          h('small', {}, lvl < 10 ? 'откроется с 10 уровня' : `${HORDE_COST} ⚡ · монстры сильнее и злее, награда ×1.75`)));
+        if (energy < HORDE_COST) body.append(h('p', {class: 'ae-sub'}, 'Не хватает энергии — она восстанавливается со временем, а в таверне есть пиво и самогон.'));
+        body.append(h('details', {class: 'ae-combos'}, h('summary', {}, '📜 Как играть'), h('div', {class: 'ae-sub', html: '• Каждое нажатие — мгновенный обмен ударами. <b>Автобой</b> бьёт без пауз.<br>• Каждый 10-й монстр — элита, каждый 20-й — вожак.<br>• После каждой победы вы немного восстанавливаете здоровье, с собой 3 зелья.<br>• Погибнете — поход закончится, но вся добыча останется вашей.<br>• 🌕 <b>Кровавая луна</b>: монстры бьют сильнее и чаще, раненые убегают, на их место прибегают новые.<br>• Ежедневные задания: 20, 40 и 60 монстров Орды; недельное — 30 в Кровавую луну.'})));
+        body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => openSpecialQuests()}, '📜 Задания Орды'));
+        return;
+      }
+      const front = run.queue[0], next = run.next;
+      body.append(h('div', {class: 'ae-horde-top'}, h('div', {class: 'ae-horde-kills'}, h('b', {}, `☠️ ${run.kills}`), h('small', {}, next ? `до вехи ${next}: ${next - run.kills}` : 'все вехи взяты!')),
+        h('div', {class: 'ae-horde-loot'}, h('span', {}, `🪙 ${fmt(run.loot.gold)}`), h('span', {}, `✨ ${fmt(run.loot.exp)}`), run.loot.fragments ? h('span', {}, `✦ ${run.loot.fragments}`) : '')));
+      if (next) body.append(bar(run.kills - (next === 20 ? 0 : next - 20), 20, 'is-mp', `Веха ${next}: ${run.kills} / ${next}`));
+      if (run.status === 'active' && front) {
+        const cls = me()?.classId || 'warrior', heroCls = cls === 'hunter' ? 'archer' : cls;
+        body.append(h('div', {class: 'ae-horde-stage' + (run.blood ? ' is-blood' : '')},
+          h('div', {class: 'ae-horde-player' + ((shake.hero || 0) > Date.now() ? ' ae-shake ae-hit' : ''), 'data-hz': 'hero'},
+            h('img', {src: `/assets/sprites/generated/heroes/combat/${heroCls}.webp`, alt: '', onerror: e => { e.target.src = '/assets/sprites/generated/heroes/combat/warrior.webp'; }}),
+            h('div', {class: 'ae-horde-name'}, me()?.name || 'Герой'), bar(run.hp, run.maxHp, run.hp < run.maxHp * 0.3 ? 'is-down' : '')),
+          h('div', {class: 'ae-horde-foe' + ((shake.foe || 0) > Date.now() ? ' ae-shake' : '') + ' is-' + front.kind, 'data-hz': 'foe'},
+            h('img', {src: sprite(front.sprite), alt: '', onerror: e => { e.target.style.visibility = 'hidden'; }}),
+            h('div', {class: 'ae-horde-name'}, front.name), bar(front.hp, front.maxHp, 'is-foe')),
+          h('div', {class: 'ae-horde-queue', 'data-hz': 'queue'}, run.queue.slice(1).map(m => h('div', {class: 'ae-horde-q is-' + m.kind, title: m.name}, h('img', {src: sprite(m.sprite), alt: ''}))))));
+      }
+      if (!(run.status === 'active' && front)) body.append(h('div', {class: 'ae-horde-me', 'data-hz': 'hero'}, h('small', {}, '🛡️ Ваш герой'), bar(run.hp, run.maxHp, run.hp < run.maxHp * 0.3 ? 'is-down' : '')));
+      if (run.status === 'active') {
+        body.append(h('div', {class: 'ae-grid2 ae-acts ae-horde-acts'},
+          h('button', {class: 'ae-btn ae-act ae-horde-attack', type: 'button', onpointerdown: e => { e.preventDefault(); if (!auto) act('attack'); }}, h('b', {}, '⚔️ Атака'), h('small', {}, 'мгновенный удар')),
+          h('button', {class: 'ae-btn ae-act', type: 'button', disabled: run.powerCd > 0, onpointerdown: e => { e.preventDefault(); if (!auto) act('power'); }}, h('b', {}, '💥 Мощный'), h('small', {}, run.powerCd > 0 ? `через ${run.powerCd} уд.` : '×2.5 урона')),
+          h('button', {class: 'ae-btn ae-act', type: 'button', disabled: !run.potions, onpointerdown: e => { e.preventDefault(); if (!auto) act('potion'); }}, h('b', {}, `🧪 Зелье ×${run.potions}`), h('small', {}, '+40% HP')),
+          h('button', {class: 'ae-btn ae-act ae-horde-auto' + (auto ? ' is-on' : ''), type: 'button', onclick: () => { auto = !auto; st.rerender(); if (auto) autoLoop(); }}, h('b', {}, auto ? '⏸ Стоп' : '▶️ Автобой'), h('small', {}, auto ? 'бьёт без пауз' : 'сам бьёт и пьёт зелья'))));
+        body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}, '🏃 Уйти с добычей'));
+      } else {
+        body.append(h('div', {class: 'ae-card ae-result ' + (run.died ? 'is-loss' : 'is-win')}, h('b', {}, run.died ? `💀 Вы пали на ${run.kills}-м монстре` : `🏁 Поход завершён: ${run.kills} монстров`),
+          h('div', {class: 'ae-sub'}, `Добыча: ${rewardText(run.loot) || 'пусто'}`)));
+        if (!run.claimed) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: claim}, '🎁 Забрать добычу'));
+      }
+      body.append(h('div', {class: 'ae-log'}, (run.log || []).slice().reverse().slice(0, 6).map(l => h('div', {}, l))));
+      requestAnimationFrame(showFloats);
+    }, {cls: 'ae-horde-panel', onClose: () => { alive = false; auto = false; }});
+    load();
+  }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
     const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); } catch (e) { console.warn('ae heavy', e); } };
@@ -1512,7 +1710,7 @@
   new MutationObserver(muts => {
     for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) soundScan(n.matches?.('.combat-damage-pop') ? n.parentElement : n);
     if (queued) return; queued = true;
-    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
+    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); applyHeaderAvatar(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
   }).observe(document.documentElement, {childList: true, subtree: true});
   setInterval(() => { try { storyTick(); } catch (e) { console.warn('ae story', e); } }, 1200);
   // The game moves the travel bar by restyling it (no DOM insertions), so poll while a journey card is open.
@@ -1612,7 +1810,40 @@ img.ae-land-icon{width:40px!important;height:40px!important;border-radius:50%;ob
 .modern-resource[data-ae-cur] > span:first-child{width:34px!important;height:28px!important;flex:0 0 34px!important;margin-right:2px;background:center/contain no-repeat}
 .modern-resource[data-ae-cur=gold] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/gold.webp)}.modern-resource[data-ae-cur=gold] b{color:#f6cf6b}
 .modern-resource[data-ae-cur=silver] > span:first-child{background-image:url(/assets/sprites/generated/ui/icons/silver.webp)}.modern-resource[data-ae-cur=silver] b{color:#d7dde6}
+.ae-horde-panel{max-height:96vh!important}.ae-horde-panel.is-blood{background:linear-gradient(#2a0707,#120404)!important;border-color:#c0303099!important;box-shadow:0 0 40px #a0101066!important}
+.ae-horde-hero{display:flex;flex-direction:column;gap:6px;padding:16px 14px;margin-bottom:10px;border-radius:14px;background:linear-gradient(#0008,#000c),url(/assets/arena-D132A-sN.webp) center/cover;border:1px solid #c9a35a55}
+.ae-horde-hero b{font:800 22px Georgia,serif;color:#ffe6a8}.ae-horde-hero span{font-size:13px;color:#e9dcc0;line-height:1.4}
+.ae-horde-go{display:flex!important;flex-direction:column;align-items:center;gap:2px;min-height:58px;margin:8px 0!important}.ae-horde-go b{font-size:16px}.ae-horde-go small{font-size:11px;opacity:.85}
+.ae-horde-go.is-blood{background:linear-gradient(#7a1414,#3d0808)!important;border:1px solid #e0505099!important;color:#ffd9d0!important}
+.ae-horde-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.ae-horde-kills b{display:block;font:900 26px/1 Georgia,serif;color:#ffe6a8}.ae-horde-kills small{font-size:11px;color:#bfae8c}
+.ae-horde-loot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;font:700 13px system-ui,sans-serif}.ae-horde-loot span{background:#ffffff12;border-radius:999px;padding:3px 8px}
+.ae-horde-stage{position:relative;display:flex;gap:8px;align-items:flex-end;margin:8px 0;padding:10px;border-radius:14px;background:linear-gradient(#0007,#000b),url(/assets/arena-D132A-sN.webp) center/cover;border:1px solid #c9a35a44;min-height:250px}
+.ae-horde-stage.is-blood{background:radial-gradient(circle at 80% 8%,#ff4a3a 0 26px,#ff4a3a55 27px,transparent 60px),linear-gradient(#3a0505aa,#000d),url(/assets/arena-D132A-sN.webp) center/cover;border-color:#e0505088}
+.ae-horde-foe{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}.ae-horde-foe img{width:100%;max-width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 8px 12px #000)}
+.ae-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid #c9a35a;background:#111;box-shadow:0 0 0 3px #0006}.ae-avatar.is-big{width:84px;height:84px;flex:0 0 84px}
+.ae-header-avatar{border-radius:50%!important;object-fit:cover!important;object-position:center 20%!important;cursor:pointer}
+.ae-prof-head{display:flex;gap:12px;align-items:center;margin-bottom:10px}.ae-prof-name{font:700 19px Georgia,serif;color:#f3e2b6}
+.ae-title-badge{display:inline-block;margin-top:5px;padding:3px 10px;border-radius:999px;background:linear-gradient(#5a4316,#2c210b);border:1px solid #e5c678;color:#ffe6a8;font:700 12px system-ui,sans-serif}
+.ae-prof-stats{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.ae-prof-stats span{font-size:11.5px;padding:4px 8px;border-radius:999px;background:#ffffff10;border:1px solid #ffffff1c}
+.ae-tabs{display:flex;gap:6px;margin:6px 0 10px}.ae-pill-btn{flex:1;padding:8px;border-radius:10px;border:1px solid #ffffff22;background:#ffffff0d;color:inherit;font:600 12.5px system-ui,sans-serif;cursor:pointer}.ae-pill-btn.is-on{border-color:#e5c678;background:#e5c67822;color:#ffe6a8}
+.ae-avatar-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.ae-avatar-pick{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border:0;background:none;color:inherit;cursor:pointer}
+.ae-avatar-pick small{font-size:10px;text-align:center;line-height:1.15;opacity:.85}.ae-avatar-pick.is-on .ae-avatar{border-color:#6fe39a;box-shadow:0 0 0 3px #6fe39a55}
+.ae-title-row{display:flex;align-items:center;gap:10px;margin:6px 0}.ae-title-row.is-locked{opacity:.62}.ae-title-row.is-on{border-color:#e5c678!important;background:#e5c67814!important}.ae-title-row .ae-bar{margin-top:5px}
+.ae-title-icon{font-size:24px;width:30px;text-align:center}
+.ae-horde-player{flex:0 0 32%;display:flex;flex-direction:column;align-items:center;gap:4px}.ae-horde-player img{width:100%;height:170px;object-fit:contain;object-position:bottom;filter:drop-shadow(0 8px 12px #000)}.ae-horde-player .ae-bar{width:100%}
+.ae-horde-player .ae-horde-name{font-size:13px}.ae-horde-foe .ae-horde-name{font-size:13px}
+.ae-horde-foe.is-elite img{filter:drop-shadow(0 0 12px #e0913f) drop-shadow(0 8px 12px #000)}.ae-horde-foe.is-leader img{width:230px;height:230px;filter:drop-shadow(0 0 18px #ff5a5a) drop-shadow(0 8px 12px #000)}
+.ae-horde-name{font:700 15px Georgia,serif;color:#f3e2b6;text-shadow:0 2px 4px #000;text-align:center}.ae-horde-foe .ae-bar{width:100%}
+.ae-horde-queue{display:flex;flex-direction:column;gap:6px}.ae-horde-q{width:54px;height:54px;border-radius:12px;background:#0009;border:1px solid #ffffff22;display:flex;align-items:center;justify-content:center}.ae-horde-q img{width:48px;height:48px;object-fit:contain;opacity:.85}
+.ae-horde-q.is-leader{border-color:#ff5a5a}.ae-horde-q.is-elite{border-color:#e0913f}
+.ae-horde-me{margin:4px 0 8px}.ae-horde-me small{font-size:11px;color:#bfae8c}
+.ae-horde-attack{background:linear-gradient(#8a6a2a,#4a3510)!important;border-color:#f0cf7a!important}.ae-horde-auto.is-on{background:linear-gradient(#1f6a4a,#0e3a28)!important;border-color:#6fe39a!important;animation:ae-pulse 1s ease-in-out infinite}
+.ae-float.is-big{font-size:26px}
 .ae-chat-coop{display:flex;align-items:center;gap:8px;cursor:default}.ae-chat-coop img{width:40px;height:40px;border-radius:50%;flex:0 0 40px}.ae-chat-coop .ae-btn{flex:0 0 auto;padding:7px 12px}
+.ae-welcome .ae-story-card{max-height:92vh;display:flex;flex-direction:column}.ae-welcome .ae-story-card>img{max-height:28vh;object-fit:cover}.ae-welcome .ae-story-text{overflow:auto}
+.ae-welcome-list{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px;text-align:left}.ae-welcome-item{border:1px solid #c9a35a55;border-radius:10px;background:#0006;padding:8px 10px}
+.ae-welcome-item summary{cursor:pointer;display:flex;flex-direction:column;gap:2px;list-style:none}.ae-welcome-item summary::-webkit-details-marker{display:none}.ae-welcome-item summary b{color:#f3e2b6;font:700 14px Georgia,serif}.ae-welcome-item summary small{color:#bfae8c;font-size:11px;text-transform:none;letter-spacing:0}
+.ae-welcome-item .ae-news-text{margin-top:6px;font-size:12.5px}.ae-welcome .ae-story-text>.ae-row:last-child{gap:8px;position:sticky;bottom:-1px;margin:0 -16px -16px;padding:14px 16px 16px;background:linear-gradient(#14110d00,#14110d 22%,#14110d);box-shadow:0 30px 0 #14110d}
 .ae-news h3{margin:2px 0 8px;font:700 17px Georgia,serif;color:#f3e2b6}.ae-news small{color:#bfae8c;font-size:11px}.ae-news-text{font-size:13.5px;line-height:1.5}.ae-news-text code{background:#ffd36a22;border:1px dashed #ffd36a88;border-radius:6px;padding:1px 6px;color:#ffe08a;cursor:pointer;font-weight:700}
 .ae-news-text a{color:#7cc4ff}.ae-news-input{width:100%;min-height:140px;margin:6px 0;resize:vertical;font:13px/1.4 system-ui,sans-serif}[data-ae-news-btn],.ae-entry-btn{position:relative}
 .ae-emoji-icon{font-size:22px;line-height:1;width:25px;height:25px;display:inline-flex!important;align-items:center;justify-content:center}
@@ -1681,7 +1912,7 @@ html[data-interface=fantasy] .rpg-button-secondary.inventory-ink,html[data-inter
 .ae-stages i.is-done{background:#14532d;color:#86efac;border-color:#22c55e}.ae-stages i.is-now{background:#8f6a24;color:#fff;border-color:#e5c678;box-shadow:0 0 10px #e5c67888}
 .ae-path{display:flex;flex-direction:column;gap:8px}.ae-path.is-voted{border-color:#e5c678}
 
-.ae-quick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0}
+.ae-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}
 .ae-quick-btn{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;min-height:52px;padding:8px 10px;text-align:left;border-radius:12px;border:1px solid #d6b46a;background:linear-gradient(100deg,#3a2c14e6,#1a1510e6);color:#f3e6c4;font:inherit;cursor:pointer}
 .ae-quick-btn span{grid-row:1/3;font-size:22px}.ae-quick-btn b{font-size:13px;color:#f3d79a}.ae-quick-btn small{font-size:10.5px;opacity:.8}
 .ae-quick-btn{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px;padding:7px 4px!important}.ae-quick-btn span{font-size:20px!important}.ae-quick-btn small{font-size:9.5px!important;line-height:1.15}
@@ -1731,5 +1962,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse};
+  window.__aethOpen = {merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name)};
 })();

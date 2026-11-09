@@ -28,8 +28,14 @@ export function notify(world, to, text, kind, now) {
 
 import {handleCoopRequest} from './coop.js';
 import {handleExtras, pushEvent} from './arenaExtras.js';
+import {handleHordeRequest} from './horde.js';
+import {handleProfileRequest} from './profile.js';
 
 export async function handleSocialRequest(world, input, user, now) {
+  const horde = handleHordeRequest(world, input, user, now);
+  if (horde) return horde;
+  const profile = handleProfileRequest(world, input, user, now);
+  if (profile) return profile;
   const coop = await handleCoopRequest(world, input, user, now, notify);
   if (coop) return coop;
   const extra = await handleExtras(world, input, user, now, notify);
