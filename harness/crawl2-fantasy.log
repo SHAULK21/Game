@@ -1,0 +1,19 @@
+fantasy screens: nav:Поселение, nav:Мир, nav:Арена, nav:Сумка, nav:Создание, nav:Ещё, menu:Торговые ряды, menu:Доска поручений, menu:Мастерская, menu:Кузница, menu:Лавка алхимика, menu:Дом клана, menu:Приют спутников, menu:Таверна, menu:Рыбацкий причал, menu:Шахтёрский двор, menu:Отправиться на поля, menu:Отправиться в пещеру, menu:Герой, menu:Алхимия, menu:Рыбалка, menu:Шахта, menu:Рынок, menu:Клан, menu:Спутники, menu:Чат, menu:Рейтинг, menu:Журнал, menu:Настройки, menu:⚒️, menu:👥, menu:🤝, menu:📖
+nav:Поселение: 1 buttons tested
+nav:Мир: 1 buttons tested
+nav:Арена: 3 buttons tested
+nav:Сумка: 4 buttons tested
+nav:Создание: 3 buttons tested
+nav:Ещё: 11 buttons tested
+menu:Герой: 3 buttons tested
+menu:Алхимия: 4 buttons tested
+menu:Шахта: 2 buttons tested
+menu:Чат: 0 buttons tested
+menu:Рейтинг: 2 buttons tested
+menu:Журнал: 0 buttons tested
+menu:Настройки: 0 buttons tested
+menu:⚒️: 12 buttons tested
+menu:👥: 14 buttons tested
+menu:🤝: 12 buttons tested
+menu:📖: 11 buttons tested
+fantasy issues: 65 failed api: 0

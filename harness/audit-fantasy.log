@@ -1,0 +1,27 @@
+[fantasy] home: ok
+nav: Поселение | Мир | Арена | Сумка | Создание | Ещё
+[fantasy] nav-Поселение: ok
+[fantasy] nav-Мир: ok
+[fantasy] nav-Арена: ok
+[fantasy] nav-Сумка: ok
+[fantasy] nav-Создание: ok
+[fantasy] nav-Ещё: ok
+menu entries: 25 | 60/60 | Воин · ваш герой | Создать | × | Герой | Кузница | Алхимия | Рыбалка | Шахта | Рынок | Клан | Спутники | Чат | Рейтинг | Журнал | Настройки
+[fantasy] menu-60/60: ok
+[fantasy] menu-Создать: ok
+[fantasy] menu-Герой: ok
+[fantasy] menu-Кузница: ok
+[fantasy] menu-Алхимия: ok
+[fantasy] menu-Рыбалка: ok
+[fantasy] menu-Шахта: ok
+[fantasy] menu-Рынок: ok
+[fantasy] menu-Клан: ok
+[fantasy] menu-Спутники: ok
+[fantasy] menu-Чат: ok
+[fantasy] menu-Рейтинг: ok
+[fantasy] menu-Журнал: ok
+[fantasy] menu-Настройки: ok
+[fantasy] console issues (0):
+
+[fantasy] failed API calls: 
+[fantasy] api calls: {"GET /api/profile/state":5,"POST /api/telemetry":20,"GET /api/premium/status":2,"POST /api/profile/sync":2,"POST /api/profile/heartbeat":2,"GET /api/items/owned":2,"POST /api/referrals/check":1,"POST /api/preferences/language":1,"GET /api/notifications":1,"POST /api/notifications/schedule":1,"POST /api/notifications/onboarding":1,"GET /api/market/income":1,"GET /api/market/mine":1,"GET /api/market/listings":1,"GET /api/clan/me":1,"GET /api/clans":1,"GET /api/community/stats":1,"GET /api/chat/global":1,"GET /api/leaderboard":1,"GET /api/admin/status":1}

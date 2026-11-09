@@ -1,0 +1,10 @@
+import {launch} from './browser.mjs'; import {register} from './helpers.mjs'; import fs from 'node:fs';
+const s = await launch(); const p = s.page;
+await register(p);
+await p.waitForTimeout(1500);
+const ls = await p.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+fs.writeFileSync('ls.json', JSON.stringify(ls));
+for (const [k,v] of Object.entries(ls)) console.log(k, v.length);
+fs.writeFileSync('world-after-reg.json', JSON.stringify(s.world));
+console.log(s.calls.map(c=>c.method+' '+c.path+' '+c.status).join('\n'));
+await s.close();

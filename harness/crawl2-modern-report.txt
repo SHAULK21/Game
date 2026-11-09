@@ -1,0 +1,30 @@
+[nav:Мир] "Земли" NO EFFECT
+[nav:Герой] "Характеристики+5" NO EFFECT
+[nav:Сумка] "Экипировка (2)" NO EFFECT
+[menu:Алхимия] "Все рецепты" NO EFFECT
+[menu:Рынок] "Рыцари" NO EFFECT
+[menu:Арена] "Тренировка" NO EFFECT
+[menu:Подземелья] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Создание] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Кузница] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Рыбалка] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Клан] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Чат] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Рейтинг] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Спутники] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Задания] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Достижения] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Журнал приключений] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Статистика] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Оповещения] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Настройки] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Premium] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:⚒️] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:👥] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:🤝] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:📖] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+
+FAILED API:
+
+
+PAGE ERRORS:

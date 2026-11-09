@@ -1,0 +1,10 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 12, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = 'fantasy';
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(4000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(5000);
+for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(()=>{});
+await p.getByRole('button', {name: /Отправиться в пещеру/}).first().click(); await p.waitForTimeout(1500);
+console.log(await p.evaluate(() => document.querySelector('[data-ae-dungeon]').outerHTML.replace(/<svg[\s\S]*?<\/svg>/g, '<svg/>').slice(0, 1200)));
+await s.close();

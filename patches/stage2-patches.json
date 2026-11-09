@@ -1,0 +1,177 @@
+[
+ {
+  "name": "beta-off",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "u=e=>e===`modern`||e===`fantasy`||e===`fantasy-beta`,d=()=>{try{let e=localStorage.getItem(l);return u(e)?e:`modern`}catch{return`modern`}}",
+  "new": "u=e=>e===`modern`||e===`fantasy`,d=()=>{try{let e=localStorage.getItem(l);return e===`fantasy-beta`?`fantasy`:u(e)?e:`modern`}catch{return`modern`}}",
+  "count": 1
+ },
+ {
+  "name": "beta-option",
+  "file": "GameScreens-CX80KEtT-p1.js",
+  "old": ",{id:`fantasy-beta`,label:`Фэнтези — бета`,description:`Новый бестиарий и досье охотника. Бета-версия`,Icon:k}",
+  "new": "",
+  "count": 1
+ },
+ {
+  "name": "pets-index-Bqyd-ipJ-p1.js",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{pet_dragon:{miningLevelReq:85,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:40,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:60,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:95",
+  "new": "{pet_dragon:{miningLevelReq:35,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:15,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:25,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:45"
+ },
+ {
+  "name": "pets-PetsScreen-Bq2HU9SJ-p1.js",
+  "file": "PetsScreen-Bq2HU9SJ-p1.js",
+  "old": "{pet_dragon:{miningLevelReq:85,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:40,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:60,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:95",
+  "new": "{pet_dragon:{miningLevelReq:35,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:15,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:25,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:45"
+ },
+ {
+  "name": "pets-PetsScreen-rJgVU5ak-p1.js",
+  "file": "PetsScreen-rJgVU5ak-p1.js",
+  "old": "{pet_dragon:{miningLevelReq:85,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:40,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:60,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:95",
+  "new": "{pet_dragon:{miningLevelReq:35,ingredients:[{name:`Драконит`,count:12},{name:`Осколок драконьей чешуи`,count:8},{name:`Драконья искра`,count:2}]},pet_fairy:{miningLevelReq:15,ingredients:[{name:`Мифриловая руда`,count:10},{name:`Арканная пыль`,count:8},{name:`Магическая эссенция`,count:4}]},pet_golem:{miningLevelReq:25,ingredients:[{name:`Адамантит`,count:10},{name:`Руническое ядро`,count:4},{name:`Осколок титана`,count:8}]},pet_voidling:{miningLevelReq:45"
+ },
+ {
+  "name": "ore-Мифриловая руда",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`mithril`,name:`Мифриловая руда`,icon:`💠`,type:`ore`,rarity:`rare`,minLevel:40,weight:3}",
+  "new": "{id:`mithril`,name:`Мифриловая руда`,icon:`💠`,type:`ore`,rarity:`rare`,minLevel:15,weight:3}"
+ },
+ {
+  "name": "ore-Арканная пыль",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`arcane-dust`,name:`Арканная пыль`,icon:`✨`,type:`material`,rarity:`rare`,minLevel:40,weight:2.3}",
+  "new": "{id:`arcane-dust`,name:`Арканная пыль`,icon:`✨`,type:`material`,rarity:`rare`,minLevel:15,weight:2.3}"
+ },
+ {
+  "name": "ore-Магическая эссенция",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`essence`,name:`Магическая эссенция`,icon:`🔮`,type:`material`,rarity:`rare`,minLevel:40,weight:2}",
+  "new": "{id:`essence`,name:`Магическая эссенция`,icon:`🔮`,type:`material`,rarity:`rare`,minLevel:15,weight:2}"
+ },
+ {
+  "name": "ore-Адамантит",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`adamantite`,name:`Адамантит`,icon:`🟣`,type:`ore`,rarity:`epic`,minLevel:60,weight:1.5}",
+  "new": "{id:`adamantite`,name:`Адамантит`,icon:`🟣`,type:`ore`,rarity:`epic`,minLevel:25,weight:1.5}"
+ },
+ {
+  "name": "ore-Руническое ядро",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`rune-core`,name:`Руническое ядро`,icon:`🧿`,type:`material`,rarity:`epic`,minLevel:60,weight:.8}",
+  "new": "{id:`rune-core`,name:`Руническое ядро`,icon:`🧿`,type:`material`,rarity:`epic`,minLevel:25,weight:.8}"
+ },
+ {
+  "name": "ore-Драконит",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`draconite`,name:`Драконит`,icon:`🔥`,type:`ore`,rarity:`ancient`,minLevel:85,weight:.5}",
+  "new": "{id:`draconite`,name:`Драконит`,icon:`🔥`,type:`ore`,rarity:`ancient`,minLevel:35,weight:.5}"
+ },
+ {
+  "name": "ore-Осколок драконьей чешуи",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`dragon-scale`,name:`Осколок драконьей чешуи`,icon:`🐲`,type:`material`,rarity:`epic`,minLevel:85,weight:.7}",
+  "new": "{id:`dragon-scale`,name:`Осколок драконьей чешуи`,icon:`🐲`,type:`material`,rarity:`epic`,minLevel:35,weight:.7}"
+ },
+ {
+  "name": "ore-Эфириум",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`aetherium`,name:`Эфириум`,icon:`🌌`,type:`ore`,rarity:`ancient`,minLevel:95,weight:.35}",
+  "new": "{id:`aetherium`,name:`Эфириум`,icon:`🌌`,type:`ore`,rarity:`ancient`,minLevel:45,weight:.35}"
+ },
+ {
+  "name": "ore-Эфирная пыль",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "{id:`aether-dust`,name:`Эфирная пыль`,icon:`🌌`,type:`material`,rarity:`ancient`,minLevel:95,weight:.45}",
+  "new": "{id:`aether-dust`,name:`Эфирная пыль`,icon:`🌌`,type:`material`,rarity:`ancient`,minLevel:45,weight:.45}"
+ },
+ {
+  "name": "poll-state",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "window.setInterval(()=>{document.visibilityState===`visible`&&r()},15e3)",
+  "new": "window.setInterval(()=>{document.visibilityState===`visible`&&r()},6e4)",
+  "count": 1
+ },
+ {
+  "name": "poll-telemetry",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "r=window.setInterval(()=>{document.visibilityState===`visible`&&(y(),_())},2e4)",
+  "new": "r=window.setInterval(()=>{document.visibilityState===`visible`&&(y(),_())},12e4)",
+  "count": 1
+ },
+ {
+  "name": "poll-premium",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "if(!n)return;zn();let e=()=>void zn(),t=setInterval(e,6e4)",
+  "new": "if(!n)return;zn();let q=Date.now(),e=()=>{let t=Date.now();t-q>3e5&&(q=t,zn())},t=setInterval(e,3e5)",
+  "count": 1
+ },
+ {
+  "name": "admin-status-cache-AdminModal-zN0d84kg-p1.js",
+  "file": "AdminModal-zN0d84kg-p1.js",
+  "old": "o(`/api/admin/status`)",
+  "new": "(window.__aethAdminStatus??=o(`/api/admin/status`).catch(e=>{window.__aethAdminStatus=void 0;throw e}))",
+  "count": 1
+ },
+ {
+  "name": "admin-status-cache-MoreMenuScreen-CQw16isG-p1.js",
+  "file": "MoreMenuScreen-CQw16isG-p1.js",
+  "old": "o(`/api/admin/status`)",
+  "new": "(window.__aethAdminStatus??=o(`/api/admin/status`).catch(e=>{window.__aethAdminStatus=void 0;throw e}))",
+  "count": 1
+ },
+ {
+  "name": "admin-status-cache-MoreMenuScreen-ElEmOrHE-p1.js",
+  "file": "MoreMenuScreen-ElEmOrHE-p1.js",
+  "old": "o(`/api/admin/status`)",
+  "new": "(window.__aethAdminStatus??=o(`/api/admin/status`).catch(e=>{window.__aethAdminStatus=void 0;throw e}))",
+  "count": 1
+ },
+ {
+  "name": "admin-fold",
+  "file": "AdminModal-zN0d84kg-p1.js",
+  "old": "(0,x.jsx)(D,{}),(0,x.jsx)(S,{}),",
+  "new": "(0,x.jsxs)(`details`,{className:`admin-fold`,children:[(0,x.jsx)(`summary`,{children:`📊 Новички, воронка и возвращаемость`}),(0,x.jsx)(D,{})]}),(0,x.jsxs)(`details`,{className:`admin-fold`,children:[(0,x.jsx)(`summary`,{children:`⚔️ Баланс боёв и сессии`}),(0,x.jsx)(S,{})]}),",
+  "count": 1
+ },
+ {
+  "name": "market-text-MarketScreen-BiFw35iA-p1.js",
+  "file": "MarketScreen-BiFw35iA-p1.js",
+  "old": "через отдельный серверный кошелёк рынка: стартовые 120 золота и доход от продаж.",
+  "new": "через отдельный серверный кошелёк рынка, который пополняется доходом от продаж.",
+  "count": 1
+ },
+ {
+  "name": "market-text-MarketScreen-C0ZN3xJc-p1.js",
+  "file": "MarketScreen-C0ZN3xJc-p1.js",
+  "old": "через отдельный серверный кошелёк рынка: стартовые 120 золота и доход от продаж.",
+  "new": "через отдельный серверный кошелёк рынка, который пополняется доходом от продаж.",
+  "count": 2
+ },
+ {
+  "name": "sharpen-text-CraftingScreen-CJkQKcCJ-p1.js",
+  "file": "CraftingScreen-CJkQKcCJ-p1.js",
+  "old": " · Возможна заточка +1–+5",
+  "new": " · Заточка: от +1 до +5",
+  "count": 1
+ },
+ {
+  "name": "sharpen-text-CraftingScreen-YXJHXHap-p1.js",
+  "file": "CraftingScreen-YXJHXHap-p1.js",
+  "old": " · Возможна заточка +1–+5",
+  "new": " · Заточка: от +1 до +5",
+  "count": 1
+ },
+ {
+  "name": "addon-bridge",
+  "file": "index-Bqyd-ipJ-p1.js",
+  "old": "Aa={success:!1,message:ge};return(0,c.jsx)(Ri.Provider,{value:{",
+  "new": "Aa={success:!1,message:ge};window.__aethBridge={player:n,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se};return(0,c.jsx)(Ri.Provider,{value:{",
+  "count": 1
+ },
+ {
+  "name": "stage2-css",
+  "file": "index-CScHp4Ho-p1.css",
+  "append": "\n/* stage2: compact navigation during combat (all interfaces) */\nhtml[data-in-combat] .modern-reference-nav .reference-nav-items{height:46px!important}\nhtml[data-in-combat] .modern-reference-nav .game-nav-item{font-size:0!important;gap:0!important}\nhtml[data-in-combat] .modern-reference-nav .reference-icon{width:22px!important;height:22px!important}\nhtml[data-in-combat] .fantasy-shell-nav .shell-nav-grid{height:50px!important}\nhtml[data-in-combat] .fantasy-shell-nav .game-nav-item{font-size:0!important;gap:0!important}\nhtml[data-in-combat] .fantasy-shell-nav .game-nav-item>*{transform:scale(.72);transform-origin:center}\nhtml[data-in-combat]{--reference-nav-height:48px}\n/* TZ 1.1: content and chat composer stay above the bottom navigation */\n.modern-shell>main{padding-bottom:calc(var(--reference-nav-height,72px) + env(safe-area-inset-bottom,0px) + 16px)!important}\n.chat-composer{position:sticky;bottom:calc(var(--reference-nav-height,72px) + env(safe-area-inset-bottom,0px));z-index:5;background:#10151b;padding-bottom:8px}\n/* TZ 1.2: hero stat icons cropped from reference art must not show its printed labels */\n.codex-stat .hero-stat-icon{width:22px!important;min-width:22px!important;height:22px!important;overflow:hidden!important;flex:0 0 22px!important}\n.codex-stat .hero-stat-icon svg{width:22px!important;height:22px!important}\n/* TZ 5: collapsible admin statistics */\n.admin-fold{border:1px solid #33415580;border-radius:12px;padding:6px 10px}\n.admin-fold>summary{cursor:pointer;font-size:12px;font-weight:700;color:#e2e8f0;padding:6px 0;list-style:none}\n.admin-fold>summary::-webkit-details-marker{display:none}\n.admin-fold>summary::after{content:\" ▾\";color:#94a3b8}\n.admin-fold[open]>summary::after{content:\" ▴\"}\n"
+ }
+]

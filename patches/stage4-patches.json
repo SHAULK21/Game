@@ -1,0 +1,16 @@
+[
+ {
+  "name": "action-gate-anywhere",
+  "file": "index-Bqyd-ipJ-p1-p2-p3.js",
+  "count": 1,
+  "old": "K=()=>{let e=ve(V.current)&&!In.current&&!b.current;return e||Fn(ge),e}",
+  "new": "K=()=>{let e=!!V.current&&!V.current.worldJourney&&!In.current&&!b.current;return e||Fn(`Сначала завершите бой или путь.`),e}"
+ },
+ {
+  "name": "bridge-exits",
+  "file": "index-Bqyd-ipJ-p1-p2-p3.js",
+  "count": 1,
+  "old": "window.__aethBridge={player:n,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se};",
+  "new": "window.__aethBridge={player:n,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se,exitDungeon:aa,returnToSettlement:Ni,inDungeonRun:!!F};"
+ }
+]

@@ -1,0 +1,12 @@
+modern screens: nav:Поселение, nav:Мир, nav:Герой, nav:Сумка, nav:Меню, menu:Шахта, menu:Алхимия, menu:Рынок, menu:Арена, menu:Охота, menu:Подземелья, menu:Создание, menu:Кузница, menu:Рыбалка, menu:Клан, menu:Чат, menu:Рейтинг, menu:Спутники, menu:Задания, menu:Достижения, menu:Журнал приключений, menu:Статистика, menu:Оповещения, menu:Настройки, menu:Premium, menu:⚒️, menu:👥, menu:🤝, menu:📖
+nav:Поселение: 1 buttons tested
+nav:Мир: 2 buttons tested
+nav:Герой: 16 buttons tested
+nav:Сумка: 4 buttons tested
+nav:Меню: 10 buttons tested
+menu:Шахта: 2 buttons tested
+menu:Алхимия: 6 buttons tested
+menu:Рынок: 5 buttons tested
+menu:Арена: 5 buttons tested
+menu:Охота: 1 buttons tested
+modern issues: 25 failed api: 0

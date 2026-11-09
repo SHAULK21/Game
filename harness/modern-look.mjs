@@ -1,0 +1,19 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 14, energy: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+save.player.level = 30; save.player.inventory.push({id: 'gear-1', templateId: 'x', name: 'Клинок сумеречного леса', type: 'weapon', rarity: 'uncommon', level: 12, upgradeLevel: 2, stats: {attack: 80}, icon: '⚔️', sellPrice: 40, disassembleYield: {}, stackCount: 1}); ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']);
+save.player.equipped = {...save.player.equipped, pants: {id: 'pants-1', templateId: 'p', name: 'Поножи ночного клинка', type: 'pants', rarity: 'rare', level: 10, upgradeLevel: 0, stats: {defense: 20}, icon: '?', sellPrice: 5, disassembleYield: {}, stackCount: 1, isEquipped: true}}; ls[key] = JSON.stringify(save);
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); new E.NativePool(w, () => Date.now()).ensurePlayer({id: 555, displayName: 'Борис'});
+  Object.assign(w.tables.players.find(p => p.telegram_id == 555), {character_name: 'Борис', level: 16, class_id: 'druid'}); w.tables.players.find(p => p.telegram_id == 437290420).level = 14; }, engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(5000); await p.setViewportSize({width: 390, height: 844}); p.on('dialog', d => d.accept());
+await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {}); await p.waitForTimeout(250); }
+const P = () => p.evaluate(k => JSON.parse(localStorage.getItem(k)).player, key);
+// tavern
+await p.locator('nav button', {hasText: 'Мир'}).first().click(); await p.waitForTimeout(1500); await p.screenshot({path: 'ml-world.png'});
+console.log('world head:', await p.evaluate(() => { const h = [...document.querySelectorAll('main h1, main h2')].find(e => e.textContent.trim() === 'Мир'); let c = h; for (let i = 0; i < 2; i++) c = c.parentElement; return c.outerHTML.replace(/<svg[\s\S]*?<\/svg>/g, '<svg/>').slice(0, 900); }));
+await p.locator('nav button', {hasText: 'Сумка'}).first().click(); await p.waitForTimeout(1500); await p.screenshot({path: 'ml-bag.png', fullPage: true}); const sn = p.locator('summary', {hasText: 'Снаряжение'}); if (await sn.count()) { await sn.first().click(); await p.waitForTimeout(800); } console.log('pants slot img:', await p.evaluate(() => [...document.querySelectorAll('[data-modern-equipment-slot=pants] img, [data-equipment-slot=pants] img')].map(i => i.getAttribute('src')).join(','))); await p.screenshot({path: 'ml-bag2.png'});
+console.log('iface', await p.evaluate(() => document.documentElement.getAttribute('data-interface'))); console.log('mass:', await p.evaluate(() => { const b = [...document.querySelectorAll('button, summary')].find(x => /Массовая продажа и разбор/.test(x.textContent) && !x.closest('.ae-panel')); let c = b.parentElement; return c.outerHTML.replace(/<svg[\s\S]*?<\/svg>/g,'<svg/>').slice(0,1200); })); console.log('pants:', await p.evaluate(() => JSON.stringify(window.__aethBridge.player.equipped?.pants && {n: window.__aethBridge.player.equipped.pants.name, t: window.__aethBridge.player.equipped.pants.type})));
+console.log('bag buttons:', (await p.locator('main button:visible').allInnerTexts()).map(t => t.split('\n')[0]).filter(t => /Продать|Разобр|Объедин|массов/i.test(t)).join(' | '));
+await s.close();

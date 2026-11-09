@@ -1,0 +1,25 @@
+[
+ {
+  "name": "admin-grants",
+  "file": "index-Bqyd-ipJ.js",
+  "old": "qi=()=>!1,Ji=",
+  "new": "qi=()=>String(C().id)===`437290420`,Ji="
+ },
+ {
+  "name": "asc-count",
+  "file": "index-Bqyd-ipJ.js",
+  "old": "var kr=e=>e.inventory.filter(e=>e.templateId===`ascension_fragment`&&!e.isLocked&&!e.boundToClan&&!e.serverOwned)",
+  "new": "var kr=e=>e.inventory.filter(e=>e.templateId===`ascension_fragment`&&!e.isLocked&&!e.boundToClan)"
+ },
+ {
+  "name": "asc-claim",
+  "file": "index-Bqyd-ipJ.js",
+  "old": "_a=(0,s.useCallback)(e=>{if(!n)return{success:!1,message:`Персонаж не создан.`};if(k&&!A||F||R.isTraveling)return{success:!1,message:`Завершите текущий бой, поход или путешествие.`};let t=Ar(n,e);return t.success&&i(t=>t&&Ar(t,e).player),{success:t.success,message:t.message}},[n,k,A,F,R.isTraveling])",
+  "new": "_a=(0,s.useCallback)(async e=>{if(!n)return{success:!1,message:`Персонаж не создан.`};if(k&&!A||F||R.isTraveling)return{success:!1,message:`Завершите текущий бой, поход или путешествие.`};let c=n,g=``,m=[],q=p=>({...p,inventory:p.inventory.filter(h=>!(h.serverOwned&&h.templateId===`ascension_fragment`))});if(Ar(c,e).success)for(let t of c.inventory.filter(t=>t.templateId===`ascension_fragment`&&t.serverOwned&&!t.isLocked&&!t.boundToClan)){if(Ar(q(c),e).success)break;let r=ne();try{await fe(`/api/items/`+encodeURIComponent(t.id)+`/dispose`,{method:`POST`,body:JSON.stringify({action:`disassemble`})});let x={...t,id:`asc_claim_`+t.id,serverOwned:!1,isEquipped:!1,slot:void 0};m.push(x);c={...c,inventory:[...c.inventory.filter(h=>h.id!==t.id),x]}}catch(p){g=p instanceof Error?p.message.replace(/ \\(HTTP \\d+\\)$/,``):`Не удалось списать осколки.`;break}finally{r()}}if(m.length){let t=new Set(m.map(r=>r.id.slice(10)));i(p=>p&&{...p,inventory:[...p.inventory.filter(h=>!t.has(h.id)),...m]})}if(g)return{success:!1,message:g};let t=Ar(q(c),e);return t.success&&i(t=>t&&Ar(t,e).player),{success:t.success,message:t.message}},[n,k,A,F,R.isTraveling])"
+ },
+ {
+  "name": "modal-above-nav",
+  "file": "index-CScHp4Ho.css",
+  "append": "\n.fixed.inset-0.z-50,.fixed.inset-0.z-\\[60\\],.fixed.inset-0.z-\\[70\\],.fixed.inset-0.z-\\[80\\],.fixed.inset-0.z-\\[100\\]{z-index:150}\n"
+ }
+]

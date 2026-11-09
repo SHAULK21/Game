@@ -1,0 +1,20 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 20, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const it = (i, name, type, rarity, lvl, up, asc) => ({id: 'v' + i, templateId: 'v' + i, name: name + (asc ? ' ★' + asc : ''), ascension: asc, type, rarity, level: lvl, upgradeLevel: up, stats: {attack: 10 + i}, icon: '?', sellPrice: 10, disassembleYield: {}, stackCount: 1});
+save.player.inventory.push(it(1, 'Секира новобранца', 'weapon', 'common', 3, 0), it(2, 'Кинжал дозорного', 'weapon', 'uncommon', 8, 2), it(3, 'Лук следопыта', 'weapon', 'rare', 12, 4, 1), it(4, 'Посох мага', 'weapon', 'epic', 15, 3, 2), it(5, 'Кольцо вампира', 'ring', 'legendary', 18, 6, 3), it(6, 'Плащ тени', 'cloak', 'mythic', 20, 9, 5));
+save.player.inventory.push({id: 'r1', templateId: 'r1', name: 'Арканная пыль', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '?', stats: {}, sellPrice: 1, disassembleYield: {}, stackCount: 7});
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_437290420'] = '["reg_plains","reg_whisper_woods","reg_forest"]';
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(4000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {}); await p.waitForTimeout(250); }
+await p.locator('nav button', {hasText: 'Сумка'}).first().click(); await p.waitForTimeout(1500);
+const grid = p.locator('[data-inventory-item]').first(); await grid.scrollIntoViewIfNeeded(); await p.waitForTimeout(600);
+await p.screenshot({path: `b5-bag-${style}.png`});
+console.log(style, 'tiles decorated', await p.locator('.ae-tile').count(), 'icons', JSON.stringify(await p.evaluate(() => [...document.querySelectorAll('[data-inventory-item] img')].slice(0, 12).map(i => i.getAttribute('src').split('/').pop()))));
+await p.locator('nav button', {hasText: 'Мир'}).first().click(); await p.waitForTimeout(1300); await p.screenshot({path: `b5-world-${style}.png`});
+console.log('land icons', await p.locator('img.ae-land-icon').count());
+await p.evaluate(() => { const e = document.querySelector('.region-dispatch'); e?.scrollIntoView(); }); await p.waitForTimeout(400); await p.screenshot({path: `b5-modes-${style}.png`});
+console.log('dispatch height', await p.evaluate(() => document.querySelector('.region-dispatch')?.getBoundingClientRect().height));
+await s.close();

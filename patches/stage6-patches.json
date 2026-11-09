@@ -1,0 +1,23 @@
+[
+ {
+  "name": "unique-monsters",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5.js",
+  "count": 1,
+  "old": "z[0].monsters.push(`m_queen_bat`);",
+  "new": "z[0].monsters.push(`m_queen_bat`);var AEV=[[\"reg_whisper_woods\", \"m_wolf\", \"v_ww_wolf\", \"Сумеречный волк\", \"🐺\", 6], [\"reg_whisper_woods\", \"m_goblin\", \"v_ww_shaman\", \"Гоблин-шаман\", \"🧙\", 8], [\"reg_whisper_woods\", \"m_bandit\", \"v_ww_raider\", \"Лесной налётчик\", \"🏹\", 10], [\"reg_whisper_woods\", \"m_spider\", \"v_ww_spider\", \"Древесный паук\", \"🕷️\", 9], [\"reg_forgotten_crypt\", \"m_bandit\", \"v_cr_robber\", \"Расхититель гробниц\", \"⚰️\", 11], [\"reg_forgotten_crypt\", \"m_spider\", \"v_cr_spider\", \"Склепный паук\", \"🕸️\", 12], [\"reg_forgotten_crypt\", \"m_stone_golem\", \"v_cr_colossus\", \"Костяной колосс (Босс)\", \"💀\", 16], [\"reg_forgotten_crypt\", \"m_queen_bat\", \"v_cr_vampbat\", \"Вампирша-нетопырь (Босс)\", \"🦇\", 14], [\"reg_swamp\", \"m_spider\", \"v_sw_leech\", \"Болотный кровосос\", \"🦟\", 28], [\"reg_swamp\", \"m_stone_golem\", \"v_sw_golem\", \"Трясинный голем (Босс)\", \"🌫️\", 34], [\"reg_swamp\", \"m_spider_queen\", \"v_sw_queen\", \"Болотная матка (Босс)\", \"🐸\", 38], [\"reg_desert\", \"m_stone_golem\", \"v_de_colossus\", \"Песчаный колосс (Босс)\", \"🗿\", 48], [\"reg_desert\", \"m_death_knight_boss\", \"v_de_knight\", \"Пустынный рыцарь Сахрим (Босс)\", \"⚔️\", 52], [\"reg_cursed\", \"m_demon_lord\", \"v_cu_lord\", \"Проклятый владыка Кхарн (Босс)\", \"👿\", 70], [\"reg_rift\", \"m_dragon_boss\", \"v_ri_serpent\", \"Огненный змей разлома (Босс)\", \"🔥\", 88], [\"reg_dragon\", \"m_demon_lord\", \"v_dr_priest\", \"Драконий жрец Велкар (Босс)\", \"🧛\", 98]];for(let[rg,base,id,nm,av,lv]of AEV){let b=B[base],r0=z.find(x=>x.id===rg);if(!b||!r0)continue;let k=Math.pow(lv/Math.max(1,b.level),.92),f=v=>typeof v==='number'?Math.max(1,Math.round(v*k)):v;B[id]={...b,id,regionId:rg,name:nm,avatar:av,level:lv,hp:f(b.hp),maxHp:f(b.maxHp),attack:f(b.attack),magicAttack:f(b.magicAttack),defense:f(b.defense),magicDefense:f(b.magicDefense),expReward:f(b.expReward),goldReward:f(b.goldReward)};r0.monsters=r0.monsters.map(x=>x===base?id:x)};"
+ },
+ {
+  "name": "unique-monster-mats",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5.js",
+  "count": 1,
+  "old": "for(let[e,t,,,,n]of Fn){let r=V[e]?.[n];r&&(V[e][t]={...r,chance:.55})}",
+  "new": "for(let[e,t,,,,n]of Fn){let r=V[e]?.[n];r&&(V[e][t]={...r,chance:.55})}for(let[rg,base,id]of AEV){let r=V[rg]?.[base];r&&(V[rg][id]=r)}"
+ },
+ {
+  "name": "variant-sprites",
+  "file": "GameScreens-CX80KEtT-p1-p2-p3-p4-p5.js",
+  "count": 1,
+  "old": "let n=Ve.has(e)?e:He[e];",
+  "new": "let n=Ve.has(e)||/^v_[a-z]+_/.test(e)?e:He[e];"
+ }
+]

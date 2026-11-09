@@ -1,0 +1,18 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'modern';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 10, gold: 50000, silver: 50000, alchemyLevel: 5, alchemyEnergy: 40, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const mat = (name, n, i, type = 'material') => ({id: 'cm' + i, templateId: 'mat_c' + i, name, type, rarity: 'common', level: 1, upgradeLevel: 0, icon: '🌿', stats: {}, sellPrice: 5, disassembleYield: {}, stackCount: n});
+save.player.inventory.push(mat('Уголь', 40, 1, 'ore'), mat('Медная руда', 40, 2, 'ore'), mat('Лечебная трава', 20, 3), mat('Чистая вода', 20, 4));
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(3000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(5000);
+for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(()=>{});
+const P = () => p.evaluate(k => { const x = JSON.parse(localStorage.getItem(k)).player; const w = x.equipped?.weapon; return {weapon: w && (w.name + ' +' + w.upgradeLevel), silver: x.silver, gold: x.gold, potions: x.inventory.filter(i => i.type === 'potion').reduce((n, i) => n + (i.stackCount || 1), 0), herbs: x.inventory.find(i => i.name === 'Лечебная трава')?.stackCount}; }, key);
+const go = async m => { await p.locator('nav button').last().click(); await p.waitForTimeout(600); await p.getByRole('button', {name: m}).first().click(); await p.waitForTimeout(1200); };
+console.log(style, 'start', JSON.stringify(await P()));
+await go(/^Кузница/); const sh = p.getByRole('button', {name: /Заточить/}).first(); console.log('sharpen btn', await sh.innerText().catch(() => 'none'), 'disabled', await sh.isDisabled().catch(() => null));
+await sh.click().catch(e => console.log('sharpen click fail')); await p.waitForTimeout(1500); console.log('after sharpen', JSON.stringify(await P()), ((await p.innerText('body')).match(/(Успех[^\n]*|Неудач[^\n]*|Заточка[^\n]*удал[^\n]*|сорвал[^\n]*)/) || [''])[0]);
+await go(/^Алхимия/); const br = p.getByRole('button', {name: /Сварить/}).first(); console.log('brew btn', await br.innerText().catch(() => 'none'), 'disabled', await br.isDisabled().catch(() => null));
+await br.click().catch(e => console.log('brew click fail')); await p.waitForTimeout(1500); console.log('after brew', JSON.stringify(await P()));
+await s.close();

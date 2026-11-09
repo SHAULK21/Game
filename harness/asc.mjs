@@ -1,0 +1,21 @@
+import {launch} from './browser.mjs'; import {text} from './helpers.mjs'; import fs from 'node:fs';
+const mode = process.argv[2] || 'local';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); const pl = save.player;
+pl.level = 30; delete pl.firstJourney; delete pl.firstJourneyDeparture; pl.royalBriefingStep = 99; pl.worldPlace = 'settlement'; pl.silver = 500000; pl.gold = 500000; pl.ascension = {rank: 'E', trialsWon: ['D']};
+const frag = {id: 'frag-local-1', templateId: 'ascension_fragment', name: 'Осколок вознесения', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '✦', stats: {}, sellPrice: 0, disassembleYield: {}, stackCount: 5};
+if (mode === 'local') pl.inventory.push(frag);
+ls[key] = JSON.stringify(save);
+const world = JSON.parse(fs.readFileSync('world-after-reg.json'));
+if (mode === 'server') world.tables.owned_items = [{id: '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b', owner_telegram_id: 437290420, item_json: {...frag, id: undefined, stackCount: undefined}, quantity: 5, equipped_slot: null, locked: false, bound_clan_id: null, origin: 'market_purchase', created_at: new Date().toISOString()}];
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, world)});
+const p = s.page; await p.waitForTimeout(4000);
+await p.getByRole('button', {name: 'Меню'}).last().click(); await p.waitForTimeout(800);
+if (await p.getByText('Позже').count()) await p.getByText('Позже').click();
+await p.getByText('Арена', {exact: true}).first().click(); await p.waitForTimeout(1500);
+let t = await text(p); console.log('--- ARENA\n', t.slice(0, 1500));
+const tab = p.getByRole('button', {name: /Вознесени/}); console.log('asc tabs', await tab.count(), await tab.allInnerTexts());
+if (await tab.count()) { await tab.first().click(); await p.waitForTimeout(1200); t = await text(p); const i = t.indexOf('Вознесени'); console.log('--- ASC\n', t.slice(i, i + 2500)); }
+await p.screenshot({path: `shot-asc-${mode}.png`, fullPage: true});
+console.log(s.log.filter(l=>!/AudioContext/.test(l)).join('\n'));
+await s.close();

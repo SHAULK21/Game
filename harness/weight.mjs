@@ -1,0 +1,14 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2];
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 25, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; const files = new Map();
+p.on('response', async r => { const u = new URL(r.url()); if (u.hostname !== '127.0.0.1') return; try { const b = await r.body(); files.set(u.pathname, b.length); } catch {} });
+await p.reload(); await p.waitForTimeout(6000);
+const tot = () => [...files.values()].reduce((a, b) => a + b, 0);
+const byExt = () => { const o = {}; for (const [k, v] of files) { const e = k.split('.').pop(); o[e] = (o[e] || 0) + v; } return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, (v / 1048576).toFixed(2) + 'MB'])); };
+console.log(style, 'first load', (tot() / 1048576).toFixed(2), 'MB', files.size, 'files', JSON.stringify(byExt()));
+console.log('  top:', [...files].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => k.split('/').pop() + ' ' + (v / 1024 | 0) + 'KB').join(', '));
+await s.close();

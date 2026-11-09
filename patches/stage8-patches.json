@@ -1,0 +1,4 @@
+[
+ {"name": "list-sprite", "file": "entry-CyM5I6NK-p1-p2-p3-p4-p5-p6-p7.js", "count": 1, "old": "n=nt(e.avatar),a=ie(i,e,q)", "new": "n=nt(e.avatar)||!!de(e.id,e.avatar),a=ie(i,e,q)"},
+ {"name": "combat-sprite", "file": "entry-CyM5I6NK-p1-p2-p3-p4-p5-p6-p7.js", "count": 1, "old": "ot=nt(a.avatar),", "new": "ot=nt(a.avatar)||!!de(a.id,a.avatar),"}
+]

@@ -1,11 +1,4 @@
 {
   "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json",
-  "static": {
-    "source": "dist",
-    "spa": true,
-    "headers": [
-      {"path": "/index.html", "set": {"Cache-Control": "no-store"}},
-      {"path": "/assets/*", "set": {"Cache-Control": "public, max-age=3600"}}
-    ]
-  }
+  "static": {"source": "dist", "spa": true, "immutable": ["/assets/*"], "headers": [], "redirects": []}
 }

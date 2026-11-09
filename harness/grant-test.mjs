@@ -1,0 +1,12 @@
+import {handleSocialRequest} from '../tgcloud/lib/social.js';
+const E = await import('../tgcloud/lib/gameEngine.js');
+const now = Date.now(); const world = {tables: {}}; const pool = new E.NativePool(world, () => now);
+pool.ensurePlayer({id: 437290420, displayName: 'Admin'}); pool.ensurePlayer({id: 777, displayName: 'Player'});
+world.tables.players[1].bot_started = true;
+const call = (u, body) => handleSocialRequest(world, {path: '/api/admin/premium/grant', method: 'POST', body}, u, now);
+console.log('non-admin', JSON.stringify((await call({id: 777}, {targetId: '777', days: 30, operationId: 'op-123456'})).body));
+const r = await call({id: 437290420, isAdmin: true}, {targetId: '777', days: 30, operationId: 'op-123456'}); console.log('grant', r.status, JSON.stringify(r.body));
+console.log('replay', JSON.stringify((await call({id: 437290420, isAdmin: true}, {targetId: '777', days: 30, operationId: 'op-123456'})).body));
+E.validateNativeWorld(world);
+const st = await E.handleProgressRequest(world, {path: '/api/premium/status', method: 'GET', headers: {}}, {id: 777, displayName: 'P'}, {now: () => now}); console.log('player premium', JSON.stringify(st.body));
+console.log('notice', world.tables.telegram_outbox.at(-1).payload.text);

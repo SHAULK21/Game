@@ -1,0 +1,130 @@
+[
+  {
+    "key": "sword",
+    "subject": "a single iron longsword, steel blade, leather grip, brass crossguard"
+  },
+  {
+    "key": "axe",
+    "subject": "a single broad iron battle axe, curved steel head and short brown wooden leather-wrapped handle"
+  },
+  {
+    "key": "dagger",
+    "subject": "a single short steel rogue dagger with a dark brown leather grip and small brass guard"
+  },
+  {
+    "key": "bow",
+    "subject": "a single curved elm wood hunting bow with a clearly visible taut bowstring, no arrows"
+  },
+  {
+    "key": "staff",
+    "subject": "a single wooden wizard staff with one glowing blue crystal held at its top by brass prongs"
+  },
+  {
+    "key": "shield",
+    "subject": "a single round wooden shield with iron rim and steel central boss, front three-quarter view"
+  },
+  {
+    "key": "helmet",
+    "subject": "a single iron knight helmet with broad nose guard, readable eye opening, leather interior"
+  },
+  {
+    "key": "armor",
+    "subject": "a single brown leather adventurer torso vest with steel shoulder accents, no wearer"
+  },
+  {
+    "key": "gloves",
+    "subject": "a pair of brown leather reinforced adventurer gloves, neatly overlapping, no hands"
+  },
+  {
+    "key": "boots",
+    "subject": "a pair of brown leather adventurer boots with brass buckles, neatly overlapping"
+  },
+  {
+    "key": "pants",
+    "subject": "a pair of charcoal brown reinforced adventurer trousers, simple leather knees, no wearer"
+  },
+  {
+    "key": "belt",
+    "subject": "a single coiled brown leather belt with a prominent brass buckle"
+  },
+  {
+    "key": "cloak",
+    "subject": "a single folded dark blue hooded travel cloak with one brass clasp, no wearer"
+  },
+  {
+    "key": "ring",
+    "subject": "a single thick brass ring with one blue oval gem, three-quarter view"
+  },
+  {
+    "key": "amulet",
+    "subject": "a single brass pendant amulet with a glowing emerald centre and a short loop of leather cord"
+  },
+  {
+    "key": "pickaxe",
+    "subject": "a single miner's pickaxe with iron head and sturdy wooden handle"
+  },
+  {
+    "key": "retort",
+    "subject": "a single glass alchemist retort with curved neck, brass stand and emerald liquid"
+  },
+  {
+    "key": "health-potion",
+    "subject": "a single small round clear glass potion bottle full of vivid red healing liquid, cork and tiny brass neck ring"
+  },
+  {
+    "key": "mana-potion",
+    "subject": "a single tall angular clear glass potion bottle full of vivid blue mana liquid, cork and tiny brass neck ring"
+  },
+  {
+    "key": "iron-ore",
+    "subject": "a single jagged dark stone chunk with broad metallic silver iron veins"
+  },
+  {
+    "key": "copper-ore",
+    "subject": "a single jagged dark stone chunk with broad warm reddish copper veins"
+  },
+  {
+    "key": "gold-ore",
+    "subject": "a single jagged dark stone chunk with broad bright golden mineral veins"
+  },
+  {
+    "key": "crystal",
+    "subject": "a single cluster of three chunky glowing blue mineral crystals"
+  },
+  {
+    "key": "herb",
+    "subject": "a small tied bunch of three green medicinal herb leaves, short stems, no container"
+  },
+  {
+    "key": "hide",
+    "subject": "a single folded brown wolf fur pelt, thick fur edge, no head or animal"
+  },
+  {
+    "key": "fang",
+    "subject": "a single large ivory curved wolf fang with a rough brown root"
+  },
+  {
+    "key": "thread",
+    "subject": "a single wooden spool wound with bright ivory spider silk, short loose thread"
+  },
+  {
+    "key": "meat",
+    "subject": "a single small raw red boar meat cut with pale bone and fat edge, no plate"
+  },
+  {
+    "key": "coin",
+    "subject": "a small pile of three worn brass fantasy coins with simple geometric diamond embossing, no letters"
+  },
+  {
+    "key": "seal",
+    "subject": "a single bronze octagonal hunter medal with a red centre gemstone and short crimson ribbon"
+  },
+  {
+    "key": "hammer",
+    "subject": "a single steel warhammer with brass edges and a leather-wrapped wooden handle"
+  },
+  {
+    "key": "silver-ore",
+    "subject": "one light grey rounded nugget with broad bright silver mineral faces"
+  }
+]

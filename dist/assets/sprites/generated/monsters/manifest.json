@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "format": "WebP RGBA, 640x640",
+  "purpose": "Generated portrait sprites for authored monster catalog; art-only mapping, no game data or behavior changes.",
+  "sourceAtlases": {
+    "wildlife": {
+      "width": 1254,
+      "height": 1254
+    },
+    "humanoids": {
+      "width": 1254,
+      "height": 1254
+    },
+    "bosses": {
+      "width": 1254,
+      "height": 1254
+    },
+    "desert_and_eldritch": {
+      "width": 1254,
+      "height": 1254
+    },
+    "rift_creatures": {
+      "width": 1254,
+      "height": 1254
+    },
+    "rift_drake_individual": {
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "cropMethod": "2x2 equal cells; crop alpha bounds within each cell, add transparent margin, normalize to 640x640. Cell coordinates are zero-based; source atlas is 1254x1254, each cell is 627x627.",
+  "assets": {
+    "m_wolf": {
+      "path": "/assets/sprites/generated/monsters/m_wolf.webp",
+      "sourceAtlas": "wildlife",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_boar": {
+      "path": "/assets/sprites/generated/monsters/m_boar.webp",
+      "sourceAtlas": "wildlife",
+      "cell": {
+        "row": 0,
+        "column": 1,
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_spider": {
+      "path": "/assets/sprites/generated/monsters/m_spider.webp",
+      "sourceAtlas": "wildlife",
+      "cell": {
+        "row": 1,
+        "column": 0,
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_blood_hound": {
+      "path": "/assets/sprites/generated/monsters/m_blood_hound.webp",
+      "sourceAtlas": "wildlife",
+      "cell": {
+        "row": 1,
+        "column": 1,
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_goblin": {
+      "path": "/assets/sprites/generated/monsters/m_goblin.webp",
+      "sourceAtlas": "humanoids",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_bandit": {
+      "path": "/assets/sprites/generated/monsters/m_bandit.webp",
+      "sourceAtlas": "humanoids",
+      "cell": {
+        "row": 0,
+        "column": 1,
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_cursed_soldier": {
+      "path": "/assets/sprites/generated/monsters/m_cursed_soldier.webp",
+      "sourceAtlas": "humanoids",
+      "cell": {
+        "row": 1,
+        "column": 0,
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_peak_guard": {
+      "path": "/assets/sprites/generated/monsters/m_peak_guard.webp",
+      "sourceAtlas": "humanoids",
+      "cell": {
+        "row": 1,
+        "column": 1,
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_queen_bat": {
+      "path": "/assets/sprites/generated/monsters/m_queen_bat.webp",
+      "sourceAtlas": "bosses",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_stone_golem": {
+      "path": "/assets/sprites/generated/monsters/m_stone_golem.webp",
+      "sourceAtlas": "bosses",
+      "cell": {
+        "row": 0,
+        "column": 1,
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_spider_queen": {
+      "path": "/assets/sprites/generated/monsters/m_spider_queen.webp",
+      "sourceAtlas": "bosses",
+      "cell": {
+        "row": 1,
+        "column": 0,
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_death_knight_boss": {
+      "path": "/assets/sprites/generated/monsters/m_death_knight_boss.webp",
+      "sourceAtlas": "bosses",
+      "cell": {
+        "row": 1,
+        "column": 1,
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_demon_lord": {
+      "path": "/assets/sprites/generated/monsters/m_demon_lord.webp",
+      "sourceAtlas": "desert_and_eldritch",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_dragon_boss": {
+      "path": "/assets/sprites/generated/monsters/m_dragon_boss.webp",
+      "sourceAtlas": "desert_and_eldritch",
+      "cell": {
+        "row": 0,
+        "column": 1,
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_sand_scorpion": {
+      "path": "/assets/sprites/generated/monsters/m_sand_scorpion.webp",
+      "sourceAtlas": "desert_and_eldritch",
+      "cell": {
+        "row": 1,
+        "column": 0,
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_sand_guard": {
+      "path": "/assets/sprites/generated/monsters/m_sand_guard.webp",
+      "sourceAtlas": "desert_and_eldritch",
+      "cell": {
+        "row": 1,
+        "column": 1,
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_ash_imp": {
+      "path": "/assets/sprites/generated/monsters/m_ash_imp.webp",
+      "sourceAtlas": "rift_creatures",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      }
+    },
+    "m_rift_drake": {
+      "path": "/assets/sprites/generated/monsters/m_rift_drake.webp",
+      "sourceAtlas": "rift_drake_individual",
+      "cell": {
+        "row": 0,
+        "column": 0,
+        "x": 0,
+        "y": 0,
+        "width": 1254,
+        "height": 1254
+      },
+      "alphaBoundsBeforePadding": {
+        "x": 28,
+        "y": 264,
+        "width": 1215,
+        "height": 824
+      }
+    },
+    "m_scale_hunter": {
+      "path": "/assets/sprites/generated/monsters/m_scale_hunter.webp",
+      "sourceAtlas": "rift_creatures",
+      "cell": {
+        "row": 1,
+        "column": 0,
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      }
+    }
+  },
+  "runtimeAliases": {
+    "elite_reg_plains": "m_wolf",
+    "elite_reg_whisper_woods": "m_wolf",
+    "elite_reg_forgotten_crypt": "m_bandit",
+    "elite_reg_forest": "m_spider",
+    "elite_reg_swamp": "m_spider",
+    "elite_reg_desert": "m_sand_guard",
+    "elite_reg_cursed": "m_blood_hound",
+    "elite_reg_rift": "m_rift_drake",
+    "elite_reg_dragon": "m_scale_hunter",
+    "boss_reg_whisper_woods": "m_queen_bat"
+  },
+  "runtimeIdToAsset": {
+    "m_wolf": "/assets/sprites/generated/monsters/m_wolf.webp",
+    "m_boar": "/assets/sprites/generated/monsters/m_boar.webp",
+    "m_spider": "/assets/sprites/generated/monsters/m_spider.webp",
+    "m_blood_hound": "/assets/sprites/generated/monsters/m_blood_hound.webp",
+    "m_goblin": "/assets/sprites/generated/monsters/m_goblin.webp",
+    "m_bandit": "/assets/sprites/generated/monsters/m_bandit.webp",
+    "m_cursed_soldier": "/assets/sprites/generated/monsters/m_cursed_soldier.webp",
+    "m_peak_guard": "/assets/sprites/generated/monsters/m_peak_guard.webp",
+    "m_queen_bat": "/assets/sprites/generated/monsters/m_queen_bat.webp",
+    "m_stone_golem": "/assets/sprites/generated/monsters/m_stone_golem.webp",
+    "m_spider_queen": "/assets/sprites/generated/monsters/m_spider_queen.webp",
+    "m_death_knight_boss": "/assets/sprites/generated/monsters/m_death_knight_boss.webp",
+    "m_demon_lord": "/assets/sprites/generated/monsters/m_demon_lord.webp",
+    "m_dragon_boss": "/assets/sprites/generated/monsters/m_dragon_boss.webp",
+    "m_sand_scorpion": "/assets/sprites/generated/monsters/m_sand_scorpion.webp",
+    "m_sand_guard": "/assets/sprites/generated/monsters/m_sand_guard.webp",
+    "m_ash_imp": "/assets/sprites/generated/monsters/m_ash_imp.webp",
+    "m_rift_drake": "/assets/sprites/generated/monsters/m_rift_drake.webp",
+    "m_scale_hunter": "/assets/sprites/generated/monsters/m_scale_hunter.webp",
+    "elite_reg_plains": "/assets/sprites/generated/monsters/m_wolf.webp",
+    "elite_reg_whisper_woods": "/assets/sprites/generated/monsters/m_wolf.webp",
+    "elite_reg_forgotten_crypt": "/assets/sprites/generated/monsters/m_bandit.webp",
+    "elite_reg_forest": "/assets/sprites/generated/monsters/m_spider.webp",
+    "elite_reg_swamp": "/assets/sprites/generated/monsters/m_spider.webp",
+    "elite_reg_desert": "/assets/sprites/generated/monsters/m_sand_guard.webp",
+    "elite_reg_cursed": "/assets/sprites/generated/monsters/m_blood_hound.webp",
+    "elite_reg_rift": "/assets/sprites/generated/monsters/m_rift_drake.webp",
+    "elite_reg_dragon": "/assets/sprites/generated/monsters/m_scale_hunter.webp",
+    "boss_reg_whisper_woods": "/assets/sprites/generated/monsters/m_queen_bat.webp"
+  }
+}

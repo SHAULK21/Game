@@ -1,0 +1,21 @@
+import {state} from './sdkmock/sdk.mjs';
+import {encodeDocument} from '../tgcloud/lib/storageCodec.js';
+const E = await import('../tgcloud/lib/gameEngine.js');
+const now = Date.now(); const world = {tables: {}}; const pool = new E.NativePool(world, () => now);
+for (const id of [437290420, 555]) pool.ensurePlayer({id, displayName: 'U' + id});
+for (const p of world.tables.players) { p.bot_started = true; p.notification_settings = {enabled: true}; p.level = 10; p.character_name = 'Hero' + p.telegram_id; }
+world.tables.game_notifications = [{id: 1, telegram_id: 555, event_key: 'energy_1', category: 'energy', text: '⚡ Энергия восстановилась', due_at: new Date(now - 1000).toISOString(), sent_at: null, read_at: null, attempts: 0, next_attempt_at: new Date(now - 1000).toISOString()}];
+state.row = {revision: 1, document: encodeDocument(JSON.stringify(world))};
+const {default: gameApi} = await import('../tgcloud/endpoints/gameApi.js');
+const {default: onMessage} = await import('../tgcloud/handlers/message.js');
+const ctx = id => ({initData: {user: {id, first_name: 'T'}}});
+let r = await gameApi({path: '/api/premium/status', method: 'GET', headers: {}}, ctx(555)); console.log('GET premium', r.status, JSON.stringify(r.body));
+console.log('sent after drain:', JSON.stringify(state.sent));
+r = await gameApi({path: '/api/profile/sync', method: 'POST', headers: {'x-game-reset-version': '0'}, body: {characterName: 'Cheat', level: 120, arenaRating: 999999, classId: 'warrior'}}, ctx(555));
+r = await gameApi({path: '/api/leaderboard', method: 'GET', headers: {}}, ctx(555)); console.log('leaderboard', JSON.stringify(r.body).slice(0, 220));
+r = await gameApi({path: '/api/friends/request', method: 'POST', headers: {}, body: {targetId: '437290420'}}, ctx(555)); console.log('friend req', r.status, JSON.stringify(r.body));
+state.sent = [];
+await onMessage({message_id: 1, from: {id: 555, first_name: 'Вася', username: 'vasya'}, chat: {id: 555, type: 'private'}, date: 1, successful_payment: {currency: 'XTR', total_amount: 150, invoice_payload: 'aethelgard_premium:555', telegram_payment_charge_id: 'ch_1', provider_payment_charge_id: 'p'}}, {update: {update_id: 77}});
+console.log('after payment msg sent:', JSON.stringify(state.sent).slice(0, 600));
+r = await gameApi({path: '/api/coop/rooms', method: 'GET', headers: {}}, ctx(555)); console.log('coop rooms via gameApi', r.status, JSON.stringify(r.body).slice(0, 120));
+r = await gameApi({path: '/api/admin/premium/grant', method: 'POST', headers: {}, body: {targetId: '555', days: 7, operationId: 'op-abcdefgh'}}, ctx(437290420)); console.log('admin grant via gameApi', r.status, JSON.stringify(r.body));

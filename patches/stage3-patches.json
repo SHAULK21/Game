@@ -1,0 +1,9 @@
+[
+ {
+  "name": "quest-claim-anywhere",
+  "file": "index-Bqyd-ipJ-p1-p2.js",
+  "old": "claimQuestReward:(...e)=>{K()&&ba(...e)},claimAchievementReward:(...e)=>{K()&&xa(...e)}",
+  "new": "claimQuestReward:(...e)=>{V.current&&!In.current&&!b.current?ba(...e):Fn(`Сначала завершите бой или путь.`)},claimAchievementReward:(...e)=>{V.current&&!In.current&&!b.current?xa(...e):Fn(`Сначала завершите бой или путь.`)}",
+  "count": 1
+ }
+]

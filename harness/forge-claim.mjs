@@ -1,0 +1,23 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 10, gold: 5000, silver: 20000, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const ring = {templateId: 'drop_кольцо_эхолокации', name: 'Кольцо эхолокации', type: 'ring', rarity: 'rare', level: 4, upgradeLevel: 0, stats: {critChance: 4, maxHp: 30}, icon: '💍', sellPrice: 60, disassembleYield: {silver: 8}};
+const s = await launch({localState: ls, setupWorld: w => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); w.tables.owned_items = [{id: 'a1b2c3d4-0000-4000-8000-000000000008', owner_telegram_id: 437290420, item_json: {...ring, name: 'Амулет', type: 'amulet', templateId: 'drop_amulet'}, quantity: 1, equipped_slot: null, locked: false, bound_clan_id: null, origin: 'game_command', created_at: new Date().toISOString()}, {id: 'a1b2c3d4-0000-4000-8000-000000000009', owner_telegram_id: 437290420, item_json: ring, quantity: 1, equipped_slot: null, locked: true, bound_clan_id: null, origin: 'game_command', created_at: new Date().toISOString()}]; }, engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(4000); await p.setViewportSize({width: 390, height: 844}); p.on('dialog', d => d.accept()); await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {}); await p.waitForTimeout(250); }
+const inv = () => p.evaluate(() => window.__aethBridge.player.inventory.filter(i => /Кольцо|Амулет/.test(i.name)).map(i => i.id.slice(0, 14) + i.name.slice(0,6) + (i.serverOwned ? '(srv)' : '(local)') + (i.isLocked ? 'LOCKED' : '')).join(','));
+console.log('before', await inv()); await p.waitForTimeout(4000); console.log('after auto-unlock', await inv(), 'server locked', JSON.stringify(s.world.tables.owned_items.map(r => r.locked)));
+await p.locator('nav button', {hasText: 'Сумка'}).first().click(); await p.waitForTimeout(800); await p.locator('[data-inventory-item]').last().click(); await p.waitForTimeout(800); console.log('lock buttons visible', await p.locator('button:visible', {hasText: /Защитить от продажи|Разблокировать|Запереть|Отпереть/}).count()); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+await p.locator('nav button').first().click(); await p.waitForTimeout(800); await p.locator('[data-settlement-place="blacksmith"]').first().click(); await p.waitForTimeout(1200);
+console.log('forge buttons:', (await p.locator('main button:visible').allInnerTexts()).map(t => t.split('\n')[0]).slice(0, 20).join(' | '));
+await p.locator('main button', {hasText: 'Боевой меч новобранца'}).first().click(); await p.waitForTimeout(900); await p.screenshot({path:'forge-pick.png'}); console.log('picker:', (await p.locator('body').innerText()).replace(/\n/g,' | ').slice(-700)); await p.getByText(/^Кольцо /).last().click().catch(e => console.log('no ring btn')); await p.waitForTimeout(1200);
+console.log('claim btn', await p.locator('[data-ae-forge-claim]').count());
+await p.screenshot({path: `forge-claim-${style}.png`});
+await p.locator('[data-ae-forge-claim]').click(); await p.waitForTimeout(2000);
+console.log('after', await inv(), '| server items', s.world.tables.owned_items.length, '| toast', await p.locator('.ae-toast').innerText().catch(() => ''));
+await p.locator('main button').nth(1).click(); await p.waitForTimeout(900); await p.getByText(/^Кольцо /).last().click().catch(e => console.log('no ring btn 2')); await p.waitForTimeout(1000);
+console.log('server msg left', await p.getByText('Для заточки серверной').count(), '| forge buttons', (await p.locator('main button').allInnerTexts()).filter(t => /Заточ|Улучш/.test(t)).join(' / '));
+await p.screenshot({path: `forge-claim2-${style}.png`});
+await s.close();

@@ -1,0 +1,13 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 25, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = 'fantasy-beta';
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(4000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(4000);
+if (await p.getByRole('button', {name: 'Позже'}).count()) await p.getByRole('button', {name: 'Позже'}).first().click().catch(()=>{});
+const b = p.getByRole('button', {name: /Доска поручений/}).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(1200);
+console.log('dialog buttons:', JSON.stringify(await p.locator('.game-dialog-backdrop button').allInnerTexts()));
+console.log('aria-labels:', JSON.stringify(await p.locator('.game-dialog-backdrop button').evaluateAll(es => es.map(e => e.getAttribute('aria-label')))));
+await p.screenshot({path: 'beta-quests.png'});
+await p.keyboard.press('Escape'); await p.waitForTimeout(400); console.log('after Esc dialog count', await p.locator('.game-dialog-backdrop').count());
+await s.close();

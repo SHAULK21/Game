@@ -1,0 +1,20 @@
+import {handleSocialRequest} from '../tgcloud/lib/social.js';
+const E = await import('../tgcloud/lib/gameEngine.js');
+let now = Date.now(); const world = {tables: {}}; const pool = new E.NativePool(world, () => now);
+for (const [id, n] of [[1, 'Продавец'], [2, 'Покупатель'], [3, 'Чужой']]) { pool.ensurePlayer({id, displayName: n}); Object.assign(world.tables.players.find(p => p.telegram_id == id), {character_name: n, level: 10}); }
+world.tables.friendships = [{pair: '1:2', a: '1', b: '2', requester: '1', status: 'accepted', created_at: '', updated_at: ''}];
+const call = async (u, path, method = 'GET', body) => { const r = await handleSocialRequest(world, {path, method, body}, {id: u}, now); E.validateNativeWorld(world); return r; };
+const item = {id: 'loc1', name: 'Лук следопыта', rarity: 'epic', level: 15, upgradeLevel: 4, stats: {attack: 55}, type: 'weapon', stackCount: 1};
+console.log('to non-friend', (await call(1, '/api/trade/offer', 'POST', {buyerId: '3', item, price: 500, offerId: crypto.randomUUID()})).body.error);
+const oid = crypto.randomUUID(); let r = await call(1, '/api/trade/offer', 'POST', {buyerId: '2', item, price: 500, offerId: oid}); console.log('offer', r.status, r.body.offer.status);
+console.log('replay offer', (await call(1, '/api/trade/offer', 'POST', {buyerId: '2', item, price: 500, offerId: oid})).body.replayed);
+console.log('buyer list', JSON.stringify((await call(2, '/api/trade')).body.incoming.map(t => [t.item.name, t.price, t.seller.name])));
+console.log('poor accept', (await call(2, '/api/trade/accept', 'POST', {offerId: oid, gold: 100})).body.error);
+r = await call(2, '/api/trade/accept', 'POST', {offerId: oid, gold: 1000}); console.log('accept', r.status, r.body.item.name, r.body.price);
+console.log('accept again', JSON.stringify((await call(2, '/api/trade/accept', 'POST', {offerId: oid, gold: 1000})).body.replayed));
+console.log('seller events', JSON.stringify((await call(1, '/api/social/pulse')).body.events.map(e => [e.kind, e.data?.gold])));
+const o2 = crypto.randomUUID(); await call(1, '/api/trade/offer', 'POST', {buyerId: '2', item: {...item, name: 'Шлем'}, price: 50, offerId: o2});
+await call(2, '/api/trade/decline', 'POST', {offerId: o2}); console.log('after decline seller events', JSON.stringify((await call(1, '/api/social/pulse')).body.events.filter(e => e.kind === 'trade_return').map(e => e.data.item.name)));
+const o3 = crypto.randomUUID(); await call(1, '/api/trade/offer', 'POST', {buyerId: '2', item: {...item, name: 'Кольцо'}, price: 50, offerId: o3});
+now += 3 * 864e5; await call(1, '/api/trade'); console.log('expired returns', JSON.stringify((await call(1, '/api/social/pulse')).body.events.filter(e => e.kind === 'trade_return').map(e => e.data.item.name)));
+console.log('foreign decline', (await call(3, '/api/trade/decline', 'POST', {offerId: o3})).status);

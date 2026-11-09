@@ -1,0 +1,11 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save);
+const s = await launch({localState: ls, setupWorld: w => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); w.tables.players.find(p => p.telegram_id == 437290420).premium_until = new Date(Date.now() + 30 * 864e5).toISOString(); }, engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(7000);
+console.log('card shown', await p.locator('.ae-premium').count());
+await p.waitForTimeout(1500); await p.screenshot({path: 'premium-card.png'});
+await p.getByRole('button', {name: 'В бой, герой!'}).click(); await p.waitForTimeout(500);
+await p.reload(); await p.waitForTimeout(7000); console.log('card after reload', await p.locator('.ae-premium').count());
+await s.close();

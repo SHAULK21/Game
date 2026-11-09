@@ -1,0 +1,21 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'modern', place = process.argv[3] || 'settlement';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {gold: 500, level: 8, worldPlace: place, royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(4000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!', 'Продолжить путь']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(()=>{}); await p.waitForTimeout(300); }
+await p.locator('nav button').last().click(); await p.waitForTimeout(700);
+await p.getByRole('button', {name: /^Шахта/}).first().click().catch(e => console.log('no mine btn')); await p.waitForTimeout(1500);
+const txt = (await p.innerText('body')).replace(/\n+/g, ' | ');
+console.log(place, 'mine screen:', (txt.match(/[^|]*(Кирк|кирк)[^|]*\|[^|]*\|[^|]*/g) || []).slice(0, 4).join(' ## '));
+await p.getByText(/Купить кирку/).first().click().catch(()=>{}); await p.waitForTimeout(800);
+console.log('btns:', (await p.getByRole('button').allInnerTexts()).map(x => x.replace(/\n/g, ' ')).filter(x => /250|Куп|кирк/i.test(x)).slice(0, 8));
+const buy = p.getByRole('button', {name: /250/}).first(); console.log('buy btns', await p.getByRole('button', {name: /Купить|250/}).count(), JSON.stringify(await buy.innerText().catch(() => '')), 'disabled', await buy.isDisabled().catch(() => null));
+const g0 = await p.evaluate(k => JSON.parse(localStorage.getItem(k)).player.gold, key);
+await buy.click().catch(e => console.log('click fail', e.message.split('\n')[0])); await p.waitForTimeout(1200);
+const after = (await p.innerText('body')).replace(/\n+/g, ' | ');
+console.log('gold', g0, '->', await p.evaluate(k => JSON.parse(localStorage.getItem(k)).player.gold, key), '| messages:', (after.match(/(Куплена[^|]*|Недостаточно[^|]*|Сначала[^|]*|Нужен[^|]*|Освободите[^|]*)/g) || []).join(' ## '));
+await p.screenshot({path: `pick-${style}-${place}.png`});
+await s.close();

@@ -1,0 +1,9 @@
+[
+ {
+  "name": "new-monster-art",
+  "file": "GameScreens-CX80KEtT-p1-p2-p3-p4-p5-p6-p7-p8.js",
+  "count": 1,
+  "old": "let n=Ve.has(e)?e:{\"v_ww_wolf\": \"m_wolf\", \"v_ww_shaman\": \"m_goblin\", \"v_ww_raider\": \"m_bandit\", \"v_ww_spider\": \"m_spider\", \"v_cr_robber\": \"m_bandit\", \"v_cr_spider\": \"m_spider\", \"v_cr_colossus\": \"m_stone_golem\", \"v_cr_vampbat\": \"m_queen_bat\", \"v_sw_leech\": \"m_spider\", \"v_sw_golem\": \"m_stone_golem\", \"v_sw_queen\": \"m_spider_queen\", \"v_de_colossus\": \"m_stone_golem\", \"v_de_knight\": \"m_death_knight_boss\", \"v_cu_lord\": \"m_demon_lord\", \"v_ri_serpent\": \"m_dragon_boss\", \"v_dr_priest\": \"m_demon_lord\", \"v_fo_wisp\": \"m_goblin\", \"v_sw_toad\": \"m_boar\"}[e]||He[e];",
+  "new": "let n=Ve.has(e)||[\"v_cr_colossus\", \"v_de_knight\", \"v_ri_serpent\", \"v_ww_shaman\", \"v_ww_wolf\"].includes(e)?e:{\"v_ww_raider\": \"m_bandit\", \"v_ww_spider\": \"m_spider\", \"v_cr_robber\": \"m_bandit\", \"v_cr_spider\": \"m_spider\", \"v_cr_vampbat\": \"m_queen_bat\", \"v_sw_leech\": \"m_spider\", \"v_sw_golem\": \"m_stone_golem\", \"v_sw_queen\": \"m_spider_queen\", \"v_de_colossus\": \"m_stone_golem\", \"v_cu_lord\": \"m_demon_lord\", \"v_dr_priest\": \"m_demon_lord\", \"v_fo_wisp\": \"m_goblin\", \"v_sw_toad\": \"m_boar\"}[e]||He[e];"
+ }
+]

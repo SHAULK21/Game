@@ -1,0 +1,15 @@
+import crypto from 'node:crypto';
+const E = await import('../tgcloud/lib/gameEngine.js');
+const now = Date.now(); const world = {tables: {}}, pool = new E.NativePool(world, () => now);
+const A = {id: 9301, displayName: 'A'}; pool.ensurePlayer(A);
+const call = (path, body) => E.handleProgressRequest(world, {path, method: 'POST', headers: {'x-game-reset-version': '0'}, body}, A, {now: () => now});
+const fake = {id: 'local-123', templateId: 'legend_sword', name: 'Меч бога', type: 'weapon', rarity: 'legendary', level: 1, upgradeLevel: 15, stats: {attack: 999999}, sellPrice: 99999, stackCount: 1};
+let r = await call('/api/market/list', {operationId: crypto.randomUUID(), itemId: fake.id, item: fake, quantity: 1, price_gold: 10});
+console.log('list forged local item:', r.status, JSON.stringify(r.body).slice(0, 200));
+r = await call('/api/market/residents', {operationId: crypto.randomUUID(), itemId: fake.id, item: fake, quantity: 1, demandDay: new Date(now).toISOString().slice(0, 10)});
+console.log('sell forged to residents:', r.status, JSON.stringify(r.body).slice(0, 200));
+r = await call('/api/clan/create', {name: 'Rich', tag: 'RCH', description: '', operationId: crypto.randomUUID(), gold: 100000, expectedPriceGold: 100000});
+console.log('clan with claimed gold (no real wallet):', r.status);
+r = await E.handleProgressRequest(world, {path: '/api/profile/sync', method: 'POST', headers: {'x-game-reset-version': '0'}, body: {characterName: 'Cheater', level: 120, arenaRating: 2147483647, classId: 'warrior'}}, A, {now: () => now});
+const lb = await E.handleProgressRequest(world, {path: '/api/leaderboard', method: 'GET', headers: {}}, A, {now: () => now});
+console.log('leaderboard after fake sync:', JSON.stringify(lb.body).slice(0, 200));

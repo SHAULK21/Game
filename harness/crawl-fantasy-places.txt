@@ -1,0 +1,8 @@
+[place:Доска поручений] "Назад" CLICK BLOCKED: <button aria-pressed="true">Поручения</button> from <div class="game-dialog-backdrop ">…</div> subtree intercepts pointer events[22m
+[place:Мастерская] "Создать" CLICK BLOCKED: locator.click: Timeout 2500ms exceeded.
+[place:Приют спутников] "Создать питомца" CLICK BLOCKED: locator.click: Timeout 2500ms exceeded.
+
+FAILED API:
+
+
+PAGE ERRORS:

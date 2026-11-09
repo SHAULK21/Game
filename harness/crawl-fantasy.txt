@@ -1,0 +1,70 @@
+[nav:Создание] "Создать" CLICK BLOCKED: locator.click: Timeout 2500ms exceeded.
+[nav:Ещё] "Кузница" CLICK BLOCKED: <button type="button" class="ae-entry-btn">…</button> from <div class="bottom-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center">…</div> subtree i
+[menu:Торговые ряды] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Доска поручений] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Мастерская] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Кузница] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Лавка алхимика] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Дом клана] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Приют спутников] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Таверна] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Рыбацкий причал] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Шахтёрский двор] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Отправиться на поля] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Отправиться в пещеру] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Алхимия] "Сварить · 5 энергии" NO EFFECT
+[menu:Рыбалка] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Рынок] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Клан] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:Спутники] OPEN FAILED: locator.click: Timeout 2000ms exceeded.
+[menu:⚒️] "×" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Кузница" CLICK BLOCKED: <div class="ae-grow">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:⚒️] "Алхимия" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Рыбалка" CLICK BLOCKED: <p class="ae-note">Два одинаковых предмета (одно название, редкость …</p> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:⚒️] "Шахта" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Рынок" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Клан" CLICK BLOCKED: <p class="ae-note">Два одинаковых предмета (одно название, редкость …</p> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:⚒️] "Спутники" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Чат" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:⚒️] "Рейтинг" CLICK BLOCKED: <h2>⚒️ Объединение предметов</h2> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:⚒️] "Настройки" CLICK BLOCKED: <p class="ae-note">Два одинаковых предмета (одно название, редкость …</p> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:👥] "×" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Кузница" CLICK BLOCKED: <header class="ae-head">…</header> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:👥] "Алхимия" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Рыбалка" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Шахта" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Рынок" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Клан" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Спутники" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Чат" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Рейтинг" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Настройки" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:👥] "Сообщения" CLICK BLOCKED: <header class="ae-head">…</header> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:👥] "Найти" CLICK BLOCKED: <button class="ae-tab">Сообщения</button> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "×" CLICK BLOCKED: <div class="ae-backdrop">…</div> intercepts pointer events[22m
+[menu:🤝] "Кузница" CLICK BLOCKED: <button disabled class="ae-btn ae-primary">с 40 ур.</button> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Алхимия" CLICK BLOCKED: <header class="ae-head">…</header> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Рыбалка" CLICK BLOCKED: <div class="ae-sub">ур. 12–28</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Шахта" CLICK BLOCKED: <p class="ae-note">Соберите отряд до 3 героев. Лидер открывает комна…</p> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Рынок" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Клан" CLICK BLOCKED: <button class="ae-btn ae-primary">Открыть</button> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Спутники" CLICK BLOCKED: <h2>🤝 Кооп-подземелья</h2> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Чат" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Рейтинг" CLICK BLOCKED: <div class="ae-row ae-card">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:🤝] "Настройки" CLICK BLOCKED: <div class="ae-sub">ур. 12–28</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "×" CLICK BLOCKED: <button class="ae-x" aria-label="Закрыть">×</button> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Кузница" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Алхимия" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Рыбалка" CLICK BLOCKED: <summary>✦ Вознесение героя</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Шахта" CLICK BLOCKED: <summary>⚔️ Бои</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Рынок" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Клан" CLICK BLOCKED: <summary>⚒️ Объединение (★)</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Спутники" CLICK BLOCKED: <summary>🚀 С чего начать</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Чат" CLICK BLOCKED: <summary>🗺️ Локации</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Рейтинг" CLICK BLOCKED: <summary>🛡️ Снаряжение и заточка</summary> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+[menu:📖] "Настройки" CLICK BLOCKED: <div class="ae-body">…</div> from <div class="ae-backdrop">…</div> subtree intercepts pointer events[22m
+
+FAILED API:
+
+
+PAGE ERRORS:

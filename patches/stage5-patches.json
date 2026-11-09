@@ -1,0 +1,9 @@
+[
+ {
+  "name": "bridge-equip",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4.js",
+  "count": 1,
+  "old": "window.__aethBridge={player:n,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se,exitDungeon:aa,returnToSettlement:Ni,inDungeonRun:!!F};",
+  "new": "window.__aethBridge={player:n,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se,exitDungeon:aa,returnToSettlement:Ni,inDungeonRun:!!F,equipItem:gi};"
+ }
+]

@@ -8,8 +8,9 @@ export class AtomicConflict extends Error {
 
 export function atomicDocument(storage, {attempts = 8} = {}) {
   return {
-    async update(key, apply) {
-      for (let attempt = 0; attempt < attempts; attempt++) {
+    async update(key, apply, {maxAttempts = attempts} = {}) {
+      if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 32) throw new AtomicConflict('INVALID_RETRY_LIMIT');
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const current = await storage.read(key);
         if (!current) throw new AtomicConflict('STATE_NOT_INITIALIZED');
         if (!Number.isSafeInteger(current.revision) || current.revision < 0 || current.revision === Number.MAX_SAFE_INTEGER) throw new AtomicConflict('INVALID_STATE_REVISION');

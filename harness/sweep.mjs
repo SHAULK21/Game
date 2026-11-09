@@ -1,0 +1,38 @@
+import crypto from 'node:crypto';
+const E = await import(process.env.ENGINE || './engine-patched.js');
+const uuid = () => crypto.randomUUID(); const now = Date.now();
+const world = {tables: {}}, pool = new E.NativePool(world, () => now);
+const A = {id: 9301, displayName: 'A'}, B = {id: 9302, displayName: 'B'};
+pool.ensurePlayer(A); pool.ensurePlayer(B);
+for (const u of [A, B]) { const r = world.tables.players.find(r => r.telegram_id == u.id); r.level = 20; r.character_name = 'P' + u.id; }
+const item = (owner, extra = {}) => { const id = uuid(); (world.tables.owned_items ||= []).push({id, owner_telegram_id: owner, item_json: {templateId: 'test_helm', name: 'Шлем', type: 'helmet', rarity: 'rare', level: 10, upgradeLevel: 0, stats: {defense: 10}, icon: '', sellPrice: 100, disassembleYield: {silver: 20}, ...extra}, quantity: 1, equipped_slot: null, locked: false, bound_clan_id: null, origin: 'game_command', created_at: new Date(now).toISOString()}); return id; };
+const call = async (u, path, method = 'POST', body) => { const r = await E.handleProgressRequest(world, {path, method, headers: {'x-game-reset-version': '0', 'x-game-language': 'ru'}, projectionProtocol: 1, ...(body ? {body} : {})}, u, {now: () => now}); try { E.validateNativeWorld(world); } catch (e) { r.invalid = String(e.message).slice(0, 120); } return r; };
+const show = (label, r) => console.log((r.status < 400 ? 'OK ' : 'ERR') + ' ' + r.status + ' ' + label + ' ' + JSON.stringify(r.body).slice(0, 140) + (r.invalid ? ' INVALID:' + r.invalid : ''));
+let r = await call(A, '/api/clan/create', 'POST', {name: 'Alpha Clan', tag: 'ALP', description: '', operationId: uuid(), gold: 200000, expectedPriceGold: 100000}); show('clan/create', r);
+const clanId = r.body.clanId;
+show('clan join B', await call(B, `/api/clan/${clanId}/join`, 'POST', {}));
+show('clan donate', await call(A, '/api/clan/donate', 'POST', {gold: 1000, silver: 100, ore: 0, operationId: uuid()}));
+show('clan chat', await call(A, '/api/clan/chat', 'POST', {text: 'hi'}));
+show('clan raid', await call(A, '/api/clan/raid/attack', 'POST', {damage: 100, operationId: uuid(), power: 500}));
+show('clan project', await call(A, '/api/clan/projects/upgrade', 'POST', {projectId: 'arsenal', operationId: uuid()}));
+const it = item(A.id); show('clan storage put?', await call(A, '/api/clan/storage', 'POST', {itemId: it, operationId: uuid()}));
+show('clan manage', await call(A, '/api/clan/manage', 'POST', {action: 'settings', description: 'x', minLevel: 1, isOpen: true}));
+show('clan leave B', await call(B, '/api/clan/leave', 'POST', {}));
+const i2 = item(A.id); show('item lock', await call(A, `/api/items/${i2}/lock`)); show('item lock2', await call(A, `/api/items/${i2}/lock`));
+show('item equip', await call(A, `/api/items/${i2}/equip`, 'POST', {slot: 'helmet'})); show('item unequip', await call(A, `/api/items/${i2}/unequip`));
+show('item dispose', await call(A, `/api/items/${i2}/dispose`, 'POST', {action: 'sell'}));
+const i3 = item(A.id), i4 = item(A.id); show('bulk', await call(A, '/api/items/bulk-dispose', 'POST', {operationId: uuid(), action: 'sell', filters: {}, itemIds: [i3, i4]}));
+const i5 = item(A.id); show('market list', r = await call(A, '/api/market/list', 'POST', {operationId: uuid(), itemId: i5, item: {}, quantity: 1, price_gold: 500}));
+const lid = r.body?.listing?.id || r.body?.listingId || r.body?.id; console.log('   listing id', lid);
+show('market buy B', await call(B, `/api/market/${lid}/buy`, 'POST', {operationId: uuid(), expectedPriceGold: 500, gold: 10000}));
+const i6 = item(A.id); r = await call(A, '/api/market/list', 'POST', {operationId: uuid(), itemId: i6, item: {}, quantity: 1, price_gold: 700}); const lid2 = r.body?.listing?.id || r.body?.listingId || r.body?.id;
+show('market return', await call(A, `/api/market/${lid2}/return`, 'POST', {}));
+show('market residents', await call(A, '/api/market/residents', 'POST', {operationId: uuid(), itemId: 'local-x', item: {id: 'local-x', templateId: 'ore_coal', name: 'Уголь', type: 'ore', rarity: 'common', level: 1, sellPrice: 5, stackCount: 3}, quantity: 3, demandDay: new Date(now).toISOString().slice(0, 10)}));
+show('pvp enroll', await call(A, '/api/pvp/enroll', 'POST', {snapshot: {level: 20, power: 500}}));
+show('pvp enroll B', await call(B, '/api/pvp/enroll', 'POST', {snapshot: {level: 20, power: 500}}));
+show('pvp challenge', await call(A, '/api/pvp/challenge', 'POST', {opponentId: String(B.id), operationId: uuid()}));
+show('referrals check', await call(A, '/api/referrals/check', 'POST', {}));
+show('market income GET', await call(A, '/api/market/income', 'GET'));
+{const players = new Set(world.tables.players.map(p => String(p.telegram_id))), clans = new Set((world.tables.clans||[]).map(c => c.id));
+for (const i of world.tables.owned_items) if (i.owner_telegram_id != null && !players.has(String(i.owner_telegram_id)) || i.clan_id != null && !clans.has(i.clan_id) || i.bound_clan_id != null && !clans.has(i.bound_clan_id)) console.log('bad item', JSON.stringify({...i, item_json: i.item_json?.templateId}));
+console.log('players', [...players], 'clans', [...clans]);}

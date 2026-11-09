@@ -1,0 +1,34 @@
+[fantasy-beta] home: ok
+nav: Поселение |  |  |  | 
+[fantasy-beta] nav-Поселение: ok
+menu entries: Админ | 60/60 | Торговые ряды | Доска поручений | Мастерская | Кузница | Лавка алхимика | Арена | Дом клана | Приют спутников | Таверна | Рыбацкий причал | Шахтёрский двор | Отправиться на поля | Отправиться в пещеру | × | Герой | Создание | Алхимия | Рыбалка | Шахта | Рынок | Клан | Спутники | Чат | Рейтинг | Журнал | Настройки | Ещё
+[fantasy-beta] menu-Торговые ряды: ok
+[fantasy-beta] menu-Доска поручений: ok
+[fantasy-beta] menu-Мастерская: ok
+[fantasy-beta] menu-Кузница: ok
+[fantasy-beta] menu-Лавка алхимика: ok
+[fantasy-beta] menu-Арена: ok
+[fantasy-beta] menu-Дом клана: ok
+[fantasy-beta] menu-Приют спутников: ok
+[fantasy-beta] menu-Таверна: ok
+[fantasy-beta] menu-Рыбацкий причал: ok
+[fantasy-beta] menu-Шахтёрский двор: ok
+[fantasy-beta] menu-Отправиться на поля: ok
+[fantasy-beta] menu-Отправиться в пещеру: ok
+[fantasy-beta] menu-Герой: ok
+[fantasy-beta] menu-Создание: ok
+[fantasy-beta] menu-Алхимия: ok
+[fantasy-beta] menu-Рыбалка: ok
+[fantasy-beta] menu-Шахта: ok
+[fantasy-beta] menu-Рынок: ok
+[fantasy-beta] menu-Клан: ok
+[fantasy-beta] menu-Спутники: ok
+[fantasy-beta] menu-Чат: ok
+[fantasy-beta] menu-Рейтинг: ok
+[fantasy-beta] menu-Журнал: ok
+[fantasy-beta] menu-Настройки: ok
+[fantasy-beta] menu-Ещё: ok
+[fantasy-beta] console issues (0):
+
+[fantasy-beta] failed API calls: 
+[fantasy-beta] api calls: {"GET /api/profile/state":9,"POST /api/telemetry":19,"GET /api/premium/status":3,"POST /api/profile/sync":2,"POST /api/profile/heartbeat":3,"GET /api/items/owned":2,"POST /api/referrals/check":1,"POST /api/preferences/language":1,"GET /api/notifications":1,"POST /api/notifications/schedule":1,"POST /api/notifications/onboarding":1,"GET /api/market/income":1,"GET /api/market/mine":1,"GET /api/market/listings":1,"GET /api/clan/me":1,"GET /api/clans":1,"GET /api/community/stats":1,"GET /api/chat/global":1,"GET /api/leaderboard":1,"GET /api/admin/status":1}

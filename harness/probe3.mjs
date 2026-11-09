@@ -1,0 +1,14 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 25, gold: 300000, silver: 80000, miningLevel: 20, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = 'modern';
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(3000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(5000);
+for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(()=>{});
+const info = async label => p.evaluate(l => [...document.querySelectorAll('button')].filter(b => (b.innerText || '').replace(/\s+/g, ' ').trim().startsWith(l)).map(b => ({txt: b.innerText.replace(/\s+/g, ' ').slice(0, 60), disabled: b.disabled, ariaDis: b.getAttribute('aria-disabled'), pe: getComputedStyle(b).pointerEvents, op: getComputedStyle(b).opacity, title: b.title})), label);
+const go = async m => { await p.locator('nav button').last().click(); await p.waitForTimeout(600); await p.getByRole('button', {name: m}).first().click(); await p.waitForTimeout(1200); };
+await go('Создание'); console.log('Создать:', JSON.stringify(await info('Создать')).slice(0, 600));
+await go('Спутники'); console.log('Создать питомца:', JSON.stringify(await info('Создать питомца')).slice(0, 400));
+await go('Оповещения'); const inv = p.getByRole('button', {name: /Пригласить друга/}).first(); await inv.click().catch(e => console.log('inv fail'));
+await p.waitForTimeout(800); console.log('after invite text:', (await p.innerText('body')).match(/(Ссылка[^\n]*|скопир[^\n]*|Приглас[^\n]*)/g)?.slice(0, 4));
+await s.close();

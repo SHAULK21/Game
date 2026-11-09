@@ -1,0 +1,12 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 25, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save);
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))), engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; await p.waitForTimeout(8000); if (await p.getByRole('button', {name: 'Позже'}).count()) await p.getByRole('button', {name: 'Позже'}).first().click();
+const start = s.calls.length; const t0 = Date.now();
+await p.waitForTimeout(120000);
+const calls = s.calls.slice(start); const freq = {}; for (const c of calls) freq[c.method + ' ' + c.path.split('?')[0]] = (freq[c.method + ' ' + c.path.split('?')[0]] || 0) + 1;
+console.log('idle 2 min on home:', JSON.stringify(freq), 'total', calls.length);
+const tel = calls.filter(c => c.path === '/api/telemetry'); console.log('telemetry sample body', tel[0]?.body);
+await s.close();
