@@ -7,6 +7,15 @@
   const B = () => window.__aethBridge || null;
   const me = () => B()?.player || null;
   const uid = () => String(me()?.userId || '');
+  // ---------- interface size: the whole game scaled down (setting kept on the device) ----------
+  const UI_SCALES = [['big', 'Как раньше', 1], ['x1', '×1 Обычный', 0.92], ['x2', '×2 Компактный', 0.84], ['x3', '×3 Мини', 0.76]];
+  const uiScale = () => { const k = localStorage.getItem('aeth_ui_scale') || 'x1'; return (UI_SCALES.find(x => x[0] === k) || UI_SCALES[1])[2]; };
+  function applyUiScale() {
+    const z = uiScale(), root = document.documentElement;
+    root.style.zoom = z === 1 ? '' : String(z); root.style.setProperty('--ae-zoom', String(z));
+    root.classList.toggle('ae-zoomed', z !== 1);
+  }
+  applyUiScale();
 
   // ---------- helpers ----------
   const h = (tag, attrs = {}, ...kids) => {
@@ -2517,7 +2526,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Размер интерфейса', 'Сделать игру крупнее или компактнее', () => openUiScale()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -2900,6 +2909,7 @@
   // ---------- modern «Меню»: one style, no duplicates, add-on features as a native group ----------
   // Line icons in the menu's own style (stroke = currentColor, 28×28 like the game's icons)
   const LINE = {
+    scale: '<circle cx="12" cy="12" r="7"/><path d="M17 17l7 7M9 12h6M12 9v6"/>',
     gems: '<path d="M8 4h12l4 6-10 14L4 10z"/><path d="M4 10h20M11 4l-2 6 5 14 5-14-2-6"/>',
     invite: '<circle cx="11" cy="10" r="4"/><path d="M3.5 23c.7-4 3.7-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.2M21 14v8M17 18h8"/>',
     coop: '<path d="M5 24V12a9 9 0 0 1 18 0v12M3.5 24h21M11 24v-6a3 3 0 0 1 6 0v6M9 13.5h10"/>',
@@ -2914,7 +2924,16 @@
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
   const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
-    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
+    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Размер интерфейса', () => openUiScale()]];
+  function openUiScale() {
+    const st = openPanel('🔍 Размер интерфейса', body => {
+      const cur = localStorage.getItem('aeth_ui_scale') || 'x1';
+      body.append(h('p', {class: 'ae-note'}, 'Уменьшите интерфейс, если на экране тесно. Настройка сохраняется на этом устройстве.'));
+      body.append(h('div', {class: 'ae-scale-list'}, UI_SCALES.map(([k, label, z]) => h('button', {type: 'button', class: 'ae-btn ae-scale-opt' + (k === cur ? ' ae-primary is-on' : ''), onclick: () => {
+        localStorage.setItem('aeth_ui_scale', k); applyUiScale(); sfx.play('page'); st.rerender(); setTimeout(() => window.dispatchEvent(new Event('resize')), 50); }},
+        h('b', {}, label), h('small', {}, `${Math.round(z * 100)}%`)))));
+    });
+  }
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
       const group = h('section', {class: 'mechanics-group', 'data-ae-group': '1'}, h('header', {}, h('h2', {}, 'Приключения'), h('p', {}, 'Вместе и против всех')),
@@ -3225,10 +3244,11 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
     const p = body.closest('.ae-panel'), b = body.closest('.ae-backdrop'); if (!p) return;
     p.classList.toggle('ae-battle-mode', !!on); b?.classList.toggle('ae-battle-backdrop', !!on);
     if (on && b) { const hd = isModern() ? document.querySelector('header.game-header') : null, nav = document.querySelector('nav.game-nav');
-      b.style.setProperty('--bv-top', (hd ? Math.max(0, Math.round(hd.getBoundingClientRect().bottom)) : 0) + 'px'); b.style.setProperty('--bv-nav', (nav ? Math.round(nav.getBoundingClientRect().height) : 0) + 'px'); }
+      const z = uiScale(); // measured on screen, applied inside the zoomed page
+      b.style.setProperty('--bv-top', (hd ? Math.max(0, Math.round(hd.getBoundingClientRect().bottom / z)) : 0) + 'px'); b.style.setProperty('--bv-nav', (nav ? Math.round(nav.getBoundingClientRect().height / z) : 0) + 'px'); }
     // First frame of a fight: bring the action buttons above the bottom nav (the field fight needs a manual scroll here).
     if (on && !p.dataset.bvScrolled) { p.dataset.bvScrolled = '1'; requestAnimationFrame(() => { const row = body.querySelector('.combat-secondary-actions') || [...body.querySelectorAll('.grid.grid-cols-3')].pop(); if (!row) return;
-      const nav = document.querySelector('nav.game-nav'), limit = (nav ? nav.getBoundingClientRect().top : innerHeight) - 8, over = row.getBoundingClientRect().bottom - limit; if (over > 0) body.scrollTop += over; }); }
+      const nav = document.querySelector('nav.game-nav'), limit = (nav ? nav.getBoundingClientRect().top : innerHeight) - 8, over = row.getBoundingClientRect().bottom - limit; if (over > 0) body.scrollTop += over / uiScale(); }); }
     if (!on) delete p.dataset.bvScrolled;
     if (on && !p.dataset.bvBg) { const shell = document.querySelector('.game-shell') || document.body, cs = getComputedStyle(shell); p.dataset.bvBg = '1'; p.style.setProperty('--bv-bg', cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? cs.backgroundColor : '#0b0d10'); p.style.setProperty('--bv-bgi', cs.backgroundImage || 'none'); }
   };
@@ -3416,6 +3436,9 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-scale-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-scale-opt{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px}.ae-scale-opt small{opacity:.75}
+html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}
+html.ae-zoomed,html.ae-zoomed body{min-height:calc(100vh / var(--ae-zoom))}html.ae-zoomed .game-shell,html.ae-zoomed .min-h-screen{min-height:calc(100vh / var(--ae-zoom))!important}
 .ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}
 .ae-prof-pet{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-top:3px}.ae-prof-pet img{width:22px;height:22px;border-radius:6px;object-fit:cover}.ae-prof-pet small{opacity:.7;font-size:11px}
