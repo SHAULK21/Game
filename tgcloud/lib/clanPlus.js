@@ -48,7 +48,7 @@ export function bonusOf(world, clan, now) {
 }
 
 // ---------- contribution, clan quests, war score ----------
-const PTS = {kills: 1, bosses: 5, dungeons: 8, duels: 4, ores: 0.2, potions: 1, raid: 0.01};
+const PTS = {kills: 1, bosses: 5, dungeons: 8, duels: 4, ores: 0.2, potions: 1, raid: 0.01, donate: 0.01};
 const DAILY_CAP = {kills: 300, bosses: 30, dungeons: 15, ores: 300, potions: 60, duels: 30};
 const GOALS = {
   day: [{t: 'kills', per: 20, name: 'Убить монстров', icon: '⚔️'}, {t: 'bosses', per: 2, name: 'Победить боссов', icon: '👹'}, {t: 'duels', per: 2, name: 'Выиграть дуэлей или боёв арены', icon: '🤺'},
@@ -83,8 +83,8 @@ export function clanCredit(world, me, delta, now, notify) {
     const g = goalOf(world, clan, kind, now); const n = Math.max(0, Math.round(Number(delta?.[g.t]) || 0));
     if (!n || g.done_at) continue;
     g.prog = Math.min(g.target, g.prog + n);
-    if (g.prog >= g.target) { g.done_at = iso(now); addClanXp(clan, kind === 'day' ? 80 : 300);
-      tellClan(world, clan, `🎯 Клан [${clan.tag}] выполнил ${kind === 'day' ? 'задание дня' : 'задание недели'} «${g.name}»! Заберите награду в Штабе клана.`, 'clan-goal:' + g.key + ':' + clan.id, now, notify, '🎯'); }
+    if (g.prog >= g.target) { g.done_at = iso(now); addClanXp(clan, kind === 'day' ? 80 : 300); clan.treasury_gold = Number(clan.treasury_gold || 0) + (kind === 'day' ? 300 : 1500);
+      tellClan(world, clan, `🎯 Клан [${clan.tag}] выполнил ${kind === 'day' ? 'задание дня' : 'задание недели'} «${g.name}»! В казну +${kind === 'day' ? 300 : 1500} 🪙. Заберите награду в Штабе клана.`, 'clan-goal:' + g.key + ':' + clan.id, now, notify, '🎯'); }
   }
   const war = warOf(world, clan, now);
   if (war && !war.settled && pts) { if (same(war.a, clan.id)) war.pa += pts; else war.pb += pts; }
@@ -220,14 +220,20 @@ function raidTurn(world, me, run, action, skillId) {
   return run.dealt - before;
 }
 async function raidFinish(world, me, run, now, native, notify) {
-  const {clan, m} = clanOf(world, me), p = player(world, me);
-  if (!clan || !same(clan.id, run.clan)) { run.result = {total: 0, lost: true}; return; }
+  let {clan, m} = clanOf(world, me), p = player(world, me);
+  if (!clan || !same(clan.id, run.clan)) { run.result = {total: 0, lost: true}; return run; }
   const L = Number(p?.level) || 1;
   let nativeDmg = 0, item = null, defeated = false;
   if (run.dealt > 0 && Number(clan.raid_hp) > 0) {
     const before = Number(clan.raid_hp);
-    try { const r = native ? await native({path: '/api/clan/raid/attack', method: 'POST', body: {}}) : null;
-      if (r && r.status < 300) { nativeDmg = Math.max(0, before - Number(clan.raid_hp)); item = r.body?.reward || null; defeated = !!r.body?.defeated; } } catch {}
+    try { const r = native ? await native({path: '/api/clan/raid/attack', method: 'POST', body: {}, headers: {'x-game-reset-version': String(Number(p?.reset_version) || 0)}}) : null;
+      // The engine may roll the whole world back to a snapshot (new objects) when its own strike is refused:
+      // look everything up again so the fight's result is written into the live document.
+      const runId = run.id; ({clan, m} = clanOf(world, me)); p = player(world, me);
+      run = rows(world, 'ae_clan_raid_runs').find(x => x.id === runId) || run;
+      if (!clan || !m) { run.result = {total: 0, lost: true}; return run; }
+      if (r && r.status < 300) { nativeDmg = Math.max(0, before - Number(clan.raid_hp)); item = r.body?.reward || null; defeated = !!r.body?.defeated; }
+      else console.warn('raid native strike refused', r?.status, JSON.stringify(r?.body || {}).slice(0, 160)); } catch (e) { console.warn('raid native strike failed', e?.message); }
     if (!m.last_raid_attack || Date.parse(m.last_raid_attack) < todayStart(now)) m.last_raid_attack = iso(now);
     const extra = Math.max(0, Math.min(Number(clan.raid_hp), run.dealt - nativeDmg));
     if (extra > 0) {
@@ -244,6 +250,7 @@ async function raidFinish(world, me, run, now, native, notify) {
   const reward = {gold: 15 + L * 2 + Math.round(total / 60), exp: 25 + L * 5};
   run.result = {total, nativeDmg, defeated, item, reward, combos: run.combos || 0};
   if (total > 0) clanCredit(world, me, {raid: total}, now, notify);
+  return run;
 }
 async function handleRaid(world, path, body, me, now, native, notify) {
   const {clan, m} = clanOf(world, me), p = player(world, me); if (!clan) return fail('Вы не в клане.');
@@ -270,15 +277,16 @@ async function handleRaid(world, path, body, me, now, native, notify) {
     if (run.status !== 'active') return ok({run: raidView(run)});
     const action = ['attack', 'skill', 'defend', 'potion'].includes(body.action) ? body.action : 'attack';
     raidTurn(world, me, run, action, body.skillId); run.at = iso(now);
-    if (run.status === 'ended') await raidFinish(world, me, run, now, native, notify);
+    if (run.status === 'ended') run = await raidFinish(world, me, run, now, native, notify);
     return ok({run: raidView(run)});
   }
   if (path === '/api/ae-clanx/raid/leave') {
-    if (run.status === 'active') { run.status = 'ended'; run.log.push('🏃 Вы отступили — нанесённый урон засчитан.'); await raidFinish(world, me, run, now, native, notify); }
+    if (run.status === 'active') { run.status = 'ended'; run.log.push('🏃 Вы отступили — нанесённый урон засчитан.'); run = await raidFinish(world, me, run, now, native, notify); }
     return ok({run: raidView(run)});
   }
   if (path === '/api/ae-clanx/raid/claim') {
-    if (run.status !== 'ended' || !run.result) return fail('Сначала завершите бой.');
+    if (run.status === 'ended' && !run.result) { run.claimed = true; return fail('Этот бой не засчитался из-за сбоя сервера — начните бой со Стражем заново.'); }
+    if (run.status !== 'ended') return fail('Сначала завершите бой.');
     if (run.claimed) return ok({reward: run.result.reward, alreadyClaimed: true});
     run.claimed = true; return ok({reward: run.result.reward});
   }
@@ -368,7 +376,7 @@ function overview(world, me, now, notify) {
   const myPts = Math.round(contribRow(world, clan, me, now).pts);
   const run = rows(world, 'ae_clan_raid_runs').filter(r => same(r.u, me)).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
   return ok({clan: {id: clan.id, tag: clan.tag, name: clan.name, level: Number(clan.level) || 1, xp: Number(clan.xp) || 0, members: membersOf(world, clan).length, max: Number(clan.max_members) || 30,
-      emblem: meta.emblem, welcome: meta.welcome, treasury: Number(clan.treasury_gold) || 0, open: !!clan.recruitment_open},
+      emblem: meta.emblem, welcome: meta.welcome, treasury: Number(clan.treasury_gold) || 0, treasurySilver: Number(clan.treasury_silver) || 0, treasuryOre: Number(clan.treasury_ore) || 0, open: !!clan.recruitment_open},
     role: m.role, bonus: bonusOf(world, clan, now), goals, myPts, weekPts: Math.round(weekPts(world, clan.id, weekKey(now))),
     chest: {ready: !chest, next: iso(todayStart(now) + DAY), preview: chestReward(clan, L, true)},
     war: war ? {mine: same(war.a, clan.id) ? war.pa : war.pb, theirs: same(war.a, clan.id) ? war.pb : war.pa, foe: foe ? {tag: foe.tag, name: foe.name, emblem: metaOf(world, foe).emblem, level: Number(foe.level) || 1} : null, endsAt: iso(weekEnd(now))} : null,
@@ -432,6 +440,21 @@ export async function handleClanPlus(world, path, method, body, me, now, native,
     if (g.claimed.includes(String(me))) return fail('Награда уже получена.');
     if (Date.parse(m.joined_at || 0) >= Date.parse(g.done_at)) return fail('Вы вступили в клан после выполнения задания.');
     g.claimed.push(String(me)); return ok({reward: goalReward(g.kind, L)});
+  }
+  if (path === '/api/ae-clanx/donate' && method === 'POST') {
+    const gold = Math.floor(Number(body.gold) || 0), silver = Math.floor(Number(body.silver) || 0);
+    if (gold < 0 || silver < 0 || gold + silver <= 0) return fail('Укажите сумму.');
+    const day = dayKey(now); let d = rows(world, 'ae_clan_daily').find(x => same(x.u, me) && x.day === day);
+    if (!d) { d = {u: String(me), day}; rows(world, 'ae_clan_daily').push(d); }
+    const capG = 50000 + L * 2000, capS = 100000 + L * 4000;
+    if ((d.donG || 0) + gold > capG) return fail(`За сутки можно внести до ${capG} золота (осталось ${Math.max(0, capG - (d.donG || 0))}).`);
+    if ((d.donS || 0) + silver > capS) return fail(`За сутки можно внести до ${capS} серебра (осталось ${Math.max(0, capS - (d.donS || 0))}).`);
+    d.donG = (d.donG || 0) + gold; d.donS = (d.donS || 0) + silver;
+    clan.treasury_gold = Number(clan.treasury_gold || 0) + gold; clan.treasury_silver = Number(clan.treasury_silver || 0) + silver; clan.updated_at = iso(now);
+    const ev = rows(world, 'clan_storage_events');
+    ev.push({id: ev.reduce((x, e) => Math.max(x, Number(e.id) || 0), 0) + 1, clan_id: clan.id, actor_telegram_id: Number(me), action: 'donate', item_name: 'Пожертвование в казну', quantity: 1, gold_delta: gold, silver_delta: silver, ore_delta: 0, created_at: iso(now)});
+    clanCredit(world, me, {donate: gold + Math.floor(silver / 2)}, now);
+    return ok({treasury: {gold: Number(clan.treasury_gold), silver: Number(clan.treasury_silver), ore: Number(clan.treasury_ore) || 0}});
   }
   if (path === '/api/ae-clanx/settings' && method === 'POST') {
     if (!OFFICERS.includes(m.role)) return fail('Настройки доступны главе и офицерам.', 403);
