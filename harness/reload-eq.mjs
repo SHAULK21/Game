@@ -1,0 +1,18 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const t = new Date().toISOString(), sid = crypto.randomUUID();
+save.player.inventory.push({id: 'local-strong-shield', templateId: 'x', name: 'Щит легенды', type: 'offhand', rarity: 'legendary', level: 28, upgradeLevel: 0, stats: {defense: 300}, icon: '🛡️', sellPrice: 40, disassembleYield: {}, stackCount: 1});
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json')));
+  (w.tables.owned_items ||= []).push({id: sid, owner_telegram_id: 437290420, item_json: {name: 'Щит новобранца', type: 'offhand', rarity: 'common', level: 1, stats: {defense: 5}, sellPrice: 5, disassembleYield: {silver: 1}}, quantity: 1, equipped_slot: 'offhand', locked: false, bound_clan_id: null, character_id: null, origin: 'game_command', created_at: t, updated_at: t}); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(12000);
+const off = () => p.evaluate(() => window.__aethBridge.player.equipped.offhand?.name || '—');
+console.log('after load, offhand:', await off());
+await p.evaluate(() => { const b = window.__aethBridge, it = b.player.inventory.find(i => i.id === 'local-strong-shield'); b.equipItem(it); });
+await p.waitForTimeout(4000); console.log('player equips «Щит легенды»:', await off(), '| server slot of starter shield:', s.world.tables.owned_items.find(i => i.id === sid)?.equipped_slot);
+await p.evaluate(() => window.dispatchEvent(new Event('aethelgard-market-inventory-refresh'))); await p.waitForTimeout(3000);
+console.log('after the game reloads server items (sell/disassemble/market):', await off());
+console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();

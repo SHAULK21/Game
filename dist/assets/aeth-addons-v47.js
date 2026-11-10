@@ -1916,11 +1916,15 @@
     const el = h('div', {class: 'ae-clan-bonus-pop'}, `🛡️ Бонус клана: ${[addG && `+${fmt(addG)} 🪙`, addE && `+${fmt(addE)} опыта`].filter(Boolean).join(' · ')}`); document.body.append(el); setTimeout(() => el.remove(), 2200);
   }
   // One timer for everything that watches the hero's save; it does nothing until the hero object changes.
-  let watchedHero = null, watchedEq = null;
+  let watchedHero = null, watchedEq = null, watchedSlots = null;
   setInterval(() => {
     const p = me(); if (!p) return;
     const changed = p !== watchedHero; watchedHero = p;
-    if (changed) { const sig = Object.values(p.equipped || {}).map(i => i?.id || '').join(','); if (sig !== watchedEq) { if (watchedEq !== null) syncEquippedSoon(); watchedEq = sig; } }
+    if (changed) { const sig = Object.values(p.equipped || {}).map(i => i?.id || '').join(','); if (sig !== watchedEq) { if (watchedEq !== null) syncEquippedSoon(); watchedEq = sig;
+      // The player changed gear by hand: Premium auto-equip must never put back what they took off.
+      const now = Object.fromEntries(Object.entries(p.equipped || {}).map(([k, v]) => [k, v?.id || null]));
+      if (watchedSlots && !autoBusy) { const off = Object.entries(watchedSlots).filter(([k, id]) => id && now[k] !== id).map(([, id]) => id); if (off.length) rememberJudged(off.flatMap(id => [id, id + '@L' + (p.level || 1)])); }
+      watchedSlots = now; } }
     if (!changed && !Object.keys(cxPend).length) return;
     for (const fn of changed ? [legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
   }, 1000);
