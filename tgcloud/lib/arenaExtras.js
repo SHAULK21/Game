@@ -353,6 +353,36 @@ function syncEquipped(world, body, userId, now) {
   }
   return ok({ok: true, changed});
 }
+// ---------- server-held items used up by add-on features (crystals, crafting materials) ----------
+// Removing them only on the device let the next bag refresh bring them back, so they are used up here.
+const GEM_STAT = {vamp: ['vampirism', 3], life: ['hpRegen', 5], mana: ['mpRegen', 3], fury: ['critChance', 4], ruin: ['critDamage', 15], pierce: ['armorPenetration', 5],
+  shadow: ['evasion', 3], aim: ['accuracy', 6], bleed: ['bleedChance', 10], venom: ['poisonChance', 10], flame: ['burnChance', 10]};
+const GEM_SOCKETS = {common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mythic: 3, ancient: 3, divine: 3};
+function takeServerItem(world, userId, id, count, now) {
+  const it = rows(world, 'owned_items').find(i => i.id === id && same(i.owner_telegram_id, userId));
+  if (!it || it.locked || it.equipped_slot || it.bound_clan_id || Number(it.quantity) < count) return null;
+  if (Number(it.quantity) > count) { it.quantity = Number(it.quantity) - count; it.updated_at = new Date(now).toISOString(); }
+  else world.tables.owned_items = rows(world, 'owned_items').filter(i => i !== it);
+  return it;
+}
+function consumeItems(world, body, userId, now) {
+  const list = (Array.isArray(body.items) ? body.items : []).slice(0, 10).map(x => ({id: String(x?.id || ''), count: Math.max(1, Math.min(999, Math.floor(Number(x?.count) || 1)))}));
+  for (const x of list) { const it = rows(world, 'owned_items').find(i => i.id === x.id && same(i.owner_telegram_id, userId));
+    if (!it || it.locked || it.equipped_slot || it.bound_clan_id || Number(it.quantity) < x.count) return fail('Предмета уже нет в сумке.'); }
+  for (const x of list) takeServerItem(world, userId, x.id, x.count, now);
+  return ok({ok: true});
+}
+function socketGem(world, body, userId, now) {
+  const g = GEM_STAT[body.gem]; if (!g) return fail('Неизвестный кристалл.');
+  const gear = body.gearId ? rows(world, 'owned_items').find(i => i.id === body.gearId && same(i.owner_telegram_id, userId)) : null;
+  if (body.gearId && (!gear || !GEAR_TYPES.has(gear.item_json?.type))) return fail('Вещь не найдена.');
+  if (gear && (gear.item_json.gems || []).length >= (GEM_SOCKETS[gear.item_json.rarity] || 1)) return fail('В вещи нет свободных гнёзд.');
+  if (body.gemItemId) { const gem = rows(world, 'owned_items').find(i => i.id === body.gemItemId && same(i.owner_telegram_id, userId));
+    if (!gem || gem.item_json?.templateId !== 'ae_gem_' + body.gem || gem.locked || Number(gem.quantity) < 1) return fail('Кристалла нет в сумке.');
+    takeServerItem(world, userId, gem.id, 1, now); }
+  if (gear) { const j = gear.item_json; j.stats = {...(j.stats || {}), [g[0]]: (Number(j.stats?.[g[0]]) || 0) + g[1]}; j.gems = [...(j.gems || []), body.gem]; gear.updated_at = new Date(now).toISOString(); }
+  return ok({ok: true, item: gear ? gear.item_json : null});
+}
 function handleDeposit(world, body, userId, now) {
   const p = player(world, userId); if (!p) return fail('Сначала создайте персонажа.', 404);
   const op = String(body.operationId || '');
@@ -456,6 +486,8 @@ export function handleExtras(world, input, user, now, notify) {
   if (path.startsWith('/api/quests/special')) return handleQuests(world, path, method, body, user.id, now);
   if (path === '/api/items/deposit' && method === 'POST') return handleDeposit(world, body, user.id, now);
   if (path === '/api/items/equipped-sync' && method === 'POST') return syncEquipped(world, body, user.id, now);
+  if (path === '/api/items/consume' && method === 'POST') return consumeItems(world, body, user.id, now);
+  if (path === '/api/items/socket-gem' && method === 'POST') return socketGem(world, body, user.id, now);
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);
   if (path.startsWith('/api/duel')) return handleDuel(world, path, method, body, user.id, now, notify);
   if (path === '/api/admin/promo' || path === '/api/promo/redeem') return handlePromo(world, path, method, body, user, now);

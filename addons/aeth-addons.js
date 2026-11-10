@@ -976,8 +976,13 @@
           body.append(h('div', {class: 'ae-card ae-row ae-gem-row'}, h('span', {class: 'ae-gem-i'}, g.icon),
             h('div', {class: 'ae-grow'}, h('b', {}, g.name), h('div', {class: 'ae-sub'}, `${g.label} +${g.value}${g.unit}${have ? ` · у вас: ${have}` : ''}`),
               tab === 'craft' ? h('div', {class: 'ae-gem-recipe'}, g.recipe.map(([n, c]) => h('span', {class: matCount(p, n) >= c ? 'ae-ing-ok' : 'ae-ing-low'}, `${n} ${Math.min(matCount(p, n), 999)}/${c}`))) : ''),
-            h('button', {type: 'button', class: 'ae-btn' + (ok ? ' ae-primary' : ''), disabled: !ok, onclick: () => {
+            h('button', {type: 'button', class: 'ae-btn' + (ok ? ' ae-primary' : ''), disabled: !ok, onclick: async ev => {
               const err = canAct(); if (err) return toast(err);
+              if (tab === 'craft') { // server-held materials must be used up on the server, or the next bag refresh returns them
+                const plan = []; for (const [n, c] of g.recipe) { let left = c;
+                  for (const i of [...(me().inventory || [])].sort((a, b) => Number(!!a.serverOwned) - Number(!!b.serverOwned))) { if (left <= 0) break; if (i.name !== n || i.isLocked) continue; const use = Math.min(left, i.stackCount || 1); left -= use; if (i.serverOwned) plan.push({id: i.id, count: use}); } }
+                if (plan.length) { ev.currentTarget.disabled = true; try { await api('/api/items/consume', 'POST', {items: plan}); } catch (e) { ev.currentTarget.disabled = false; return toast(cleanError(e)); } }
+              }
               B().setPlayer(cur => {
                 if (!cur) return cur;
                 if (tab === 'buy') { if ((cur.gold || 0) < g.gold) return cur; return {...cur, gold: cur.gold - g.gold, inventory: addGem(cur.inventory, g)}; }
@@ -1001,17 +1006,22 @@
       body.append(h('h3', {class: 'ae-h3'}, '2. Выберите вещь'));
       const worn = Object.entries(p.equipped || {}).filter(([, i]) => i && MARKET_GEAR.has(i.type)).map(([slot, i]) => ({i, slot}));
       const bag = (p.inventory || []).filter(i => MARKET_GEAR.has(i.type)).map(i => ({i, slot: null}));
-      const list = [...worn, ...bag].filter(({i}) => !i.serverOwned);
-      if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Нет подходящих вещей (серверные вещи с рынка сначала перенесите в сумку через «Объединение» или наденьте обычные).'));
+      const list = [...worn, ...bag].filter(({i}) => !i.boundToClan);
+      if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Нет подходящего снаряжения.'));
       for (const {i, slot} of list) {
         const used = (i.gems || []).length, max = GEM_SLOTS[i.rarity] || 1, full = used >= max;
-        body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': i.rarity || 'common', disabled: full, onclick: () => {
+        body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': i.rarity || 'common', disabled: full, onclick: async ev => {
           const err = canAct(); if (err) return toast(err);
           if (!confirm(`Вставить «${g.name}» в «${i.name}»? Это навсегда.`)) return;
+          const gemIt = (me().inventory || []).filter(x => x.templateId === 'ae_gem_' + g.id && !x.isLocked).sort((a, b) => Number(!!a.serverOwned) - Number(!!b.serverOwned))[0];
+          if (!gemIt) return toast('Кристалла нет в сумке.');
+          if (gemIt.serverOwned || i.serverOwned) { ev.currentTarget.disabled = true;
+            try { await api('/api/items/socket-gem', 'POST', {gem: g.id, gemItemId: gemIt.serverOwned ? gemIt.id : null, gearId: i.serverOwned ? i.id : null}); }
+            catch (e) { ev.currentTarget.disabled = false; return toast(cleanError(e)); } }
           B().setPlayer(cur => {
             if (!cur || gemCount(cur, g) < 1) return cur;
             const upd = it => ({...it, stats: {...(it.stats || {}), [g.stat]: (it.stats?.[g.stat] || 0) + g.value}, gems: [...(it.gems || []), g.id], ...(it.aeOver ? {aeOver: {...it.aeOver, diff: -1, base: {...it.aeOver.base, [g.stat]: (it.aeOver.base[g.stat] || 0) + g.value}}} : {})});
-            const inv0 = takeFromBag(cur.inventory, x => x.templateId === 'ae_gem_' + g.id, 1); if (!inv0) return cur;
+            const inv0 = takeFromBag(cur.inventory, x => x.id === gemIt.id, 1); if (!inv0) return cur;
             if (slot) { const e = cur.equipped?.[slot]; if (!e || e.id !== i.id || (e.gems || []).length >= max) return cur; return {...cur, inventory: inv0, equipped: {...cur.equipped, [slot]: upd(e)}}; }
             const idx = inv0.findIndex(x => x.id === i.id); if (idx < 0 || (inv0[idx].gems || []).length >= max) return cur;
             const inv = inv0.slice(); inv[idx] = upd(inv[idx]); return {...cur, inventory: inv};
@@ -1451,18 +1461,27 @@
     if (clanTagsBusy) return; const want = ids.filter(id => !clanTags.has(id)).slice(0, 40);
     if (!want.length && Date.now() - clanTagsAt < 120000) return;
     clanTagsBusy = true; clanTagsAt = Date.now();
-    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
+    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null, avatar: p.avatar || null}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
     catch {} finally { clanTagsBusy = false; }
   }
   function paintClanTags() {
     const els = [...document.querySelectorAll('[data-ae-uid]')]; if (!els.length) return;
     loadClanTags([...new Set(els.map(e => e.dataset.aeUid))]);
     for (const el of els) {
-      const tag = clanTags.get(el.dataset.aeUid), prev = el.previousElementSibling?.classList.contains('ae-clan-tag') ? el.previousElementSibling : null;
-      if (!tag) { prev?.remove(); continue; }
-      const cm = clanMeta.get(el.dataset.aeUid) || {}, txt = `${cm.place ? MEDAL[cm.place] : ''}[${tag}]`, cls = 'ae-clan-tag' + (cm.place ? ' is-p' + cm.place : '');
-      if (prev) { if (prev.textContent !== txt) prev.textContent = txt; if (prev.className !== cls) prev.className = cls; continue; }
-      el.before(h('span', {class: cls, title: cm.place ? `Клан — ${cm.place}-е место недели` : 'Клан'}, txt));
+      const tag = clanTags.get(el.dataset.aeUid), cm = clanMeta.get(el.dataset.aeUid) || {};
+      let prev = el.previousElementSibling?.classList.contains('ae-clan-tag') ? el.previousElementSibling : null;
+      if (!tag) { prev?.remove(); prev = null; }
+      else {
+        const txt = `${cm.place ? MEDAL[cm.place] : ''}[${tag}]`, cls = 'ae-clan-tag' + (cm.place ? ' is-p' + cm.place : '');
+        if (prev) { if (prev.textContent !== txt) prev.textContent = txt; if (prev.className !== cls) prev.className = cls; }
+        else { prev = h('span', {class: cls, title: cm.place ? `Клан — ${cm.place}-е место недели` : 'Клан'}, txt); el.before(prev); }
+      }
+      // the player's avatar in front of the tag (or the nickname)
+      const first = prev || el, ava = first.previousElementSibling?.classList.contains('ae-nick-ava') ? first.previousElementSibling : null;
+      if (!cm.avatar) { ava?.remove(); continue; }
+      if (ava) { if (ava.getAttribute('src') !== cm.avatar) ava.setAttribute('src', cm.avatar); continue; }
+      const id = el.dataset.aeUid, name = (el.textContent || '').trim();
+      first.before(h('img', {class: 'ae-nick-ava', src: cm.avatar, alt: '', loading: 'lazy', onerror: e => e.target.remove(), onclick: e => { e.stopPropagation(); if (id !== String(uid())) openPlayerCard(id, name); else openProfile(); }}));
     }
   }
   setInterval(() => { if (document.hidden) return; try { paintClanTags(); } catch {} }, 1500);
@@ -3361,6 +3380,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}
 .ae-prof-pet{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-top:3px}.ae-prof-pet img{width:22px;height:22px;border-radius:6px;object-fit:cover}.ae-prof-pet small{opacity:.7;font-size:11px}
 .ae-petfood-fish{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.ae-petfood-fish small{width:100%;opacity:.8}.ae-petfood-fish .ae-btn{font-size:12px;min-height:34px;padding:4px 10px}
