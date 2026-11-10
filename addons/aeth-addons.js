@@ -26,7 +26,7 @@
   const STATS_PATHS = /^\/api\/(horde\/start|duel\/start|coop\/create|coop\/join|ae-clanx\/raid\/start)$/;
   function heroStatsPayload() {
     const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
-    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, critChance: s.critChance, maxMp: s.maxMp, kit: heroKit()};
+    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
   }
   // The hero's skills with the same math as the main combat: skill rank (level + main attribute) and the talent tree.
   const MAIN_ATTR = {warrior: 'strength', berserker: 'strength', knight: 'vitality', rogue: 'agility', assassin: 'agility', archer: 'agility', hunter: 'agility', mage: 'intelligence', necromancer: 'intelligence', paladin: 'spirit', druid: 'spirit'};
@@ -1753,7 +1753,7 @@
       }
       const r = run.result || {};
       body.append(h('div', {class: 'ae-card ae-result ' + (r.defeated ? 'is-win' : '')}, h('b', {}, r.defeated ? '🏆 Страж клановых врат повержен!' : `⚔️ Урон по Стражу: ${fmt(r.total || run.dealt)}`),
-        h('div', {class: 'ae-sub'}, `Здоровье Стража: ${fmt(run.foe.hp)} / ${fmt(run.foe.maxHp)}${r.combos ? ` · связок с соклановцами: ${r.combos}` : ''}`),
+        h('div', {class: 'ae-sub'}, `Здоровье Стража: ${fmt(r.raidHp ?? run.foe.hp)} / ${fmt(run.foe.maxHp)}${r.combos ? ` · связок с соклановцами: ${r.combos}` : ''}`),
         r.item?.item_json ? h('div', {class: 'ae-sub ae-good'}, `🎁 Недельный трофей рейда: ${r.item.item_json.name} — в «Моих серверных вещах» клана`) : '',
         r.reward ? h('div', {class: 'ae-sub'}, `Награда за бой: ${rewardText(r.reward)}`) : ''));
       body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: claim}, '🎁 Забрать и вернуться'));

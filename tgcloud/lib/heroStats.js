@@ -24,7 +24,9 @@ export function saveStats(world, id, raw, now = Date.now()) {
   if (maxHp == null || atk == null) return null;
   const list = rows(world, 'ae_combat_stats');
   let r = list.find(x => same(x.u, id)); if (!r) { r = {u: String(id)}; list.push(r); }
-  Object.assign(r, {hp: maxHp, atk, def: def ?? b.def, crit: crit ?? 10, mp: mp ?? null, lvl: b.level, at: new Date(now).toISOString()});
+  Object.assign(r, {hp: maxHp, atk, def: def ?? b.def, crit: crit ?? 10, mp: mp ?? null, lvl: b.level, at: new Date(now).toISOString(),
+    mdef: num(raw.magicDefense, 0, b.def * 10), cd: num(raw.critDamage, 100, 400), ev: num(raw.evasion, 0, 80), vamp: num(raw.vampirism, 0, 50), pen: num(raw.armorPenetration, 0, 60),
+    hpr: num(raw.hpRegen, 0, maxHp), mpr: num(raw.mpRegen, 0, 400 + b.level * 60)});
   if (raw.kit) { const k = cleanKit(raw.kit, b.level); if (k) r.kit = k; }
   return r;
 }
@@ -32,7 +34,7 @@ export function saveStats(world, id, raw, now = Date.now()) {
 export function realStats(world, id, p) {
   const r = rows(world, 'ae_combat_stats').find(x => same(x.u, id)); if (!r) return null;
   if ((Number(p?.level) || 1) > (Number(r.lvl) || 1) + 5) return null;
-  return {maxHp: r.hp, atk: r.atk, def: r.def, crit: Math.min(0.6, (r.crit || 0) / 100), maxMp: r.mp || null};
+  return {maxHp: r.hp, atk: r.atk, def: r.def, crit: Math.min(0.6, (r.crit || 0) / 100), maxMp: r.mp || null, critDmg: (r.cd || 160) / 100, evasion: r.ev || 0, vamp: r.vamp || 0, pen: r.pen || 0, hpRegen: r.hpr || 0, mpRegen: r.mpr || 0};
 }
 // For PvE modes: halfway (geometric) between the level formula and the real stats.
 export function blendedStats(world, id, p) {
