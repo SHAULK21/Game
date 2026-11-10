@@ -3,6 +3,7 @@
 //  • chat lots: an item shared in the global chat with a fixed price (buy now) and/or price offers;
 //  • auctions: bids from the market wallet, the highest bid wins when the time is up.
 // The item is held by the server while a lot is open, so buying works while the seller is offline.
+import {saleCheck} from './arenaExtras.js';
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
 const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400) => ({status, body: {error}});
@@ -83,6 +84,7 @@ function createLot(world, body, me, now) {
   const kind = body.kind === 'auction' ? 'auction' : 'chat';
   const it = rows(world, 'owned_items').find(i => i.id === body.itemId && same(i.owner_telegram_id, me));
   if (!it || it.locked || it.equipped_slot || it.bound_clan_id || ['legacy_market_return', 'legacy_character'].includes(it.origin)) return fail('Эту вещь нельзя выставить: снимите её с героя и уберите замок.');
+  const bad = saleCheck(world, me, it.item_json); if (bad) return fail(bad);
   if (rows(world, 'ae_lots').filter(l => same(l.seller, me) && l.status === 'active').length >= 10) return fail('Одновременно можно держать до 10 лотов.');
   const price = body.price == null || body.price === '' ? null : Math.floor(Number(body.price));
   if (price != null && !(price >= 1 && price <= 1e8)) return fail('Цена: от 1 до 100 000 000 золота.');
@@ -200,6 +202,7 @@ function requests(world, path, method, body, me, now, notify) {
       event(world, r.buyer, '✖️', `${nameOf(p)} не продаёт «${r.item.n}» — ${r.price} 🪙 вернулись`, 'market', null, now); return ok({ok: true}); }
     const it = rows(world, 'owned_items').find(i => i.id === body.itemId && same(i.owner_telegram_id, me));
     if (!it || it.locked || it.equipped_slot || it.bound_clan_id || ['legacy_market_return', 'legacy_character'].includes(it.origin)) return fail('Эту вещь сейчас нельзя продать: снимите её с героя и уберите замок.');
+    const bad = saleCheck(world, me, it.item_json); if (bad) return fail(bad);
     const item_json = {...it.item_json};
     if (Number(it.quantity) > 1) { it.quantity = Number(it.quantity) - 1; it.updated_at = iso(now); } else world.tables.owned_items = rows(world, 'owned_items').filter(i => i !== it);
     const t = tax(r.price, p, now); p.market_gold = gold(p) + t.net;

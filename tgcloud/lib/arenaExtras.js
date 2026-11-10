@@ -328,6 +328,15 @@ function cleanItem(it) {
 // ---------- bag → market: a local gear item becomes a server-held item that the market accepts ----------
 const GEAR_TYPES = new Set(['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact']);
 const RARITY_POWER = {common: 1, uncommon: 1.4, rare: 1.9, epic: 2.6, legendary: 3.4, mythic: 4.4, ancient: 5.5, divine: 7};
+// One check for every way an item can be sold (market, auction, chat lots, buy requests, bag → server):
+// the seller must be able to own it — at most 10 levels above the hero, with stats that fit its level and rarity.
+export function saleCheck(world, userId, item_json) {
+  const p = player(world, userId); if (!p) return 'Сначала создайте персонажа.';
+  const it = {...item_json, level: Math.max(1, Number(item_json?.level) || 1), upgradeLevel: Math.max(0, Number(item_json?.upgradeLevel) || 0), stats: item_json?.stats || {}};
+  const hero = Number(p.level) || 1;
+  if (GEAR_TYPES.has(it.type)) { if (it.level > hero + 10) return `Вещь ${it.level} уровня нельзя продать герою ${hero} уровня: не выше +10 уровней.`; return plausibleGear(it, hero); }
+  return plausibleStack(it);
+}
 function plausibleGear(it, heroLevel) {
   if (!GEAR_TYPES.has(it.type)) return 'Продать на рынке можно только экипировку.';
   if (it.level > Math.max(heroLevel, 1) + 10) return 'Уровень предмета выше уровня героя.';
@@ -383,6 +392,28 @@ function socketGem(world, body, userId, now) {
   if (gear) { const j = gear.item_json; j.stats = {...(j.stats || {}), [g[0]]: (Number(j.stats?.[g[0]]) || 0) + g[1]}; j.gems = [...(j.gems || []), body.gem]; gear.updated_at = new Date(now).toISOString(); }
   return ok({ok: true, item: gear ? gear.item_json : null});
 }
+// Materials, potions and other stackables may go to the server too (clan storage, sales): sane numbers only.
+const STACK_TYPES = new Set(['material', 'ore', 'potion', 'consumable', 'fish', 'food', 'scroll', 'gem', 'resource']);
+function plausibleStack(it) {
+  if (!STACK_TYPES.has(it.type)) return 'Эту вещь нельзя передать.';
+  for (const v of Object.values(it.stats || {})) if (v < 0 || v > 5000) return 'Характеристики предмета не прошли проверку.';
+  return null;
+}
+// ---------- the hero's bag lives on the device: server-held items that reached the hero are taken into the bag ----------
+// The server only holds items while they are in a deal (market, auction, chat lots, clan storage) or on their way to a player.
+function claimItems(world, body, userId, now) {
+  const op = String(body.operationId || ''); if (!/^[0-9a-f-]{36}$/i.test(op)) return fail('Нет идентификатора операции.');
+  const done = rows(world, 'ae_claims').find(c => c.op === op);
+  if (done) return same(done.u, userId) ? ok({items: done.items, replayed: true}) : fail('Операция занята.', 409);
+  const fresh = r => r.origin === 'bag_deposit' && Date.parse(r.created_at) > now - 30 * 60e3; // just put up for a deal — leave it there
+  const mine = rows(world, 'owned_items').filter(r => same(r.owner_telegram_id, userId) && !r.clan_id && !fresh(r)).slice(0, 100);
+  const items = mine.map(r => ({id: r.id, item_json: r.item_json, quantity: Number(r.quantity) || 1, locked: !!r.locked, equipped_slot: r.equipped_slot || null, bound_clan_id: r.bound_clan_id || null}));
+  const ids = new Set(mine.map(r => r.id));
+  if (ids.size) world.tables.owned_items = rows(world, 'owned_items').filter(r => !ids.has(r.id));
+  rows(world, 'ae_claims').push({op, u: String(userId), items, at: new Date(now).toISOString()});
+  world.tables.ae_claims = rows(world, 'ae_claims').filter(c => Date.parse(c.at) > now - 3 * DAY);
+  return ok({items});
+}
 function handleDeposit(world, body, userId, now) {
   const p = player(world, userId); if (!p) return fail('Сначала создайте персонажа.', 404);
   const op = String(body.operationId || '');
@@ -392,11 +423,13 @@ function handleDeposit(world, body, userId, now) {
   const today = rows(world, 'ae_deposits').filter(d => same(d.user, userId) && Date.parse(d.at) > now - DAY).length;
   if (today >= 40) return fail('Сегодня уже перенесено 40 вещей. Попробуйте завтра.');
   const it = cleanItem(body.item); if (!it) return fail('Предмет повреждён.');
-  it.stackCount = 1;
-  const bad = plausibleGear(it, Number(p.level) || 1); if (bad) return fail(bad);
-  const item_json = {...it}; for (const k of ['id', 'serverOwned', 'stackCount', 'isEquipped', 'isLocked', 'boundToClan', 'slot', 'marketTradable']) delete item_json[k];
+  const gear = GEAR_TYPES.has(it.type), qty = gear ? 1 : Math.max(1, Math.min(999, Math.floor(Number(body.quantity) || 1)));
+  it.stackCount = qty;
+  const bad = gear ? plausibleGear(it, Number(p.level) || 1) : plausibleStack(it); if (bad) return fail(bad);
+  const item_json = {...it}; for (const k of ['id', 'serverOwned', 'stackCount', 'isEquipped', 'isLocked', 'boundToClan', 'slot', 'marketTradable', 'aeOver', 'aePetBase']) delete item_json[k];
+  if (it.aeOver?.base) item_json.stats = it.aeOver.base; // over-level gear travels with its real stats
   const stamp = new Date(now).toISOString(), id = crypto.randomUUID();
-  rows(world, 'owned_items').push({id, owner_telegram_id: Number(userId), item_json, quantity: 1, equipped_slot: null, locked: false, bound_clan_id: null, character_id: null, origin: 'bag_deposit', created_at: stamp, updated_at: stamp});
+  rows(world, 'owned_items').push({id, owner_telegram_id: Number(userId), item_json, quantity: qty, equipped_slot: null, locked: false, bound_clan_id: null, character_id: null, origin: 'bag_deposit', created_at: stamp, updated_at: stamp});
   rows(world, 'ae_deposits').push({op, user: String(userId), itemId: id, at: stamp});
   world.tables.ae_deposits = rows(world, 'ae_deposits').filter(d => Date.parse(d.at) > now - 3 * DAY);
   return ok({itemId: id, item: item_json}, 201);
@@ -487,6 +520,11 @@ export function handleExtras(world, input, user, now, notify) {
   if (path === '/api/items/deposit' && method === 'POST') return handleDeposit(world, body, user.id, now);
   if (path === '/api/items/equipped-sync' && method === 'POST') return syncEquipped(world, body, user.id, now);
   if (path === '/api/items/consume' && method === 'POST') return consumeItems(world, body, user.id, now);
+  if (path === '/api/items/claim' && method === 'POST') return claimItems(world, body, user.id, now);
+  if (path === '/api/market/list' && method === 'POST') { // the game's own market: same check before it lists a server item
+    const it = rows(world, 'owned_items').find(i => i.id === body.itemId && same(i.owner_telegram_id, user.id));
+    const bad = it && saleCheck(world, user.id, it.item_json); if (bad) return fail(bad);
+  }
   if (path === '/api/items/socket-gem' && method === 'POST') return socketGem(world, body, user.id, now);
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);
   if (path.startsWith('/api/duel')) return handleDuel(world, path, method, body, user.id, now, notify);

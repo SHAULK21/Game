@@ -26,6 +26,7 @@ const auc = (await call('/api/ae-market/lot', {kind: 'auction', itemId: 'b2', st
 await p.evaluate(() => document.querySelector('[data-settlement-place="chat"]')?.click()); await p.waitForTimeout(5000);
 console.log('buyer sees:', (await p.locator('.ae-chat-lot').first().innerText().catch(() => 'NONE')).replace(/\n+/g, ' | '));
 await p.locator('.ae-chat-lot button', {hasText: 'Купить'}).first().click({force: true}); await p.waitForTimeout(5000);
+await p.waitForTimeout(6000); console.log('in bag now:', await p.evaluate(() => window.__aethBridge.player.inventory.filter(i => i.type === 'armor' && i.level === 18).map(i => i.name + (i.serverOwned ? '[S]' : '[local]')).join(', ')));
 console.log('chat lot:', s.world.tables.ae_lots.find(l => l.id === chatLot.id).status, '| admin owns armor:', s.world.tables.owned_items.some(i => String(i.owner_telegram_id) === '437290420' && i.item_json.type === 'armor' && i.item_json.level === 18), '| hero gold', (await P()).gold);
 await p.evaluate(() => window.__aethOpen.auction('all')); await p.waitForTimeout(1500);
 console.log('auction tab:', (await p.locator('.ae-panel .ae-lot').first().innerText().catch(() => 'NONE')).replace(/\n+/g, ' | '));

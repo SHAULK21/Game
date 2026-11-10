@@ -1,0 +1,25 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']);
+const t = new Date().toISOString(), A = crypto.randomUUID(), B2 = crypto.randomUUID(), C = crypto.randomUUID(), D = crypto.randomUUID();
+const row = (id, name, type, extra) => ({id, owner_telegram_id: 437290420, item_json: {name, type, rarity: 'rare', level: 20, stats: type === 'material' ? {} : {defense: 40}, sellPrice: 30, disassembleYield: {silver: 12, ore: 1}}, quantity: 1, locked: false, equipped_slot: null, bound_clan_id: null, character_id: null, origin: 'game_command', created_at: t, updated_at: t, ...extra});
+const s = await launch({localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json')));
+  (w.tables.owned_items ||= []).push(row(A, 'Серверный шлем', 'helmet', {equipped_slot: 'helmet'}), row(B2, 'Серверные сапоги', 'boots', {locked: true}), row(C, 'Медная руда', 'material', {quantity: 7}),
+    row(D, 'Только что выставлено', 'ring', {origin: 'bag_deposit', created_at: new Date().toISOString()})); }});
+const p = s.page; p.setDefaultTimeout(6000); await p.setViewportSize({width: 390, height: 844});
+await p.waitForTimeout(6500);
+const view = () => p.evaluate(() => { const x = window.__aethBridge?.player; if (!x) return 'no player yet'; const f = i => `${i.name}${i.serverOwned ? '[S]' : ''}${i.isLocked ? '[lock]' : ''}×${i.stackCount || 1}`;
+  return 'bag: ' + x.inventory.filter(i => /Серверн|руда|выставлено|склепного|дозорного/i.test(i.name) || i.serverOwned).map(f).join(', ') + ' | helmet: ' + (x.equipped.helmet ? f(x.equipped.helmet) : '—'); });
+console.log('before claim:', await view());
+await p.waitForTimeout(12000);
+console.log('after claim :', await view());
+console.log('server rows left:', s.world.tables.owned_items.filter(r => String(r.owner_telegram_id) === '437290420').map(r => r.item_json.name).join(', '));
+await p.evaluate(() => window.dispatchEvent(new Event('aethelgard-market-inventory-refresh'))); await p.waitForTimeout(6000);
+console.log('after a bag refresh:', await view());
+const boots = await p.evaluate(() => window.__aethBridge.player.inventory.find(i => /сапог/i.test(i.name) && !i.serverOwned));
+const r = await p.evaluate(async id => { const b = window.__aethBridge; const it = b.player.inventory.find(i => i.id === id); b.setPlayer(x => ({...x, inventory: x.inventory.map(i => i.id === id ? {...i, isLocked: false} : i)})); await new Promise(r => setTimeout(r, 300)); b.disassembleItem(b.player.inventory.find(i => i.id === id)); await new Promise(r => setTimeout(r, 800)); return !!window.__aethBridge.player.inventory.find(i => i.id === id); }, boots?.id);
+console.log('claimed boots disassembled locally (gone from bag):', !r);
+console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();

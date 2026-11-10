@@ -1853,7 +1853,7 @@
   function openClanDeposit() {
     const st = openPanel('🎒 Внести вещь в хранилище', body => {
       const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id));
-      const ok = i => i && !i.isEquipped && !i.isLocked && !worn.has(i.id) && (i.serverOwned ? !i.boundToClan : depositable(i));
+      const ok = i => i && !i.isEquipped && !i.isLocked && !worn.has(i.id) && (i.serverOwned ? !i.boundToClan : transferable(i));
       const list = (p.inventory || []).filter(ok).sort((a, b) => (b.level || 0) - (a.level || 0));
       body.append(h('p', {class: 'ae-note'}, 'Вещь переедет из вашей сумки в общее хранилище клана. Глава, офицеры и казначей смогут выдать её любому участнику, продать или разобрать в казну. Внесённая вещь привязывается к клану.'));
       body.append(h('p', {class: 'ae-sub'}, 'Забирать, выдавать, продавать и разбирать вещи из хранилища могут глава, офицеры и казначей. Назначить казначея может глава в списке участников клана.'));
@@ -1861,8 +1861,9 @@
       for (const it of list) body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', onclick: async ev => {
         if (!confirm(`Внести «${baseName(it)}» в хранилище клана? Вернуть её себе сможет только руководство клана.`)) return;
         ev.currentTarget.disabled = true;
-        try { const srv = it.serverOwned ? it : await depositItem(it);
-          await api(`/api/clan/storage/${srv.id}/deposit`, 'POST', {quantity: 1});
+        try { const qty = STACKABLE.has(it.type) && (it.stackCount || 1) > 1 ? Math.max(1, Math.min(it.stackCount, Math.floor(Number(prompt(`Сколько внести? (у вас ${it.stackCount})`, String(it.stackCount))) || 0))) : 1;
+          const srv = it.serverOwned ? it : await depositItem(it, qty);
+          await api(`/api/clan/storage/${srv.id}/deposit`, 'POST', {quantity: srv.stackCount || 1});
           B()?.setPlayer(cur => cur && {...cur, inventory: cur.inventory.flatMap(i => i.id !== srv.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])});
           if ((srv.stackCount || 1) <= 1) rememberGone([srv.id]);
           toast(`«${baseName(it)}» в хранилище клана`); closePanel(); setTimeout(reopenClan, 300);
@@ -2078,11 +2079,11 @@
   // Turn a bag item into a server-held one (needed to put it on sale), returns the server item id.
   async function serverIdOf(item) {
     if (item.serverOwned) return item.id;
-    if (!depositable(item)) throw new Error('На продажу можно выставить снаряжение (надетые вещи сначала снимите).');
-    return (await depositItem(item)).id;
+    if (!transferable(item)) throw new Error('Эту вещь нельзя выставить (надетые и запертые вещи сначала снимите и отоприте).');
+    return (await depositItem(item, 1)).id;
   }
   const dropFromBag = id => B()?.setPlayer(x => x && {...x, inventory: x.inventory.flatMap(i => i.id !== id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])});
-  const sellable = i => i && !i.isEquipped && !i.isLocked && !i.boundToClan && (i.serverOwned || depositable(i));
+  const sellable = i => i && !i.isEquipped && !i.isLocked && !i.boundToClan && (i.serverOwned || transferable(i));
   async function lotAction(path, body, okText) {
     const run = () => api('/api/ae-market/lot/' + path, 'POST', body);
     walletBusy = true;
@@ -2818,21 +2819,56 @@
   // ---------- market: put bag gear on the market (the market only accepts server-held items) ----------
   const MARKET_GEAR = new Set(['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact']);
   const depositable = i => i && !i.serverOwned && !i.isEquipped && !i.boundToClan && MARKET_GEAR.has(i.type);
-  async function depositItem(item) {
+  const STACKABLE = new Set(['material', 'ore', 'potion', 'consumable', 'fish', 'food', 'scroll', 'resource']);
+  const transferable = i => i && !i.serverOwned && !i.isEquipped && !i.isLocked && (MARKET_GEAR.has(i.type) ? !i.boundToClan : STACKABLE.has(i.type));
+  // Puts a bag item on the server for a deal (market, auction, chat lot, clan storage). qty: how many of a stack.
+  async function depositItem(item, qty = 1) {
     const b = B(), p = me(); if (!b || !p) throw new Error('Игра ещё загружается.');
     if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) throw new Error('Сначала завершите бой или путь.');
     if (Object.values(p.equipped || {}).some(e => e && e.id === item.id)) throw new Error('Сначала снимите вещь с героя.');
-    const one = {...item, stackCount: 1};
-    const r = await api('/api/items/deposit', 'POST', {operationId: uuid4(), item: one});
-    const srv = {...one, ...(r.item || {}), id: r.itemId, serverOwned: true, marketTradable: true, isLocked: false, isEquipped: false, stackCount: 1};
-    if ((item.stackCount || 1) <= 1) rememberGone([item.id]);
+    const n = MARKET_GEAR.has(item.type) ? 1 : Math.max(1, Math.min(item.stackCount || 1, qty));
+    const one = {...item, stackCount: n};
+    const r = await api('/api/items/deposit', 'POST', {operationId: uuid4(), item: one, quantity: n});
+    const srv = {...one, ...(r.item || {}), id: r.itemId, serverOwned: true, marketTradable: true, isLocked: false, isEquipped: false, stackCount: n};
+    if ((item.stackCount || 1) <= n) rememberGone([item.id]);
     b.setPlayer(cur => {
       if (!cur) return cur;
-      const inv = cur.inventory.flatMap(i => i.id !== item.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : []);
+      const inv = cur.inventory.flatMap(i => i.id !== item.id ? [i] : (i.stackCount || 1) > n ? [{...i, stackCount: i.stackCount - n}] : []);
       return {...cur, inventory: [...inv, srv]};
     });
     sfx.play('coins'); return srv;
   }
+  // ---------- one owner for every item: the bag lives on the device ----------
+  // Server-held items that reached the hero (purchases, raid trophies, clan storage, deals) are taken into the bag as
+  // ordinary items. The server keeps items only while they are in a deal, so the two sides never disagree about them.
+  const claimKey = () => 'aeth_claims_' + uid();
+  let claimBusy = false, claimAt = 0;
+  async function claimServerItems(force) {
+    const p = me(), b = B(); if (!p || !b || claimBusy || walletBusy) return;
+    if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return;
+    const hasServer = (p.inventory || []).some(i => i.serverOwned) || Object.values(p.equipped || {}).some(i => i?.serverOwned);
+    if (!hasServer || (!force && Date.now() - claimAt < 20e3)) return;
+    claimBusy = true; claimAt = Date.now();
+    let done; try { done = new Set(JSON.parse(localStorage.getItem(claimKey()) || '[]')); } catch { done = new Set(); }
+    const op = uuid4();
+    try {
+      const r = await api('/api/items/claim', 'POST', {operationId: op});
+      if (done.has(op) || !r.items?.length) return; done.add(op); localStorage.setItem(claimKey(), JSON.stringify([...done].slice(-50)));
+      const rows = new Map(r.items.map(x => [x.id, x]));
+      const local = (x, prev) => ({...(prev || {}), ...x.item_json, name: prev?.name || x.item_json.name, id: 'own_' + uuid4(), stackCount: x.quantity, isLocked: x.locked, boundToClan: x.bound_clan_id || undefined, serverOwned: false, marketTradable: false, slot: undefined});
+      rememberGone([...rows.keys()]);
+      b.setPlayer(cur => {
+        if (!cur) return cur;
+        const seen = new Set(), equipped = {...(cur.equipped || {})};
+        for (const [slot, it] of Object.entries(equipped)) { const x = it && rows.get(it.id); if (x) { equipped[slot] = {...local(x, it), isEquipped: true}; seen.add(x.id); } }
+        const inventory = cur.inventory.map(it => { const x = rows.get(it.id); if (!x) return it; seen.add(x.id); return {...local(x, it), isEquipped: false}; });
+        for (const x of r.items) if (!seen.has(x.id)) { const it = {...local(x), isEquipped: false}; if (x.equipped_slot && !equipped[x.equipped_slot]) equipped[x.equipped_slot] = {...it, isEquipped: true}; else inventory.push(it); }
+        return {...cur, inventory, equipped};
+      });
+    } catch {} finally { claimBusy = false; }
+  }
+  setTimeout(() => claimServerItems(true), 10000); setInterval(() => { if (!document.hidden) claimServerItems(); }, 30e3);
+  window.addEventListener('aethelgard-market-inventory-refresh', () => setTimeout(() => claimServerItems(true), 3500));
   function openMarketDeposit() {
     const st = openPanel('🎒 Выставить вещь из сумки', body => {
       const list = (me()?.inventory || []).filter(depositable).sort((a, b) => (b.level || 0) - (a.level || 0));
