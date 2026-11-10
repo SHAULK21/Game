@@ -16,7 +16,7 @@ await p.getByRole('button', {name: /Отправиться/}).first().click().ca
 await p.getByRole('button', {name: /^Отправиться/}).last().click().catch(() => {}); await p.waitForTimeout(4500); await p.getByRole('button', {name: /Начать охоту/i}).first().click().catch(() => {}); await p.waitForTimeout(1500);
 if (!(await p.evaluate(() => document.documentElement.hasAttribute('data-in-combat')))) await p.getByRole('button', {name: /Атаковать/}).first().click().catch(e => console.log('no attack btn')); await p.waitForTimeout(2500);
 console.log('in-combat', await p.evaluate(() => document.documentElement.hasAttribute('data-in-combat')));
-await p.screenshot({path: `native-combat-${style}.png`, fullPage: true});
+await p.screenshot({path: `native-combat-${style}.png`});
 const html = await p.evaluate(() => document.querySelector('main').innerHTML);
 fs.writeFileSync(`native-combat-${style}.html`, html);
 await s.close();

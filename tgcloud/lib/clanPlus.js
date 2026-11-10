@@ -171,7 +171,7 @@ function raidView(run) {
   if (!run) return null;
   const foeHp = Math.max(0, run.bossHp0 - run.dealt), ph = phaseOf(foeHp, run.bossMax);
   return {id: run.id, status: run.status, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, potions: run.potions, turn: run.turn, turns: TURNS, dealt: run.dealt, barrier: run.barrier || 0,
-    foe: {hp: foeHp, maxHp: run.bossMax}, phase: ph, heavyNext: (run.turn + 1) % 3 === 0, ally: run.allyLast ? {name: run.allyName, setup: setupOf(run.allyLast)} : null,
+    foe: {hp: foeHp, maxHp: run.bossMax, atk: Math.round(run.maxHp * 0.06 * ph.atk * (run.hero?.guardMul || 1))}, phase: ph, heavyNext: (run.turn + 1) % 3 === 0, ally: run.allyLast ? {name: run.allyName, setup: setupOf(run.allyLast)} : null,
     log: run.log.slice(-14), result: run.result || null};
 }
 function raidTurn(world, me, run, action, skillId) {

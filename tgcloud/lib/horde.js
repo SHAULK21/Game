@@ -81,6 +81,8 @@ function exchange(world, me, run, action, now, events, skillId) {
     if (run.potions <= 0) { events.push({t: 'info', text: 'Зелья закончились'}); action = 'attack'; }
     else { run.potions--; const v = Math.round(h.maxHp * 0.4); run.hp = Math.min(h.maxHp, run.hp + v); events.push({t: 'heal', v}); run.log.push(`🧪 Зелье: +${v} HP`); }
   }
+  let guard = false;
+  if (action === 'defend') { guard = true; run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.12)); run.log.push('🛡️ Защитная стойка: −50% урона, +12% маны'); }
   if (action === 'skill') {
     const sk = (kit.skills || []).find(x => x.id === skillId);
     if (!sk || sk.mana > run.mp) action = 'attack';
@@ -121,7 +123,7 @@ function exchange(world, me, run, action, now, events, skillId) {
   const stunnedFront = run.queue[0]?.stunned > 0 ? (run.queue[0].stunned--, true) : false;
   const strikers = [stunnedFront ? null : run.queue[0], ...(run.blood ? run.queue.slice(1).filter(() => Math.random() < 0.3) : [])].filter(Boolean);
   for (const [i, m] of strikers.entries()) {
-    const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1)));
+    const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1) * (guard ? 0.5 : 1)));
     let left = dmg; if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
     run.hp = Math.max(0, run.hp - left); events.push({t: 'hurt', v: left, from: m.name});
     if (run.hp <= 0) break;
@@ -135,7 +137,7 @@ function exchange(world, me, run, action, now, events, skillId) {
   run.log = run.log.slice(-14);
 }
 const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, mp: run.mp ?? run.maxMp ?? run.hero?.maxMp ?? 100, maxMp: run.maxMp || run.hero?.maxMp || 100, barrier: run.barrier || 0, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
-  queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp})), loot: run.loot, log: run.log, claimed: !!run.claimed,
+  queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp, atk: Math.round(m.atk * (run.hero.guardMul || 1))})), loot: run.loot, log: run.log, claimed: !!run.claimed,
   next: MILESTONES.find(x => x > run.kills) || null});
 
 export function handleHordeRequest(world, input, user, now) {
@@ -164,7 +166,7 @@ export function handleHordeRequest(world, input, user, now) {
   run.updated_at = new Date(now).toISOString();
   if (path === '/api/horde/act') {
     if (run.status !== 'active') return fail('Поход окончен.');
-    const action = ['attack', 'power', 'potion', 'skill'].includes(body.action) ? body.action : 'attack';
+    const action = ['attack', 'power', 'potion', 'skill', 'defend'].includes(body.action) ? body.action : 'attack';
     const steps = Math.max(1, Math.min(MAX_STEPS, Number(body.steps) || 1)), events = [];
     for (let i = 0; i < steps && run.status === 'active'; i++) exchange(world, me, run, i === 0 ? action : 'attack', now, events, body.skillId);
     return ok({run: view(run), events});

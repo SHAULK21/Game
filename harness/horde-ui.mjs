@@ -16,7 +16,7 @@ await p.evaluate(() => window.__aethOpen.horde()); await p.waitForTimeout(900);
 await p.locator('.ae-panel').screenshot({path: `horde-lobby-${style}.png`});
 await p.locator('.ae-horde-go', {hasText: 'В Орду'}).click(); await p.waitForTimeout(700);
 for (let i = 0; i < 6; i++) { await p.locator('.ae-bv .combat-action-attack, .ae-bv button:has-text("Атака")').first().click({force: true}); await p.waitForTimeout(250); }
-await p.locator('.ae-panel').screenshot({path: `horde-fight-${style}.png`});
+await p.screenshot({path: `horde-fight-${style}.png`});
 const t0 = Date.now(); await p.locator('.ae-bv button', {hasText: 'Автобой'}).first().click({force: true});
 for (let i = 0; i < 80; i++) { await p.waitForTimeout(500); if (await p.locator('.ae-result').count()) break; if (i === 6) await p.locator('.ae-panel').screenshot({path: `horde-auto-${style}.png`}); }
 console.log('auto run seconds', ((Date.now() - t0) / 1000).toFixed(1), '| result', (await p.locator('.ae-result').innerText().catch(() => 'none')).replace(/\n/g, ' | '));

@@ -1,0 +1,12 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, energy: 60, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture; ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(6000);
+console.log(await p.evaluate(() => { const out = []; const d = (e, n) => { if (!e) return; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); out.push(`${n}: <${e.tagName.toLowerCase()} class="${String(e.className).slice(0, 90)}"> pos=${cs.position} z=${cs.zIndex} rect=${r.top | 0},${r.height | 0}`); };
+  d(document.querySelector('header'), 'header'); d(document.querySelector('nav'), 'nav'); d(document.querySelector('nav')?.parentElement, 'nav parent'); d(document.querySelector('main'), 'main'); d(document.querySelector('.game-shell'), 'shell');
+  d(document.querySelector('main')?.parentElement, 'main parent'); return out.join('\n'); }));
+await p.evaluate(() => window.__aethOpen.horde()); await p.waitForTimeout(1500);
+console.log(await p.evaluate(() => { const b = document.querySelector('.ae-backdrop'), cs = getComputedStyle(b); return `backdrop pos=${cs.position} z=${cs.zIndex} class=${b.className}`; }));
+await s.close();

@@ -15,7 +15,7 @@ await p.locator('.ae-panel input').fill('Борис'); await p.locator('.ae-pane
 const openMenu = async () => { if (!(await p.locator('[data-ae-skill-menu]').count())) { await p.locator('.ae-bv button').filter({hasText: /^Навыки$/}).first().click({force: true}); await p.waitForTimeout(300); } };
 await openMenu(); console.log('skills:', (await p.locator('[data-ae-skill-menu] [data-combat-skill] strong, [data-ae-skill-menu] [data-combat-skill] .text-xs span:nth-child(2)').allInnerTexts()).join(', '));
 await p.locator('[data-ae-skill-menu] [data-combat-skill]:not([disabled])').first().click({force: true}); await p.waitForTimeout(800);
-await p.screenshot({path: `duel2-${style}.png`, fullPage: true});
+await p.screenshot({path: `duel2-${style}.png`});
 for (let i = 0; i < 40 && await p.locator('.ae-bv').count(); i++) { await openMenu().catch(() => {}); const k = p.locator('[data-ae-skill-menu] [data-combat-skill]:not([disabled])'); if (await k.count()) await k.last().click({force: true}).catch(() => {}); else await p.locator('.ae-bv button').filter({hasText: /^Атака$/}).first().click({force: true}).catch(() => {}); await p.waitForTimeout(250); }
 console.log('result:', (await p.locator('.ae-result').innerText().catch(() => 'none')).replace(/\n/g, ' | '));
 console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n'));
