@@ -338,6 +338,19 @@ function plausibleGear(it, heroLevel) {
   }
   return null;
 }
+// The client equips some server items without telling the server (Premium auto-equip used to); then the
+// server refuses to sell or disassemble the old gear it still believes is worn. Make the server match the hero.
+const WEAR = new Set(['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact']);
+function syncEquipped(world, body, userId, now) {
+  const want = new Map(Object.entries(body?.equipped || {}).filter(([slot, id]) => WEAR.has(slot) && typeof id === 'string').map(([slot, id]) => [id, slot]));
+  let changed = 0;
+  for (const it of rows(world, 'owned_items')) {
+    if (!same(it.owner_telegram_id, userId) || !WEAR.has(it.item_json?.type)) continue;
+    const slot = want.get(it.id) === it.item_json.type ? it.item_json.type : null;
+    if ((it.equipped_slot || null) !== slot) { it.equipped_slot = slot; it.updated_at = new Date(now).toISOString(); changed++; }
+  }
+  return ok({ok: true, changed});
+}
 function handleDeposit(world, body, userId, now) {
   const p = player(world, userId); if (!p) return fail('Сначала создайте персонажа.', 404);
   const op = String(body.operationId || '');
@@ -440,6 +453,7 @@ export function handleExtras(world, input, user, now, notify) {
   if (path === '/api/quests/arena' && method === 'POST') return reportArena(world, user.id, body, now);
   if (path.startsWith('/api/quests/special')) return handleQuests(world, path, method, body, user.id, now);
   if (path === '/api/items/deposit' && method === 'POST') return handleDeposit(world, body, user.id, now);
+  if (path === '/api/items/equipped-sync' && method === 'POST') return syncEquipped(world, body, user.id, now);
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);
   if (path.startsWith('/api/duel')) return handleDuel(world, path, method, body, user.id, now, notify);
   if (path === '/api/admin/promo' || path === '/api/promo/redeem') return handlePromo(world, path, method, body, user, now);

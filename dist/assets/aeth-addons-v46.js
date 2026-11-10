@@ -817,12 +817,23 @@
   const autoSeenIds = () => { try { return new Set(JSON.parse(localStorage.getItem(autoSeenKey()) || '[]')); } catch { return new Set(); } };
   const rememberJudged = ids => { const s = autoSeenIds(); ids.forEach(x => s.add(x)); localStorage.setItem(autoSeenKey(), JSON.stringify([...s].slice(-400))); };
   // Silent swap (the game's own local equip, without its click sound and vibration).
-  const swapLocal = (slot, item) => B().setPlayer(x => {
+  const swapLocal = (slot, item) => { B().setPlayer(x => {
     if (!x || !x.inventory.some(i => i.id === item.id)) return x;
     const worn = x.equipped?.[slot], inv = x.inventory.filter(i => i.id !== item.id);
     if (worn) inv.push({...worn, isEquipped: false});
     return {...x, inventory: inv, equipped: {...x.equipped, [slot]: {...item, isEquipped: true}}};
-  });
+  }); syncEquippedSoon(); };
+  // Tell the server which of its items the hero really wears (otherwise it refuses to sell / disassemble the old ones).
+  let eqSyncTimer = 0, eqSyncSent = '';
+  function syncEquippedSoon(delay = 2500) { clearTimeout(eqSyncTimer); eqSyncTimer = setTimeout(syncEquippedNow, delay); }
+  async function syncEquippedNow() {
+    const p = me(); if (!p?.equipped) return;
+    if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return syncEquippedSoon(15000);
+    const equipped = Object.fromEntries(Object.entries(p.equipped).filter(([, i]) => i?.serverOwned).map(([slot, i]) => [slot, i.id]));
+    const key = uid() + JSON.stringify(equipped); if (key === eqSyncSent) return;
+    try { await api('/api/items/equipped-sync', 'POST', {equipped}); eqSyncSent = key; } catch {}
+  }
+  setTimeout(() => syncEquippedNow(), 9000);
   async function autoEquip(force) {
     const b = B(), p = me(); if (!b?.setPlayer || !p || autoBusy || !autoOn()) return;
     if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat') || openPanelState) return;
@@ -1905,10 +1916,11 @@
     const el = h('div', {class: 'ae-clan-bonus-pop'}, `🛡️ Бонус клана: ${[addG && `+${fmt(addG)} 🪙`, addE && `+${fmt(addE)} опыта`].filter(Boolean).join(' · ')}`); document.body.append(el); setTimeout(() => el.remove(), 2200);
   }
   // One timer for everything that watches the hero's save; it does nothing until the hero object changes.
-  let watchedHero = null;
+  let watchedHero = null, watchedEq = null;
   setInterval(() => {
     const p = me(); if (!p) return;
     const changed = p !== watchedHero; watchedHero = p;
+    if (changed) { const sig = Object.values(p.equipped || {}).map(i => i?.id || '').join(','); if (sig !== watchedEq) { if (watchedEq !== null) syncEquippedSoon(); watchedEq = sig; } }
     if (!changed && !Object.keys(cxPend).length) return;
     for (const fn of changed ? [legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
   }, 1000);

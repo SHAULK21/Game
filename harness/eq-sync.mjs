@@ -1,0 +1,17 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const t = new Date().toISOString(), id1 = crypto.randomUUID(), id2 = crypto.randomUUID();
+const gear = (id, name) => ({id, templateId: 'srv', name, type: 'offhand', rarity: 'rare', level: 20, upgradeLevel: 0, stats: {defense: 30}, icon: '🛡️', sellPrice: 40, disassembleYield: {silver: 10, ore: 1}, stackCount: 1, serverOwned: true});
+save.player.equipped = {...save.player.equipped, offhand: {...gear(id2, 'Щит стража'), isEquipped: true}}; save.player.inventory.push(gear(id1, 'Щит новобранца'));
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json')));
+  const row = (id, name, slot) => ({id, owner_telegram_id: 437290420, item_json: {name, type: 'offhand', rarity: 'rare', level: 20, stats: {defense: 30}, sellPrice: 40, disassembleYield: {silver: 10, ore: 1}}, quantity: 1, equipped_slot: slot, locked: false, bound_clan_id: null, character_id: null, origin: 'game_command', created_at: t, updated_at: t});
+  (w.tables.owned_items ||= []).push(row(id1, 'Щит новобранца', 'offhand'), row(id2, 'Щит стража', null)); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(14000);
+console.log('all offhand rows:', JSON.stringify(s.world.tables.owned_items.filter(i => i.item_json?.type === 'offhand').map(i => [i.item_json.name, String(i.owner_telegram_id), i.equipped_slot, i.id.slice(0, 6)])), '| client offhand id', await p.evaluate(() => window.__aethBridge.player.equipped.offhand?.id?.slice(0, 6)));
+const rows = s.world.tables.owned_items.filter(i => i.id === id1 || i.id === id2).map(i => i.item_json.name + '=' + i.equipped_slot);
+console.log(style, 'sync calls:', s.calls.filter(c => c.path === '/api/items/equipped-sync').map(c => c.status + ' ' + JSON.stringify(c.body)).join(','), 'client eq:', await p.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(window.__aethBridge.player.equipped).map(([k, v]) => [k, v && (v.name + (v.serverOwned ? ':S' : ''))])))), '| server slots:', rows.join(', '));
+console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();
