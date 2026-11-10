@@ -2,6 +2,7 @@
 // invite-a-friend (on top of the engine's referral reward) and admin analytics.
 import {bloodWeekend} from './horde.js';
 import {saveStats} from './heroStats.js';
+import {encodeDocument, STORAGE_CELL_LIMIT} from './storageCodec.js';
 import {handleClanPlus, clanTick} from './clanPlus.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
@@ -157,9 +158,16 @@ function report(world, now) {
   const total = players.length, wau = new Set(act.filter(a => a.day > dayKey(now - 7 * DAY)).map(a => String(a.telegram_id))).size;
   const mau = new Set(act.filter(a => a.day > dayKey(now - 30 * DAY)).map(a => String(a.telegram_id))).size;
   return ok({total, dau: byDay.get(dayKey(now))?.size || 0, wau, mau, daily, retention: {d1: ret(lastDays, 1), d3: ret(lastDays, 3), d7: ret(lastDays, 7)}, sections, quit: {n: quitN, list: quitList},
-    botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
+    storage: storageInfo(world), botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
 }
 
+// How full the single world document is (its stored form must stay under the storage cell limit).
+function storageInfo(world) {
+  const raw = JSON.stringify(world); let stored = raw.length;
+  try { stored = encodeDocument(raw).length; } catch { stored = STORAGE_CELL_LIMIT; }
+  const tables = Object.entries(world.tables || {}).map(([k, v]) => ({k, n: Array.isArray(v) ? v.length : 0, kb: Math.round(JSON.stringify(v).length / 1024)})).sort((a, b) => b.kb - a.kb).slice(0, 8);
+  return {rawKb: Math.round(raw.length / 1024), storedKb: Math.round(stored / 1024), limitKb: Math.round(STORAGE_CELL_LIMIT / 1024), pct: Math.round(100 * stored / STORAGE_CELL_LIMIT), tables};
+}
 // ---------- clan succession: a leader away for 3+ days hands the clan to the highest-level active member ----------
 const seenAt = p => Date.parse(p?.last_seen_at || p?.updated_at || 0) || 0;
 export function clanSuccession(world, now, notify) {
@@ -183,9 +191,11 @@ export function clanSuccession(world, now, notify) {
   return moved;
 }
 
+let lastClanSweep = 0;
 export async function handleLiveRequest(world, input, user, now, native, notify) {
   try { weekendAnnounce(world, now); refJoinNotice(world, String(user.id), now, notify); } catch (e) { console.warn('live prelude', e?.message); }
-  try { clanSuccession(world, now, notify); clanTick(world, String(user.id), now, notify); } catch (e) { console.warn('clan succession', e?.message); }
+  // Whole-world clan sweeps (leader succession) run at most once per 5 minutes per isolate; the cheap per-player part runs always.
+  try { if (now - lastClanSweep > 300e3 || now < lastClanSweep) { lastClanSweep = now; clanSuccession(world, now, notify); } clanTick(world, String(user.id), now, notify); } catch (e) { console.warn('clan succession', e?.message); }
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);

@@ -6,7 +6,7 @@ import {drainDeliveries, sendPremiumWelcome} from '../lib/deliveryWorker.js';
 import {handleSocialRequest} from '../lib/social.js';
 
 // Telegram Serverless has no scheduler: deliver due notifications after player requests (throttled per isolate).
-let lastDrain = 0;
+let lastDrain = 0, lastPrune = 0;
 async function maybeDrain(now) {
   if (now - lastDrain < 30000) return;
   lastDrain = now;
@@ -24,7 +24,7 @@ async function handle(input, ctx) {
   const at = Date.now();
   try {
     const reply = await nativeTransactions.update(PRODUCTION_DOCUMENT, async world => {
-      if (Math.random() < 0.01) pruneWorld(world, at);
+      if (at - lastPrune > 3600e3 || Math.random() < 0.005) { lastPrune = at; pruneWorld(world, at); }
       const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
       const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
       const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at, native);

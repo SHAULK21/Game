@@ -173,7 +173,7 @@
     const g = goneIds(); if (!g.size || !p.inventory.some(i => g.has(i.id))) return;
     b.setPlayer(cur => cur && {...cur, inventory: cur.inventory.filter(i => !g.has(i.id))});
   }
-  setInterval(() => { try { purgeGone(); } catch {} }, 700);
+  setInterval(() => { if (document.hidden) return; try { purgeGone(); } catch {} }, 700);
   let merging = false;
   async function doMerge(groupKeyItemId) {
     const b = B(), p = me(); if (!b || !p) return toast('Игра ещё загружается.');
@@ -590,7 +590,7 @@
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
     ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
     ['💰 Рынок и торговля', `<p>Вещи можно выставить на рынок для других игроков (из сумки — кнопка «На рынок»); выручка идёт в кошелёк рынка, налог 3% (с Premium — 0%). Другу можно продать вещь напрямую: «🤝 Продать другу». Местным жителям продаётся добыча по дневному спросу.</p>`],
-    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>🏰 Штаб клана</b> (кнопка в Доме клана): <b>ежедневный сундук</b>; <b>бонусы</b> всем участникам — +2% опыта и золота и +3% к шансу редкой добычи за каждый уровень клана (до +30% / +45%); <b>задание дня и недели</b> — общая цель на весь клан, награду получает каждый; <b>вклад</b> — очки за монстров, боссов, дуэли и арену, подземелья, руду, зелья и рейд; <b>рейтинг недели</b> — топ-3 кланов получают золото в казну, опыт и бонус чемпиона (медаль у тега); <b>война кланов</b> — раз в неделю клан сражается с соперником по очкам вклада.</p><p><b>💰 Казна и хранилище</b>: в Доме клана кнопки «Пополнить казну» (золото и серебро, 100 монет = 1 очко вклада) и «Внести вещь» — вещь из сумки переезжает в общее хранилище. Казна также растёт от победы над Стражем, заданий клана (+300 / +1500 🪙), войн и рейтинга. Забирать, выдавать, продавать и разбирать вещи из хранилища могут глава, офицеры и казначей.</p><p><b>🐲 Рейд</b> — настоящий пошаговый бой со Стражем врат раз в сутки: 12 ходов, навыки, защита, зелья и три фазы босса. Навык с эффектом (оглушение, яд, щит…) оставляет <b>связку</b> следующему соклановцу — его атакующий навык станет сильнее.</p><p><b>Поиск и заявки</b>: «🔍 Найти клан» показывает все кланы; в открытые можно вступить сразу, в закрытые — подать заявку (глава и офицеры принимают её в Штабе). Глава может задать <b>эмблему</b> и <b>приветствие</b> новичкам, а неактивных 3+ дня исключать прямо из списка вклада. В кооп-подземельях с соклановцем награда <b>+20%</b>.</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
+    ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>🏰 Штаб клана</b> (кнопка в Доме клана): <b>ежедневный сундук</b>; <b>бонусы</b> всем участникам — +2% опыта и золота и +3% к шансу редкой добычи за каждый уровень клана (до +30% / +45%); <b>задание дня и недели</b> — общая цель на весь клан, награду получает каждый; <b>вклад</b> — очки за монстров, боссов, дуэли и арену, подземелья, руду, зелья и рейд; <b>рейтинг недели</b> — топ-3 кланов получают золото в казну, опыт и бонус чемпиона (медаль у тега); <b>война кланов</b> — раз в неделю клан сражается с соперником по очкам вклада.</p><p><b>💰 Казна и хранилище</b>: в Доме клана кнопки «Пополнить казну» (золото и серебро, 100 монет = 1 очко вклада) и «Внести вещь» — вещь из сумки переезжает в общее хранилище. Казна также растёт от победы над Стражем, заданий клана (+300 / +1500 🪙), войн и рейтинга. Забирать, выдавать, продавать и разбирать вещи из хранилища могут глава, офицеры и казначей.</p><p><b>⛏️ Руда в казне</b>: напрямую руду внести нельзя. Она приходит за победу над Стражем врат и при <b>разборе вещей из хранилища</b>: участник вносит экипировку («Внести вещь»), а глава, офицер или казначей нажимает «Разобрать» — серебро и руда от разбора идут в казну («Продать» даёт золото). Руда, положенная в хранилище как предмет, в казну не засчитывается. Казна тратится на клановые проекты и повышение уровня клана.</p><p><b>🐲 Рейд</b> — настоящий пошаговый бой со Стражем врат раз в сутки: 12 ходов, навыки, защита, зелья и три фазы босса. Навык с эффектом (оглушение, яд, щит…) оставляет <b>связку</b> следующему соклановцу — его атакующий навык станет сильнее.</p><p><b>Поиск и заявки</b>: «🔍 Найти клан» показывает все кланы; в открытые можно вступить сразу, в закрытые — подать заявку (глава и офицеры принимают её в Штабе). Глава может задать <b>эмблему</b> и <b>приветствие</b> новичкам, а неактивных 3+ дня исключать прямо из списка вклада. В кооп-подземельях с соклановцем награда <b>+20%</b>.</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
     ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
     ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
     ['🔔 Уведомления и новости', `<p>Включите уведомления — бот напомнит о полной энергии, билетах арены, голодном питомце, выходных Кровавой луны, вызовах и друзьях. Все обновления — в меню «Что нового» и в канале <a href="https://t.me/Aethelgardo" target="_blank" rel="noopener">t.me/Aethelgardo</a>.</p>`],
@@ -886,7 +886,7 @@
       btn.classList.add('ae-alch-blocked');
     }
   }
-  setInterval(() => { try { decorateAlchemy(); } catch {} }, 1000);
+  setInterval(() => { if (document.hidden) return; try { decorateAlchemy(); } catch {} }, 1000);
   // ---------- forge: a clear result after every upgrade attempt ----------
   let forgeSnap = null;
   function watchForge() {
@@ -914,7 +914,7 @@
     }
     if (snap.gold < prev.gold || snap.silver < prev.silver) { bigBanner('💥 Заточка не удалась — уровень сохранён', false); sfx.play('fail'); }
   }
-  setInterval(() => { try { watchForge(); } catch {} }, 300);
+  setInterval(() => { if (document.hidden) return; try { watchForge(); } catch {} }, 300);
   // ---------- crystals: craft or buy, then socket into gear to add a stat (vampirism, crit, bleed…) ----------
   const GEMS = [
     {id: 'vamp', name: 'Кристалл вампиризма', icon: '🩸', stat: 'vampirism', value: 3, unit: '%', label: 'Вампиризм', recipe: [['Острый клык', 3], ['Магическая эссенция', 1]], gold: 2700},
@@ -1067,7 +1067,6 @@
       else setTimeout(() => toast(`🎁 Находка: ${it.name} (${RARITY_RU[it.rarity]})`), 600);
     }
   }
-  setInterval(() => { try { legendaryTick(); } catch (e) { console.warn('ae legendary', e); } }, 1000);
   // ---------- luck: better rarity on found gear and more legendary finds ----------
   const RARITY_UP = {common: 'uncommon', uncommon: 'rare', rare: 'epic', epic: 'legendary'};
   function luckInfo(p) {
@@ -1089,7 +1088,6 @@
       setTimeout(() => { bigBanner(`🍀 Удача! «${it.name}» стал(а) ${RARITY_RU[to]}`, to === 'legendary'); sfx.play('coins'); }, 400);
     }
   }
-  setInterval(() => { try { luckTick(); } catch {} }, 1000);
   // ---------- respec: return every invested attribute point and distribute them again ----------
   const BASE_ATTR = {warrior: {strength: 16, vitality: 15, willpower: 12, agility: 10, luck: 8, spirit: 7, intelligence: 6}, berserker: {strength: 18, agility: 12, intelligence: 5, vitality: 12, luck: 10, spirit: 6, willpower: 11},
     knight: {strength: 14, agility: 9, intelligence: 7, vitality: 18, luck: 6, spirit: 9, willpower: 13}, rogue: {strength: 11, agility: 18, intelligence: 7, vitality: 10, luck: 15, spirit: 6, willpower: 8},
@@ -1134,7 +1132,6 @@
     const won = cur.rating > prev.rating;
     api('/api/quests/arena', 'POST', {won}).then(() => refreshQuestBadge?.()).catch(() => {});
   }
-  setInterval(() => { try { arenaTick(); } catch {} }, 1500);
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
@@ -1455,7 +1452,7 @@
       el.before(h('span', {class: cls, title: cm.place ? `Клан — ${cm.place}-е место недели` : 'Клан'}, txt));
     }
   }
-  setInterval(() => { try { paintClanTags(); } catch {} }, 1500);
+  setInterval(() => { if (document.hidden) return; try { paintClanTags(); } catch {} }, 1500);
   function openPlayerCard(id, name) {
     let prof = null;
     const st = openPanel('👤 ' + name, body => {
@@ -1673,7 +1670,7 @@
         body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-hq-ic'}, '💰'), h('div', {class: 'ae-grow'}, h('b', {}, 'Казна клана'), h('div', {class: 'ae-sub'}, `${fmt(c.treasury)} 🪙 · ${fmt(c.treasurySilver)} 🥈 · ${fmt(c.treasuryOre)} руды`)),
           h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => openClanDonate(() => load())}, 'Пополнить')));
         body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => openClanDeposit()}, '🎒 Внести вещь в хранилище клана'));
-        body.append(h('p', {class: 'ae-sub'}, 'Казна пополняется пожертвованиями, победой над Стражем, заданиями клана (+300 🪙 за дневное, +1500 🪙 за недельное), войнами и рейтингом недели.'));
+        body.append(treasuryHelp());
         body.append(h('div', {class: 'ae-pill'}, `📊 Ваш вклад за неделю: ${fmt(d.myPts)} · клан: ${fmt(d.weekPts)}`));
         body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openClanInvite(); }}, '👥 Позвать друзей'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openCoop(); }}, '🤝 Кооп с соклановцами')));
         body.append(h('p', {class: 'ae-sub'}, '🤝 Если в кооп-подземелье с вами соклановец — награда +20% и выше шанс осколка.'));
@@ -1804,7 +1801,7 @@
       const quick = (setter, total, inp) => h('div', {class: 'ae-row ae-quick'}, [100, 1000, 5000].map(v => h('button', {type: 'button', class: 'ae-btn', disabled: total < v, onclick: () => { setter(v); inp.value = v; }}, fmt(v))),
         h('button', {type: 'button', class: 'ae-btn', disabled: total < 10, onclick: () => { const v = Math.floor(total * 0.1); setter(v); inp.value = v; }}, '10%'));
       body.append(h('p', {class: 'ae-note'}, 'Золото и серебро из казны глава и офицеры тратят на клановые проекты (Арсенал, Исследовательский зал, Снабжение) и на повышение уровня клана. За каждые 100 внесённых монет — 1 очко вклада.'),
-        h('div', {class: 'ae-pill'}, `У вас: ${fmt(G)} 🪙 · ${fmt(S)} 🥈`),
+        h('div', {class: 'ae-pill'}, `У вас: ${fmt(G)} 🪙 · ${fmt(S)} 🥈`), treasuryHelp(),
         h('b', {}, '🪙 Золото'), gIn, quick(v => { gold = v; }, G, gIn), h('b', {}, '🥈 Серебро'), sIn, quick(v => { silver = v; }, S, sIn),
         h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: async () => {
           const cur = me() || {};
@@ -1842,12 +1839,15 @@
     });
     return st;
   }
+  const TREASURY_HELP = '🪙🥈 <b>Золото и серебро</b> — «Пополнить казну».<br>⛏️ <b>Руда</b> — за победу над Стражем и за «Разобрать» вещи в хранилище.<br>🎯 Ещё: задания клана, войны, рейтинг.<br>🏗️ Тратится на проекты и уровень клана.';
+  const treasuryHelp = () => h('details', {class: 'ae-combos ae-treasury-help'}, h('summary', {}, 'ℹ️ Как пополнить казну'), h('div', {class: 'ae-sub', html: TREASURY_HELP}));
   function injectClanTreasury() {
     const t = [...document.querySelectorAll('main p, main div, main span')].find(e => !e.childElementCount && /^Казна:/.test((e.textContent || '').trim()));
     if (!t || t.parentElement.querySelector(':scope > [data-ae-treasury]')) return;
     t.after(h('div', {class: 'ae-row ae-clan-invite', 'data-ae-treasury': '1'},
       h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: () => openClanDonate()}, '💰 Пополнить казну'),
       h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => openClanDeposit()}, '🎒 Внести вещь')));
+    t.parentElement.querySelector(':scope > [data-ae-treasury]').after(treasuryHelp());
   }
   // Crystal entry points inside the right places (Forge, Workshop, market's basic shop).
   function gemEntry(attr, title, sub, tab) {
@@ -1891,6 +1891,7 @@
     const s = p.statsSummary, cur = {uid: p.userId, kills: s.monstersKilled || 0, bosses: s.bossesDefeated || 0, dungeons: s.dungeonsCleared || 0, ores: s.oresMined || 0, potions: s.potionsCrafted || 0};
     if (cxSnap && cxSnap.uid === cur.uid) for (const k of ['kills', 'bosses', 'dungeons', 'ores', 'potions']) { const dlt = cur[k] - cxSnap[k]; if (dlt > 0 && dlt < 60) cxPend[k] = (cxPend[k] || 0) + dlt; }
     cxSnap = cur;
+    if (clanX && !clanX.clan) cxPend = {};
     if (Object.keys(cxPend).length && Date.now() - cxFlushAt > 20000) { cxFlushAt = Date.now(); const send = cxPend; cxPend = {}; api('/api/ae-clanx/progress', 'POST', send).catch(() => {}); }
     const bn = clanX?.clan ? clanX.bonus : null, won = s.battlesWon || 0;
     const prev = bonusSnap; bonusSnap = {uid: p.userId, won, gold: p.gold || 0, exp: p.exp || 0, level: p.level || 1};
@@ -1902,7 +1903,14 @@
     bonusSnap.gold += addG;
     const el = h('div', {class: 'ae-clan-bonus-pop'}, `🛡️ Бонус клана: ${[addG && `+${fmt(addG)} 🪙`, addE && `+${fmt(addE)} опыта`].filter(Boolean).join(' · ')}`); document.body.append(el); setTimeout(() => el.remove(), 2200);
   }
-  setInterval(() => { try { clanTick(); } catch (e) { console.warn('ae clan', e); } }, 1000);
+  // One timer for everything that watches the hero's save; it does nothing until the hero object changes.
+  let watchedHero = null;
+  setInterval(() => {
+    const p = me(); if (!p) return;
+    const changed = p !== watchedHero; watchedHero = p;
+    if (!changed && !Object.keys(cxPend).length) return;
+    for (const fn of changed ? [legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
+  }, 1000);
   setTimeout(() => loadClanX(), 6000); setInterval(() => loadClanX(), 600000);
   function renderChatItems() {
     for (const el of document.querySelectorAll('main *, .game-dialog-backdrop *')) {
@@ -2280,7 +2288,7 @@
     }
     for (const i of [...p.inventory, ...eqList]) if (i.isLocked && i.serverOwned && !unlocked.has(i.id)) unlockServerItem(i.id);
   }
-  setInterval(() => { try { dropLocks(); } catch {} }, 3000);
+  setInterval(() => { if (document.hidden) return; try { dropLocks(); } catch {} }, 3000);
   function hideLockUi() {
     for (const btn of document.querySelectorAll('button')) {
       const t = (btn.textContent || '').trim();
@@ -2552,7 +2560,7 @@
       t.append(h('span', {class: 'ae-place-badge is-' + kind, title: kind === 'new' ? 'Вы ещё не заходили сюда сегодня' : text}, text));
     }
   }
-  setInterval(() => { try { paintPlaceBadges(); } catch {} }, 4000);
+  setInterval(() => { if (document.hidden) return; try { paintPlaceBadges(); } catch {} }, 4000);
 
   // ---------- «Что нового»: update posts (same as in the channel) ----------
   const newsSeenKey = () => 'aeth_news_seen_' + uid();
@@ -2659,6 +2667,11 @@
       for (const x of d.quit.list) body.append(h('div', {class: 'ae-hbar is-quit'}, h('span', {}, x.k), h('i', {style: `width:${Math.round(100 * x.n / qmax)}%`}), h('b', {}, String(x.n))));
       body.append(h('p', {class: 'ae-sub'}, 'Последний экран игры и уровень героя у тех, кто перестал заходить.'));
       body.append(h('div', {class: 'ae-pill'}, `🤖 Запустили бота: ${d.botUsers} · уведомления включены: ${d.notifyOn}`));
+      if (d.storage) { const sg = d.storage;
+        body.append(h('div', {class: 'ae-card' + (sg.pct >= 70 ? ' ae-storage-warn' : '')}, h('b', {}, `${sg.pct >= 85 ? '🔴' : sg.pct >= 70 ? '🟠' : '🟢'} Хранилище игры: ${sg.pct}% (${fmt(sg.storedKb)} из ${fmt(sg.limitKb)} КБ)`),
+          h('div', {class: 'ae-bar'}, h('i', {style: `width:${Math.min(100, sg.pct)}%`}), h('span', {}, `данные без сжатия: ${fmt(sg.rawKb)} КБ`)),
+          h('div', {class: 'ae-sub'}, 'Самые большие таблицы: ' + sg.tables.map(t => `${t.k} — ${t.kb} КБ (${t.n})`).join(' · ')),
+          sg.pct >= 70 ? h('div', {class: 'ae-sub'}, '⚠️ Места остаётся мало: при 100% игра перестанет сохраняться. Нужна чистка старых данных.') : '')); }
     });
     api('/api/ae-admin/stats').then(r => { d = r; }, e => { err = cleanError(e); }).finally(() => { if (openPanelState === st) st.rerender(); });
   }
@@ -2938,12 +2951,13 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }).observe(document.documentElement, {childList: true, subtree: true});
   setInterval(() => { try { storyTick(); } catch (e) { console.warn('ae story', e); } }, 1200);
   // The game moves the travel bar by restyling it (no DOM insertions), so poll while a journey card is open.
-  setInterval(() => { if (document.querySelector('.ae-travel-card')) try { syncTravel(); } catch {} }, 100);
+  setInterval(() => { if (!document.hidden && document.querySelector('.ae-travel-card')) try { syncTravel(); } catch {} }, 100);
 
   // ---------- styles ----------
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-treasury-help{margin:4px 0;font-size:12px}.ae-treasury-help summary{cursor:pointer;opacity:.8;font-size:12px}.ae-treasury-help .ae-sub{margin-top:4px;line-height:1.5;font-size:12px}
 .ae-tabs{flex-shrink:0}.ae-hq-panel .ae-body>*,.ae-horde-panel .ae-body>*{flex-shrink:0}
 .ae-hq-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}.ae-hq-head b{font-size:16px}.ae-hq-emblem{font-size:34px;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:#ffffff10;border:1px solid #e5ce9655}
 .ae-hq-bonus{padding:10px 12px;border-radius:12px;border:1px solid #e5ce9655;background:linear-gradient(135deg,#e5ce9618,#ffffff05);margin:8px 0;display:flex;flex-direction:column;gap:6px}.ae-hq-bonus small{opacity:.8;font-size:12px;line-height:1.35}

@@ -90,13 +90,13 @@ export function clanCredit(world, me, delta, now, notify) {
   if (war && !war.settled && pts) { if (same(war.a, clan.id)) war.pa += pts; else war.pb += pts; }
   return r;
 }
-function progress(world, me, body, now) {
+function progress(world, me, body, now, notify) {
   const {clan} = clanOf(world, me); if (!clan) return ok({ok: true, clan: false});
   const day = dayKey(now); let d = rows(world, 'ae_clan_daily').find(x => same(x.u, me) && x.day === day);
   if (!d) { world.tables.ae_clan_daily = rows(world, 'ae_clan_daily').filter(x => x.day >= dayKey(now - DAY)); d = {u: String(me), day}; rows(world, 'ae_clan_daily').push(d); }
   const delta = {};
   for (const k of ['kills', 'bosses', 'dungeons', 'ores', 'potions']) { const v = Math.max(0, Math.min(50, Math.round(Number(body?.[k]) || 0))), room = DAILY_CAP[k] - (d[k] || 0), n = Math.min(v, room); if (n > 0) { d[k] = (d[k] || 0) + n; delta[k] = n; } }
-  if (Object.keys(delta).length) clanCredit(world, me, delta, now);
+  if (Object.keys(delta).length) clanCredit(world, me, delta, now, notify);
   return ok({ok: true, credited: delta});
 }
 export function creditDuel(world, me, now) {
@@ -431,7 +431,7 @@ export async function handleClanPlus(world, path, method, body, me, now, native,
   if (path === '/api/ae-clanx/top') return ok(top(world, now));
   if (path.startsWith('/api/ae-clanx/request')) return handleRequests(world, path, method, body, me, now, notify);
   if (path.startsWith('/api/ae-clanx/raid')) return handleRaid(world, path, body, me, now, native, notify);
-  if (path === '/api/ae-clanx/progress' && method === 'POST') return progress(world, me, body, now);
+  if (path === '/api/ae-clanx/progress' && method === 'POST') return progress(world, me, body, now, notify);
   if (path === '/api/ae-clanx' && method === 'GET') return overview(world, me, now, notify);
   if (path === '/api/ae-clanx/members') return members(world, me, now);
   const {clan, m} = clanOf(world, me); if (!clan) return fail('Вы не в клане.');
