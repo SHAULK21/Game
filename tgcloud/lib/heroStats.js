@@ -28,6 +28,10 @@ export function saveStats(world, id, raw, now = Date.now()) {
     mdef: num(raw.magicDefense, 0, b.def * 10), cd: num(raw.critDamage, 100, 400), ev: num(raw.evasion, 0, 80), vamp: num(raw.vampirism, 0, 50), pen: num(raw.armorPenetration, 0, 60),
     hpr: num(raw.hpRegen, 0, maxHp), mpr: num(raw.mpRegen, 0, 400 + b.level * 60)});
   if (raw.kit) { const k = cleanKit(raw.kit, b.level); if (k) r.kit = k; }
+  // The active companion, shown on the hero's profile.
+  if (raw.pet === null) r.pet = null;
+  else if (raw.pet && /^pet_[a-z_]{2,30}$/.test(String(raw.pet.id || ''))) r.pet = {id: String(raw.pet.id), name: String(raw.pet.name || 'Питомец').slice(0, 40), level: Math.max(1, Math.min(100, Math.floor(Number(raw.pet.level) || 1))),
+    rarity: /^[a-z]{3,12}$/.test(raw.pet.rarity || '') ? raw.pet.rarity : 'common', hungry: !!raw.pet.hungry};
   return r;
 }
 // Real stats, or null if the hero never reported (or levelled up a lot since — then they are stale).

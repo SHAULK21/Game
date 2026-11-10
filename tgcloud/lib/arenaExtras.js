@@ -327,14 +327,16 @@ function cleanItem(it) {
 }
 // ---------- bag → market: a local gear item becomes a server-held item that the market accepts ----------
 const GEAR_TYPES = new Set(['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact']);
-const RARITY_POWER = {common: 1, uncommon: 1.4, rare: 1.9, epic: 2.6, legendary: 3.4, mythic: 4.4, ancient: 5.5};
+const RARITY_POWER = {common: 1, uncommon: 1.4, rare: 1.9, epic: 2.6, legendary: 3.4, mythic: 4.4, ancient: 5.5, divine: 7};
 function plausibleGear(it, heroLevel) {
   if (!GEAR_TYPES.has(it.type)) return 'Продать на рынке можно только экипировку.';
   if (it.level > Math.max(heroLevel, 1) + 10) return 'Уровень предмета выше уровня героя.';
   const cap = (40 + it.level * 14) * (RARITY_POWER[it.rarity] || 1) * (1 + it.upgradeLevel * 0.1) * (1 + (Number(it.ascension) || 0) * 0.12);
+  // Percent stats: chances stay under 75%, bonus multipliers (crit damage, vampirism…) may go higher on top-tier gear.
+  const pctCap = k => /critDamage|critMultiplier/i.test(k) ? 400 : /vampir|lifesteal|armorPen|penetration/i.test(k) ? 100 : 75;
   for (const [k, v] of Object.entries(it.stats)) {
-    const pct = /chance|crit|evasion|dodge|rate|percent|lifesteal|resist|speed/i.test(k);
-    if (v < 0 || v > (pct ? 75 : cap)) return 'Характеристики предмета не прошли проверку.';
+    const pct = /chance|crit|evasion|dodge|rate|percent|lifesteal|vampir|resist|speed|penetration/i.test(k);
+    if (v < 0 || v > (pct ? pctCap(k) : cap)) return `Характеристика «${k}» слишком велика для вещи ${it.level} уровня.`;
   }
   return null;
 }

@@ -1,0 +1,26 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const sid = crypto.randomUUID();
+save.player.inventory.push({id: 'f-local', templateId: 'fish_char', name: 'Ледяной голец', type: 'material', rarity: 'common', level: 1, upgradeLevel: 0, stats: {}, icon: '🐟', sellPrice: 16, disassembleYield: {}, stackCount: 3},
+  {id: sid, templateId: 'fish_sturgeon', name: 'Зимний осётр', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, stats: {}, icon: '🐟', sellPrice: 36, disassembleYield: {}, stackCount: 2, serverOwned: true});
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_pet_food_437290420'] = JSON.stringify({v: 10, t: Date.now()}); ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']);
+const t = new Date().toISOString();
+const s = await launch({localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json')));
+  (w.tables.owned_items ||= []).push({id: sid, owner_telegram_id: 437290420, item_json: {templateId: 'fish_sturgeon', name: 'Зимний осётр', type: 'material', rarity: 'rare', level: 1, stats: {}}, quantity: 2, locked: false, equipped_slot: null, bound_clan_id: null, character_id: null, origin: 'game_command', created_at: t, updated_at: t});
+  (w.tables.ae_pet_food ||= []).push({user: '437290420', v: 10, t: Date.now()}); }});
+const p = s.page; p.setDefaultTimeout(6000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(7000);
+for (const tx of ['Позже']) if (await p.getByRole('button', {name: tx}).count()) await p.getByRole('button', {name: tx}).first().click().catch(() => {});
+await p.locator('.ae-x').first().click().catch(() => {}); await p.waitForTimeout(500);
+const pet = () => s.world.tables.ae_pet_food.find(r => r.user === '437290420'), fish = () => p.evaluate(() => window.__aethBridge.player.inventory.filter(i => String(i.templateId).startsWith('fish_')).map(i => i.name + '×' + (i.stackCount || 1)).join(', '));
+await p.evaluate(() => document.querySelector('[data-settlement-place="fishing"]').click()); await p.waitForTimeout(3000);
+console.log('fishing button:', await p.locator('[data-ae-fish-feed]').innerText().then(x => x.replace(/\n/g, ' · ')).catch(() => 'NONE'));
+await p.evaluate(() => document.querySelector('[data-ae-fish-feed]').click()); await p.waitForTimeout(1000); console.log('btn parent:', await p.evaluate(() => { const b = document.querySelector('[data-ae-fish-feed]'); const r = b.getBoundingClientRect(); const el = document.elementFromPoint(r.left + 20, r.top + 10); return b.parentElement.tagName + '.' + String(b.parentElement.className).slice(0, 60) + ' | top ' + Math.round(r.top) + ' | at point: ' + el?.tagName + '.' + String(el?.className).slice(0, 50); }));
+console.log('panel text:', (await p.locator('.ae-panel').innerText().catch(() => 'NO PANEL')).replace(/\n+/g, ' | ').slice(0, 300)); console.log('panel fish:', await p.locator('.ae-panel .ae-petfood-fish').innerText().then(x => x.replace(/\n/g, ' | ')).catch(() => 'NONE'));
+await p.locator('.ae-panel .ae-petfood-fish button', {hasText: 'осётр'}).click({force: true}); await p.waitForTimeout(2500);
+console.log('after sturgeon: sat', Math.round(pet().v), '| server sturgeon qty', s.world.tables.owned_items.find(i => i.id === sid)?.quantity, '| bag', await fish());
+await p.locator('.ae-panel .ae-petfood-fish button', {hasText: 'голец'}).click({force: true}); await p.waitForTimeout(2500);
+console.log('after char: sat', Math.round(pet().v), '| bag', await fish());
+console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();

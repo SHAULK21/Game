@@ -24,9 +24,28 @@ function schedule(world, to, key, category, text, dueAt, now) {
 const unschedule = (world, to, category) => { world.tables.game_notifications = rows(world, 'game_notifications').filter(n => !(same(n.telegram_id, to) && n.category === category && !n.sent_at)); };
 
 // ---------- pet satiety: 100 → 0 over a day, hungry below 25 ----------
-const HUNGRY = 25, FEED = {food: 40, bowl: 50, feast: 100};
+const HUNGRY = 25, FEED = {food: 40, bowl: 50, feast: 100, fish_common: 30, fish_uncommon: 45, fish_rare: 70, fish_epic: 85, fish_legendary: 100};
+const FOOD_NAME = /мясо|рыб|окун|карп|карас|щук|форел|лещ|сом\b|судак|угор|голец|хариус|ос[её]тр|кои\b|линь/i;
 const satOf = (r, now) => Math.max(0, Math.min(100, r.v - (now - r.t) * 100 / DAY));
-function petView(r, now) { const sat = satOf(r, now); return {sat: Math.round(sat * 10) / 10, hungry: sat < HUNGRY, at: now}; }
+// ---------- pet levels: XP from fights (capped per day) and from feeding; stats grow 6% per level, up to 30 ----------
+export const PET_MAX = 30;
+export const petNeed = lvl => 60 + lvl * 30;
+const FEED_XP = {food: 10, bowl: 12, feast: 25, fish_common: 8, fish_uncommon: 15, fish_rare: 30, fish_epic: 45, fish_legendary: 60};
+const FIGHT_XP_DAY = 600;
+const petId = v => /^pet_[a-z_]{2,30}$/.test(String(v || '')) ? String(v) : null;
+function petProg(r, id) { r.pets ||= {}; return id ? (r.pets[id] ||= {lvl: 1, xp: 0}) : null; }
+function petGain(r, id, xp) {
+  const g = petProg(r, id); if (!g || !(xp > 0)) return 0;
+  const from = g.lvl; g.xp += Math.round(xp);
+  while (g.lvl < PET_MAX && g.xp >= petNeed(g.lvl)) { g.xp -= petNeed(g.lvl); g.lvl++; }
+  if (g.lvl >= PET_MAX) g.xp = 0;
+  return g.lvl - from;
+}
+function petView(r, now, id) {
+  const sat = satOf(r, now), g = id ? petProg(r, id) : null;
+  return {sat: Math.round(sat * 10) / 10, hungry: sat < HUNGRY, at: now, pet: g ? {id, level: g.lvl, xp: g.xp, need: g.lvl >= PET_MAX ? 0 : petNeed(g.lvl), max: PET_MAX} : null,
+    pets: Object.fromEntries(Object.entries(r.pets || {}).map(([k, v]) => [k, v.lvl]))};
+}
 function petRemind(world, me, r, now) {
   unschedule(world, me, 'pets');
   const sat = satOf(r, now), due = sat > HUNGRY ? now + (sat - HUNGRY) * DAY / 100 : now;
@@ -42,9 +61,23 @@ function handlePet(world, body, me, now) {
   if (body.action === 'feed') {
     const add = FEED[body.how]; if (!add) return fail('Неизвестный корм.');
     const sat = satOf(r, now); if (sat >= 99) return fail('Питомец сыт и не хочет есть.');
+    if (body.itemId) { // a server-held catch or meat: take one from the hero's server bag
+      const it = rows(world, 'owned_items').find(i => i.id === body.itemId && same(i.owner_telegram_id, me));
+      const fish = it && String(it.item_json?.templateId || '').startsWith('fish_');
+      if (!it || it.locked || it.equipped_slot || !(fish || FOOD_NAME.test(it.item_json?.name || ''))) return fail('Этим питомца не накормить.');
+      if (String(body.how).startsWith('fish_') && (!fish || 'fish_' + (it.item_json.rarity || 'common') !== body.how)) return fail('Этим питомца не накормить.');
+      if (Number(it.quantity) > 1) { it.quantity = Number(it.quantity) - 1; it.updated_at = iso(now); } else world.tables.owned_items = rows(world, 'owned_items').filter(i => i !== it);
+    }
     r.v = Math.min(100, sat + add); r.t = now; petRemind(world, me, r, now);
+    r.up = petGain(r, petId(body.pet), FEED_XP[body.how] || 0);
+  } else r.up = 0;
+  if (body.action === 'xp' && petId(body.pet)) { // fights: 2 XP per monster, 15 per boss, at most 600 a day
+    const day = iso(now).slice(0, 10); if (r.xpDay !== day) { r.xpDay = day; r.xpToday = 0; }
+    const want = Math.max(0, Math.min(50, Math.floor(Number(body.kills) || 0))) * 2 + Math.max(0, Math.min(10, Math.floor(Number(body.bosses) || 0))) * 15;
+    const got = Math.min(want, FIGHT_XP_DAY - r.xpToday); r.xpToday += got; r.up = petGain(r, petId(body.pet), got);
   }
-  return ok(petView(r, now));
+  const view = petView(r, now, petId(body.pet)); view.up = r.up || 0; delete r.up;
+  return ok(view);
 }
 
 // ---------- Blood Moon weekend: one bot announcement per weekend to recently active players ----------

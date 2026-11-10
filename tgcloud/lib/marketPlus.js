@@ -156,11 +156,66 @@ function act(world, path, body, me, now, notify) {
   return fail('API не найден.', 404);
 }
 
+// ---------- buy requests for items that were only shown in the chat ----------
+// The buyer names a price (gold is held), the seller confirms from their bag, the item and the gold change hands.
+const reqView = (world, r, me) => ({id: r.id, item: r.item, price: r.price, status: r.status, at: r.at, expires: r.expires, incoming: same(r.seller, me),
+  buyer: nameOf(player(world, r.buyer)), seller: nameOf(player(world, r.seller))});
+function expireRequests(world, now) {
+  for (const r of rows(world, 'ae_buy_requests').filter(r => r.status === 'pending' && Date.parse(r.expires) <= now)) {
+    r.status = 'expired'; const b = player(world, r.buyer); if (b) b.market_gold = gold(b) + r.price;
+    event(world, r.buyer, '↩️', `Продавец не ответил на запрос «${r.item.n}» — ${r.price} 🪙 вернулись`, 'market', null, now);
+  }
+  world.tables.ae_buy_requests = rows(world, 'ae_buy_requests').filter(r => r.status === 'pending' || Date.parse(r.at) > now - 3 * DAY);
+}
+function requests(world, path, method, body, me, now, notify) {
+  const p = player(world, me); if (!p) return fail('Сначала создайте персонажа.', 404);
+  if (method === 'GET') return ok({requests: rows(world, 'ae_buy_requests').filter(r => (same(r.seller, me) || same(r.buyer, me)) && (r.status === 'pending' || Date.parse(r.at) > now - DAY)).map(r => reqView(world, r, me))});
+  if (path === '/api/ae-market/request') {
+    const seller = player(world, body.seller); if (!seller) return fail('Продавец не найден.', 404);
+    if (same(body.seller, me)) return fail('Это ваша вещь.');
+    const it = body.item || {}, item = {n: String(it.n || '').slice(0, 60), r: String(it.r || 'common').slice(0, 12), l: Math.max(1, Math.min(200, Number(it.l) || 1)), u: Math.max(0, Math.min(25, Number(it.u) || 0)), t: String(it.t || '').slice(0, 20), i: it.i ? String(it.i).slice(0, 80) : null, s: it.s && typeof it.s === 'object' ? it.s : {}};
+    if (!item.n) return fail('Неизвестная вещь.');
+    const price = Math.floor(Number(body.price)); if (!(price >= 1 && price <= 1e8)) return fail('Укажите цену.');
+    const mine = rows(world, 'ae_buy_requests').filter(r => same(r.buyer, me) && r.status === 'pending');
+    if (mine.length >= 10) return fail('Можно ждать ответа не больше чем по 10 запросам.');
+    const dup = mine.find(r => same(r.seller, body.seller) && r.item.n === item.n && r.item.l === item.l);
+    const need = price - (dup?.price || 0); if (gold(p) < need) return fail(`Не хватает ${need - gold(p)} золота в кошельке рынка.`, 402);
+    p.market_gold = gold(p) - need;
+    if (dup) { dup.price = price; dup.at = iso(now); dup.expires = iso(now + 2 * DAY); }
+    else rows(world, 'ae_buy_requests').push({id: crypto.randomUUID(), buyer: String(me), seller: String(body.seller), item, price, status: 'pending', at: iso(now), expires: iso(now + 2 * DAY)});
+    event(world, body.seller, '💰', `${nameOf(p)} хочет купить «${item.n}» за ${price} 🪙`, 'buy-request', null, now);
+    notify?.(world, body.seller, `💰 ${nameOf(p)} хочет купить у вас «${item.n}» за ${price} золота. Откройте игру: Рынок → «Аукцион и мои лоты» → «Запросы».`, 'buyreq:' + me + ':' + item.n + ':' + price, now);
+    return ok({ok: true, balance: gold(p)});
+  }
+  const r = rows(world, 'ae_buy_requests').find(x => x.id === body.id); if (!r) return fail('Запрос не найден.', 404);
+  if (r.status !== 'pending') return fail('Запрос уже закрыт.');
+  if (path === '/api/ae-market/request/cancel') {
+    if (!same(r.buyer, me)) return fail('Это не ваш запрос.', 403);
+    r.status = 'cancelled'; p.market_gold = gold(p) + r.price; return ok({ok: true});
+  }
+  if (path === '/api/ae-market/request/decide') {
+    if (!same(r.seller, me)) return fail('Это не вам.', 403);
+    const buyer = player(world, r.buyer);
+    if (!body.accept) { r.status = 'declined'; if (buyer) buyer.market_gold = gold(buyer) + r.price;
+      event(world, r.buyer, '✖️', `${nameOf(p)} не продаёт «${r.item.n}» — ${r.price} 🪙 вернулись`, 'market', null, now); return ok({ok: true}); }
+    const it = rows(world, 'owned_items').find(i => i.id === body.itemId && same(i.owner_telegram_id, me));
+    if (!it || it.locked || it.equipped_slot || it.bound_clan_id || ['legacy_market_return', 'legacy_character'].includes(it.origin)) return fail('Эту вещь сейчас нельзя продать: снимите её с героя и уберите замок.');
+    const item_json = {...it.item_json};
+    if (Number(it.quantity) > 1) { it.quantity = Number(it.quantity) - 1; it.updated_at = iso(now); } else world.tables.owned_items = rows(world, 'owned_items').filter(i => i !== it);
+    const t = tax(r.price, p, now); p.market_gold = gold(p) + t.net;
+    giveItem(world, r.buyer, item_json, 'chat_trade', now);
+    Object.assign(r, {status: 'done', doneAt: iso(now)});
+    event(world, r.buyer, '🎁', `${nameOf(p)} продал(а) вам «${item_json.name}» за ${r.price} 🪙 — вещь в сумке`, 'market-item', null, now);
+    notify?.(world, r.buyer, `🎁 ${nameOf(p)} продал(а) вам «${item_json.name}» за ${r.price} золота. Предмет в сумке.`, 'buyreq-done:' + r.id, now);
+    return ok({ok: true, net: t.net, tax: t.tax});
+  }
+  return fail('API не найден.', 404);
+}
 export function handleMarketPlus(world, input, user, now, notify) {
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/ae-market')) return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
-  settleLots(world, now, notify);
+  settleLots(world, now, notify); expireRequests(world, now);
   if (path === '/api/ae-market/wallet' || ((path === '/api/ae-market/deposit' || path === '/api/ae-market/withdraw') && method === 'POST')) return wallet(world, path, body, me, now);
   if (path === '/api/ae-market/lots' && method === 'GET') {
     // (no URLSearchParams in the serverless isolate)
@@ -171,6 +226,7 @@ export function handleMarketPlus(world, input, user, now, notify) {
         .sort((a, b) => String(a.endsAt || a.at).localeCompare(String(b.endsAt || b.at))).slice(0, 60);
     return ok({lots: list.map(l => lotView(world, l, me)), balance: gold(player(world, me)), now});
   }
+  if (path === '/api/ae-market/requests' || path.startsWith('/api/ae-market/request')) return requests(world, path, method, body, me, now, notify);
   if (path === '/api/ae-market/lot' && method === 'POST') return createLot(world, body, me, now);
   if (path.startsWith('/api/ae-market/lot/') && method === 'POST') return act(world, path, body, me, now, notify);
   return fail('API не найден.', 404);

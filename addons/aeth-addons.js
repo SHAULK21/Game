@@ -26,7 +26,8 @@
   const STATS_PATHS = /^\/api\/(horde\/start|duel\/start|coop\/create|coop\/join|ae-clanx\/raid\/start)$/;
   function heroStatsPayload() {
     const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
-    return {maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
+    const pet = me()?.activePet;
+    return {pet: pet ? {id: pet.id, name: pet.name, level: pet.level || 1, rarity: pet.rarity, hungry: !!pet.aeHungry} : null, maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
   }
   // The hero's skills with the same math as the main combat: skill rank (level + main attribute) and the talent tree.
   const MAIN_ATTR = {warrior: 'strength', berserker: 'strength', knight: 'vitality', rogue: 'agility', assassin: 'agility', archer: 'agility', hunter: 'agility', mage: 'intelligence', necromancer: 'intelligence', paladin: 'spirit', druid: 'spirit'};
@@ -589,8 +590,8 @@
     ['🏟️ Арена и дуэли', `<p>Билеты арены: каждый день в 00:00 UTC их становится не меньше 5. <b>Дополнительные билеты</b> дают задания («Задания» в быстрой панели): 3 боя на арене (+2), 2 победы на арене (+1), кооп-подземелье, 3 дуэли и 40 монстров Орды (по +1), недельные задания (+3…+5). Лишние билеты сверх 5 не сгорают. <b>Дуэли</b>: вызовите любого героя по нику — с вами сражается его тень с его снаряжением, навыками и талантами. Есть рейтинг и награды, дуэли считаются в задания.</p>`],
     ['📜 Задания и титулы', `<p><b>Доска поручений</b> — задания жителей и короля. <b>«Задания»</b> (быстрая панель) — ежедневные и недельные задания за кооп, дуэли и Орду с наградами и осколками.</p><p><b>Профиль</b>: 23 титула за подвиги, круглые аватарки, ранг вознесения и статистика. Профиль других игроков открывается по нажатию на ник.</p>`],
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
-    ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
-    ['💰 Рынок и торговля', `<p><b>🪙 Одно золото</b>: покупки у игроков, ставки и предложения цены оплачиваются золотом героя, выручка от продаж и возвраты ставок приходят туда же автоматически.</p><p><b>🔨 Аукцион</b> (Рынок → «Аукцион»): выставьте вещь со стартовой ценой и сроком 1, 6, 24 или 48 ч, можно задать цену выкупа. Ставка списывается из кошелька и возвращается, если её перебьют; ставка в последние 2 минуты продлевает торги. Победитель получает вещь, без ставок она вернётся в сумку.</p><p><b>💬 Продажа через чат</b>: в окне вещи «📢 В чат» → укажите цену (или оставьте пустой). Игроки купят сразу или предложат свою цену — деньги предложения резервируются и вернутся, если вы откажете. Ответить на предложения — в «Аукцион → Мои лоты».</p><p>Пока вещь продаётся, она хранится у рынка — покупка проходит, даже если продавец не в игре. Налог продавца 3% (с Premium 0%). Обычный рынок «Рыцари» и продажа жителям работают как раньше.</p>`],
+    ['🐾 Спутники', `<p><b>⭐ Прокачка питомца</b>: питомец получает опыт за каждого монстра (+2), босса (+15, до 600 опыта в день за бои) и за кормление (рыба: обычная +8, необычная +15, редкая +30; миска +12, пир +25). Каждый уровень — +6% к характеристикам питомца, максимум 30 уровень. Уровень у каждого питомца свой и хранится на сервере.</p><p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
+    ['💰 Рынок и торговля', `<p><b>🪙 Одно золото</b>: покупки у игроков, ставки и предложения цены оплачиваются золотом героя, выручка от продаж и возвраты ставок приходят туда же автоматически.</p><p><b>🔨 Аукцион</b> (Рынок → «Аукцион»): выставьте вещь со стартовой ценой и сроком 1, 6, 24 или 48 ч, можно задать цену выкупа. Ставка списывается из кошелька и возвращается, если её перебьют; ставка в последние 2 минуты продлевает торги. Победитель получает вещь, без ставок она вернётся в сумку.</p><p><b>💬 Продажа через чат</b>: в окне вещи «📢 В чат» → укажите цену (или оставьте пустой). Игроки купят сразу или предложат свою цену — деньги предложения резервируются и вернутся, если вы откажете. Ответить на предложения — в «Аукцион → Мои лоты».</p><p><b>💰 Купить показанную вещь</b>: под любой вещью в чате есть кнопка «Купить» — назовите цену, золото зарезервируется. Владелец получит запрос (Рынок → «Аукцион и мои лоты» → «Запросы») и одной кнопкой продаст вещь из сумки. Нет ответа за 2 дня или отказ — золото вернётся.</p><p>Пока вещь продаётся, она хранится у рынка — покупка проходит, даже если продавец не в игре. Налог продавца 3% (с Premium 0%). Обычный рынок «Рыцари» и продажа жителям работают как раньше.</p>`],
     ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>🏰 Штаб клана</b> (кнопка в Доме клана): <b>ежедневный сундук</b>; <b>бонусы</b> всем участникам — +2% опыта и золота и +3% к шансу редкой добычи за каждый уровень клана (до +30% / +45%); <b>задание дня и недели</b> — общая цель на весь клан, награду получает каждый; <b>вклад</b> — очки за монстров, боссов, дуэли и арену, подземелья, руду, зелья и рейд; <b>рейтинг недели</b> — топ-3 кланов получают золото в казну, опыт и бонус чемпиона (медаль у тега); <b>война кланов</b> — раз в неделю клан сражается с соперником по очкам вклада.</p><p><b>💰 Казна и хранилище</b>: в Доме клана кнопки «Пополнить казну» (золото и серебро, 100 монет = 1 очко вклада) и «Внести вещь» — вещь из сумки переезжает в общее хранилище. Казна также растёт от победы над Стражем, заданий клана (+300 / +1500 🪙), войн и рейтинга. Забирать, выдавать, продавать и разбирать вещи из хранилища могут глава, офицеры и казначей.</p><p><b>⛏️ Руда в казне</b>: напрямую руду внести нельзя. Она приходит за победу над Стражем врат и при <b>разборе вещей из хранилища</b>: участник вносит экипировку («Внести вещь»), а глава, офицер или казначей нажимает «Разобрать» — серебро и руда от разбора идут в казну («Продать» даёт золото). Руда, положенная в хранилище как предмет, в казну не засчитывается. Казна тратится на клановые проекты и повышение уровня клана.</p><p><b>🐲 Рейд</b> — настоящий пошаговый бой со Стражем врат раз в сутки: 12 ходов, навыки, защита, зелья и три фазы босса. Навык с эффектом (оглушение, яд, щит…) оставляет <b>связку</b> следующему соклановцу — его атакующий навык станет сильнее.</p><p><b>Поиск и заявки</b>: «🔍 Найти клан» показывает все кланы; в открытые можно вступить сразу, в закрытые — подать заявку (глава и офицеры принимают её в Штабе). Глава может задать <b>эмблему</b> и <b>приветствие</b> новичкам, а неактивных 3+ дня исключать прямо из списка вклада. В кооп-подземельях с соклановцем награда <b>+20%</b>.</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
     ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
     ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
@@ -1483,6 +1484,7 @@
   const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
     h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
       pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
+      pr.pet ? h('div', {class: 'ae-prof-pet'}, h('img', {src: `/assets/pets/icon-${pr.pet.id}.webp`, alt: '', onerror: e => e.target.remove()}), h('span', {}, `${pr.pet.name} · ур. ${pr.pet.level}`), h('small', {}, `${RARITY_RU[pr.pet.rarity] || ''}${pr.pet.hungry ? ' · голоден' : ''}`)) : h('div', {class: 'ae-sub'}, '🐾 Без питомца'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
       pr.asc ? h('div', {class: 'ae-asc-badge', 'data-asc': pr.asc.rank, title: 'Ранг вознесения'}, h('b', {}, pr.asc.rank), h('span', {}, `Вознесение · ${pr.asc.name}`))
         : h('div', {class: 'ae-asc-badge is-none'}, h('b', {}, '—'), h('span', {}, 'Вознесение не пройдено'))));
@@ -1547,7 +1549,7 @@
   const dec = s => { try { return JSON.parse(decodeURIComponent(escape(atob(s)))); } catch { return null; } };
   const RAR_RU = RARITY_RU;
   function shareItem(item) {
-    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
+    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6)), w: uid(), i: item.id};
     const text = `Продаю: ${baseName(item)}${compact.u ? ' +' + compact.u : ''}${compact.a ? ' ★' + compact.a : ''} ⟦ae:i:${enc(compact)}⟧`;
     if (text.length > 500) return toast('Слишком много характеристик для чата.');
     api('/api/chat/global', 'POST', {text}).then(() => { toast('Предмет отправлен в общий чат'); sfx.play('page'); }, e => toast(cleanError(e)));
@@ -1558,6 +1560,7 @@
     const card = h('button', {type: 'button', class: 'ae-chat-item', 'data-ae-rarity': o.r || 'common', onclick: e => { e.stopPropagation(); card.classList.toggle('is-open'); }},
       h('img', {src: icon, alt: '', style: iconStyle(fake)}), h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}${o.a ? ' ★' + o.a : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`),
         h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик')));
+    if (String(o.w || '') !== String(uid())) card.append(h('span', {class: 'ae-lot-btns'}, h('span', {role: 'button', tabindex: '0', class: 'ae-btn ae-primary ae-buy-shown', onclick: e => { e.stopPropagation(); askToBuy(o, card); }}, '💰 Купить')));
     return card;
   }
   // ---------- co-op invites in the global chat ----------
@@ -1998,7 +2001,7 @@
       if (watchedSlots && !autoBusy) { const off = Object.entries(watchedSlots).filter(([k, id]) => id && now[k] !== id).map(([, id]) => id); if (off.length) rememberJudged(off.flatMap(id => [id, id + '@L' + (p.level || 1)])); }
       watchedSlots = now; } }
     if (!changed && !Object.keys(cxPend).length) return;
-    for (const fn of changed ? [overLevelTick, legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
+    for (const fn of changed ? [overLevelTick, legendaryTick, luckTick, arenaTick, clanTick, petXpTick] : [clanTick, petXpTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
   }, 1000);
   setTimeout(() => loadClanX(), 6000); setInterval(() => loadClanX(), 600000);
   // ---------- player market: wallet top-up / withdrawal, auctions, selling and price offers from the chat ----------
@@ -2072,13 +2075,57 @@
     } catch (e) { toast(cleanError(e)); return false; }
     finally { walletBusy = false; setTimeout(() => sweepWallet(true), 1500); }
   }
+  // ---------- buying an item that was only shown in the chat: a price request to its owner ----------
+  function sellerOfCard(o, card) {
+    if (o.w) return String(o.w);
+    let el = card; for (let i = 0; i < 7 && el; i++) { const n = el.querySelector?.('[data-ae-uid]'); if (n) return n.dataset.aeUid; el = el.parentElement; }
+    return null;
+  }
+  async function marketPost(path, body, okText) {
+    const run = () => api('/api/ae-market/' + path, 'POST', body);
+    walletBusy = true;
+    try {
+      try { await run(); }
+      catch (e) { const m = String(e?.message || '').match(/Не хватает (\d+) золота в кошельке рынка/); if (!m) throw e;
+        const bal = (await api('/api/ae-market/wallet')).balance || 0; if (!(await ensureWallet(bal + Number(m[1])))) return false; await run(); }
+      if (okText) { toast(okText); sfx.play('coins'); } return true;
+    } catch (e) { toast(cleanError(e)); return false; }
+    finally { walletBusy = false; setTimeout(() => sweepWallet(true), 1500); }
+  }
+  async function askToBuy(o, card) {
+    const seller = sellerOfCard(o, card);
+    if (!seller) return toast('Не удалось понять, кто продаёт. Напишите продавцу в личные сообщения.');
+    if (seller === String(uid())) return toast('Это ваша вещь.');
+    const v = prompt(`Сколько золота предложить за «${o.n}»? Золото зарезервируется и вернётся, если продавец откажет или не ответит за 2 дня.`, '');
+    if (v == null) return; const price = Math.floor(Number(v)); if (!(price > 0)) return toast('Укажите цену.');
+    if (await marketPost('request', {seller, price, item: {n: o.n, r: o.r, l: o.l, u: o.u, t: o.t, s: o.s, i: o.i}}, '📨 Запрос отправлен продавцу')) card.querySelector('.ae-buy-shown')?.replaceWith(h('small', {class: 'ae-lot-price'}, `⏳ Ваша цена: ${fmt(price)} 🪙`));
+  }
+  // The seller finds the requested item in the bag (by id from the chat card, else by name, level and rarity).
+  function findRequested(r) {
+    const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id)), inv = p.inventory || [];
+    const byId = r.item.i && inv.find(i => i.id === r.item.i);
+    const match = byId || inv.find(i => baseName(i) === r.item.n && (i.level || 1) === r.item.l && (i.rarity || 'common') === r.item.r);
+    if (match) return {item: match};
+    const w = Object.values(p.equipped || {}).find(i => i && (i.id === r.item.i || (baseName(i) === r.item.n && (i.level || 1) === r.item.l)));
+    return {worn: !!w || worn.has(r.item.i)};
+  }
+  async function sellRequested(r) {
+    const f = findRequested(r);
+    if (!f.item) return toast(f.worn ? 'Эта вещь надета — сначала снимите её с героя.' : 'Этой вещи уже нет в сумке.');
+    if (f.item.isLocked) return toast('Вещь заперта — сначала отоприте её.');
+    if (!confirm(`Продать «${r.item.n}» игроку ${r.buyer} за ${r.price} 🪙?`)) return false;
+    try { const id = await serverIdOf(f.item); await api('/api/ae-market/request/decide', 'POST', {id: r.id, accept: true, itemId: id}); dropFromBag(id); rememberGone([id]);
+      toast(`💰 Продано за ${fmt(r.price)} 🪙`); sfx.play('coins'); setTimeout(() => sweepWallet(true), 800); return true; }
+    catch (e) { toast(cleanError(e)); return false; }
+  }
   function openAuction(tab = 'all') {
-    let d = null, mine = null, pick = null;
-    const load = async () => { try { [d, mine] = await Promise.all([api('/api/ae-market/lots'), api('/api/ae-market/lots?mine=1')]); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    let d = null, mine = null, pick = null, reqs = [];
+    const load = async () => { try { [d, mine, reqs] = await Promise.all([api('/api/ae-market/lots'), api('/api/ae-market/lots?mine=1'), api('/api/ae-market/requests').then(r => r.requests)]); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const bid = async l => { const min = l.bid ? l.bid.amount + l.step : l.start, v = prompt(`Ваша ставка на «${baseName(l.item)}» (минимум ${min} 🪙):`, String(min)); if (v == null) return;
       if (await lotAction('bid', {id: l.id, amount: Math.floor(Number(v))}, '🔨 Ставка принята')) load(); };
     const st = openPanel('🔨 Аукцион и лоты', body => {
-      body.append(h('div', {class: 'ae-tabs'}, [['all', '🔨 Торги'], ['mine', '📦 Мои лоты и ставки'], ['sell', '➕ Выставить']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      const inc = (reqs || []).filter(r => r.incoming && r.status === 'pending').length;
+      body.append(h('div', {class: 'ae-tabs'}, [['all', '🔨 Торги'], ['mine', '📦 Мои лоты'], ['req', `📨 Запросы${inc ? ' ' + inc : ''}`], ['sell', '➕ Выставить']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
       body.append(h('div', {class: 'ae-row ae-wallet-line'}, h('span', {class: 'ae-grow'}, `🪙 Ваше золото: ${fmt(me()?.gold || 0)}`)));
       if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       if (tab === 'all') {
@@ -2100,6 +2147,18 @@
             h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async () => { if (await lotAction('decide', {id: l.id, offerId: o.id, accept: true}, '💰 Продано')) load(); }}, 'Принять'),
             h('button', {type: 'button', class: 'ae-btn', onclick: async () => { if (await lotAction('decide', {id: l.id, offerId: o.id, accept: false}, 'Отклонено')) load(); }}, '✖')))) : '',
           l.mine && l.status === 'active' && !(l.kind === 'auction' && l.bid) ? h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: async () => { if (confirm('Снять лот? Вещь вернётся в сумку.') && await lotAction('cancel', {id: l.id}, '↩️ Лот снят')) load(); }}, 'Снять с продажи') : ''));
+      }
+      if (tab === 'req') {
+        const list = reqs || [];
+        body.append(h('p', {class: 'ae-sub'}, 'Запросы на покупку вещей, которые показывали в общем чате. Золото покупателя уже зарезервировано: нажмите «Продать» — вещь уйдёт ему, золото придёт вам.'));
+        if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Запросов нет.'));
+        for (const r of list) { const it = {name: r.item.n, rarity: r.item.r, level: r.item.l, upgradeLevel: r.item.u, type: r.item.t, stats: r.item.s};
+          body.append(h('div', {class: 'ae-card ae-lot'}, lotItemRow(it),
+            h('div', {class: 'ae-lot-info'}, h('span', {}, r.incoming ? `💰 ${r.buyer} предлагает ${fmt(r.price)} 🪙` : `Вы предложили ${fmt(r.price)} 🪙 · продавец ${r.seller}`),
+              h('span', {}, r.status === 'pending' ? `⏳ ждёт ответа, до ${new Date(r.expires).toLocaleString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}` : r.status === 'done' ? '✅ Сделка состоялась' : r.status === 'declined' ? '✖️ Отказ' : r.status === 'expired' ? '⌛ Истёк' : '✖️ Отменён')),
+            r.status !== 'pending' ? '' : r.incoming ? h('div', {class: 'ae-row'}, h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: async () => { if (await sellRequested(r)) load(); }}, '💰 Продать'),
+              h('button', {type: 'button', class: 'ae-btn', onclick: async () => { if (await marketPost('request/decide', {id: r.id, accept: false}, 'Отказано')) load(); }}, 'Отказать'))
+              : h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: async () => { if (await marketPost('request/cancel', {id: r.id}, '↩️ Запрос отменён, золото вернулось')) load(); }}, 'Отменить запрос'))); }
       }
       if (tab === 'sell') {
         const list = (me()?.inventory || []).filter(sellable).sort((a, b) => (b.level || 0) - (a.level || 0));
@@ -2297,7 +2356,7 @@
     if (e.kind === 'market' || e.kind === 'auction-outbid') setTimeout(() => sweepWallet(true), 800);
     if (e.kind === 'trade_paid' && b) { if (!tradeDone().has('paid:' + e.data?.offerId)) { markTrade('paid:' + e.data?.offerId); b.setPlayer(p => p && {...p, gold: (p.gold || 0) + (Number(e.data?.gold) || 0)}); } }
     if (e.kind === 'trade_return' && b && e.data?.item) { if (!tradeDone().has('ret:' + e.data.offerId)) { markTrade('ret:' + e.data.offerId); giveItem(e.data.item); } }
-    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'lot-offer' ? ['Ответить', () => openAuction('mine')] : e.kind === 'auction-outbid' ? ['Перебить', () => openAuction('all')] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
+    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'lot-offer' ? ['Ответить', () => openAuction('mine')] : e.kind === 'buy-request' ? ['Ответить', () => openAuction('req')] : e.kind === 'auction-outbid' ? ['Перебить', () => openAuction('all')] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
     popup({icon: e.icon || '🔔', text: e.text, act: act[0], fn: act[1]});
   }
 
@@ -2614,36 +2673,69 @@
   const PET_DAY = 24 * 3600e3, HUNGRY_AT = 25;
   const petFoodKey = () => 'aeth_pet_food_' + uid();
   const petBaseStats = {};
-  const FOOD_RE = /мясо|рыб|окун|карп|карас|щук|форел|лещ|сом\b|судак|угор/i;
+  const FOOD_RE = /мясо|рыб|окун|карп|карас|щук|форел|лещ|сом\b|судак|угор|голец|хариус|ос[её]тр|кои\b|линь/i;
+  const FISH_FEED = {common: 30, uncommon: 45, rare: 70, epic: 85, legendary: 100};
+  const isFish = i => String(i?.templateId || '').startsWith('fish_');
   function petFood() { try { const s = JSON.parse(localStorage.getItem(petFoodKey()) || 'null'); if (s && typeof s.v === 'number') return s; } catch {} const s = {v: 100, t: Date.now()}; localStorage.setItem(petFoodKey(), JSON.stringify(s)); return s; }
   const petSat = () => { const s = petFood(); return Math.max(0, Math.min(100, s.v - (Date.now() - s.t) * 100 / PET_DAY)); };
   const petHungry = () => !!me()?.activePet && petSat() < HUNGRY_AT;
-  const feedables = () => (me()?.inventory || []).filter(i => !i.isEquipped && !i.serverOwned && /material|fish|food|consumable/.test(i.type || '') && FOOD_RE.test(i.name || ''));
+  const feedables = () => (me()?.inventory || []).filter(i => !i.isEquipped && !i.isLocked && !isFish(i) && /material|fish|food|consumable/.test(i.type || '') && FOOD_RE.test(i.name || ''));
+  // The catch from fishing, grouped by kind, best first.
+  const fishFeed = () => { const m = new Map(); for (const i of me()?.inventory || []) { if (!isFish(i) || i.isLocked) continue; const k = i.templateId, cur = m.get(k);
+      if (cur) { cur.count += i.stackCount || 1; if (!i.serverOwned) cur.item = i; } else m.set(k, {item: i, count: i.stackCount || 1, add: FISH_FEED[i.rarity] || 30}); }
+    return [...m.values()].sort((a, b) => b.add - a.add || b.count - a.count); };
+  const petLvlKey = () => 'aeth_pet_levels_' + uid();
+  const petLevels = () => { try { return JSON.parse(localStorage.getItem(petLvlKey()) || '{}'); } catch { return {}; } };
+  const petMul = lvl => 1 + 0.06 * (Math.max(1, lvl) - 1);
   function applyPetHunger() {
     const b = B(), p = me(), pet = p?.activePet; if (!b || !pet?.stats || p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return;
-    const hungry = petSat() < HUNGRY_AT;
-    const bk = petFoodKey() + '_base_' + pet.id;
-    if (!pet.aeHungry) { const j = JSON.stringify(pet.stats); petBaseStats[pet.id] = {...pet.stats}; if (localStorage.getItem(bk) !== j) localStorage.setItem(bk, j); }
-    let base = petBaseStats[pet.id]; if (!base) try { base = petBaseStats[pet.id] = JSON.parse(localStorage.getItem(bk) || 'null'); } catch {} if (!base) return;
-    if (hungry && !pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: true, stats: Object.fromEntries(Object.entries(base).map(([k, v]) => [k, Math.floor(v / 2)]))}} : c);
-    else if (!hungry && pet.aeHungry) b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aeHungry: false, stats: {...base}}} : c);
+    const hungry = petSat() < HUNGRY_AT, prog = petLevels()[pet.id], lvl = prog?.level || pet.aeLevel || 1;
+    let base = pet.aePetBase;
+    if (!base) { // first time: the catalogue stats (undo an older «hungry» halving if it is on)
+      const bk = petFoodKey() + '_base_' + pet.id; let saved = null; try { saved = JSON.parse(localStorage.getItem(bk) || 'null'); } catch {}
+      base = pet.aeHungry && saved ? saved : {...pet.stats};
+    }
+    const grown = v => v > 0 ? Math.max(Math.round(v * petMul(lvl)), v + lvl - 1) : v; // at least +1 per level even for small numbers
+    const target = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, typeof v === 'number' ? Math.floor(grown(v) * (hungry ? 0.5 : 1)) : v]));
+    if (pet.aePetBase && pet.aeLevel === lvl && !!pet.aeHungry === hungry && pet.level === lvl && JSON.stringify(pet.stats) === JSON.stringify(target)) return;
+    b.setPlayer(c => c?.activePet?.id === pet.id ? {...c, activePet: {...c.activePet, aePetBase: base, aeLevel: lvl, level: lvl, aeHungry: hungry, stats: target}} : c);
+  }
+  // Server answer → remember levels, celebrate a level-up.
+  function petProgress(r) {
+    if (!r) return;
+    const all = {...petLevels()}; for (const [k, v] of Object.entries(r.pets || {})) all[k] = {...(all[k] || {}), level: v};
+    if (r.pet) all[r.pet.id] = {level: r.pet.level, xp: r.pet.xp, need: r.pet.need, max: r.pet.max};
+    localStorage.setItem(petLvlKey(), JSON.stringify(all));
+    if (r.up > 0 && r.pet) { const nm = me()?.activePet?.name || 'Питомец'; bigBanner(`🐾 ${nm} достиг ${r.pet.level} уровня! Сила +${Math.round((petMul(r.pet.level) - 1) * 100)}%`, r.pet.level % 10 === 0); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }
+    applyPetHunger();
+  }
+  // Fights give the active pet XP: kills and bosses counted from the hero's stats, sent in small batches.
+  let petSnap = null, petPend = {kills: 0, bosses: 0}, petFlushAt = 0;
+  function petXpTick() {
+    const p = me(); if (!p?.statsSummary || !p.activePet) return;
+    const cur = {uid: p.userId, kills: p.statsSummary.monstersKilled || 0, bosses: p.statsSummary.bossesDefeated || 0};
+    if (petSnap && petSnap.uid === cur.uid) { const dk = cur.kills - petSnap.kills, db = cur.bosses - petSnap.bosses; if (dk > 0 && dk < 60) petPend.kills += dk; if (db > 0 && db < 10) petPend.bosses += db; }
+    petSnap = cur;
+    if ((petPend.kills || petPend.bosses) && Date.now() - petFlushAt > 25e3) { petFlushAt = Date.now(); const send = petPend; petPend = {kills: 0, bosses: 0};
+      api('/api/ae-pet', 'POST', {action: 'xp', pet: p.activePet.id, ...send}).then(petProgress, () => { petPend.kills += send.kills; petPend.bosses += send.bosses; }); }
   }
   // The server keeps satiety (so it follows the player across devices and the bot can remind); the device caches it.
   let petSyncAt = 0;
   async function petSync(force) {
     if (!uid() || (!force && Date.now() - petSyncAt < 10 * 60e3)) return; petSyncAt = Date.now();
-    try { const r = await api('/api/ae-pet', 'POST', {local: petFood()}); localStorage.setItem(petFoodKey(), JSON.stringify({v: r.sat, t: Date.now()})); } catch { petSyncAt = 0; }
+    try { const r = await api('/api/ae-pet', 'POST', {local: petFood(), pet: me()?.activePet?.id}); localStorage.setItem(petFoodKey(), JSON.stringify({v: r.sat, t: Date.now()})); petProgress(r); } catch { petSyncAt = 0; }
   }
   let feeding = false;
-  async function feedPet(how) {
+  async function feedPet(how, fishItem) {
     const b = B(), p = me(); if (!b || !p?.activePet) return toast('Нет активного питомца.');
     if (feeding) return;
     const sat = petSat(); if (sat >= 99) return toast('Питомец сыт и не хочет есть.');
-    const it = how === 'food' ? feedables()[0] : null, cost = how === 'feast' ? 30 : how === 'bowl' ? 10 : 0;
+    const it = fishItem || (how === 'food' ? feedables()[0] : null), cost = how === 'feast' ? 30 : how === 'bowl' ? 10 : 0;
     if (how === 'food' && !it) return toast('В сумке нет мяса или рыбы.');
     if (cost && (p.gold || 0) < cost) return toast(`Нужно ${cost} золота.`);
     feeding = true; let r;
-    try { r = await api('/api/ae-pet', 'POST', {action: 'feed', how}); } catch (e) { feeding = false; return toast(cleanError(e)); }
+    try { r = await api('/api/ae-pet', 'POST', {action: 'feed', how, pet: p.activePet.id, itemId: it?.serverOwned ? it.id : undefined}); } catch (e) { feeding = false; return toast(cleanError(e)); }
+    petProgress(r);
     feeding = false;
     if (it) b.setPlayer(c => c && {...c, inventory: c.inventory.flatMap(i => i.id !== it.id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])});
     if (cost) b.setPlayer(c => c && {...c, gold: Math.max(0, (c.gold || 0) - cost)});
@@ -2657,9 +2749,14 @@
     return h('div', {class: 'ae-petfood' + (hungry ? ' is-hungry' : '')},
       h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, hungry ? `🍖 ${pet?.name || 'Питомец'} голоден!` : `🍖 Сытость: ${pet?.name || 'питомец'}`), h('span', {class: 'ae-petfood-pct'}, sat + '%')),
       h('div', {class: 'ae-petfood-bar'}, h('i', {style: `width:${sat}%`})),
+      (() => { const g = petLevels()[pet?.id] || {level: 1, xp: 0, need: 90, max: 30}, lvl = g.level || 1, top = lvl >= (g.max || 30);
+        return h('div', {class: 'ae-petlvl'}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `⭐ Уровень ${lvl}${top ? ' · максимум' : ''}`), h('span', {}, `сила +${Math.round((petMul(lvl) - 1) * 100)}%`)),
+          top ? '' : h('div', {class: 'ae-petfood-bar is-xp'}, h('i', {style: `width:${Math.min(100, Math.round(100 * (g.xp || 0) / Math.max(1, g.need || 90)))}%`})),
+          h('small', {}, top ? 'Питомец достиг предела.' : `Опыт ${g.xp || 0}/${g.need || 90}: +2 за монстра, +15 за босса (до 600 в день), кормление даёт ещё — рыба по редкости, пир +25.`)); })(),
       h('p', {class: 'ae-note'}, hungry ? 'Голодный питомец даёт только половину характеристик. Покормите его!' : `Сытый питомец даёт полные бонусы. Проголодается примерно через ${hrs} ч — бот напомнит в Telegram, если уведомления включены.`),
+      fishFeed().length ? h('div', {class: 'ae-petfood-fish'}, h('small', {}, '🐟 Улов с рыбалки:'), fishFeed().slice(0, 4).map(f => h('button', {type: 'button', class: 'ae-btn', disabled: sat >= 99, onclick: () => feedPet('fish_' + (f.item.rarity || 'common'), f.item)}, `${baseName(f.item)} ×${f.count} · +${f.add}%`))) : '',
       h('div', {class: 'ae-petfood-btns'},
-        h('button', {type: 'button', class: 'ae-btn', disabled: !food.length, onclick: () => feedPet('food')}, food.length ? `🥩 ${food[0].name} · +40%` : '🥩 Мясо/рыба · нет'),
+        h('button', {type: 'button', class: 'ae-btn', disabled: !food.length, onclick: () => feedPet('food')}, food.length ? `🥩 ${food[0].name} · +40%` : '🥩 Мясо · нет'),
         h('button', {type: 'button', class: 'ae-btn', disabled: gold < 10, onclick: () => feedPet('bowl')}, '🥣 Миска корма · 10 🪙 · +50%'),
         h('button', {type: 'button', class: 'ae-btn ae-primary', disabled: gold < 30, onclick: () => feedPet('feast')}, '🍗 Пир · 30 🪙 · 100%')));
   }
@@ -2671,6 +2768,14 @@
     if (cur && cur.dataset.sat === sat) return;
     const card = petFoodCard(); card.dataset.sat = sat;
     if (cur) cur.replaceWith(card); else if (anchor.classList.contains('pet-codex-card')) anchor.after(card); else anchor.append(card);
+  }
+  function injectFishFeed() {
+    if (!me()?.activePet || !fishFeed().length) return;
+    const main = document.querySelector('main'); if (!main || main.querySelector('[data-ae-fish-feed]')) return;
+    const h1 = [...main.querySelectorAll('h1, h2')].find(e => /Рыбацкий причал|Рыбалка/i.test(e.textContent || '')); if (!h1) return;
+    const box = h1.closest('section, .ui-panel, .bestiary-panel, .rounded-2xl') || h1;
+    box.after(h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-fish-feed': '1', onclick: () => openPanel('🐾 Покормить питомца', b => { b.append(h('img', {class: 'ae-petfood-art', src: `/assets/pets/icon-${me()?.activePet?.id || 'pet_wolf'}.webp`, alt: ''}), petFoodCard()); })},
+      h('span', {class: 'ae-entry-icon'}, '🐾'), h('span', {class: 'ae-grow'}, h('b', {}, 'Покормить питомца уловом'), h('small', {}, `Сытость ${Math.round(petSat())}% · рыба даёт +30–70%`)), h('span', {class: 'ae-coop-go'}, '›')));
   }
   function petHungerTick() {
     if (!me()) return; petSync(); applyPetHunger();
@@ -3238,7 +3343,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); injectMarketTools(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); injectMarketTools(); injectFishFeed(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -3256,6 +3361,10 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}
+.ae-prof-pet{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-top:3px}.ae-prof-pet img{width:22px;height:22px;border-radius:6px;object-fit:cover}.ae-prof-pet small{opacity:.7;font-size:11px}
+.ae-petfood-fish{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.ae-petfood-fish small{width:100%;opacity:.8}.ae-petfood-fish .ae-btn{font-size:12px;min-height:34px;padding:4px 10px}
+.ae-chat-item .ae-buy-shown{min-height:30px;padding:3px 10px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center}
 .ae-hide{display:none!important}.ae-market-one{display:flex;flex-direction:column;gap:6px;margin:6px 0}.ae-market-one small{opacity:.8;font-size:12px;line-height:1.4}
 .ae-lot{display:flex;flex-direction:column;gap:6px}.ae-lot-item img{width:40px;height:40px;object-fit:contain;flex:none}.ae-lot-item small{display:block;opacity:.75;font-size:11.5px}
 .ae-lot-info{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px}.ae-lot-info small{opacity:.7;width:100%}.ae-lot-offers{display:flex;flex-direction:column;gap:4px}
