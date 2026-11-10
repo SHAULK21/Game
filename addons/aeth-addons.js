@@ -580,7 +580,7 @@
 <p><b>🍀 Удача</b>: шансы находок умножаются на 1 + (удача − 8) / 40 (до ×3), а у каждой новой вещи есть шанс <b>удача × 0,4%</b> (до 25%) стать на ступень реже. Ваши точные цифры — в Профиле.</p>
 <p>Гнёзда для кристаллов: обычные и необычные — 1, редкие и эпические — 2, легендарные и выше — 3.</p>`],
     ['⚒️ Кузница и заточка', `<p>Заточка от +0 до +25, каждая ступень даёт +6% к характеристикам. До +5 — гарантированно, пороги +5/+10/+15/+20 сохраняются при провале. Нужны руда из шахты и трофеи монстров — список и где их добыть написаны прямо в кузнице.</p><p>Нажмите <b>«В кузницу»</b> в меню предмета — кузница откроется сразу с ним. Результат каждой попытки показывается крупно, номер заточки на картинке предмета обновляется сразу.</p>`],
-    ['💎 Кристаллы', `<p>Кристалл вставляется в снаряжение и <b>навсегда</b> добавляет характеристику. Где: Меню или Сумка → «Кристаллы». Кристаллы можно <b>создать</b> из материалов (+300 серебра) или <b>купить</b> за золото.</p><p>Вампиризм, регенерация HP и маны, шанс и сила крита, пробивание брони, уклонение, меткость. <b>Кристаллы крови, яда и пламени</b> дают шанс наложить кровотечение, отравление или поджог при ударе — во всех боях.</p><p>Гнёзда: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3.</p>`],
+    ['💎 Кристаллы', `<p>Кристалл вставляется в снаряжение и <b>навсегда</b> добавляет характеристику. <b>Создать</b> — в Мастерской (трофеи + 900 серебра), <b>купить</b> — на Рынке во вкладке «Базовый магазин» (1 800–2 700 золота), <b>вставить</b> — в Кузнице или в Сумке.</p><p>Вампиризм, регенерация HP и маны, шанс и сила крита, пробивание брони, уклонение, меткость. <b>Кристаллы крови, яда и пламени</b> дают шанс наложить кровотечение, отравление или поджог при ударе — во всех боях.</p><p>Гнёзда: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3.</p>`],
     ['★ Объединение', `<p>Два <b>одинаковых</b> предмета (название, редкость и ★) объединяются в один со звездой вознесения: каждая ★ даёт <b>+10%</b> к характеристикам, максимум ★5. Остаются лучший уровень и лучшая заточка. Стоимость — серебро. Где: Сумка → «Объединить одинаковые». Надетые, запертые и клановые вещи не участвуют.</p>`],
     ['✦ Вознесение героя', `<p>Арена → «Вознесение». Ранги E → D → C → B → A → S → SS → SSS: победите хранителя и потратьте серебро и <b>Осколки вознесения</b> (с боссов, элит, Орды, коопа, рынка). Ваш ранг вознесения виден всем в профиле.</p>`],
     ['🤝 Кооп-подземелья', `<p>Меню → «Кооп». Лидер открывает комнату, союзники присоединяются (по ссылке в общем чате или приглашению другу). 7 залов, на развилках путь может выбрать любой участник: бой, элита, ловушка, сокровище или святилище. В конце — босс.</p><p>Бой <b>пошаговый, как в пещерах</b>: каждый герой делает ход, затем бьёт враг. Атака, Навыки, Защита (+25% маны) и Зелья (ими можно поднять павшего союзника). Если союзник отошёл — «⏩ Не ждать».</p><p><b>⚡ Связки героев</b>: союзник оглушил или заморозил врага — ваш атакующий навык даёт «Удар по беззащитному» ×1.5; уязвимость — «Сокрушение уязвимого» ×1.4; кровотечение, яд или поджог — «Детонация» ×1.35; ярость, щит или лечение — тоже усиливают. Подходящие навыки подсвечиваются.</p>`],
@@ -917,18 +917,18 @@
   setInterval(() => { try { watchForge(); } catch {} }, 300);
   // ---------- crystals: craft or buy, then socket into gear to add a stat (vampirism, crit, bleed…) ----------
   const GEMS = [
-    {id: 'vamp', name: 'Кристалл вампиризма', icon: '🩸', stat: 'vampirism', value: 3, unit: '%', label: 'Вампиризм', recipe: [['Острый клык', 3], ['Магическая эссенция', 1]], gold: 900},
-    {id: 'life', name: 'Кристалл жизни', icon: '💚', stat: 'hpRegen', value: 5, unit: '', label: 'Регенерация HP', recipe: [['Лечебная трава', 5], ['Горный корень', 1]], gold: 600},
-    {id: 'mana', name: 'Кристалл маны', icon: '💧', stat: 'mpRegen', value: 3, unit: '', label: 'Регенерация маны', recipe: [['Лунная пыльца', 3]], gold: 600},
-    {id: 'fury', name: 'Кристалл ярости', icon: '⚡', stat: 'critChance', value: 4, unit: '%', label: 'Шанс крита', recipe: [['Острый клык', 2], ['Огненный цветок', 1]], gold: 900},
-    {id: 'ruin', name: 'Кристалл разрушения', icon: '💥', stat: 'critDamage', value: 15, unit: '%', label: 'Сила крита', recipe: [['Огненный цветок', 2], ['Магическая эссенция', 1]], gold: 900},
-    {id: 'pierce', name: 'Кристалл пробоя', icon: '🗡️', stat: 'armorPenetration', value: 5, unit: '', label: 'Пробивание брони', recipe: [['Медная монета гоблинов', 5], ['Горный корень', 1]], gold: 700},
-    {id: 'shadow', name: 'Кристалл тени', icon: '🌫️', stat: 'evasion', value: 3, unit: '', label: 'Уклонение', recipe: [['Волчья шкура', 4], ['Лунная пыльца', 1]], gold: 700},
-    {id: 'aim', name: 'Кристалл точности', icon: '🎯', stat: 'accuracy', value: 6, unit: '', label: 'Меткость', recipe: [['Медная монета гоблинов', 3], ['Волчья шкура', 2]], gold: 600},
-    {id: 'bleed', name: 'Кристалл крови', icon: '🔴', stat: 'bleedChance', value: 10, unit: '%', label: 'Шанс кровотечения при ударе', recipe: [['Острый клык', 3], ['Мясо вепря', 3]], gold: 800},
-    {id: 'venom', name: 'Кристалл яда', icon: '🧪', stat: 'poisonChance', value: 10, unit: '%', label: 'Шанс отравления при ударе', recipe: [['Ядовитая железа', 4]], gold: 800},
-    {id: 'flame', name: 'Кристалл пламени', icon: '🔥', stat: 'burnChance', value: 10, unit: '%', label: 'Шанс поджога при ударе', recipe: [['Огненный цветок', 3]], gold: 800}];
-  const GEM_SILVER = 300;
+    {id: 'vamp', name: 'Кристалл вампиризма', icon: '🩸', stat: 'vampirism', value: 3, unit: '%', label: 'Вампиризм', recipe: [['Острый клык', 3], ['Магическая эссенция', 1]], gold: 2700},
+    {id: 'life', name: 'Кристалл жизни', icon: '💚', stat: 'hpRegen', value: 5, unit: '', label: 'Регенерация HP', recipe: [['Лечебная трава', 5], ['Горный корень', 1]], gold: 1800},
+    {id: 'mana', name: 'Кристалл маны', icon: '💧', stat: 'mpRegen', value: 3, unit: '', label: 'Регенерация маны', recipe: [['Лунная пыльца', 3]], gold: 1800},
+    {id: 'fury', name: 'Кристалл ярости', icon: '⚡', stat: 'critChance', value: 4, unit: '%', label: 'Шанс крита', recipe: [['Острый клык', 2], ['Огненный цветок', 1]], gold: 2700},
+    {id: 'ruin', name: 'Кристалл разрушения', icon: '💥', stat: 'critDamage', value: 15, unit: '%', label: 'Сила крита', recipe: [['Огненный цветок', 2], ['Магическая эссенция', 1]], gold: 2700},
+    {id: 'pierce', name: 'Кристалл пробоя', icon: '🗡️', stat: 'armorPenetration', value: 5, unit: '', label: 'Пробивание брони', recipe: [['Медная монета гоблинов', 5], ['Горный корень', 1]], gold: 2100},
+    {id: 'shadow', name: 'Кристалл тени', icon: '🌫️', stat: 'evasion', value: 3, unit: '', label: 'Уклонение', recipe: [['Волчья шкура', 4], ['Лунная пыльца', 1]], gold: 2100},
+    {id: 'aim', name: 'Кристалл точности', icon: '🎯', stat: 'accuracy', value: 6, unit: '', label: 'Меткость', recipe: [['Медная монета гоблинов', 3], ['Волчья шкура', 2]], gold: 1800},
+    {id: 'bleed', name: 'Кристалл крови', icon: '🔴', stat: 'bleedChance', value: 10, unit: '%', label: 'Шанс кровотечения при ударе', recipe: [['Острый клык', 3], ['Мясо вепря', 3]], gold: 2400},
+    {id: 'venom', name: 'Кристалл яда', icon: '🧪', stat: 'poisonChance', value: 10, unit: '%', label: 'Шанс отравления при ударе', recipe: [['Ядовитая железа', 4]], gold: 2400},
+    {id: 'flame', name: 'Кристалл пламени', icon: '🔥', stat: 'burnChance', value: 10, unit: '%', label: 'Шанс поджога при ударе', recipe: [['Огненный цветок', 3]], gold: 2400}];
+  const GEM_SILVER = 900;
   const GEM_SLOTS = {common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mythic: 3, ancient: 3, divine: 3};
   const STAT_RU = Object.fromEntries(GEMS.map(g => [g.stat, g.label]));
   const gemItem = g => ({id: 'gem_' + g.id + '_' + uuid4().slice(0, 8), templateId: 'ae_gem_' + g.id, name: g.name, type: 'material', rarity: 'epic', level: 1, upgradeLevel: 0, icon: g.icon,
@@ -946,12 +946,15 @@
     return [...inv, {...gemItem(g), stackCount: n}];
   }
   const canAct = () => { const p = me(); if (!p) return 'Игра ещё загружается.'; if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return 'Сначала завершите бой или путь.'; return null; };
+  // Each place shows its own part: the Forge sockets, the Workshop crafts, the market's basic shop sells.
+  const GEM_TITLE = {apply: '💎 Вставить кристалл', craft: '⚒️ Создать кристалл', buy: '🪙 Кристаллы в продаже'};
+  const GEM_WHERE = 'Создать кристалл можно в Мастерской, купить — на Рынке во вкладке «Базовый магазин», вставить — в Кузнице или в Сумке.';
   function openGems(tab = 'apply') {
     let pick = null;
-    const st = openPanel('💎 Кристаллы', body => {
+    const st = openPanel(GEM_TITLE[tab] || GEM_TITLE.apply, body => {
       const p = me(); if (!p) return;
-      body.append(h('p', {class: 'ae-note'}, 'Кристалл вставляется в снаряжение и добавляет характеристику. Гнёзд: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3. Вставленный кристалл остаётся в вещи навсегда.'));
-      body.append(h('div', {class: 'ae-tabs'}, [['apply', '💎 Вставить'], ['craft', '⚒️ Создать'], ['buy', '🪙 Купить']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; pick = null; st.rerender(); }}, l))));
+      body.append(h('p', {class: 'ae-note'}, tab === 'apply' ? 'Кристалл вставляется в снаряжение и навсегда добавляет характеристику. Гнёзд: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3.'
+        : tab === 'craft' ? `Кристалл создаётся из трофеев с монстров и ${GEM_SILVER} серебра. Готовый кристалл вставьте в снаряжение в Кузнице или Сумке.` : 'Редкий товар заезжих торговцев. Готовый кристалл вставьте в снаряжение в Кузнице или Сумке.'));
       if (tab === 'craft' || tab === 'buy') {
         if (tab === 'craft') body.append(h('div', {class: 'ae-pill'}, `Серебро: ${fmt(p.silver)} · каждый кристалл ${GEM_SILVER} 🥈`));
         else body.append(h('div', {class: 'ae-pill'}, `Золото: ${fmt(p.gold)}`));
@@ -972,11 +975,12 @@
               sfx.play(tab === 'buy' ? 'coins' : 'magic'); toast(`${g.icon} ${g.name} ${tab === 'buy' ? 'куплен' : 'создан'}`); setTimeout(() => st.rerender(), 120);
             }}, tab === 'buy' ? `${fmt(g.gold)} 🪙` : 'Создать')));
         }
+        body.append(h('p', {class: 'ae-sub'}, GEM_WHERE));
         return;
       }
       // apply
       const owned = GEMS.filter(g => gemCount(p, g) > 0);
-      if (!owned.length) { body.append(h('p', {class: 'ae-empty'}, 'У вас нет кристаллов. Создайте или купите их во вкладках выше.')); return; }
+      if (!owned.length) { body.append(h('p', {class: 'ae-empty'}, 'У вас нет кристаллов. ' + GEM_WHERE)); return; }
       body.append(h('h3', {class: 'ae-h3'}, '1. Выберите кристалл'));
       body.append(h('div', {class: 'ae-gem-pick'}, owned.map(g => h('button', {type: 'button', class: 'ae-btn ae-gem-chip' + (pick === g.id ? ' is-on' : ''), onclick: () => { pick = g.id; st.rerender(); }}, `${g.icon} ${g.label} +${g.value}${g.unit} ×${gemCount(p, g)}`))));
       if (!pick) return;
@@ -1140,7 +1144,7 @@
       btn = h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-bag-merge': '1', onclick: openMerge}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}), h('small', {})), h('span', {class: 'ae-coop-go'}, '›'));
       anchor.parentElement.insertBefore(btn, anchor.nextSibling);
     }
-    if (!anchor.parentElement.querySelector(':scope > [data-ae-gems]')) btn.after(h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Кристаллы'), h('small', {}, 'Вставить, создать или купить')), h('span', {class: 'ae-coop-go'}, '›')));
+    if (!anchor.parentElement.querySelector(':scope > [data-ae-gems]')) btn.after(h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Вставить кристалл'), h('small', {}, 'Вампиризм, крит, кровотечение… в снаряжение')), h('span', {class: 'ae-coop-go'}, '›')));
     if (!anchor.parentElement.querySelector(':scope > [data-ae-autoequip]')) btn.after(autoEquipToggle());
     const label = n ? `Объединить одинаковые · ${n}` : 'Объединить одинаковые', sub = n ? 'Есть пары для ★ — нажмите, чтобы выбрать' : 'Пар одинаковых вещей пока нет';
     if (btn.querySelector('b').textContent !== label) { btn.querySelector('b').textContent = label; btn.querySelector('small').textContent = sub; btn.classList.toggle('has-pairs', !!n); }
@@ -1845,6 +1849,21 @@
       h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: () => openClanDonate()}, '💰 Пополнить казну'),
       h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => openClanDeposit()}, '🎒 Внести вещь')));
   }
+  // Crystal entry points inside the right places (Forge, Workshop, market's basic shop).
+  function gemEntry(attr, title, sub, tab) {
+    return h('button', {type: 'button', class: 'ae-bag-merge ae-gem-entry', [attr]: '1', onclick: () => openGems(tab)}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, title), h('small', {}, sub)), h('span', {class: 'ae-coop-go'}, '›'));
+  }
+  function injectGemPlaces() {
+    const main = document.querySelector('main'); if (!main) return;
+    const forge = [...main.querySelectorAll('p')].find(e => /^Заточка снаряжения/.test((e.textContent || '').trim()));
+    if (forge && !main.querySelector('[data-ae-gem-forge]')) forge.after(gemEntry('data-ae-gem-forge', 'Вставить кристалл', 'Гнёзда в снаряжении: вампиризм, крит, кровотечение…', 'apply'));
+    const craft = [...main.querySelectorAll('h1, h2')].find(e => /^Крафт снаряжения/.test((e.textContent || '').trim()));
+    if (craft && !main.querySelector('[data-ae-gem-craft]')) { const box = craft.parentElement; box.after(gemEntry('data-ae-gem-craft', 'Создать кристалл', `Из трофеев с монстров и ${GEM_SILVER} 🥈`, 'craft')); }
+    const tab = [...main.querySelectorAll('button')].find(b => /^Базовый магазин$/.test((b.textContent || '').trim()));
+    const shopRow = tab?.parentElement, have = main.querySelector('[data-ae-gem-shop]');
+    if (tab && (tab.getAttribute('aria-selected') === 'true' || (!tab.hasAttribute('aria-selected') && /amber|#302c24/.test(tab.className)))) { if (!have) shopRow.after(gemEntry('data-ae-gem-shop', 'Кристаллы', `Редкий товар: от ${fmt(Math.min(...GEMS.map(g => g.gold)))} 🪙`, 'buy')); }
+    else have?.remove();
+  }
   // HQ / search buttons in the Clan House; the native «Удар» opens the real fight.
   function injectClanHQ() {
     const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
@@ -2123,7 +2142,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['💎', 'Кристаллы', 'Вампиризм, крит, кровотечение…', () => openGems()], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -2438,7 +2457,7 @@
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge], ['gems', 'Кристаллы', () => openGems()],
+  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki]];
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
@@ -2907,7 +2926,7 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
