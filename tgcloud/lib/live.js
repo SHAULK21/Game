@@ -58,6 +58,7 @@ function handlePet(world, body, me, now) {
     const l = body.local, v = l && Number.isFinite(+l.v) && Number.isFinite(+l.t) && +l.t <= now ? satOf({v: Math.min(100, +l.v), t: +l.t}, now) : 100;
     r = {user: me, v, t: now}; list.push(r); petRemind(world, me, r, now);
   }
+  if (petId(body.pet) && r.active !== petId(body.pet)) r.active = petId(body.pet); // the active companion, for the public profile
   if (body.action === 'feed') {
     const add = FEED[body.how]; if (!add) return fail('Неизвестный корм.');
     const sat = satOf(r, now); if (sat >= 99) return fail('Питомец сыт и не хочет есть.');

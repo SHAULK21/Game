@@ -61,6 +61,15 @@ const ASC = [['D', 'Страж порога', 1], ['C', 'Рыцарь зерка
 const ascOf = pr => { const a = ASC.find(x => x[0] === pr?.asc); return a ? {rank: a[0], name: a[1], step: ASC.indexOf(a) + 1} : null; };
 const clanOf = (world, id) => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); const c = m && rows(world, 'clans').find(x => same(x.id, m.clan_id)); return c ? {id: c.id, tag: c.tag, name: c.name, level: Number(c.level) || 1, role: m.role, emblem: rows(world, 'ae_clan_meta').find(x => same(x.clan, c.id))?.emblem || '🛡️'} : null; };
 const profileRow = (world, id) => rows(world, 'ae_profiles').find(x => same(x.u, id));
+// The hero's active companion: what the game last reported, completed with the level and satiety the server keeps.
+const PET_CAT = {pet_wolf: ['Снежный лютоволк', 'rare'], pet_fairy: ['Астральная фея', 'rare'], pet_dragon: ['Огненный дракончик', 'epic'], pet_golem: ['Адамантитовый големчик', 'epic'], pet_voidling: ['Эфирный пустотник', 'mythic']};
+function petOf(world, id, now) {
+  const reported = rows(world, 'ae_combat_stats').find(x => same(x.u, id))?.pet, food = rows(world, 'ae_pet_food').find(x => same(x.user, id));
+  const pid = food?.active || reported?.id; if (!pid || (reported === null && !food?.active)) return null;
+  const cat = PET_CAT[pid], sat = food ? Math.max(0, Math.min(100, food.v - (now - food.t) * 100 / 864e5)) : null;
+  return {id: pid, name: (reported?.id === pid && reported.name) || cat?.[0] || 'Питомец', rarity: (reported?.id === pid && reported.rarity) || cat?.[1] || 'common',
+    level: food?.pets?.[pid]?.lvl || (reported?.id === pid ? reported.level : 1) || 1, hungry: sat != null ? sat < 25 : !!reported?.hungry};
+}
 export function publicProfile(world, id, now) {
   const p = player(world, id); if (!p) return null;
   const pr = profileRow(world, id) || {}, earned = new Set(titlesOf(world, id, now).filter(t => t.earned).map(t => t.id));
@@ -68,7 +77,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, asc: ascOf(pr), clan: clanOf(world, id), pet: rows(world, 'ae_combat_stats').find(x => same(x.u, id))?.pet || null, titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 export function handleProfileRequest(world, input, user, now) {
