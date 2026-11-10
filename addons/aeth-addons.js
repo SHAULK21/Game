@@ -1861,6 +1861,55 @@
       h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => openClanDeposit()}, '🎒 Внести вещь')));
     t.parentElement.querySelector(':scope > [data-ae-treasury]').after(treasuryHelp());
   }
+  // Mine: the offline expedition card sits at the very bottom, under a long list of veins. Show it right under
+  // the mine's status card. Reordered with CSS only (the game keeps owning these nodes).
+  function liftMineExpedition() {
+    const main = document.querySelector('main'); if (!main) return;
+    const exp = [...main.querySelectorAll('section, div')].find(e => /^Офлайн-экспедиция/.test((e.innerText || '').trim()) && e.parentElement && [...e.parentElement.children].some(c => /Королевские Рудники/.test(c.innerText || '')));
+    if (!exp) return;
+    const box = exp.parentElement; if (box.dataset.aeMine) return;
+    const kids = [...box.children], gap = kids[1] ? getComputedStyle(kids[1]).marginTop : '12px';
+    const status = kids.findIndex(c => /Королевские Рудники/.test(c.innerText || ''));
+    box.dataset.aeMine = '1'; box.style.setProperty('--ae-mine-gap', gap);
+    kids.forEach((c, i) => { c.dataset.aeMineOrder = i === status ? '0' : c === exp ? '1' : String(Math.min(8, i + 2)); });
+    exp.dataset.aeMineLifted = '1';
+  }
+  // Expedition card: what each shift brings, progress and haul while away, a bot reminder, a glow when it is back.
+  const MINE_LOOT = [['🪨', 'Уголь', 1], ['🟤', 'Медная руда', 1], ['🌿', 'Лечебная трава', 1], ['💧', 'Чистая вода', 1], ['⚪', 'Железная руда', 5], ['🌱', 'Горный корень', 5],
+    ['✨', 'Серебряная руда', 15], ['🌙', 'Лунная пыльца', 15], ['💠', 'Мифриловая руда', 15], ['🔮', 'Магическая эссенция', 15], ['🪙', 'Золотая руда', 25], ['💎', 'Сырой самоцвет', 25], ['🟣', 'Адамантит', 25]];
+  const SHIFTS = [[1, 'Короткая смена'], [3, 'Глубокая выработка'], [7, 'Дальняя экспедиция']];
+  const shiftYield = h => { const picks = h >= 7 ? 4 : h >= 3 ? 3 : 2, a = Math.max(1, Math.round(h * 0.45)); return {lo: picks * Math.max(1, Math.round(a * 0.6)), hi: picks * (a + h + 2), kinds: picks, rare: h >= 7 ? '×1.8' : h >= 3 ? '×1.25' : '—', exp: h * 25}; };
+  const clock = t => new Date(t).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+  const leftText = ms => { const m = Math.max(0, Math.ceil(ms / 60e3)), hh = Math.floor(m / 60); return hh ? `${hh} ч ${m % 60} мин` : `${m} мин`; };
+  function expeditionExtra(p) {
+    const P = p.miningExpedition, now = Date.now(), lvl = p.miningLevel || 1;
+    if (!P) {
+      const have = MINE_LOOT.filter(x => x[2] <= lvl), next = MINE_LOOT.find(x => x[2] > lvl);
+      return h('div', {class: 'ae-exp-extra'},
+        h('div', {class: 'ae-exp-table'}, SHIFTS.map(([hh, name]) => { const y = shiftYield(hh); return h('div', {class: 'ae-exp-row'}, h('b', {}, `${hh} ч.`), h('span', {}, name), h('span', {}, `≈ ${y.lo}–${y.hi} шт. · ${y.kinds} вида`), h('small', {}, `редкие ${y.rare} · +${y.exp} опыта`)); })),
+        h('div', {class: 'ae-exp-loot'}, h('small', {}, 'Можно найти: '), have.map(x => h('span', {title: x[1]}, x[0])), next ? h('small', {class: 'ae-exp-next'}, ` · с ${next[2]} ур. шахты: ${MINE_LOOT.filter(x => x[2] === next[2]).map(x => x[0] + ' ' + x[1]).join(', ')}`) : ''),
+        h('small', {class: 'ae-exp-tip'}, '💡 Запустите «Дальнюю экспедицию» перед сном — утром заберёте больше всего добычи. Бот напомнит, когда она вернётся.'));
+    }
+    const total = Math.max(1, P.endsAt - P.startedAt), done = now >= P.endsAt, pct = Math.min(100, Math.round(100 * (now - P.startedAt) / total));
+    const haul = (P.rewards || []).map(r => h('span', {class: 'ae-exp-item is-' + (r.rarity || 'common'), title: r.name}, `${r.icon || '📦'} ${r.name} ×${r.count}`));
+    return h('div', {class: 'ae-exp-extra' + (done ? ' is-done' : '')},
+      done ? h('div', {class: 'ae-exp-ready'}, '✅ Экспедиция вернулась — заберите добычу!') : [
+        h('div', {class: 'ae-bar is-mp'}, h('i', {style: `width:${pct}%`}), h('span', {}, `${pct}% · вернётся в ${clock(P.endsAt)} (через ${leftText(P.endsAt - now)})`)),
+        h('small', {class: 'ae-exp-tip'}, '🔔 Бот напишет в Telegram, когда экспедиция вернётся (если уведомления включены).')],
+      haul.length && !done ? h('div', {class: 'ae-exp-haul'}, h('small', {}, 'Везут:'), ...haul) : '');
+  }
+  let expSig = '';
+  function decorateExpedition() {
+    const card = document.querySelector('[data-ae-mine-lifted]'), p = me(); if (!card || !p) return;
+    const P = p.miningExpedition, now = Date.now();
+    const sig = JSON.stringify([P?.endsAt, P && Math.floor((now - P.startedAt) / 30e3), P && now >= P.endsAt, p.miningLevel]);
+    let box = card.querySelector(':scope > [data-ae-exp]');
+    card.classList.toggle('ae-exp-done', !!(P && now >= P.endsAt));
+    if (box && sig === expSig) return;
+    expSig = sig; const next = h('div', {'data-ae-exp': '1'}, expeditionExtra(p));
+    if (box) box.replaceWith(next); else card.append(next);
+  }
+  setInterval(() => { if (!document.hidden && document.querySelector('[data-ae-mine-lifted]')) try { decorateExpedition(); } catch (e) { console.warn('ae exp', e); } }, 1000);
   // Crystal entry points inside the right places (Forge, Workshop, market's basic shop).
   function gemEntry(attr, title, sub, tab) {
     return h('button', {type: 'button', class: 'ae-bag-merge ae-gem-entry', [attr]: '1', onclick: () => openGems(tab)}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, title), h('small', {}, sub)), h('span', {class: 'ae-coop-go'}, '›'));
@@ -2967,7 +3016,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -2985,6 +3034,26 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+[data-ae-mine-lifted] button>div.justify-between{width:100%}[data-ae-mine-lifted] button>div.justify-between>div:first-child{flex:1;min-width:0;text-align:left}
+[data-ae-mine-lifted] button>div.justify-between>span{flex:none;white-space:nowrap;min-width:52px;text-align:center}
+html:not([data-interface=modern]) [data-ae-mine-lifted] .text-cyan-200{color:#e5c678!important;font-family:Georgia,serif;font-size:14px}
+html:not([data-interface=modern]) [data-ae-mine-lifted] .text-xs.text-slate-500{color:#a79f8f!important}
+html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full{padding:10px 12px!important}
+html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full .text-slate-100{color:#efe4cc!important;font-size:13px}
+html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full .text-slate-500{color:#a79f8f!important;font-family:system-ui,sans-serif;font-weight:400;line-height:1.35}
+html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full>div>span{background:#2a2216!important;border-color:#a98951!important;color:#f0d79a!important;font-family:Georgia,serif}
+html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full:hover>div>span{border-color:#e5c678!important}
+.ae-exp-extra{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #e5c67840;font-size:12.5px}
+.ae-exp-table{display:flex;flex-direction:column;gap:4px}.ae-exp-row{display:grid;grid-template-columns:34px 1fr auto;gap:2px 8px;align-items:baseline}.ae-exp-row b{color:#facc15}.ae-exp-row small{grid-column:2/4;opacity:.7;font-size:11px}
+.ae-exp-loot{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.ae-exp-loot span{font-size:16px}.ae-exp-next{opacity:.65}
+.ae-exp-tip{opacity:.75;font-size:11.5px;line-height:1.4}.ae-exp-haul{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ae-exp-item{padding:2px 7px;border-radius:999px;border:1px solid #ffffff22;background:#ffffff0a;font-size:11.5px}.ae-exp-item.is-uncommon{border-color:#22c55e77}.ae-exp-item.is-rare{border-color:#38bdf8aa}.ae-exp-item.is-epic{border-color:#a855f7aa}.ae-exp-item.is-legendary{border-color:#f59e0bcc}
+.ae-exp-ready{font-weight:700;color:#4ade80;font-size:13.5px}
+.ae-exp-done{box-shadow:0 0 0 2px #4ade80aa,0 0 22px #4ade8055!important;animation:aeExpPulse 1.6s ease-in-out infinite}
+@keyframes aeExpPulse{50%{box-shadow:0 0 0 2px #4ade80,0 0 30px #4ade8088}}
+[data-ae-mine]{display:flex!important;flex-direction:column;gap:var(--ae-mine-gap,12px)}[data-ae-mine]>*{margin-top:0!important;margin-bottom:0!important}
+[data-ae-mine-order="0"]{order:0}[data-ae-mine-order="1"]{order:1}[data-ae-mine-order="2"]{order:2}[data-ae-mine-order="3"]{order:3}[data-ae-mine-order="4"]{order:4}[data-ae-mine-order="5"]{order:5}[data-ae-mine-order="6"]{order:6}[data-ae-mine-order="7"]{order:7}[data-ae-mine-order="8"]{order:8}
+[data-ae-mine-lifted]{box-shadow:0 0 0 1px #e5c67855,0 0 18px #e5c67822}
 .ae-treasury-help{margin:4px 0;font-size:12px}.ae-treasury-help summary{cursor:pointer;opacity:.8;font-size:12px}.ae-treasury-help .ae-sub{margin-top:4px;line-height:1.5;font-size:12px}
 .ae-tabs{flex-shrink:0}.ae-hq-panel .ae-body>*,.ae-horde-panel .ae-body>*{flex-shrink:0}
 .ae-hq-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}.ae-hq-head b{font-size:16px}.ae-hq-emblem{font-size:34px;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:#ffffff10;border:1px solid #e5ce9655}
