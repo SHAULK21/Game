@@ -31,10 +31,13 @@ import {handleExtras, pushEvent} from './arenaExtras.js';
 import {handleHordeRequest} from './horde.js';
 import {handleProfileRequest} from './profile.js';
 import {handleLiveRequest} from './live.js';
+import {handleMarketPlus} from './marketPlus.js';
 
 export async function handleSocialRequest(world, input, user, now, native) {
   const live = await handleLiveRequest(world, input, user, now, native, notify);
   if (live) return live;
+  const market = handleMarketPlus(world, input, user, now, notify);
+  if (market) return market;
   const horde = handleHordeRequest(world, input, user, now);
   if (horde) return horde;
   const profile = handleProfileRequest(world, input, user, now);

@@ -1,0 +1,34 @@
+[
+ {
+  "name": "overlevel-equip-rule",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13.js",
+  "old": "else if(r.level>n.level)return t(`Нужен ${r.level} уровень героя.`)",
+  "new": "else if(r.level>n.level+10)return t(`Нужен ${r.level-10} уровень героя: вещи выше уровня героя надеваются не больше чем на +10 уровней.`)"
+ },
+ {
+  "name": "overlevel-inv1-gate",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13.js",
+  "old": "includes(K.type)&&K.level>a.level",
+  "new": "includes(K.type)&&K.level>a.level+10",
+  "count": 2
+ },
+ {
+  "name": "overlevel-inv1-label",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13.js",
+  "old": "`Нужен уровень ${K.level}`",
+  "new": "`Нужен уровень ${K.level-10}`"
+ },
+ {
+  "name": "overlevel-inv2-gate",
+  "file": "InventoryScreen-tRt9SWVd-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13.js",
+  "old": "includes(V.type)&&V.level>c.level",
+  "new": "includes(V.type)&&V.level>c.level+10",
+  "count": 2
+ },
+ {
+  "name": "overlevel-inv2-label",
+  "file": "InventoryScreen-tRt9SWVd-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13.js",
+  "old": "`Нужен уровень ${V.level}`",
+  "new": "`Нужен уровень ${V.level-10}`"
+ }
+]

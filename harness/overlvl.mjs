@@ -1,0 +1,20 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 20, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+save.player.inventory.push({id: 'hi-sword', templateId: 'x', name: 'Клинок героя', type: 'weapon', rarity: 'epic', level: 28, upgradeLevel: 0, stats: {attack: 200}, icon: '⚔️', sellPrice: 40, disassembleYield: {}, stackCount: 1},
+  {id: 'too-hi', templateId: 'y', name: 'Клинок легенды', type: 'weapon', rarity: 'legendary', level: 35, upgradeLevel: 0, stats: {attack: 400}, icon: '⚔️', sellPrice: 40, disassembleYield: {}, stackCount: 1});
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style;
+const s = await launch({localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); w.tables.players.find(p => p.telegram_id == 437290420).level = 20; }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(7000);
+const w = () => p.evaluate(() => { const x = window.__aethBridge; const it = x.player.equipped.weapon; return `${it?.name} atk ${it?.stats?.attack} | hero atk ${x.stats.attack}`; });
+const r1 = await p.evaluate(async () => { const b = window.__aethBridge; return (await b.equipItem(b.player.inventory.find(i => i.id === 'too-hi')))?.message; });
+console.log('+15 levels:', r1);
+const r2 = await p.evaluate(async () => { const b = window.__aethBridge; return (await b.equipItem(b.player.inventory.find(i => i.id === 'hi-sword')))?.message; });
+await p.waitForTimeout(2500); console.log('+8 levels:', r2, '→', await w(), '| toast:', await p.locator('.ae-toast').innerText().catch(() => ''));
+await p.evaluate(() => window.__aethBridge.setPlayer(x => ({...x, level: 28}))); await p.waitForTimeout(2500);
+console.log('hero reaches 28:', await w());
+await p.evaluate(() => window.__aethBridge.setPlayer(x => ({...x, level: 20}))); await p.waitForTimeout(2500);
+console.log('back to 20 (test):', await w());
+console.log(s.log.filter(l => /pageerror|ae watch/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();

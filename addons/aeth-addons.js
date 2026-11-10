@@ -571,7 +571,7 @@
     ['✨ Навыки и таланты', `<p>У каждого класса 3–4 навыка, один из них — <b>ульта</b>. <b>Ранг навыка</b> (I–IV) растёт с уровнем и главной характеристикой класса и усиливает урон до ×1.4. Некоторые навыки работают <b>в связке</b>: применённые подряд, они бьют сильнее (метка «Связка»).</p><p><b>Дерево талантов</b> даёт урон навыков, экономию маны, силу и длительность эффектов, добивание, стойки, возврат маны и многое другое. Новые навыки открываются с развитием героя.</p><p>Навыки и таланты работают <b>во всех боях</b>: с монстрами, в коопе, дуэлях и Орде. В коопе, дуэлях и Орде навыки ограничены только маной.</p>`],
     ['🧙 Классы и характеристики', `<p><b>Воин</b>, <b>Рыцарь</b> — танки. <b>Берсерк</b> — физический урон. <b>Разбойник</b>, <b>Ассасин</b> — скорость и взрывной урон. <b>Лучник</b> — дальний бой. <b>Маг</b>, <b>Некромант</b> — магия. <b>Паладин</b>, <b>Друид</b> — урон и лечение.</p><p>За каждый уровень — 5 очков характеристик. <b>🍀 Удача</b> повышает шанс, что найденная вещь станет на ступень реже, и чаще приносит легендарные находки (подробности — в Профиле).</p><p><b>♻️ Сброс характеристик</b>: экран героя или Профиль → «Сбросить». Возвращаются все вложенные очки, уровень, вещи, навыки и таланты не меняются. Первый сброс бесплатный, далее — 50 серебра за уровень героя.</p>`],
     ['🗺️ Локации', `<p>Равнины (1–8) → Шепчущий лес (5–12) → Забытый склеп (8–18) → Тёмный лес (12–25) → Гиблые болота (25–40) → Пылающая пустыня (40–55) → Проклятые земли (55–75) → Демонический разлом (75–90) → Драконий сандор (90–120).</p><p>В каждой земле свои режимы охоты и свои уникальные монстры. Победа над местным боссом открывает новые режимы и награду за освоение региона.</p>`],
-    ['🛡️ Снаряжение', `<p>Редкости: обычные, необычные, редкие, эпические, легендарные и мифические. Носить можно вещи любого класса по уровню.</p><p><b>🎁 Находки</b>: после каждой победы есть шанс найти новую вещь под ваш уровень, с босса — всегда. Точные шансы — в разделе «🎲 Редкость и шансы».</p><p><b>👑 Автоодевание</b> (Premium): герой сам надевает вещи, которые делают его сильнее. Переключатель — в сумке.</p>`],
+    ['🛡️ Снаряжение', `<p>Редкости: обычные, необычные, редкие, эпические, легендарные и мифические. Носить можно вещи любого класса по уровню.</p><p><b>🎁 Находки</b>: после каждой победы есть шанс найти новую вещь под ваш уровень, с босса — всегда. Точные шансы — в разделе «🎲 Редкость и шансы».</p><p><b>👑 Автоодевание</b> (Premium): герой сам надевает вещи, которые делают его сильнее. Переключатель — в сумке.</p><p><b>⬆️ Вещи выше уровня</b>: снаряжение можно надеть, если оно не больше чем на 10 уровней выше героя. Пока герой не дорос, характеристики вещи ослаблены на 6% за каждый уровень разницы (до 40% силы) — когда уровень сравняется, вещь заработает в полную силу.</p>`],
     ['🎲 Редкость и шансы', `<p><b>Редкости</b> (от слабых к сильным): обычная → необычная (×1.15 к характеристикам) → редкая (×1.35) → эпическая (×1.65) → легендарная (×2.1) → мифическая.</p>
 <table class="ae-wiki-table"><tr><th>Источник</th><th>Необ.</th><th>Ред.</th><th>Эпич.</th><th>Лег.</th></tr>
 <tr><td>Монстр</td><td>7%</td><td>4%</td><td>2%</td><td>0,8%</td></tr>
@@ -590,7 +590,7 @@
     ['📜 Задания и титулы', `<p><b>Доска поручений</b> — задания жителей и короля. <b>«Задания»</b> (быстрая панель) — ежедневные и недельные задания за кооп, дуэли и Орду с наградами и осколками.</p><p><b>Профиль</b>: 23 титула за подвиги, круглые аватарки, ранг вознесения и статистика. Профиль других игроков открывается по нажатию на ник.</p>`],
     ['⛏️ Шахта, алхимия, рыбалка', `<p><b>Шахта</b> — руда для заточки и материалы. <b>Алхимия</b> — зелья и склянки: у ингредиентов видно «есть/нужно», а под рецептом написано, чего не хватает. Энергия алхимии восстанавливается по 1 каждые 20 секунд, новые рецепты открываются с уровнем алхимии. <b>Рыбалка</b> — улов для продажи и рецептов.</p>`],
     ['🐾 Спутники', `<p>Спутник помогает в бою и даёт бонус. Лютоволк доступен сразу, остальных создают в Приюте из материалов шахты: фея — горное дело 15, големчик — 25, дракончик — 35, пустотник — 45.</p><p><b>🍖 Кормите питомца</b>: сытость падает за сутки, голодный питомец даёт только половину характеристик. Корм — мясо или рыба из сумки, миска (10 золота) или пир (30 золота). Бот напомнит, когда питомец проголодается.</p>`],
-    ['💰 Рынок и торговля', `<p>Вещи можно выставить на рынок для других игроков (из сумки — кнопка «На рынок»); выручка идёт в кошелёк рынка, налог 3% (с Premium — 0%). Другу можно продать вещь напрямую: «🤝 Продать другу». Местным жителям продаётся добыча по дневному спросу.</p>`],
+    ['💰 Рынок и торговля', `<p><b>🪙 Одно золото</b>: покупки у игроков, ставки и предложения цены оплачиваются золотом героя, выручка от продаж и возвраты ставок приходят туда же автоматически.</p><p><b>🔨 Аукцион</b> (Рынок → «Аукцион»): выставьте вещь со стартовой ценой и сроком 1, 6, 24 или 48 ч, можно задать цену выкупа. Ставка списывается из кошелька и возвращается, если её перебьют; ставка в последние 2 минуты продлевает торги. Победитель получает вещь, без ставок она вернётся в сумку.</p><p><b>💬 Продажа через чат</b>: в окне вещи «📢 В чат» → укажите цену (или оставьте пустой). Игроки купят сразу или предложат свою цену — деньги предложения резервируются и вернутся, если вы откажете. Ответить на предложения — в «Аукцион → Мои лоты».</p><p>Пока вещь продаётся, она хранится у рынка — покупка проходит, даже если продавец не в игре. Налог продавца 3% (с Premium 0%). Обычный рынок «Рыцари» и продажа жителям работают как раньше.</p>`],
     ['🛡️ Кланы', `<p>Создание клана — 100 000 золота (с Premium — 50 000). Каждую неделю клан бьёт <b>Стража клановых врат</b>: один удар в сутки, за победу — опыт клана и золото в казну. Казна тратится на клановые проекты (Арсенал, Исследовательский зал, Снабжение).</p><p><b>Приглашения</b>: в Доме клана — «👥 Позвать друзей» (друг получит приглашение в игре и сообщение от бота) и «📢 В общий чат» (по приглашению из чата сутки могут вступить до 15 героев, даже если набор закрыт).</p><p><b>🏰 Штаб клана</b> (кнопка в Доме клана): <b>ежедневный сундук</b>; <b>бонусы</b> всем участникам — +2% опыта и золота и +3% к шансу редкой добычи за каждый уровень клана (до +30% / +45%); <b>задание дня и недели</b> — общая цель на весь клан, награду получает каждый; <b>вклад</b> — очки за монстров, боссов, дуэли и арену, подземелья, руду, зелья и рейд; <b>рейтинг недели</b> — топ-3 кланов получают золото в казну, опыт и бонус чемпиона (медаль у тега); <b>война кланов</b> — раз в неделю клан сражается с соперником по очкам вклада.</p><p><b>💰 Казна и хранилище</b>: в Доме клана кнопки «Пополнить казну» (золото и серебро, 100 монет = 1 очко вклада) и «Внести вещь» — вещь из сумки переезжает в общее хранилище. Казна также растёт от победы над Стражем, заданий клана (+300 / +1500 🪙), войн и рейтинга. Забирать, выдавать, продавать и разбирать вещи из хранилища могут глава, офицеры и казначей.</p><p><b>⛏️ Руда в казне</b>: напрямую руду внести нельзя. Она приходит за победу над Стражем врат и при <b>разборе вещей из хранилища</b>: участник вносит экипировку («Внести вещь»), а глава, офицер или казначей нажимает «Разобрать» — серебро и руда от разбора идут в казну («Продать» даёт золото). Руда, положенная в хранилище как предмет, в казну не засчитывается. Казна тратится на клановые проекты и повышение уровня клана.</p><p><b>🐲 Рейд</b> — настоящий пошаговый бой со Стражем врат раз в сутки: 12 ходов, навыки, защита, зелья и три фазы босса. Навык с эффектом (оглушение, яд, щит…) оставляет <b>связку</b> следующему соклановцу — его атакующий навык станет сильнее.</p><p><b>Поиск и заявки</b>: «🔍 Найти клан» показывает все кланы; в открытые можно вступить сразу, в закрытые — подать заявку (глава и офицеры принимают её в Штабе). Глава может задать <b>эмблему</b> и <b>приветствие</b> новичкам, а неактивных 3+ дня исключать прямо из списка вклада. В кооп-подземельях с соклановцем награда <b>+20%</b>.</p><p><b>Смена главы</b>: если глава клана не заходит в игру 3 дня, лидерство автоматически переходит к участнику с самым высоким уровнем из тех, кто заходил за последние 3 дня. Бывший глава остаётся офицером. Тег клана <b>[ТЕГ]</b> виден перед ником в чатах и в профиле.</p>`],
     ['👥 Друзья и приглашения', `<p>Меню → «Друзья»: поиск по имени, @username или ID, личные сообщения, сделки, приглашения в кооп.</p><p><b>🎁 Пригласить друга</b>: отправьте свою ссылку. Когда герой друга достигнет 10 уровня, вы оба получите <b>Premium на 3 дня</b>.</p>`],
     ['👑 Premium', `<p>150 ⭐ на 30 дней: автобой и автопродолжение серии, <b>автоодевание</b> лучших вещей, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.</p>`],
@@ -1009,7 +1009,7 @@
           if (!confirm(`Вставить «${g.name}» в «${i.name}»? Это навсегда.`)) return;
           B().setPlayer(cur => {
             if (!cur || gemCount(cur, g) < 1) return cur;
-            const upd = it => ({...it, stats: {...(it.stats || {}), [g.stat]: (it.stats?.[g.stat] || 0) + g.value}, gems: [...(it.gems || []), g.id]});
+            const upd = it => ({...it, stats: {...(it.stats || {}), [g.stat]: (it.stats?.[g.stat] || 0) + g.value}, gems: [...(it.gems || []), g.id], ...(it.aeOver ? {aeOver: {...it.aeOver, diff: -1, base: {...it.aeOver.base, [g.stat]: (it.aeOver.base[g.stat] || 0) + g.value}}} : {})});
             const inv0 = takeFromBag(cur.inventory, x => x.templateId === 'ae_gem_' + g.id, 1); if (!inv0) return cur;
             if (slot) { const e = cur.equipped?.[slot]; if (!e || e.id !== i.id || (e.gems || []).length >= max) return cur; return {...cur, inventory: inv0, equipped: {...cur.equipped, [slot]: upd(e)}}; }
             const idx = inv0.findIndex(x => x.id === i.id); if (idx < 0 || (inv0[idx].gems || []).length >= max) return cur;
@@ -1964,6 +1964,29 @@
     bonusSnap.gold += addG;
     const el = h('div', {class: 'ae-clan-bonus-pop'}, `🛡️ Бонус клана: ${[addG && `+${fmt(addG)} 🪙`, addE && `+${fmt(addE)} опыта`].filter(Boolean).join(' · ')}`); document.body.append(el); setTimeout(() => el.remove(), 2200);
   }
+  // Gear up to 10 levels above the hero can be worn early: its stats are weakened by 6% per level of difference
+  // (down to 40%) until the hero catches up. The original stats are kept on the item and restored automatically.
+  const overFactor = diff => Math.max(0.4, 1 - 0.06 * diff);
+  const scaleStats = (st, f) => Object.fromEntries(Object.entries(st || {}).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v * f * 10) / 10 : v]));
+  function overLevelFix(it, level, worn) {
+    if (!it || typeof it !== 'object') return it;
+    const diff = worn ? (it.level || 1) - level : 0;
+    if (diff > 0) { const base = it.aeOver?.base || it.stats || {}; if (it.aeOver?.diff === diff) return it; return {...it, stats: scaleStats(base, overFactor(diff)), aeOver: {base, diff}}; }
+    if (it.aeOver) { const {aeOver, ...rest} = it; return {...rest, stats: aeOver.base}; }
+    return it;
+  }
+  let overNotified = '';
+  function overLevelTick() {
+    const p = me(), b = B(); if (!p?.equipped || !b?.setPlayer) return;
+    const lvl = p.level || 1, needs = Object.values(p.equipped).some(it => it && ((it.level || 1) > lvl ? it.aeOver?.diff !== (it.level || 1) - lvl : !!it.aeOver)) || (p.inventory || []).some(it => it?.aeOver);
+    if (!needs) return;
+    b.setPlayer(x => { if (!x) return x; const L = x.level || 1;
+      return {...x, equipped: Object.fromEntries(Object.entries(x.equipped || {}).map(([k, it]) => [k, overLevelFix(it, L, true)])), inventory: (x.inventory || []).map(it => overLevelFix(it, L, false))}; });
+    const worst = Object.values(p.equipped).filter(it => it && (it.level || 1) > lvl).sort((a, c) => c.level - a.level)[0];
+    const key = worst ? worst.id + ':' + lvl : '';
+    if (worst && key !== overNotified) { overNotified = key; const d = worst.level - lvl;
+      toast(`⚠️ «${worst.name}» на ${d} ур. выше героя: характеристики −${Math.round((1 - overFactor(d)) * 100)}% до ${worst.level} уровня`); }
+  }
   // One timer for everything that watches the hero's save; it does nothing until the hero object changes.
   let watchedHero = null, watchedEq = null, watchedSlots = null;
   setInterval(() => {
@@ -1975,9 +1998,199 @@
       if (watchedSlots && !autoBusy) { const off = Object.entries(watchedSlots).filter(([k, id]) => id && now[k] !== id).map(([, id]) => id); if (off.length) rememberJudged(off.flatMap(id => [id, id + '@L' + (p.level || 1)])); }
       watchedSlots = now; } }
     if (!changed && !Object.keys(cxPend).length) return;
-    for (const fn of changed ? [legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
+    for (const fn of changed ? [overLevelTick, legendaryTick, luckTick, arenaTick, clanTick] : [clanTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
   }, 1000);
   setTimeout(() => loadClanX(), 6000); setInterval(() => loadClanX(), 600000);
+  // ---------- player market: wallet top-up / withdrawal, auctions, selling and price offers from the chat ----------
+  const LOT_RE = /⟦ae:l:([A-Za-z0-9+/=]+)⟧/;
+  const opsKey = () => 'aeth_market_ops_' + uid();
+  const opApplied = op => { try { return JSON.parse(localStorage.getItem(opsKey()) || '[]').includes(op); } catch { return false; } };
+  const markOp = op => { let l; try { l = JSON.parse(localStorage.getItem(opsKey()) || '[]'); } catch { l = []; } l.push(op); localStorage.setItem(opsKey(), JSON.stringify(l.slice(-100))); };
+  const refreshServerBag = () => window.dispatchEvent(new Event('aethelgard-market-inventory-refresh'));
+  async function walletMove(kind, amount) {
+    const b = B(), p = me(); if (!b || !p) throw new Error('Игра ещё загружается.');
+    if (kind === 'deposit' && (p.gold || 0) < amount) throw new Error('Не хватает золота у героя.');
+    const op = uuid4(), r = await api('/api/ae-market/' + kind, 'POST', {gold: amount, operationId: op});
+    if (!opApplied(op)) { markOp(op); b.setPlayer(x => x && {...x, gold: Math.max(0, (x.gold || 0) + (kind === 'deposit' ? -amount : amount))}); }
+    sfx.play('coins'); return r.balance;
+  }
+  // need: how much is missing for a purchase (opens with that amount filled in)
+  function openMarketWallet(need = 0, after) {
+    let bal = null, amount = need || 1000, busy = false;
+    const st = openPanel('👛 Кошелёк рынка', body => {
+      const p = me() || {};
+      body.append(h('p', {class: 'ae-note'}, 'Покупки у игроков, предложения цены и ставки на аукционе оплачиваются из кошелька рынка. Туда же приходит выручка от продаж. Переводите золото героя в кошелёк и обратно.'));
+      body.append(h('div', {class: 'ae-hq-pills ae-wallet-sum'}, h('span', {}, `👛 В кошельке: ${bal == null ? '…' : fmt(bal)} 🪙`), h('span', {}, `🧙 У героя: ${fmt(p.gold || 0)} 🪙`)));
+      if (need) body.append(h('div', {class: 'ae-pill'}, `Для покупки не хватает ${fmt(need)} 🪙 в кошельке рынка`));
+      const inp = h('input', {class: 'ae-input', type: 'number', min: '1', value: String(amount), oninput: e => { amount = Math.max(0, Math.floor(Number(e.target.value) || 0)); }});
+      body.append(inp, h('div', {class: 'ae-row ae-quick'}, [1000, 5000, 10000].map(v => h('button', {type: 'button', class: 'ae-btn', onclick: () => { amount = v; inp.value = v; }}, fmt(v))),
+        h('button', {type: 'button', class: 'ae-btn', onclick: () => { amount = p.gold || 0; inp.value = amount; }}, 'Всё')));
+      const go = kind => async () => { if (busy || !(amount > 0)) return; busy = true;
+        try { bal = await walletMove(kind, amount); toast(kind === 'deposit' ? `👛 В кошелёк рынка: +${fmt(amount)} 🪙` : `🧙 Герою: +${fmt(amount)} 🪙`); if (after && kind === 'deposit') { closePanel(); after(); return; } }
+        catch (e) { toast(cleanError(e)); } finally { busy = false; if (openPanelState === st) st.rerender(); } };
+      body.append(h('div', {class: 'ae-grid2'}, h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: go('deposit')}, after ? '➕ Пополнить и купить' : '➕ Пополнить кошелёк'), h('button', {type: 'button', class: 'ae-btn', onclick: go('withdraw')}, '➖ Вывести герою')));
+    });
+    api('/api/ae-market/wallet').then(r => { bal = r.balance; if (openPanelState === st) st.rerender(); }, () => {});
+  }
+  // One gold for the player: the market wallet is only the server's till for deals. Gold moves in right before a deal
+  // and income (sales, refunds of outbid bids or declined offers) moves straight back to the hero.
+  let walletBusy = false, sweepAt = 0;
+  async function ensureWallet(need) {
+    const r = await api('/api/ae-market/wallet'), bal = r.balance || 0; if (bal >= need) return true;
+    const diff = need - bal, have = me()?.gold || 0;
+    if (have < diff) { toast(`Не хватает ${fmt(diff - have)} 🪙 золота.`); sfx.play('fail'); return false; }
+    await walletMove('deposit', diff); return true;
+  }
+  async function sweepWallet(force) {
+    if (walletBusy || !uid() || (!force && Date.now() - sweepAt < 45e3)) return; sweepAt = Date.now();
+    try { const bal = (await api('/api/ae-market/wallet')).balance || 0; if (bal <= 0 || walletBusy) return;
+      await walletMove('withdraw', bal); toast(`💰 С рынка: +${fmt(bal)} 🪙`); } catch {}
+  }
+  setTimeout(() => sweepWallet(true), 12000); setInterval(() => { if (!document.hidden) sweepWallet(); }, 60e3);
+  const walletError = (e, retry) => { const m = String(e?.message || e || '').match(/Не хватает (\d+) золота в кошельке рынка/); if (!m) return false;
+    (async () => { walletBusy = true; try { if (await ensureWallet(Number(m[1]) + 0) || false) await retry(); } finally { walletBusy = false; setTimeout(() => sweepWallet(true), 1500); } })().catch(err => toast(cleanError(err)));
+    return true; };
+  const leftShort = at => { const ms = Date.parse(at) - Date.now(); if (ms <= 0) return 'завершается'; const m = Math.ceil(ms / 60e3), hh = Math.floor(m / 60); return hh >= 24 ? `${Math.floor(hh / 24)} д ${hh % 24} ч` : hh ? `${hh} ч ${m % 60} мин` : `${m} мин`; };
+  const lotItemRow = (it, extra) => { const fake = {...it}; return h('div', {class: 'ae-row ae-lot-item', 'data-ae-rarity': it.rarity || 'common'}, h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
+    h('div', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')), extra || ''); };
+  // Turn a bag item into a server-held one (needed to put it on sale), returns the server item id.
+  async function serverIdOf(item) {
+    if (item.serverOwned) return item.id;
+    if (!depositable(item)) throw new Error('На продажу можно выставить снаряжение (надетые вещи сначала снимите).');
+    return (await depositItem(item)).id;
+  }
+  const dropFromBag = id => B()?.setPlayer(x => x && {...x, inventory: x.inventory.flatMap(i => i.id !== id ? [i] : (i.stackCount || 1) > 1 ? [{...i, stackCount: i.stackCount - 1}] : [])});
+  const sellable = i => i && !i.isEquipped && !i.isLocked && !i.boundToClan && (i.serverOwned || depositable(i));
+  async function lotAction(path, body, okText) {
+    const run = () => api('/api/ae-market/lot/' + path, 'POST', body);
+    walletBusy = true;
+    try {
+      try { await run(); }
+      catch (e) { const m = String(e?.message || '').match(/Не хватает (\d+) золота в кошельке рынка/); if (!m) throw e;
+        const bal = (await api('/api/ae-market/wallet')).balance || 0; if (!(await ensureWallet(bal + Number(m[1])))) return false; await run(); }
+      toast(okText); sfx.play('coins'); if (path === 'buy' || path === 'cancel' || path === 'decide') setTimeout(refreshServerBag, 300); lotCache.clear(); return true;
+    } catch (e) { toast(cleanError(e)); return false; }
+    finally { walletBusy = false; setTimeout(() => sweepWallet(true), 1500); }
+  }
+  function openAuction(tab = 'all') {
+    let d = null, mine = null, pick = null;
+    const load = async () => { try { [d, mine] = await Promise.all([api('/api/ae-market/lots'), api('/api/ae-market/lots?mine=1')]); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const bid = async l => { const min = l.bid ? l.bid.amount + l.step : l.start, v = prompt(`Ваша ставка на «${baseName(l.item)}» (минимум ${min} 🪙):`, String(min)); if (v == null) return;
+      if (await lotAction('bid', {id: l.id, amount: Math.floor(Number(v))}, '🔨 Ставка принята')) load(); };
+    const st = openPanel('🔨 Аукцион и лоты', body => {
+      body.append(h('div', {class: 'ae-tabs'}, [['all', '🔨 Торги'], ['mine', '📦 Мои лоты и ставки'], ['sell', '➕ Выставить']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      body.append(h('div', {class: 'ae-row ae-wallet-line'}, h('span', {class: 'ae-grow'}, `🪙 Ваше золото: ${fmt(me()?.gold || 0)}`)));
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      if (tab === 'all') {
+        if (!d.lots.length) body.append(h('p', {class: 'ae-empty'}, 'Сейчас торгов нет. Выставите свою вещь во вкладке «Выставить».'));
+        for (const l of d.lots) body.append(h('div', {class: 'ae-card ae-lot'}, lotItemRow(l.item),
+          h('div', {class: 'ae-lot-info'}, h('span', {}, l.bid ? `Ставка: ${fmt(l.bid.amount)} 🪙 · ${l.bid.mine ? 'ваша' : l.bid.name}` : `Старт: ${fmt(l.start)} 🪙`), h('span', {}, `⏳ ${leftShort(l.endsAt)} · ставок ${l.bids}`), h('small', {}, `Продавец: ${l.seller.name}`)),
+          l.mine ? h('div', {class: 'ae-sub'}, 'Ваш лот') : h('div', {class: 'ae-row'}, h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', disabled: !!l.bid?.mine, onclick: () => bid(l)}, l.bid?.mine ? 'Вы лидируете' : `🔨 Ставка от ${fmt(l.bid ? l.bid.amount + l.step : l.start)}`),
+            l.price ? h('button', {type: 'button', class: 'ae-btn', onclick: async () => { if (confirm(`Выкупить «${baseName(l.item)}» за ${l.price} 🪙?`) && await lotAction('buy', {id: l.id}, '🎁 Куплено — вещь в сумке')) load(); }}, `Выкуп ${fmt(l.price)}`) : '')));
+        body.append(h('p', {class: 'ae-sub'}, 'Ставка списывается с вашего золота и возвращается, если её перебьют. Ставка в последние 2 минуты продлевает торги на 2 минуты. Налог продавца 3% (с Premium 0%).'));
+      }
+      if (tab === 'mine') {
+        const list = mine?.lots || [];
+        if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'У вас нет лотов и ставок.'));
+        for (const l of list) body.append(h('div', {class: 'ae-card ae-lot'}, lotItemRow(l.item),
+          h('div', {class: 'ae-lot-info'}, h('span', {}, l.kind === 'auction' ? '🔨 Аукцион' : '💬 Продажа из чата'),
+            h('span', {}, l.status === 'active' ? (l.kind === 'auction' ? `${l.bid ? `ставка ${fmt(l.bid.amount)} (${l.bid.mine ? 'ваша' : l.bid.name})` : `старт ${fmt(l.start)}`} · ⏳ ${leftShort(l.endsAt)}` : `${l.price ? `цена ${fmt(l.price)} 🪙` : 'только предложения'}${l.myOffer ? ` · ваше предложение ${fmt(l.myOffer)}` : ''}`)
+              : l.status === 'sold' ? `✅ Продано за ${fmt(l.soldPrice)} 🪙 · ${l.buyer}` : l.status === 'returned' ? '↩️ Вернулось в сумку' : '✖️ Снято')),
+          l.mine && l.offers?.length ? h('div', {class: 'ae-lot-offers'}, l.offers.map(o => h('div', {class: 'ae-row'}, h('span', {class: 'ae-grow'}, `💬 ${o.name}: ${fmt(o.price)} 🪙`),
+            h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async () => { if (await lotAction('decide', {id: l.id, offerId: o.id, accept: true}, '💰 Продано')) load(); }}, 'Принять'),
+            h('button', {type: 'button', class: 'ae-btn', onclick: async () => { if (await lotAction('decide', {id: l.id, offerId: o.id, accept: false}, 'Отклонено')) load(); }}, '✖')))) : '',
+          l.mine && l.status === 'active' && !(l.kind === 'auction' && l.bid) ? h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: async () => { if (confirm('Снять лот? Вещь вернётся в сумку.') && await lotAction('cancel', {id: l.id}, '↩️ Лот снят')) load(); }}, 'Снять с продажи') : ''));
+      }
+      if (tab === 'sell') {
+        const list = (me()?.inventory || []).filter(sellable).sort((a, b) => (b.level || 0) - (a.level || 0));
+        if (!pick) {
+          body.append(h('p', {class: 'ae-note'}, 'Выберите вещь. Пока идут торги, она хранится у рынка — покупатель получит её, даже если вы не в игре.'));
+          if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'В сумке нет вещей для продажи (надетые и запертые вещи не подходят).'));
+          for (const it of list) body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', onclick: () => { pick = it; st.rerender(); }}, ...lotItemRow(it).childNodes));
+          return;
+        }
+        const start = h('input', {class: 'ae-input', type: 'number', min: '1', placeholder: 'Стартовая цена', value: String(Math.max(10, (pick.sellPrice || 10) * 3))});
+        const buyout = h('input', {class: 'ae-input', type: 'number', min: '1', placeholder: 'Цена выкупа (необязательно)'});
+        let hours = 24; const dur = h('div', {class: 'ae-tabs'}, [1, 6, 24, 48].map(v => h('button', {type: 'button', class: 'ae-tab' + (v === hours ? ' is-on' : ''), onclick: e => { hours = v; dur.querySelectorAll('.ae-tab').forEach(b => b.classList.toggle('is-on', b === e.currentTarget)); }}, `${v} ч`)));
+        body.append(h('div', {class: 'ae-card'}, lotItemRow(pick)), h('b', {}, 'Стартовая цена'), start, h('b', {}, 'Выкуп сразу (необязательно)'), buyout, h('b', {}, 'Длительность'), dur,
+          h('div', {class: 'ae-grid2'}, h('button', {type: 'button', class: 'ae-btn', onclick: () => { pick = null; st.rerender(); }}, '← Другая вещь'),
+            h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async ev => {
+              const err = canAct(); if (err) return toast(err); ev.currentTarget.disabled = true;
+              try { const id = await serverIdOf(pick); await api('/api/ae-market/lot', 'POST', {kind: 'auction', itemId: id, start: Math.floor(Number(start.value)), price: buyout.value ? Math.floor(Number(buyout.value)) : null, hours});
+                dropFromBag(id); rememberGone([id]); toast('🔨 Лот выставлен на аукцион'); sfx.play('coins'); pick = null; tab = 'mine'; load(); }
+              catch (e) { toast(cleanError(e)); ev.currentTarget.disabled = false; } }}, '🔨 Выставить')));
+      }
+    }, {cls: 'ae-hq-panel'});
+    load();
+  }
+  // Chat: share an item for show, or put it up for sale (fixed price and/or offers).
+  function openShareItem(item) {
+    const st = openPanel('📢 Вещь в общий чат', body => {
+      const price = h('input', {class: 'ae-input', type: 'number', min: '1', placeholder: 'Цена в золоте (пусто — только предложения)'});
+      body.append(h('div', {class: 'ae-card'}, lotItemRow(item)),
+        h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => { closePanel(); shareItem(item); }}, '👀 Просто показать'),
+        h('h3', {class: 'ae-h3'}, '💰 Продать через чат'), price,
+        h('p', {class: 'ae-sub'}, 'Вещь уйдёт на хранение рынку. Игроки смогут сразу купить её за вашу цену или предложить свою — вы примете лучшее предложение. Золото придёт вам, вещь без продажи вернётся через 7 дней.'),
+        h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', disabled: !sellable(item), onclick: async ev => {
+          const err = canAct(); if (err) return toast(err); ev.currentTarget.disabled = true;
+          try { const id = await serverIdOf(item), p = price.value ? Math.floor(Number(price.value)) : null;
+            const r = await api('/api/ae-market/lot', 'POST', {kind: 'chat', itemId: id, price: p}); dropFromBag(id); rememberGone([id]);
+            const compact = {id: r.lot.id, p, n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, t: item.type, s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
+            await api('/api/chat/global', 'POST', {text: `💰 Продаю: ${compact.n}${p ? ` — ${p} 🪙` : ' — жду предложений'} ⟦ae:l:${enc(compact)}⟧`});
+            closePanel(); toast('Вещь выставлена в общем чате'); sfx.play('coins'); }
+          catch (e) { toast(cleanError(e)); ev.currentTarget.disabled = false; } }}, sellable(item) ? '💰 Выставить на продажу' : 'Эту вещь нельзя продать'));
+    });
+  }
+  const lotCache = new Map(); let lotFetch = null;
+  function lotStatus(id) {
+    const c = lotCache.get(id); if (c && Date.now() - c.at < 30e3) return c.lot;
+    if (!lotFetch) { lotFetch = setTimeout(async () => { const ids = [...document.querySelectorAll('[data-ae-lot]')].map(e => e.dataset.aeLot); lotFetch = null; if (!ids.length) return;
+      try { const r = await api('/api/ae-market/lots?ids=' + [...new Set(ids)].join(',')); const got = new Set(); for (const l of r.lots) { lotCache.set(l.id, {lot: l, at: Date.now()}); got.add(l.id); }
+        for (const id of ids) if (!got.has(id)) lotCache.set(id, {lot: {status: 'gone'}, at: Date.now()});
+        for (const el of document.querySelectorAll('[data-ae-lot]')) el.replaceWith(lotChatCard(JSON.parse(el.dataset.aeLotData))); } catch {} }, 250); }
+    return c?.lot || null;
+  }
+  function lotChatCard(o) {
+    const l = lotStatus(o.id), fake = {name: o.n, rarity: o.r, level: o.l, upgradeLevel: o.u, type: o.t, stats: o.s}, closed = l && l.status !== 'active';
+    const buy = async e => { e.stopPropagation(); if (!confirm(`Купить «${o.n}» за ${o.p} 🪙?`)) return; if (await lotAction('buy', {id: o.id}, '🎁 Куплено — вещь в сумке')) lotCache.delete(o.id); };
+    const offer = async e => { e.stopPropagation(); const v = prompt(`Ваша цена за «${o.n}» (золото резервируется и вернётся, если продавец откажет):`, String(o.p ? Math.round(o.p * 0.8) : '')); if (v == null) return;
+      if (await lotAction('offer', {id: o.id, price: Math.floor(Number(v))}, '💬 Предложение отправлено продавцу')) lotCache.delete(o.id); };
+    return h('div', {class: 'ae-chat-item ae-chat-lot' + (closed ? ' is-closed' : ''), 'data-ae-rarity': o.r || 'common', 'data-ae-lot': o.id, 'data-ae-lot-data': JSON.stringify(o), onclick: e => e.stopPropagation()},
+      h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
+      h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`), h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || ''),
+        h('small', {class: 'ae-lot-price'}, closed ? (l.status === 'sold' ? `✅ Продано${l.soldPrice ? ` за ${fmt(l.soldPrice)} 🪙` : ''}` : '✖️ Снято с продажи') : o.p ? `💰 ${fmt(o.p)} 🪙` : '💬 Ждёт предложений')),
+      closed ? '' : l?.mine ? h('button', {type: 'button', class: 'ae-btn', onclick: e => { e.stopPropagation(); openAuction('mine'); }}, l.offers?.length ? `Предложения: ${l.offers.length}` : 'Ваш лот')
+        : h('span', {class: 'ae-lot-btns'}, o.p ? h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: buy}, 'Купить') : '', h('button', {type: 'button', class: 'ae-btn', onclick: offer}, l?.myOffer ? `Ваша: ${fmt(l.myOffer)}` : 'Своя цена')));
+  }
+  // Market screen: wallet controls + auction entry next to the market wallet line; a friendly fix for «not enough in the wallet».
+  function injectMarketTools() {
+    const main = document.querySelector('main'); if (!main) return;
+    if (document.hidden) return;
+    const line = [...main.querySelectorAll('p, div, span')].find(e => /^Кошелёк рынка:/.test((e.textContent || '').trim()) && (e.textContent || '').length < 60 && !e.querySelector('button, p, div'));
+    for (const el of main.querySelectorAll('[data-ae-lot]')) { const c = lotCache.get(el.dataset.aeLot); if (!c || Date.now() - c.at > 30e3) lotStatus(el.dataset.aeLot); }
+    if (line && !line.parentElement.querySelector(':scope > [data-ae-market-tools]')) line.after(h('div', {class: 'ae-market-one', 'data-ae-market-tools': '1'},
+      h('small', {}, `🪙 Покупки оплачиваются золотом героя, выручка от продаж приходит туда же. Налог продавца 3% (с Premium 0%).`),
+      h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => openAuction()}, '🔨 Аукцион и мои лоты')));
+    if (line) line.classList.add('ae-hide');
+    for (const el of main.querySelectorAll('p')) if (!el.dataset.aeOneGold && /отдельный серверный кошел[её]к рынка|Золото из локального сохранения/.test(el.textContent || '')) { el.dataset.aeOneGold = '1'; el.classList.add('ae-hide'); }
+    for (const el of main.querySelectorAll('p, span, div')) if (!el.childElementCount && /^(Кошел[её]к рынка|Ваш кошел[её]к рынка)\b/.test((el.textContent || '').trim()) && el !== line) el.classList.add('ae-hide');
+    for (const el of main.querySelectorAll('p, div, span')) if (!el.childElementCount && /Недостаточно золота в кошельке рынка/.test(el.textContent || '') && !el.dataset.aeWalletFix) {
+      el.dataset.aeWalletFix = '1'; el.classList.add('ae-hide');
+    }
+  }
+  setInterval(() => { if (document.hidden) return; for (const el of document.querySelectorAll('[data-ae-lot]')) { const c = lotCache.get(el.dataset.aeLot); if (!c || Date.now() - c.at > 15e3) { lotCache.delete(el.dataset.aeLot); lotStatus(el.dataset.aeLot); } } }, 15000);
+  // «Купить» on a market listing: if the wallet is short, offer to top it up first and then buy.
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest?.('main button'); if (!btn || btn.dataset.aeBuyOk || !/^Купить$/.test((btn.textContent || '').trim())) return;
+    let card = btn; for (let i = 0; i < 5 && card && !/Продавец:/.test(card.textContent || ''); i++) card = card.parentElement;
+    if (!card || !/Продавец:/.test(card.textContent || '')) return;
+    const m = (card.textContent || '').replace(/ /g, ' ').match(/(\d[\d ]*)\s*Купить/); const price = m ? Number(m[1].replace(/ /g, '')) : 0; if (!price) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (walletBusy) return; walletBusy = true;
+    try { if (!(await ensureWallet(price))) return; btn.dataset.aeBuyOk = '1'; btn.click(); setTimeout(() => { delete btn.dataset.aeBuyOk; }, 500); }
+    catch (err) { toast(cleanError(err)); }
+    finally { setTimeout(() => { walletBusy = false; sweepWallet(true); }, 4000); }
+  }, true);
   function renderChatItems() {
     for (const el of document.querySelectorAll('main *, .game-dialog-backdrop *')) {
       if (!el.childElementCount && COOP_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
@@ -1987,6 +2200,10 @@
       if (!el.childElementCount && CLAN_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
         const m = el.textContent.match(CLAN_RE), o = dec(m[1]);
         if (o && o.c) { const before = el.textContent.replace(CLAN_RE, '').replace(/🛡️ Клан \[[^\]]*\] «[^»]*» набирает героев/, '').trim(); el.replaceChildren(before ? h('span', {}, before + ' ') : '', clanChatCard(o)); continue; }
+      }
+      if (!el.childElementCount && LOT_RE.test(el.textContent || '') && !el.closest('.ae-chat-item, textarea, input')) {
+        const m = el.textContent.match(LOT_RE), o = dec(m[1]);
+        if (o && o.id) { const before = el.textContent.replace(LOT_RE, '').replace(/💰 Продаю: .*$/, '').trim(); el.replaceChildren(before ? h('span', {}, before + ' ') : '', lotChatCard(o)); continue; }
       }
       if (el.childElementCount || !TOKEN_RE.test(el.textContent || '') || el.closest('.ae-chat-item, textarea, input')) continue;
       const m = (el.textContent || '').match(TOKEN_RE), o = m && dec(m[1]); if (!o) continue;
@@ -2005,7 +2222,7 @@
       const btns = [...d.querySelectorAll('button')].filter(b => /Надеть|Снять|Продать|Разобрать|Запереть|Отпереть|Экипировать|Защитить|кузниц/i.test(b.textContent || ''));
       const anchor = btns[btns.length - 1]; if (!anchor) continue;
       const styleFrom = btns.filter(b => !b.disabled && !/Экипировать/.test(b.textContent || '')).pop() || anchor;
-      anchor.parentElement.insertBefore(h('button', {type: 'button', class: styleFrom.className.replace(/\bopacity-\S+|\bdisabled:\S+/g, '') + ' ae-share', 'data-ae-share': '1', onclick: () => shareItem(findItem(lastTileId) || item)}, '📢 В чат'), anchor.nextSibling);
+      anchor.parentElement.insertBefore(h('button', {type: 'button', class: styleFrom.className.replace(/\bopacity-\S+|\bdisabled:\S+/g, '') + ' ae-share', 'data-ae-share': '1', onclick: () => openShareItem(findItem(lastTileId) || item)}, '📢 В чат'), anchor.nextSibling);
     }
   }
 
@@ -2046,13 +2263,16 @@
     const beer = [...document.querySelectorAll('main *')].find(e => !e.childElementCount && /^Кружка пива$/.test((e.textContent || '').trim()) && e.offsetParent);
     if (!beer) return;
     let card = beer; for (let i = 0; i < 6 && card && !card.querySelector('button'); i++) card = card.parentElement;
-    if (!card || card.parentElement.querySelector(':scope > [data-ae-moonshine]')) return;
+    if (!card) return;
     const p = me(), full = p && p.energy >= p.maxEnergy, mugs = p?.intoxication?.mugs || 0;
-    const block = h('div', {class: 'ae-moonshine', 'data-ae-moonshine': '1'},
-      h('div', {class: 'ae-row'}, h('span', {class: 'ae-entry-icon'}, '🥃'), h('div', {class: 'ae-grow'}, h('b', {}, 'Гномий самогон'), h('div', {class: 'ae-sub'}, '+25 энергии · бесплатно')),
-        h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: drinkMoonshine}, 'Выпить')),
-      h('div', {class: 'ae-sub'}, 'Крепче пива: −15% атаки и защиты на 5 боёв (как три кружки). Опьянение копится, максимум −50%.'));
+    const have = card.parentElement.querySelector(':scope > [data-ae-moonshine] [data-ae-drink]'); if (have) { if (have.disabled !== !!full) have.disabled = !!full; return; }
+    const btn = card.querySelector('button[data-drink-beer]');
+    const block = h('div', {class: 'tavern-beer-row ae-moonshine', 'data-ae-moonshine': '1'}, h('span', {class: 'ae-moon-thumb'}, '🥃'),
+      h('div', {class: 'tavern-beer-copy'}, h('h3', {}, 'Гномий самогон'), h('p', {class: 'tavern-beer-benefits'}, '+25 энергии · −15% на 5 боёв')),
+      h('button', {type: 'button', class: btn?.className || '', 'data-ae-drink': '1', disabled: full, onclick: drinkMoonshine}, 'Выпить'));
     card.parentElement.insertBefore(block, card.nextSibling);
+    const det = card.parentElement.querySelector('.tavern-beer-details');
+    if (det && !det.querySelector('[data-ae-moon-info]')) det.append(h('p', {'data-ae-moon-info': '1'}, 'Гномий самогон: +25 энергии, но −15% атаки и защиты на 5 боёв (как три кружки). Опьянение копится, максимум −50%.'));
   }
   function drinkMoonshine() {
     const b = B(), p = me(); if (!b || !p) return;
@@ -2073,9 +2293,11 @@
       const target = Number(e.data?.level) || 0;
       b.setPlayer(p => { if (!p || target <= (p.level || 1) || !b.gainExp) return p; let x = p; for (let i = 0; i < 130 && (x.level || 1) < target; i++) x = b.gainExp(x, Math.max(1, (x.nextExp || 100) - (x.exp || 0))).player; return x; });
     }
+    if (e.kind === 'market-item') setTimeout(refreshServerBag, 300);
+    if (e.kind === 'market' || e.kind === 'auction-outbid') setTimeout(() => sweepWallet(true), 800);
     if (e.kind === 'trade_paid' && b) { if (!tradeDone().has('paid:' + e.data?.offerId)) { markTrade('paid:' + e.data?.offerId); b.setPlayer(p => p && {...p, gold: (p.gold || 0) + (Number(e.data?.gold) || 0)}); } }
     if (e.kind === 'trade_return' && b && e.data?.item) { if (!tradeDone().has('ret:' + e.data.offerId)) { markTrade('ret:' + e.data.offerId); giveItem(e.data.item); } }
-    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
+    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'lot-offer' ? ['Ответить', () => openAuction('mine')] : e.kind === 'auction-outbid' ? ['Перебить', () => openAuction('all')] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
     popup({icon: e.icon || '🔔', text: e.text, act: act[0], fn: act[1]});
   }
 
@@ -3016,7 +3238,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); injectMarketTools(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -3034,6 +3256,27 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   const css = `
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
+.ae-hide{display:none!important}.ae-market-one{display:flex;flex-direction:column;gap:6px;margin:6px 0}.ae-market-one small{opacity:.8;font-size:12px;line-height:1.4}
+.ae-lot{display:flex;flex-direction:column;gap:6px}.ae-lot-item img{width:40px;height:40px;object-fit:contain;flex:none}.ae-lot-item small{display:block;opacity:.75;font-size:11.5px}
+.ae-lot-info{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px}.ae-lot-info small{opacity:.7;width:100%}.ae-lot-offers{display:flex;flex-direction:column;gap:4px}
+.ae-wallet-line{font-size:12.5px;margin:4px 0}.ae-chat-lot{display:flex;align-items:center;gap:8px;cursor:default}.ae-chat-lot.is-closed{opacity:.6}
+.ae-lot-price{color:#facc15;font-weight:700}.ae-lot-btns{display:flex;flex-direction:column;gap:4px;flex:none}.ae-lot-btns .ae-btn{min-height:30px;padding:3px 10px;font-size:12px}
+.tavern-beer-card{padding:8px 10px!important;margin-bottom:8px!important}.tavern-beer-card .tavern-beer-row{gap:10px!important}
+.tavern-beer-card .tavern-beer-row>img.tavern-beer-thumb,.ae-moon-thumb{flex:0 0 36px!important;width:36px!important;height:36px!important;border-radius:8px}
+.game-tavern [data-ae-drink]{color:#ffe6ad;background:#604821;border:1px solid #a58a4f;border-radius:8px;font-weight:700}.game-tavern [data-ae-drink]:disabled{opacity:.55}
+.ae-moon-thumb{display:grid;place-items:center;font-size:22px;background:#ffffff0d;border:1px solid #ffffff1a}
+.tavern-beer-card .tavern-beer-copy h3{font-size:13.5px!important;margin:0 0 1px!important}.tavern-beer-card .tavern-beer-benefits{font-size:11px!important}
+.tavern-beer-card .tavern-beer-row>button{min-height:34px!important;padding:4px 14px!important;font-size:12.5px!important;flex:none}
+.tavern-beer-card .tavern-beer-row.ae-moonshine{display:flex!important;flex-direction:row!important;align-items:center!important;text-align:left!important;margin:8px 0 0!important;padding:8px 0 0!important;border:0!important;border-top:1px dashed #ffffff1a!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+.tavern-beer-card .tavern-beer-warning,.tavern-beer-card .tavern-current-effects{display:inline;margin:0!important;font-size:11px!important;opacity:.75}
+.tavern-beer-card .tavern-beer-warning{display:block;margin-top:6px!important}.tavern-beer-card .tavern-current-effects{display:flex!important;margin-top:2px!important}
+.tavern-beer-card .tavern-hint{display:none!important}
+.tavern-beer-card .tavern-beer-details summary{min-height:30px!important;font-size:11.5px}
+#tavern-chat .chat-header{padding:8px 12px!important}#tavern-chat .chat-eyebrow,#tavern-chat .chat-subtitle{display:none!important}
+#tavern-chat .chat-header>div{margin-top:0!important}#tavern-chat .chat-header>div:last-child{position:absolute;right:58px;top:50%;transform:translateY(-50%)}
+#tavern-chat .chat-header{position:relative}#tavern-chat .chat-header h2{font-size:16px!important}
+#tavern-chat .chat-stream{min-height:max(320px,calc(100vh - 380px))!important}
+.game-tavern>h2,.game-tavern h2:first-child{margin-bottom:6px!important}
 [data-ae-mine-lifted] button>div.justify-between{width:100%}[data-ae-mine-lifted] button>div.justify-between>div:first-child{flex:1;min-width:0;text-align:left}
 [data-ae-mine-lifted] button>div.justify-between>span{flex:none;white-space:nowrap;min-width:52px;text-align:center}
 html:not([data-interface=modern]) [data-ae-mine-lifted] .text-cyan-200{color:#e5c678!important;font-family:Georgia,serif;font-size:14px}
@@ -3397,5 +3640,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();
