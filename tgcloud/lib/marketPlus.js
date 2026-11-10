@@ -163,7 +163,9 @@ export function handleMarketPlus(world, input, user, now, notify) {
   settleLots(world, now, notify);
   if (path === '/api/ae-market/wallet' || ((path === '/api/ae-market/deposit' || path === '/api/ae-market/withdraw') && method === 'POST')) return wallet(world, path, body, me, now);
   if (path === '/api/ae-market/lots' && method === 'GET') {
-    const q = new URLSearchParams(String(input.path).split('?')[1] || ''), ids = (q.get('ids') || '').split(',').filter(Boolean).slice(0, 30);
+    // (no URLSearchParams in the serverless isolate)
+    const qs = Object.fromEntries(String(input.path).split('?').slice(1).join('?').split('&').filter(Boolean).map(kv => { const i = kv.indexOf('='); return [decodeURIComponent(i < 0 ? kv : kv.slice(0, i)), decodeURIComponent(i < 0 ? '' : kv.slice(i + 1))]; }));
+    const q = {get: k => qs[k] ?? null}, ids = (q.get('ids') || '').split(',').filter(Boolean).slice(0, 30);
     const list = ids.length ? rows(world, 'ae_lots').filter(l => ids.includes(l.id))
       : rows(world, 'ae_lots').filter(l => q.get('mine') ? same(l.seller, me) || same(l.bid?.u, me) || rows(world, 'ae_lot_offers').some(o => o.lot === l.id && same(o.u, me) && o.status === 'pending') : l.kind === 'auction' && l.status === 'active')
         .sort((a, b) => String(a.endsAt || a.at).localeCompare(String(b.endsAt || b.at))).slice(0, 60);

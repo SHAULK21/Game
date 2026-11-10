@@ -65,7 +65,8 @@ export async function handleSocialRequest(world, input, user, now, native) {
     });
   }
   if (method === 'GET' && path === '/api/friends/search') {
-    const q = String(new URLSearchParams(String(input.path).split('?')[1] || '').get('q') || '').trim().toLocaleLowerCase().slice(0, 40);
+    // (no URLSearchParams in the serverless isolate)
+    const qm = String(input.path).match(/[?&]q=([^&]*)/), q = String(qm ? decodeURIComponent(qm[1].replace(/\+/g, ' ')) : '').trim().toLocaleLowerCase().slice(0, 40);
     if (q.length < 2) return ok({players: []});
     const found = rows(world, 'players').filter(p => !same(p.telegram_id, me) && (nameOf(p).toLocaleLowerCase().includes(q) || String(p.telegram_id) === q || String(p.username || '').toLocaleLowerCase() === q.replace(/^@/, '')))
       .slice(0, 20).map(p => ({...card(p, now), relation: link(world, me, p.telegram_id)?.status || null}));
