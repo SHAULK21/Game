@@ -137,6 +137,45 @@
     toastTimer = setTimeout(() => t.classList.remove('is-on'), 2600);
   }
 
+
+  // ---------- icons instead of emoji in the add-ons' own UI: one atlas: the game's own icons and painted ones in the same style ----------
+  // Emoji look different on every phone; these match the game. Only our own panels and buttons are touched,
+  // never the game's React-managed DOM.
+  const AE_ATLAS = {url: '/assets/ae-icons-v2.webp', cols: 6, rows: 9, icons: {"gold":[0,0],"silver":[1,0],"energy":[2,0],"attack":[3,0],"defend":[4,0],"hp":[5,0],"clan":[0,1],"crown":[1,1],"forge":[2,1],"arena":[3,1],"quest":[4,1],"map":[5,1],"hunt":[0,2],"potion":[1,2],"skill":[2,2],"monster":[3,2],"mine":[4,2],"inventory":[5,2],"settings":[0,3],"refresh":[1,3],"character":[2,3],"bestiary":[3,3],"compass":[4,3],"alchemy":[5,3],"market":[0,4],"stamina":[1,4],"crystal":[2,4],"coin":[3,4],"spark":[4,4],"key":[5,4],"badge":[0,5],"ore":[1,5],"herb":[2,5],"fang":[3,5],"bell":[4,5],"mail":[5,5],"gift":[0,6],"hammer":[1,6],"blade":[2,6],"zoom":[3,6],"paw":[4,6],"ticket":[5,6],"megaphone":[0,7],"news":[1,7],"coop":[2,7],"friends":[3,7],"book":[4,7],"chat":[5,7],"trophy":[0,8],"moon":[1,8],"calendar":[2,8]}};
+  const AE_LINE = { // 24×24 line icons for what the atlas has no picture of, painted in the text colour through a CSS mask
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  };
+  const AE_EMOJI = {'🪙': 'gold', '🥈': 'silver', '⚡': 'energy', '⚔': 'attack', '🛡': 'defend', '❤': 'hp', '👑': 'crown', '💎': 'crystal', '💰': 'market', '⚒': 'forge',
+    '🏟': 'arena', '📜': 'quest', '🗺': 'map', '🎯': 'hunt', '🧪': 'potion', '✨': 'skill', '👹': 'monster', '⛏': 'mine', '🎒': 'inventory', '⚙': 'settings', '🔄': 'refresh',
+    '👤': 'character', '📖': 'bestiary', '🧭': 'compass', '⚗': 'alchemy', '✦': 'spark', '🔑': 'key',
+    '🔔': 'bell', '✉': 'mail', '📨': 'mail', '🎁': 'gift', '🔨': 'hammer', '🗡': 'blade', '🔍': 'zoom', '🐾': 'paw', '🎟': 'ticket', '📢': 'megaphone', '📣': 'megaphone',
+    '📰': 'news', '🤝': 'coop', '👥': 'friends', '📚': 'book', '💬': 'chat', '🏆': 'trophy', '📦': 'inventory', '➕': 'plus', '🌕': 'moon', '🗓': 'calendar', '📅': 'calendar'};
+  const AE_EMOJI_RE = new RegExp('(' + Object.keys(AE_EMOJI).map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')️?', 'g');
+  const aeIcon = name => { const el = document.createElement('i'); el.className = 'ae-ic'; el.dataset.i = name; el.setAttribute('aria-hidden', 'true'); return el; };
+  (() => { // the CSS for every icon, generated once
+    const a = AE_ATLAS, rules = [`.ae-ic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.28em;flex:none;background:url(${a.url}) no-repeat;background-size:${a.cols * 100}% ${a.rows * 100}%}`];
+    for (const [n, [c, r]] of Object.entries(a.icons)) rules.push(`.ae-ic[data-i="${n}"]{background-position:${a.cols > 1 ? c / (a.cols - 1) * 100 : 0}% ${a.rows > 1 ? r / (a.rows - 1) * 100 : 0}%}`);
+    for (const [n, svg] of Object.entries(AE_LINE)) { const url = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>`)}")`;
+      rules.push(`.ae-ic[data-i="${n}"]{background:currentColor;-webkit-mask:${url} center/88% no-repeat;mask:${url} center/88% no-repeat}`); }
+    rules.push('.ae-gem-img{width:40px;height:40px;object-fit:contain;flex:none}.ae-gem-chip-img{width:1.4em;height:1.4em;object-fit:contain;vertical-align:-.35em}.ae-entry-icon .ae-ic,.ae-pop-i .ae-ic,.ae-inbox-i .ae-ic,.ae-gem-i .ae-ic{width:1.15em;height:1.15em;vertical-align:-.2em}.ae-head h2 .ae-ic{margin-right:.15em}');
+    document.head.append(h('style', {}, rules.join('\n')));
+  })();
+  const AE_IC_SCOPE = '.ae-backdrop, .ae-toast, .ae-pop, .ae-bv, .ae-bag-merge, .ae-coop-card, .ae-market-one, .ae-entry, .ae-2h-note, .ae-2h-btn, .ae-story, .ae-chat-item, .ae-float, .ae-premium, .ae-weekend, .ae-quick-btn, .ae-exp-ready, .ae-forge-up, .ae-pill-btn, .ae-place-badge';
+  function iconize(root) {
+    if (!root || root.nodeType !== 1 || !AE_EMOJI_RE.test(root.textContent || '')) return; AE_EMOJI_RE.lastIndex = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: t => { const p = t.parentElement; if (!p || p.closest('input, textarea, select, option, [contenteditable], .ae-ic, [data-ae-noic]')) return NodeFilter.FILTER_REJECT;
+      AE_EMOJI_RE.lastIndex = 0; return AE_EMOJI_RE.test(t.data) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }});
+    const hits = []; for (let t; (t = walker.nextNode());) hits.push(t);
+    for (const t of hits) { const frag = document.createDocumentFragment(); let last = 0; AE_EMOJI_RE.lastIndex = 0;
+      for (let m; (m = AE_EMOJI_RE.exec(t.data));) { if (m.index > last) frag.append(t.data.slice(last, m.index)); frag.append(aeIcon(AE_EMOJI[m[1]])); last = m.index + m[0].length; }
+      if (last < t.data.length) frag.append(t.data.slice(last)); t.replaceWith(frag); }
+  }
+  let icQueue = new Set(), icRaf = 0;
+  new MutationObserver(list => {
+    for (const m of list) { const el = m.target.nodeType === 1 ? m.target : m.target.parentElement; if (!el) continue;
+      const scope = el.closest(AE_IC_SCOPE) || [...m.addedNodes].find(n => n.nodeType === 1 && n.matches?.(AE_IC_SCOPE)); if (scope) icQueue.add(scope); }
+    if (icQueue.size && !icRaf) icRaf = requestAnimationFrame(() => { icRaf = 0; const q = icQueue; icQueue = new Set(); for (const r of q) try { iconize(r); } catch {} });
+  }).observe(document.documentElement, {childList: true, subtree: true});
   // ---------- panel ----------
   let openPanelState = null;
   function openPanel(title, render, {onClose, cls} = {}) {
@@ -1019,7 +1058,7 @@
         else body.append(h('div', {class: 'ae-pill'}, `Золото: ${fmt(p.gold)}`));
         for (const g of GEMS) {
           const have = gemCount(p, g), ok = tab === 'buy' ? (p.gold || 0) >= g.gold : (p.silver || 0) >= GEM_SILVER && g.recipe.every(([n, c]) => matCount(p, n) >= c);
-          body.append(h('div', {class: 'ae-card ae-row ae-gem-row'}, h('span', {class: 'ae-gem-i'}, g.icon),
+          body.append(h('div', {class: 'ae-card ae-row ae-gem-row'}, h('img', {class: 'ae-gem-img', src: '/assets/items/gear/gem_' + g.id + '.webp', alt: ''}),
             h('div', {class: 'ae-grow'}, h('b', {}, g.name), h('div', {class: 'ae-sub'}, `${g.label} +${g.value}${g.unit}${have ? ` · у вас: ${have}` : ''}`),
               tab === 'craft' ? h('div', {class: 'ae-gem-recipe'}, g.recipe.map(([n, c]) => h('span', {class: matCount(p, n) >= c ? 'ae-ing-ok' : 'ae-ing-low'}, `${n} ${Math.min(matCount(p, n), 999)}/${c}`))) : ''),
             h('button', {type: 'button', class: 'ae-btn' + (ok ? ' ae-primary' : ''), disabled: !ok, onclick: async ev => {
@@ -1049,7 +1088,7 @@
       const owned = GEMS.filter(g => gemCount(p, g) > 0);
       if (!owned.length) { body.append(h('p', {class: 'ae-empty'}, 'У вас нет кристаллов. ' + GEM_WHERE)); return; }
       body.append(h('h3', {class: 'ae-h3'}, '1. Выберите кристалл'));
-      body.append(h('div', {class: 'ae-gem-pick'}, owned.map(g => h('button', {type: 'button', class: 'ae-btn ae-gem-chip' + (pick === g.id ? ' is-on' : ''), onclick: () => { pick = g.id; st.rerender(); }}, `${g.icon} ${g.label} +${g.value}${g.unit} ×${gemCount(p, g)}`))));
+      body.append(h('div', {class: 'ae-gem-pick'}, owned.map(g => h('button', {type: 'button', class: 'ae-btn ae-gem-chip' + (pick === g.id ? ' is-on' : ''), onclick: () => { pick = g.id; st.rerender(); }}, h('img', {class: 'ae-gem-chip-img', src: '/assets/items/gear/gem_' + g.id + '.webp', alt: ''}), ` ${g.label} +${g.value}${g.unit} ×${gemCount(p, g)}`))));
       if (!pick) return;
       const g = GEMS.find(x => x.id === pick);
       body.append(h('h3', {class: 'ae-h3'}, '2. Выберите вещь'));
