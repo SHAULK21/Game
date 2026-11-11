@@ -26,7 +26,7 @@ const mitig = (dmg, def) => Math.max(1, Math.round(dmg * (1 - def / (def + 75)))
 export function pushEvent(world, to, icon, text, kind, data, now = Date.now()) {
   const list = rows(world, 'ae_events');
   list.push({id: crypto.randomUUID(), to: String(to), icon, text: String(text).slice(0, 200), kind, data: data || null, at: new Date(now).toISOString(), acked: false});
-  world.tables.ae_events = list.filter(e => !e.acked || Date.parse(e.at) > now - DAY).slice(-500);
+  world.tables.ae_events = list.filter(e => Date.parse(e.at) > now - (e.acked ? 7 : 14) * DAY).slice(-800); // kept a week after the toast: the 🔔 history
 }
 // ---------- pulse: what is new for toasts ----------
 function pulse(world, me) {

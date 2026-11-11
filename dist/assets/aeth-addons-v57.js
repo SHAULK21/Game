@@ -745,6 +745,7 @@
     if (host && !host.querySelector('[data-ae-admin]')) host.append(adminPremiumBlock());
     if (host && !host.querySelector('[data-ae-admin-promo]')) host.append(adminPromoBlock());
     if (host && !host.querySelector('[data-ae-admin-news]')) host.append(adminNewsBlock());
+    if (host && !host.querySelector('[data-ae-admin-mail]')) host.append(adminMailBlock());
     if (host && !host.querySelector('[data-ae-admin-level]')) host.append(adminLevelBlock());
     if (host && !host.querySelector('[data-ae-admin-stats]')) {
       // under the console's own header (with its ✕), never above it
@@ -1328,6 +1329,7 @@
     const evs = r.events || [];
     evs.forEach((e, i) => setTimeout(() => applyEvent(e), (notes.length + i) * 2200));
     if (evs.length) api('/api/social/events/ack', 'POST', {ids: evs.map(e => e.id)}).catch(() => {});
+    if (evs.length || (r.friendRequests || []).length) setTimeout(() => loadInbox(true), 1500);
   }
   function popup({icon, text, act, fn}) {
     const el = h('div', {class: 'ae-pop', role: 'status'}, h('span', {class: 'ae-pop-i'}, icon), h('span', {class: 'ae-grow'}, text),
@@ -1431,6 +1433,121 @@
     load();
   }
 
+  // Currencies and fragments live on the device: one place that adds a reward to the hero (promo codes, mail gifts).
+  function grantReward(w) {
+    const b = B(); if (!b?.setPlayer) return [];
+    b.setPlayer(p => { if (!p) return p; let inv = p.inventory;
+      if (w.fragments) { inv = inv.slice(); const i = inv.findIndex(x => x.templateId === 'ascension_fragment' && !x.serverOwned && !x.isLocked); if (i >= 0) inv[i] = {...inv[i], stackCount: (inv[i].stackCount || 1) + w.fragments}; else inv.push({id: 'promo_' + uuid4(), templateId: 'ascension_fragment', name: 'Осколок вознесения', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '✦', stats: {}, sellPrice: 0, disassembleYield: {}, stackCount: w.fragments}); }
+      return {...p, inventory: inv, gold: (p.gold || 0) + (w.gold || 0), silver: (p.silver || 0) + (w.silver || 0), energy: w.energy ? Math.min(p.maxEnergy || ENERGY_CAP, (p.energy || 0) + w.energy) : p.energy, arenaTickets: (p.arenaTickets || 0) + (w.arenaTickets || 0)}; });
+    return giftParts(w);
+  }
+  const giftParts = w => [w.premiumDays && `Premium на ${w.premiumDays} дн.`, w.gold && `${fmt(w.gold)} 🪙`, w.silver && `${fmt(w.silver)} 🥈`, w.fragments && `${w.fragments} ✦`, w.energy && `${w.energy} ⚡`, w.arenaTickets && `${w.arenaTickets} 🎟️`].filter(Boolean);
+
+  // ---------- 🔔 bell in the header: notification history (also while offline) and mail from the administration ----------
+  let inboxData = null, inboxAt = 0, inboxBusy = false;
+  const BELL_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+  async function loadInbox(force) {
+    if (!uid() || inboxBusy || (!force && Date.now() - inboxAt < 55e3)) return inboxData;
+    inboxBusy = true; try { inboxData = await api('/api/ae-inbox'); inboxAt = Date.now(); paintBell(); } catch {} finally { inboxBusy = false; }
+    resumeMailClaim(); return inboxData;
+  }
+  setTimeout(() => loadInbox(true), 7000); setInterval(() => { if (!document.hidden) loadInbox(); }, 60e3);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadInbox(true); });
+  const bellCount = () => (inboxData?.unread || 0) + (inboxData?.friendReq || 0);
+  function paintBell() {
+    const n = bellCount();
+    for (const b of document.querySelectorAll('[data-ae-bell]')) { const badge = b.querySelector('.ae-bell-n'); badge.textContent = n > 99 ? '99+' : String(n); badge.hidden = !n; b.classList.toggle('has-new', !!n); }
+  }
+  function injectBell() {
+    const modernSound = document.querySelector('header .modern-header-inner button[aria-label="Переключить звук"]');
+    const fantasyRow = document.querySelector('header .shell-brand-row');
+    const make = cls => { const b = h('button', {type: 'button', class: cls + ' ae-bell', 'data-ae-bell': '1', 'aria-label': 'Уведомления и почта', onclick: () => openInbox()}, h('span', {class: 'ae-bell-n', hidden: true}, '0'));
+      b.insertAdjacentHTML('afterbegin', BELL_SVG); return b; };
+    if (modernSound && !modernSound.parentElement.querySelector(':scope > [data-ae-bell]')) { const wrap = modernSound.parentElement;
+      let group = wrap.querySelector(':scope > .ae-head-tools'); if (!group) { group = h('div', {class: 'ae-head-tools'}); modernSound.before(group); group.append(modernSound); }
+      group.prepend(make(modernSound.className)); paintBell(); }
+    if (fantasyRow && !fantasyRow.querySelector('[data-ae-bell]')) { const set = fantasyRow.querySelector('details.shell-settings'); const b = make('ae-bell-f'); if (set) set.before(b); else fantasyRow.append(b); paintBell(); }
+  }
+  const agoText = at => { const m = Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60e3)); return m < 1 ? 'только что' : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : new Date(at).toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}); };
+  const EVENT_OPEN = {market: () => openAuction('mine'), 'market-item': () => openAuction('mine'), 'lot-offer': () => openAuction('mine'), 'auction-outbid': () => openAuction('all'), 'buy-request': () => openAuction('req')};
+  const mailDoneKey = () => 'aeth_mail_done_' + uid(), mailPendKey = () => 'aeth_mail_pending_' + uid();
+  const mailDone = () => { try { return new Set(JSON.parse(localStorage.getItem(mailDoneKey()) || '[]')); } catch { return new Set(); } };
+  async function claimMail(m, opIn) {
+    const done = mailDone(); if (done.has(m.id)) return toast('Подарок уже получен.');
+    let pend; try { pend = JSON.parse(localStorage.getItem(mailPendKey()) || 'null'); } catch { pend = null; }
+    const op = opIn || (pend?.id === m.id ? pend.op : uuid4()); localStorage.setItem(mailPendKey(), JSON.stringify({id: m.id, op}));
+    try {
+      const r = await api('/api/ae-inbox/claim', 'POST', {id: m.id, operationId: op});
+      const d = mailDone(); if (!d.has(m.id)) { const parts = grantReward(r.gifts || {}); d.add(m.id); localStorage.setItem(mailDoneKey(), JSON.stringify([...d].slice(-300))); toast(`🎁 Получено: ${parts.join(', ')}`); B()?.sound?.playVictory?.(); }
+      localStorage.removeItem(mailPendKey()); if (r.gifts?.premiumDays) setTimeout(() => checkPremium(), 800);
+      m.claimed = true; return true;
+    } catch (e) { if (/уже получен|не найдено/i.test(String(e?.message || ''))) localStorage.removeItem(mailPendKey()); toast(cleanError(e)); return false; }
+  }
+  // a claim cut off mid-way (closed app, lost network) is finished on the next load
+  function resumeMailClaim() {
+    let pend; try { pend = JSON.parse(localStorage.getItem(mailPendKey()) || 'null'); } catch { pend = null; }
+    if (pend?.id && !mailDone().has(pend.id)) claimMail({id: pend.id}, pend.op).then(() => loadInbox(true));
+  }
+  function openInbox(tab) {
+    let d = inboxData; tab ||= (d?.mail || []).some(m => !m.read || (Object.keys(m.gifts || {}).length && !m.claimed)) ? 'mail' : 'events';
+    const markSeen = () => { const ids = (d?.mail || []).filter(m => !m.read).map(m => m.id); if (!d) return;
+      if (tab === 'events' || ids.length) api('/api/ae-inbox/seen', 'POST', {mail: tab === 'mail' ? ids : []}).then(() => { if (tab === 'mail') ids.forEach(id => { const m = d.mail.find(x => x.id === id); if (m) m.read = true; }); else d.events.forEach(e => { e.isNew = false; });
+        d.unread = d.events.filter(e => e.isNew).length + d.mail.filter(m => !m.read || (Object.keys(m.gifts || {}).length && !m.claimed)).length; paintBell(); }, () => {}); };
+    const st = openPanel('🔔 Уведомления', body => {
+      const newEv = (d?.events || []).filter(e => e.isNew).length, newMail = (d?.mail || []).filter(m => !m.read || (Object.keys(m.gifts || {}).length && !m.claimed)).length;
+      body.append(h('div', {class: 'ae-tabs'}, [['events', `🔔 События${newEv ? ' ' + newEv : ''}`], ['mail', `✉️ Почта${newMail ? ' ' + newMail : ''}`]].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); markSeen(); }}, l))));
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      if (tab === 'events') {
+        const extra = [];
+        if (d.friendReq) extra.push(h('button', {type: 'button', class: 'ae-inbox-row is-new', onclick: () => { closePanel(); openFriends('requests'); }}, h('span', {class: 'ae-inbox-i'}, '👋'), h('span', {class: 'ae-grow'}, h('b', {}, `Заявки в друзья: ${d.friendReq}`), h('small', {}, 'Нажмите, чтобы ответить'))));
+        if (d.pm) extra.push(h('button', {type: 'button', class: 'ae-inbox-row is-new', onclick: () => { closePanel(); openFriends(); }}, h('span', {class: 'ae-inbox-i'}, '💬'), h('span', {class: 'ae-grow'}, h('b', {}, `Непрочитанные сообщения: ${d.pm}`), h('small', {}, 'Друзья → личные сообщения'))));
+        body.append(...extra);
+        if (!d.events.length && !extra.length) body.append(h('p', {class: 'ae-empty'}, 'Пока тихо. Здесь появятся продажи, ставки, дуэли, клан, питомец и всё, что случилось, пока вас не было.'));
+        for (const e of d.events) { const go = EVENT_OPEN[e.kind];
+          body.append(h(go ? 'button' : 'div', {type: go ? 'button' : null, class: 'ae-inbox-row' + (e.isNew ? ' is-new' : ''), onclick: go ? () => { closePanel(); go(); } : null},
+            h('span', {class: 'ae-inbox-i'}, e.icon || '🔔'), h('span', {class: 'ae-grow'}, h('span', {}, e.text), h('small', {}, agoText(e.at))), go ? h('span', {class: 'ae-coop-go'}, '›') : '')); }
+        body.append(h('p', {class: 'ae-sub'}, 'История хранится 7 дней.'));
+      } else {
+        if (!d.mail.length) body.append(h('p', {class: 'ae-empty'}, 'Писем нет. Здесь появятся письма и подарки от администрации.'));
+        const done = mailDone();
+        for (const m of d.mail) { const g = giftParts(m.gifts || {}), got = m.claimed || done.has(m.id);
+          body.append(h('div', {class: 'ae-card ae-mail' + (!m.read ? ' is-new' : '')}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `✉️ ${m.title}`), h('small', {class: 'ae-sub'}, agoText(m.at))),
+            h('small', {class: 'ae-sub'}, m.toAll ? 'Администрация · всем героям' : 'Администрация · лично вам'),
+            m.text ? h('p', {class: 'ae-mail-text'}, m.text) : '',
+            g.length ? h('div', {class: 'ae-mail-gifts'}, h('span', {class: 'ae-grow'}, '🎁 ' + g.join(' · ')),
+              got ? h('span', {class: 'ae-pill'}, '✅ Получено') : h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async ev => { ev.currentTarget.disabled = true; if (await claimMail(m)) { m.claimed = true; m.read = true; } await loadInbox(true); d = inboxData; st.rerender(); }}, 'Забрать')) : '')); }
+      }
+    }, {cls: 'ae-hq-panel'});
+    loadInbox(true).then(x => { d = x; if (openPanelState === st) { st.rerender(); markSeen(); } });
+  }
+  function adminMailBlock() {
+    let list = [];
+    const to = h('select', {class: 'ae-input'}, h('option', {value: 'all'}, '📣 Всем игрокам'), h('option', {value: 'one'}, '👤 Одному игроку'));
+    const who = h('input', {class: 'ae-input', placeholder: 'Ник героя или Telegram ID', hidden: true});
+    to.addEventListener('change', () => { who.hidden = to.value !== 'one'; });
+    const title = h('input', {class: 'ae-input', placeholder: 'Тема письма', maxlength: 80}), text = h('textarea', {class: 'ae-input', rows: 4, placeholder: 'Текст письма (необязательно, если есть подарок)', maxlength: 2000});
+    const G = [['gold', '🪙 Золото'], ['silver', '🥈 Серебро'], ['energy', '⚡ Энергия'], ['fragments', '✦ Осколки'], ['arenaTickets', '🎟️ Билеты арены'], ['premiumDays', '👑 Premium, дней']];
+    const gi = Object.fromEntries(G.map(([k, l]) => [k, h('input', {class: 'ae-input', type: 'number', min: '0', placeholder: l})]));
+    const box = h('div', {class: 'ae-admin-list'});
+    const paint = () => box.replaceChildren(...list.map(m => h('div', {class: 'ae-row ae-card'}, h('span', {class: 'ae-grow'}, h('b', {}, m.title), h('small', {class: 'ae-sub'}, ` · ${m.to} · ${agoText(m.at)}${giftParts(m.gifts).length ? ' · 🎁 ' + giftParts(m.gifts).join(', ') : ''} · прочитали ${m.read}${giftParts(m.gifts).length ? `, забрали ${m.claimed}` : ''}`)),
+      h('button', {type: 'button', class: 'ae-btn', onclick: async () => { if (!confirm(`Удалить письмо «${m.title}»? Кто не забрал подарок — уже не заберёт.`)) return; try { await api('/api/admin/mail', 'POST', {delete: true, id: m.id}); await load(); } catch (e) { toast(cleanError(e)); } }}, '🗑'))));
+    const load = async () => { try { list = (await api('/api/admin/mail')).mail || []; paint(); } catch {} };
+    let op = uuid4();
+    const send = async ev => {
+      const gifts = Object.fromEntries(G.map(([k]) => [k, Math.max(0, Math.floor(Number(gi[k].value) || 0))]).filter(([, v]) => v > 0));
+      const target = to.value === 'all' ? 'all' : who.value.trim(); if (!target) return toast('Укажите ник или Telegram ID игрока.');
+      const what = giftParts(gifts).join(', ');
+      if (!confirm(`Отправить «${title.value.trim() || 'без темы'}» ${target === 'all' ? 'ВСЕМ игрокам' : 'игроку ' + target}${what ? ` с подарком: ${what}` : ''}?`)) return;
+      const btn = ev.currentTarget; btn.disabled = true;
+      try { const r = await api('/api/admin/mail', 'POST', {operationId: op, to: target, title: title.value, text: text.value, gifts}); toast(`✉️ Отправлено: ${r.to}`); op = uuid4();
+        title.value = ''; text.value = ''; for (const [k] of G) gi[k].value = ''; await load(); }
+      catch (e) { toast(cleanError(e)); } finally { btn.disabled = false; }
+    };
+    load();
+    return h('section', {class: 'ae-admin-premium', 'data-ae-admin-mail': '1'}, h('div', {class: 'ae-h3'}, '✉️ Почта и подарки'),
+      h('div', {class: 'ae-sub'}, 'Письмо появится у игроков в 🔔 → «Почта». Подарок каждый игрок забирает один раз. Письма хранятся 30 дней; «всем» получают герои, созданные до отправки.'),
+      to, who, title, text, h('div', {class: 'ae-mail-grid'}, ...G.map(([k]) => gi[k])), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: send}, '✉️ Отправить'), box);
+  }
   // ---------- promo codes ----------
   function openPromo() {
     openPanel('🎁 Промокод', body => {
@@ -1439,11 +1556,7 @@
       const go = async () => {
         const code = input.value.trim(); if (!code) return toast('Введите промокод.');
         try {
-          const r = await api('/api/promo/redeem', 'POST', {code, level: me()?.level || 1}), w = r.reward, b = B();
-          b.setPlayer(p => { if (!p) return p; let inv = p.inventory;
-            if (w.fragments) { inv = inv.slice(); const i = inv.findIndex(x => x.templateId === 'ascension_fragment' && !x.serverOwned && !x.isLocked); if (i >= 0) inv[i] = {...inv[i], stackCount: (inv[i].stackCount || 1) + w.fragments}; else inv.push({id: 'promo_' + uuid4(), templateId: 'ascension_fragment', name: 'Осколок вознесения', type: 'material', rarity: 'rare', level: 1, upgradeLevel: 0, icon: '✦', stats: {}, sellPrice: 0, disassembleYield: {}, stackCount: w.fragments}); }
-            return {...p, inventory: inv, gold: (p.gold || 0) + w.gold, silver: (p.silver || 0) + w.silver, energy: w.energy ? Math.min(p.maxEnergy || ENERGY_CAP, (p.energy || 0) + w.energy) : p.energy, arenaTickets: (p.arenaTickets || 0) + (w.arenaTickets || 0)}; });
-          const parts = [w.premiumDays && `Premium на ${w.premiumDays} дн.`, w.gold && `${fmt(w.gold)} 🪙`, w.silver && `${fmt(w.silver)} 🥈`, w.fragments && `${w.fragments} ✦`, w.energy && `${w.energy} ⚡`, w.arenaTickets && `${w.arenaTickets} 🎟️`].filter(Boolean);
+          const r = await api('/api/promo/redeem', 'POST', {code, level: me()?.level || 1}), w = r.reward, b = B(), parts = grantReward(w);
           toast(`«${r.title}»: ${parts.join(', ')}`); b.sound?.playVictory?.(); input.value = '';
           if (w.premiumDays) setTimeout(() => checkPremium(), 800);
         } catch (e) { toast(cleanError(e)); sfx.play('fail'); }
@@ -3558,7 +3671,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   new MutationObserver(muts => {
     for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) soundScan(n.matches?.('.combat-damage-pop') ? n.parentElement : n);
     if (queued) return; queued = true;
-    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); decorateTwoHandSlot(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); applyHeaderAvatar(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
+    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); decorateTwoHandSlot(); injectBell(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); applyHeaderAvatar(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
   }).observe(document.documentElement, {childList: true, subtree: true});
   setInterval(() => { try { storyTick(); } catch (e) { console.warn('ae story', e); } }, 1200);
   // The game moves the travel bar by restyling it (no DOM insertions), so poll while a journey card is open.
@@ -3569,7 +3682,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
 .ae-scale-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-scale-opt{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px}.ae-scale-opt small{opacity:.75}
-.ae-2h-note{display:flex;flex-direction:column;gap:2px;padding:8px 10px;margin:6px 0;border-radius:10px;border:1px solid rgba(232,184,92,.55);background:rgba(232,184,92,.12);font-size:12px;line-height:1.35}.ae-2h-note b{color:#f0c46a}html[data-interface=fantasy] .ae-2h-note{border-color:#9a6a2a;background:rgba(122,58,16,.1)}html[data-interface=fantasy] .ae-2h-note b{color:#7a3a10}.ae-2h-btn{width:100%;margin:6px 0}.ae-2h-locked{position:relative;opacity:.55}.ae-2h-locked::after{content:'🔒 Двуручное';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(20,14,8,.85);color:#f0c46a;pointer-events:none}.ae-2h-tile::before{content:'2H';position:absolute;left:3px;top:3px;z-index:3;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;background:#7a2f1c;color:#ffe2a8;pointer-events:none}.ae-2h-tile{position:relative}html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
+.ae-2h-note{display:flex;flex-direction:column;gap:2px;padding:8px 10px;margin:6px 0;border-radius:10px;border:1px solid rgba(232,184,92,.55);background:rgba(232,184,92,.12);font-size:12px;line-height:1.35}.ae-2h-note b{color:#f0c46a}html[data-interface=fantasy] .ae-2h-note{border-color:#9a6a2a;background:rgba(122,58,16,.1)}html[data-interface=fantasy] .ae-2h-note b{color:#7a3a10}.ae-2h-btn{width:100%;margin:6px 0}.ae-2h-locked{position:relative;opacity:.55}.ae-2h-locked::after{content:'🔒 Двуручное';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(20,14,8,.85);color:#f0c46a;pointer-events:none}.ae-2h-tile::before{content:'2H';position:absolute;left:3px;top:3px;z-index:3;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;background:#7a2f1c;color:#ffe2a8;pointer-events:none}.ae-2h-tile{position:relative}.ae-head-tools{display:flex;align-items:center;gap:2px}.ae-bell{position:relative}.ae-bell-n{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5484d;color:#fff;font:800 11px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0b0f0d}.ae-bell.has-new svg{animation:aering 2.4s ease-in-out infinite;transform-origin:50% 10%}@keyframes aering{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(14deg)}88%{transform:rotate(-12deg)}92%{transform:rotate(8deg)}96%{transform:rotate(-4deg)}}.shell-brand-row{position:relative}.ae-bell-f{position:absolute!important;right:46px;top:50%;transform:translateY(-50%);z-index:2;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid #6b5631;background:rgba(20,14,8,.55);color:#e3c983}.shell-brand-row .ae-bell-f .ae-bell-n{top:-5px;right:-6px}.ae-inbox-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:inherit;font:inherit;font-size:13px;line-height:1.3}.ae-inbox-row small{display:block;opacity:.6;font-size:11px;margin-top:2px}.ae-inbox-row.is-new{border-color:rgba(240,196,106,.6);background:rgba(240,196,106,.1)}.ae-inbox-i{font-size:20px;width:26px;text-align:center;flex:0 0 26px}.ae-mail{display:flex;flex-direction:column;gap:6px}.ae-mail.is-new{border-color:rgba(240,196,106,.7)!important}.ae-mail-text{margin:0;font-size:13px;line-height:1.4;white-space:pre-wrap}.ae-mail-gifts{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(240,196,106,.12);font-weight:700;font-size:13px}.ae-mail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
 html.ae-zoomed,html.ae-zoomed body{min-height:calc(100vh / var(--ae-zoom))}html.ae-zoomed .game-shell,html.ae-zoomed .min-h-screen{min-height:calc(100vh / var(--ae-zoom))!important}
 .ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}
@@ -3960,5 +4073,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

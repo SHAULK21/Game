@@ -27,6 +27,7 @@ export function notify(world, to, text, kind, now) {
 }
 
 import {handleCoopRequest} from './coop.js';
+import {handleMail} from './mail.js';
 import {handleExtras, pushEvent} from './arenaExtras.js';
 import {handleHordeRequest} from './horde.js';
 import {handleProfileRequest} from './profile.js';
@@ -38,6 +39,8 @@ export async function handleSocialRequest(world, input, user, now, native) {
   if (live) return live;
   const market = handleMarketPlus(world, input, user, now, notify);
   if (market) return market;
+  const mail = handleMail(world, input, user, now, notify);
+  if (mail) return mail;
   const horde = handleHordeRequest(world, input, user, now);
   if (horde) return horde;
   const profile = handleProfileRequest(world, input, user, now);
