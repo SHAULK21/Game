@@ -42,6 +42,11 @@ async function handle(input, ctx) {
     if (input.path === '/api/admin/news' && reply.status < 300) reply.body.channel = await syncChannel(input, reply.body);
     if (input.path === '/api/admin/premium/grant' && reply.status === 200 && !reply.body?.replayed)
       await sendPremiumWelcome(Number(input.body.targetId), Number(input.body.days), true);
+    if (input.path === '/api/support/bug-report' && reply.status === 201 && reply.body?.report) {
+      const r = reply.body.report; delete reply.body.report;
+      try { await api.sendMessage({chat_id: ADMIN_TELEGRAM_ID, text: `🐞 Сообщение об ошибке\n${r.name}${r.username ? ' (@' + r.username + ')' : ''} · id ${r.u}${r.level ? ' · ур. ' + r.level : ''}\n\n${r.text}`.slice(0, 4096), link_preview_options: {is_disabled: true}}); }
+      catch (e) { console.error('bug report forward failed', e?.description || e?.code); }
+    }
     if (reply.effect?.method === 'createInvoiceLink') {
       try {return {status: reply.status, body: {...reply.body, invoiceLink: await api.createInvoiceLink(reply.effect.payload)}};}
       catch {return {status: 502, body: {error: 'Не удалось создать счёт Telegram Stars. Попробуйте снова.'}};}

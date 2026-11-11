@@ -161,7 +161,7 @@ function act(world, path, body, me, now, notify) {
 // ---------- buy requests for items that were only shown in the chat ----------
 // The buyer names a price (gold is held), the seller confirms from their bag, the item and the gold change hands.
 const reqView = (world, r, me) => ({id: r.id, item: r.item, price: r.price, status: r.status, at: r.at, expires: r.expires, incoming: same(r.seller, me),
-  buyer: nameOf(player(world, r.buyer)), seller: nameOf(player(world, r.seller))});
+  buyer: nameOf(player(world, r.buyer)), seller: nameOf(player(world, r.seller)), sellerId: String(r.seller)});
 function expireRequests(world, now) {
   for (const r of rows(world, 'ae_buy_requests').filter(r => r.status === 'pending' && Date.parse(r.expires) <= now)) {
     r.status = 'expired'; const b = player(world, r.buyer); if (b) b.market_gold = gold(b) + r.price;

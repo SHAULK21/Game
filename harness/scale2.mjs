@@ -1,0 +1,17 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'modern', scale = process.argv[3] || 'x3';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, energy: 100, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']); ls.aeth_ui_scale = scale;
+const s = await launch({pageOptions: {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, deviceScaleFactor: 1}, localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.waitForTimeout(7000);
+for (const tx of ['Позже']) if (await p.getByRole('button', {name: tx}).count()) await p.getByRole('button', {name: tx}).first().click().catch(() => {});
+await p.locator('.ae-x').first().click().catch(() => {}); await p.waitForTimeout(400);
+await p.locator('nav.game-nav button, nav.game-nav a').nth(3).click(); await p.waitForTimeout(1500);
+await p.locator('[data-inventory-item]').first().click().catch(() => {}); await p.waitForTimeout(1200);
+await p.screenshot({path: `scale2-${style}-${scale}-bag.png`});
+await p.keyboard.press('Escape'); await p.evaluate(() => document.querySelector('.game-dialog-backdrop, .bottom-sheet-backdrop')?.click()); await p.waitForTimeout(500);
+await p.evaluate(() => window.__aethOpen.auction('all')); await p.waitForTimeout(1500);
+await p.screenshot({path: `scale2-${style}-${scale}-panel.png`});
+console.log(s.log.filter(l => /pageerror/.test(l)).slice(0, 3).join('\n') || 'no errors');
+await s.close();

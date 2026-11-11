@@ -1,0 +1,10 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy', scale = process.argv[3] || 'x3';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, energy: 100, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']); ls.aeth_ui_scale = scale;
+const s = await launch({localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(7000);
+console.log(await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => { const c = getComputedStyle(e); return c.maxWidth !== 'none' && e.getBoundingClientRect().width > 250; }).slice(0, 15).map(e => `${e.tagName}.${String(e.className).slice(0, 70)} mw=${getComputedStyle(e).maxWidth} w=${Math.round(e.getBoundingClientRect().width)}`).join('\n')));
+console.log(await p.evaluate(() => { const n = document.querySelector('nav.game-nav'); const c = getComputedStyle(n); return `nav class=${n.className} pos=${c.position} h=${c.height} zoom=${c.zoom} w=${n.getBoundingClientRect().width} l=${n.getBoundingClientRect().left}`; }));
+await s.close();

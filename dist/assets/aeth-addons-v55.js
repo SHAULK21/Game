@@ -10,12 +10,32 @@
   // ---------- interface size: the whole game scaled down (setting kept on the device) ----------
   const UI_SCALES = [['big', 'Как раньше', 1], ['x1', '×1 Обычный', 0.92], ['x2', '×2 Компактный', 0.84], ['x3', '×3 Мини', 0.76]];
   const uiScale = () => { const k = localStorage.getItem('aeth_ui_scale') || 'x1'; return (UI_SCALES.find(x => x[0] === k) || UI_SCALES[1])[2]; };
-  function applyUiScale() {
-    const z = uiScale(), root = document.documentElement;
-    root.style.zoom = z === 1 ? '' : String(z); root.style.setProperty('--ae-zoom', String(z));
-    root.classList.toggle('ae-zoomed', z !== 1);
+  // Phones: the viewport tag renders the page wider and scales it down — the browser shrinks everything at once
+  // (fixed bars, full-height screens, dialogs), so the game still fills the screen. Where the tag is ignored
+  // (Telegram Desktop, some WebViews) the page falls back to CSS zoom with fixes for full-height parts.
+  const BASE_VIEWPORT = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+  let scaleMode = null, scaleBase = 0;
+  const pageZoom = () => scaleMode === 'zoom' ? uiScale() : 1; // CSS zoom factor between screen and page pixels
+  const deviceWidth = () => Math.round((window.visualViewport?.width || innerWidth) * (window.visualViewport?.scale || 1));
+  function useZoom(z) {
+    const root = document.documentElement; scaleMode = z === 1 ? null : 'zoom';
+    root.style.zoom = z === 1 ? '' : String(z); root.style.setProperty('--ae-zoom', String(z)); root.classList.toggle('ae-zoomed', z !== 1);
+  }
+  function applyUiScale(force) {
+    const z = uiScale(), meta = document.querySelector('meta[name=viewport]'), root = document.documentElement;
+    root.classList.toggle('ae-scaled', z !== 1); root.style.setProperty('--ae-scale', String(z));
+    if (scaleMode === 'zoom' && !force) return useZoom(z); // the viewport tag was already found not to work here
+    useZoom(1);
+    const base = deviceWidth();
+    if (z === 1 || !meta || !matchMedia('(pointer: coarse)').matches || base < 200) { meta?.setAttribute('content', BASE_VIEWPORT); scaleBase = 0; if (z !== 1) useZoom(z); return; }
+    scaleBase = base; scaleMode = 'meta';
+    meta.setAttribute('content', `width=${Math.round(base / z)}, initial-scale=${z}, minimum-scale=${z}, maximum-scale=${z}, user-scalable=no, viewport-fit=cover`);
+    setTimeout(() => { // did the browser honour it? the page should now be base / z pixels wide
+      if (scaleMode === 'meta' && Math.abs(document.documentElement.clientWidth - base / z) > 12) { meta.setAttribute('content', BASE_VIEWPORT); useZoom(z); }
+    }, 400);
   }
   applyUiScale();
+  addEventListener('orientationchange', () => setTimeout(() => { if (scaleMode === 'meta' && Math.abs(deviceWidth() - scaleBase) > 20) applyUiScale(); }, 500));
 
   // ---------- helpers ----------
   const h = (tag, attrs = {}, ...kids) => {
@@ -1588,7 +1608,9 @@
     const card = h('button', {type: 'button', class: 'ae-chat-item', 'data-ae-rarity': o.r || 'common', onclick: e => { e.stopPropagation(); card.classList.toggle('is-open'); }},
       h('img', {src: icon, alt: '', style: iconStyle(fake)}), h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}${o.a ? ' ★' + o.a : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`),
         h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик')));
-    if (String(o.w || '') !== String(uid())) card.append(h('span', {class: 'ae-lot-btns'}, h('span', {role: 'button', tabindex: '0', class: 'ae-btn ae-primary ae-buy-shown', onclick: e => { e.stopPropagation(); askToBuy(o, card); }}, '💰 Купить')));
+    if (String(o.w || '') !== String(uid())) { const asked = myAsk(o);
+      card.dataset.aeShown = JSON.stringify(o);
+      card.append(h('span', {class: 'ae-lot-btns'}, h('span', {role: 'button', tabindex: '0', class: 'ae-btn ae-buy-shown' + (asked ? '' : ' ae-primary'), onclick: e => { e.stopPropagation(); askToBuy(o, card); }}, asked ? `⏳ Ваша цена: ${fmt(asked)}` : '💰 Купить'))); }
     return card;
   }
   // ---------- co-op invites in the global chat ----------
@@ -2121,13 +2143,30 @@
     } catch (e) { toast(cleanError(e)); return false; }
     finally { walletBusy = false; setTimeout(() => sweepWallet(true), 1500); }
   }
+  // My pending price requests, so a chat card keeps showing «your price» after the chat redraws.
+  let myReqs = new Map(), myReqsAt = 0;
+  const reqKey = (seller, n, l) => `${seller}|${n}|${Number(l) || 1}`;
+  function myAsk(o) { if (Date.now() - myReqsAt > 30e3) loadMyReqs(); return o.w ? myReqs.get(reqKey(o.w, o.n, o.l)) || null : null; }
+  let reqsLoading = false;
+  async function loadMyReqs() {
+    if (reqsLoading || !uid()) return; reqsLoading = true; myReqsAt = Date.now();
+    try { const r = await api('/api/ae-market/requests'); const next = new Map((r.requests || []).filter(x => !x.incoming && x.status === 'pending').map(x => [reqKey(x.sellerId, x.item.n, x.item.l), x.price]));
+      const changed = next.size !== myReqs.size || [...next].some(([k, v]) => myReqs.get(k) !== v); myReqs = next; if (changed) redrawShown(); }
+    catch {} finally { reqsLoading = false; }
+  }
+  function redrawShown() { for (const el of document.querySelectorAll('[data-ae-shown]')) { try { el.replaceWith(itemCard(JSON.parse(el.dataset.aeShown))); } catch {} } }
   async function askToBuy(o, card) {
     const seller = sellerOfCard(o, card);
     if (!seller) return toast('Не удалось понять, кто продаёт. Напишите продавцу в личные сообщения.');
     if (seller === String(uid())) return toast('Это ваша вещь.');
-    const v = prompt(`Сколько золота предложить за «${o.n}»? Золото зарезервируется и вернётся, если продавец откажет или не ответит за 2 дня.`, '');
+    const prev = myReqs.get(reqKey(seller, o.n, o.l));
+    const v = prompt(prev ? `Вы уже предложили ${fmt(prev)} 🪙 за «${o.n}». Новая цена (разница зарезервируется):` : `Сколько золота предложить за «${o.n}»? Золото зарезервируется и вернётся, если продавец откажет или не ответит за 2 дня.`, prev ? String(prev) : '');
     if (v == null) return; const price = Math.floor(Number(v)); if (!(price > 0)) return toast('Укажите цену.');
-    if (await marketPost('request', {seller, price, item: {n: o.n, r: o.r, l: o.l, u: o.u, t: o.t, s: o.s, i: o.i}}, '📨 Запрос отправлен продавцу')) card.querySelector('.ae-buy-shown')?.replaceWith(h('small', {class: 'ae-lot-price'}, `⏳ Ваша цена: ${fmt(price)} 🪙`));
+    if (prev === price) return;
+    if (await marketPost('request', {seller, price, item: {n: o.n, r: o.r, l: o.l, u: o.u, t: o.t, s: o.s, i: o.i}}, '📨 Запрос отправлен продавцу')) {
+      myReqs.set(reqKey(seller, o.n, o.l), price); myReqsAt = Date.now();
+      if (o.w) redrawShown(); else card.querySelector('.ae-buy-shown')?.replaceWith(h('small', {class: 'ae-lot-price'}, `⏳ Ваша цена: ${fmt(price)} 🪙`));
+    }
   }
   // The seller finds the requested item in the bag (by id from the chat card, else by name, level and rarity).
   function findRequested(r) {
@@ -2241,8 +2280,12 @@
   function lotChatCard(o) {
     const l = lotStatus(o.id), fake = {name: o.n, rarity: o.r, level: o.l, upgradeLevel: o.u, type: o.t, stats: o.s}, closed = l && l.status !== 'active';
     const buy = async e => { e.stopPropagation(); if (!confirm(`Купить «${o.n}» за ${o.p} 🪙?`)) return; if (await lotAction('buy', {id: o.id}, '🎁 Куплено — вещь в сумке')) lotCache.delete(o.id); };
-    const offer = async e => { e.stopPropagation(); const v = prompt(`Ваша цена за «${o.n}» (золото резервируется и вернётся, если продавец откажет):`, String(o.p ? Math.round(o.p * 0.8) : '')); if (v == null) return;
-      if (await lotAction('offer', {id: o.id, price: Math.floor(Number(v))}, '💬 Предложение отправлено продавцу')) lotCache.delete(o.id); };
+    const offer = async e => { e.stopPropagation(); const prev = lotCache.get(o.id)?.lot?.myOffer;
+      const v = prompt(prev ? `Вы уже предложили ${fmt(prev)} 🪙 за «${o.n}». Новая цена (разница зарезервируется):` : `Ваша цена за «${o.n}» (золото резервируется и вернётся, если продавец откажет):`, String(prev || (o.p ? Math.round(o.p * 0.8) : ''))); if (v == null) return;
+      const price = Math.floor(Number(v)); if (!(price > 0)) return toast('Укажите цену.'); if (price === prev) return;
+      if (await lotAction('offer', {id: o.id, price}, '💬 Предложение отправлено продавцу')) {
+        const c = lotCache.get(o.id); lotCache.set(o.id, {lot: {...(c?.lot || {status: 'active'}), myOffer: price}, at: Date.now()});
+        for (const el of document.querySelectorAll('[data-ae-lot]')) if (el.dataset.aeLot === o.id) el.replaceWith(lotChatCard(o)); } };
     return h('div', {class: 'ae-chat-item ae-chat-lot' + (closed ? ' is-closed' : ''), 'data-ae-rarity': o.r || 'common', 'data-ae-lot': o.id, 'data-ae-lot-data': JSON.stringify(o), onclick: e => e.stopPropagation()},
       h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
       h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`), h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || ''),
@@ -3244,11 +3287,11 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
     const p = body.closest('.ae-panel'), b = body.closest('.ae-backdrop'); if (!p) return;
     p.classList.toggle('ae-battle-mode', !!on); b?.classList.toggle('ae-battle-backdrop', !!on);
     if (on && b) { const hd = isModern() ? document.querySelector('header.game-header') : null, nav = document.querySelector('nav.game-nav');
-      const z = uiScale(); // measured on screen, applied inside the zoomed page
+      const z = pageZoom(); // measured on screen, applied inside the zoomed page
       b.style.setProperty('--bv-top', (hd ? Math.max(0, Math.round(hd.getBoundingClientRect().bottom / z)) : 0) + 'px'); b.style.setProperty('--bv-nav', (nav ? Math.round(nav.getBoundingClientRect().height / z) : 0) + 'px'); }
     // First frame of a fight: bring the action buttons above the bottom nav (the field fight needs a manual scroll here).
     if (on && !p.dataset.bvScrolled) { p.dataset.bvScrolled = '1'; requestAnimationFrame(() => { const row = body.querySelector('.combat-secondary-actions') || [...body.querySelectorAll('.grid.grid-cols-3')].pop(); if (!row) return;
-      const nav = document.querySelector('nav.game-nav'), limit = (nav ? nav.getBoundingClientRect().top : innerHeight) - 8, over = row.getBoundingClientRect().bottom - limit; if (over > 0) body.scrollTop += over / uiScale(); }); }
+      const nav = document.querySelector('nav.game-nav'), limit = (nav ? nav.getBoundingClientRect().top : innerHeight) - 8, over = row.getBoundingClientRect().bottom - limit; if (over > 0) body.scrollTop += over / pageZoom(); }); }
     if (!on) delete p.dataset.bvScrolled;
     if (on && !p.dataset.bvBg) { const shell = document.querySelector('.game-shell') || document.body, cs = getComputedStyle(shell); p.dataset.bvBg = '1'; p.style.setProperty('--bv-bg', cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? cs.backgroundColor : '#0b0d10'); p.style.setProperty('--bv-bgi', cs.backgroundImage || 'none'); }
   };
@@ -3437,7 +3480,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
 .ae-scale-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-scale-opt{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px}.ae-scale-opt small{opacity:.75}
-html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}
+html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
 html.ae-zoomed,html.ae-zoomed body{min-height:calc(100vh / var(--ae-zoom))}html.ae-zoomed .game-shell,html.ae-zoomed .min-h-screen{min-height:calc(100vh / var(--ae-zoom))!important}
 .ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}

@@ -329,17 +329,15 @@ function cleanItem(it) {
 const GEAR_TYPES = new Set(['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact']);
 const RARITY_POWER = {common: 1, uncommon: 1.4, rare: 1.9, epic: 2.6, legendary: 3.4, mythic: 4.4, ancient: 5.5, divine: 7};
 // One check for every way an item can be sold (market, auction, chat lots, buy requests, bag → server):
-// the seller must be able to own it — at most 10 levels above the hero, with stats that fit its level and rarity.
+// stats must fit the item's level and rarity (any hero may sell gear of any level).
 export function saleCheck(world, userId, item_json) {
   const p = player(world, userId); if (!p) return 'Сначала создайте персонажа.';
   const it = {...item_json, level: Math.max(1, Number(item_json?.level) || 1), upgradeLevel: Math.max(0, Number(item_json?.upgradeLevel) || 0), stats: item_json?.stats || {}};
-  const hero = Number(p.level) || 1;
-  if (GEAR_TYPES.has(it.type)) { if (it.level > hero + 10) return `Вещь ${it.level} уровня нельзя продать герою ${hero} уровня: не выше +10 уровней.`; return plausibleGear(it, hero); }
-  return plausibleStack(it);
+  return GEAR_TYPES.has(it.type) ? plausibleGear(it) : plausibleStack(it);
 }
-function plausibleGear(it, heroLevel) {
+// Any hero may sell gear of any level; the stats only have to fit the item's own level and rarity.
+function plausibleGear(it) {
   if (!GEAR_TYPES.has(it.type)) return 'Продать на рынке можно только экипировку.';
-  if (it.level > Math.max(heroLevel, 1) + 10) return 'Уровень предмета выше уровня героя.';
   const cap = (40 + it.level * 14) * (RARITY_POWER[it.rarity] || 1) * (1 + it.upgradeLevel * 0.1) * (1 + (Number(it.ascension) || 0) * 0.12);
   // Percent stats: chances stay under 75%, bonus multipliers (crit damage, vampirism…) may go higher on top-tier gear.
   const pctCap = k => /critDamage|critMultiplier/i.test(k) ? 400 : /vampir|lifesteal|armorPen|penetration/i.test(k) ? 100 : 75;
@@ -425,7 +423,7 @@ function handleDeposit(world, body, userId, now) {
   const it = cleanItem(body.item); if (!it) return fail('Предмет повреждён.');
   const gear = GEAR_TYPES.has(it.type), qty = gear ? 1 : Math.max(1, Math.min(999, Math.floor(Number(body.quantity) || 1)));
   it.stackCount = qty;
-  const bad = gear ? plausibleGear(it, Number(p.level) || 1) : plausibleStack(it); if (bad) return fail(bad);
+  const bad = gear ? plausibleGear(it) : plausibleStack(it); if (bad) return fail(bad);
   const item_json = {...it}; for (const k of ['id', 'serverOwned', 'stackCount', 'isEquipped', 'isLocked', 'boundToClan', 'slot', 'marketTradable', 'aeOver', 'aePetBase']) delete item_json[k];
   if (it.aeOver?.base) item_json.stats = it.aeOver.base; // over-level gear travels with its real stats
   const stamp = new Date(now).toISOString(), id = crypto.randomUUID();
@@ -493,6 +491,18 @@ function reportArena(world, userId, body, now) {
   logQuest(world, userId, 'arena_fight', now); if (body.won === true) { logQuest(world, userId, 'arena_win', now); creditDuel(world, userId, now); }
   return ok({ok: true});
 }
+// «Сообщить об ошибке» in the settings: kept for 30 days and forwarded to the admin by the endpoint.
+function bugReport(world, body, user, now) {
+  const text = String(body?.text || '').replace(/\s+$/g, '').trim();
+  if (text.length < 5) return fail('Опишите ошибку подробнее (от 5 символов).');
+  if (text.length > 2000) return fail('Сообщение длиннее 2000 символов.');
+  const mine = rows(world, 'ae_bug_reports').filter(r => same(r.u, user.id) && Date.parse(r.at) > now - DAY);
+  if (mine.length >= 5) return fail('Сегодня уже отправлено 5 сообщений. Попробуйте завтра.', 429);
+  if (mine.some(r => r.text === text)) return ok({ok: true, replayed: true}, 201);
+  const p = player(world, user.id), report = {id: crypto.randomUUID(), u: String(user.id), name: nameOf(p), username: user.username || null, level: Number(p?.level) || null, text, at: new Date(now).toISOString()};
+  rows(world, 'ae_bug_reports').push(report);
+  return ok({ok: true, report}, 201);
+}
 export function handleExtras(world, input, user, now, notify) {
   const path = String(input?.path || '').split('?')[0], method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {};
   if (path === '/api/social/pulse' && method === 'GET') return pulse(world, user.id);
@@ -514,6 +524,7 @@ export function handleExtras(world, input, user, now, notify) {
     notify?.(world, target.telegram_id, `🎖️ Администратор повысил вашего героя до ${level} уровня. Откройте игру!`, 'admin-level', now);
     return ok({ok: true, name: nameOf(target), level});
   }
+  if (path === '/api/support/bug-report' && method === 'POST') return bugReport(world, body, user, now);
   if (path === '/api/news' || path === '/api/admin/news') return handleNews(world, path, method, body, user, now);
   if (path === '/api/quests/arena' && method === 'POST') return reportArena(world, user.id, body, now);
   if (path.startsWith('/api/quests/special')) return handleQuests(world, path, method, body, user.id, now);

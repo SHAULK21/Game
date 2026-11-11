@@ -1,0 +1,17 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'modern';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, energy: 100, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']); delete ls.aeth_ui_scale;
+const s = await launch({pageOptions: {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, deviceScaleFactor: 1}, localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.waitForTimeout(7000);
+for (const tx of ['Позже']) if (await p.getByRole('button', {name: tx}).count()) await p.getByRole('button', {name: tx}).first().click().catch(() => {});
+await p.locator('.ae-x').first().click().catch(() => {}); await p.waitForTimeout(400);
+console.log('default scale:', await p.evaluate(() => document.querySelector('meta[name=viewport]').content));
+await p.locator('nav.game-nav button, nav.game-nav a').last().click(); await p.waitForTimeout(1500);
+const e = p.getByText('Размер интерфейса').first(); console.log('entry visible:', await e.isVisible().catch(() => false));
+await e.scrollIntoViewIfNeeded().catch(() => {}); await p.waitForTimeout(300);
+await p.screenshot({path: `scale-menu-${style}.png`});
+await e.click().catch(err => console.log('click fail', err.message)); await p.waitForTimeout(800);
+await p.screenshot({path: `scale-menu-${style}-panel.png`});
+await s.close();
