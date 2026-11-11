@@ -990,12 +990,26 @@
     if (i >= 0) { const c = inv.slice(); c[i] = {...c[i], stackCount: (c[i].stackCount || 1) + n}; return c; }
     return [...inv, {...gemItem(g), stackCount: n}];
   }
+  // The server keeps the count of each player's crystals; the bag is trimmed to it (crystals never appear from nowhere).
+  let gemBusy = false, gemSyncAt = 0;
+  async function syncGems(lower) {
+    const p = me(); if (!p || gemBusy || claimBusy || walletBusy) return;
+    const local = Object.fromEntries(GEMS.map(g => [g.id, (p.inventory || []).reduce((n, i) => n + (i.templateId === 'ae_gem_' + g.id && !i.serverOwned ? i.stackCount || 1 : 0), 0)]));
+    let r; try { r = await api('/api/items/gems/sync', 'POST', {gems: local, lower: !!lower}); } catch { return; }
+    gemSyncAt = Date.now(); if (gemBusy) return;
+    const allow = r.gems || {}; if (!GEMS.some(g => local[g.id] > (allow[g.id] || 0))) return;
+    B()?.setPlayer(cur => { if (!cur) return cur; const left = {...allow};
+      const inventory = cur.inventory.flatMap(i => { const m = /^ae_gem_([a-z]+)$/.exec(i.templateId || ''); if (!m || i.serverOwned) return [i];
+        const keep = Math.min(i.stackCount || 1, Math.max(0, left[m[1]] || 0)); left[m[1]] = (left[m[1]] || 0) - keep; return keep > 0 ? [{...i, stackCount: keep}] : []; });
+      return {...cur, inventory}; });
+  }
+  setTimeout(() => syncGems(false), 11000); setInterval(() => { if (!document.hidden && Date.now() - gemSyncAt > 120e3) syncGems(true); }, 30e3);
   const canAct = () => { const p = me(); if (!p) return 'Игра ещё загружается.'; if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return 'Сначала завершите бой или путь.'; return null; };
   // Each place shows its own part: the Forge sockets, the Workshop crafts, the market's basic shop sells.
   const GEM_TITLE = {apply: '💎 Вставить кристалл', craft: '⚒️ Создать кристалл', buy: '🪙 Кристаллы в продаже'};
   const GEM_WHERE = 'Создать кристалл можно в Мастерской, купить — на Рынке во вкладке «Базовый магазин», вставить — в Кузнице или в Сумке.';
   function openGems(tab = 'apply') {
-    let pick = null;
+    let pick = null; syncGems(true).then(() => { if (openPanelState === st) st.rerender(); });
     const st = openPanel(GEM_TITLE[tab] || GEM_TITLE.apply, body => {
       const p = me(); if (!p) return;
       body.append(h('p', {class: 'ae-note'}, tab === 'apply' ? 'Кристалл вставляется в снаряжение и навсегда добавляет характеристику. Гнёзд: обычные и необычные вещи — 1, редкие и эпические — 2, легендарные и выше — 3.'
@@ -1010,10 +1024,13 @@
               tab === 'craft' ? h('div', {class: 'ae-gem-recipe'}, g.recipe.map(([n, c]) => h('span', {class: matCount(p, n) >= c ? 'ae-ing-ok' : 'ae-ing-low'}, `${n} ${Math.min(matCount(p, n), 999)}/${c}`))) : ''),
             h('button', {type: 'button', class: 'ae-btn' + (ok ? ' ae-primary' : ''), disabled: !ok, onclick: async ev => {
               const err = canAct(); if (err) return toast(err);
+              const btnEl = ev.currentTarget; btnEl.disabled = true; gemBusy = true;
+              try { await api('/api/items/gems/add', 'POST', {gem: g.id, how: tab, operationId: uuid4()}); }
+              catch (e) { gemBusy = false; btnEl.disabled = false; return toast(cleanError(e)); }
               if (tab === 'craft') { // server-held materials must be used up on the server, or the next bag refresh returns them
                 const plan = []; for (const [n, c] of g.recipe) { let left = c;
                   for (const i of [...(me().inventory || [])].sort((a, b) => Number(!!a.serverOwned) - Number(!!b.serverOwned))) { if (left <= 0) break; if (i.name !== n || i.isLocked) continue; const use = Math.min(left, i.stackCount || 1); left -= use; if (i.serverOwned) plan.push({id: i.id, count: use}); } }
-                if (plan.length) { ev.currentTarget.disabled = true; try { await api('/api/items/consume', 'POST', {items: plan}); } catch (e) { ev.currentTarget.disabled = false; return toast(cleanError(e)); } }
+                if (plan.length) { try { await api('/api/items/consume', 'POST', {items: plan}); } catch (e) { gemBusy = false; btnEl.disabled = false; return toast(cleanError(e)); } }
               }
               B().setPlayer(cur => {
                 if (!cur) return cur;
@@ -1022,7 +1039,7 @@
                 let inv = cur.inventory; for (const [n, c] of g.recipe) { inv = takeFromBag(inv, i => i.name === n, c); if (!inv) return cur; }
                 return {...cur, silver: cur.silver - GEM_SILVER, inventory: addGem(inv, g)};
               });
-              sfx.play(tab === 'buy' ? 'coins' : 'magic'); toast(`${g.icon} ${g.name} ${tab === 'buy' ? 'куплен' : 'создан'}`); setTimeout(() => st.rerender(), 120);
+              gemBusy = false; sfx.play(tab === 'buy' ? 'coins' : 'magic'); toast(`${g.icon} ${g.name} ${tab === 'buy' ? 'куплен' : 'создан'}`); setTimeout(() => st.rerender(), 120);
             }}, tab === 'buy' ? `${fmt(g.gold)} 🪙` : 'Создать')));
         }
         body.append(h('p', {class: 'ae-sub'}, GEM_WHERE));
@@ -1047,9 +1064,9 @@
           if (!confirm(`Вставить «${g.name}» в «${i.name}»? Это навсегда.`)) return;
           const gemIt = (me().inventory || []).filter(x => x.templateId === 'ae_gem_' + g.id && !x.isLocked).sort((a, b) => Number(!!a.serverOwned) - Number(!!b.serverOwned))[0];
           if (!gemIt) return toast('Кристалла нет в сумке.');
-          if (gemIt.serverOwned || i.serverOwned) { ev.currentTarget.disabled = true;
+          { const btnEl = ev.currentTarget; btnEl.disabled = true; gemBusy = true;
             try { await api('/api/items/socket-gem', 'POST', {gem: g.id, gemItemId: gemIt.serverOwned ? gemIt.id : null, gearId: i.serverOwned ? i.id : null}); }
-            catch (e) { ev.currentTarget.disabled = false; return toast(cleanError(e)); } }
+            catch (e) { gemBusy = false; btnEl.disabled = false; toast(cleanError(e)); if (/нет в сумке/i.test(String(e?.message || ''))) syncGems(true).then(() => st.rerender()); return; } }
           B().setPlayer(cur => {
             if (!cur || gemCount(cur, g) < 1) return cur;
             const upd = it => ({...it, stats: {...(it.stats || {}), [g.stat]: (it.stats?.[g.stat] || 0) + g.value}, gems: [...(it.gems || []), g.id], ...(it.aeOver ? {aeOver: {...it.aeOver, diff: -1, base: {...it.aeOver.base, [g.stat]: (it.aeOver.base[g.stat] || 0) + g.value}}} : {})});
@@ -1057,7 +1074,7 @@
             if (slot) { const e = cur.equipped?.[slot]; if (!e || e.id !== i.id || (e.gems || []).length >= max) return cur; return {...cur, inventory: inv0, equipped: {...cur.equipped, [slot]: upd(e)}}; }
             const idx = inv0.findIndex(x => x.id === i.id); if (idx < 0 || (inv0[idx].gems || []).length >= max) return cur;
             const inv = inv0.slice(); inv[idx] = upd(inv[idx]); return {...cur, inventory: inv};
-          });
+          }); gemBusy = false;
           sfx.play('magic'); bigBanner(`💎 ${i.name}: ${g.label} +${g.value}${g.unit}`, false); pick = null; setTimeout(() => st.rerender(), 150);
         }}, h('img', {src: iconFor(i) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(i)}),
           h('span', {class: 'ae-grow'}, h('b', {}, `${i.name}${slot ? ' (надето)' : ''}`), h('small', {}, `${RARITY_RU[i.rarity] || ''} · ур. ${i.level || 1} · гнёзд ${used}/${max}`),
@@ -1466,7 +1483,16 @@
     if (modernSound && !modernSound.parentElement.querySelector(':scope > [data-ae-bell]')) { const wrap = modernSound.parentElement;
       let group = wrap.querySelector(':scope > .ae-head-tools'); if (!group) { group = h('div', {class: 'ae-head-tools'}); modernSound.before(group); group.append(modernSound); }
       group.prepend(make(modernSound.className)); paintBell(); }
-    if (fantasyRow && !fantasyRow.querySelector('[data-ae-bell]')) { const set = fantasyRow.querySelector('details.shell-settings'); const b = make('ae-bell-f'); if (set) set.before(b); else fantasyRow.append(b); paintBell(); }
+    // fantasy: in the free space right after the hero's name block (both the full and the compact header)
+    const hero = document.querySelector('header .shell-hud-content > .shell-hero-button');
+    if (hero && !hero.parentElement.querySelector(':scope > [data-ae-bell]')) { document.querySelectorAll('header .shell-brand-row [data-ae-bell]').forEach(e => e.remove()); hero.after(make('ae-bell-f ae-bell-nick')); paintBell(); }
+    if (hero) { // placed by hand next to the nickname (the hero block is a button, the bell cannot live inside it)
+      const bell = hero.parentElement.querySelector(':scope > [data-ae-bell]'), nameRow = hero.querySelector('.flex.min-w-0.items-center') || hero.querySelector('span span');
+      if (bell && nameRow) { const box = hero.parentElement.getBoundingClientRect(), last = nameRow.lastElementChild || nameRow, r = last.getBoundingClientRect(), z = pageZoom();
+        const res = hero.parentElement.querySelector('.shell-hud-resources')?.getBoundingClientRect(), maxLeft = res && res.top < r.bottom && res.bottom > r.top ? (res.left - box.left) / z - 36 : 1e4;
+        const left = Math.round(Math.min((r.right - box.left) / z + 10, maxLeft)), top = Math.round(((r.top + r.bottom) / 2 - box.top) / z - 15);
+        if (bell.style.left !== left + 'px') bell.style.left = left + 'px'; if (bell.style.top !== top + 'px') bell.style.top = top + 'px'; } }
+    else if (!hero && fantasyRow && !document.querySelector('header [data-ae-bell]')) { const set = fantasyRow.querySelector('details.shell-settings'); const b = make('ae-bell-f ae-bell-row'); if (set) set.before(b); else fantasyRow.append(b); paintBell(); }
   }
   const agoText = at => { const m = Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60e3)); return m < 1 ? 'только что' : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : new Date(at).toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}); };
   const EVENT_OPEN = {market: () => openAuction('mine'), 'market-item': () => openAuction('mine'), 'lot-offer': () => openAuction('mine'), 'auction-outbid': () => openAuction('all'), 'buy-request': () => openAuction('req')};
@@ -3682,7 +3708,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
 .ae-scale-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-scale-opt{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px}.ae-scale-opt small{opacity:.75}
-.ae-2h-note{display:flex;flex-direction:column;gap:2px;padding:8px 10px;margin:6px 0;border-radius:10px;border:1px solid rgba(232,184,92,.55);background:rgba(232,184,92,.12);font-size:12px;line-height:1.35}.ae-2h-note b{color:#f0c46a}html[data-interface=fantasy] .ae-2h-note{border-color:#9a6a2a;background:rgba(122,58,16,.1)}html[data-interface=fantasy] .ae-2h-note b{color:#7a3a10}.ae-2h-btn{width:100%;margin:6px 0}.ae-2h-locked{position:relative;opacity:.55}.ae-2h-locked::after{content:'🔒 Двуручное';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(20,14,8,.85);color:#f0c46a;pointer-events:none}.ae-2h-tile::before{content:'2H';position:absolute;left:3px;top:3px;z-index:3;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;background:#7a2f1c;color:#ffe2a8;pointer-events:none}.ae-2h-tile{position:relative}.ae-head-tools{display:flex;align-items:center;gap:2px}.ae-bell{position:relative}.ae-bell-n{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5484d;color:#fff;font:800 11px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0b0f0d}.ae-bell.has-new svg{animation:aering 2.4s ease-in-out infinite;transform-origin:50% 10%}@keyframes aering{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(14deg)}88%{transform:rotate(-12deg)}92%{transform:rotate(8deg)}96%{transform:rotate(-4deg)}}.shell-brand-row{position:relative}.ae-bell-f{position:absolute!important;right:46px;top:50%;transform:translateY(-50%);z-index:2;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid #6b5631;background:rgba(20,14,8,.55);color:#e3c983}.shell-brand-row .ae-bell-f .ae-bell-n{top:-5px;right:-6px}.ae-inbox-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:inherit;font:inherit;font-size:13px;line-height:1.3}.ae-inbox-row small{display:block;opacity:.6;font-size:11px;margin-top:2px}.ae-inbox-row.is-new{border-color:rgba(240,196,106,.6);background:rgba(240,196,106,.1)}.ae-inbox-i{font-size:20px;width:26px;text-align:center;flex:0 0 26px}.ae-mail{display:flex;flex-direction:column;gap:6px}.ae-mail.is-new{border-color:rgba(240,196,106,.7)!important}.ae-mail-text{margin:0;font-size:13px;line-height:1.4;white-space:pre-wrap}.ae-mail-gifts{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(240,196,106,.12);font-weight:700;font-size:13px}.ae-mail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
+.ae-2h-note{display:flex;flex-direction:column;gap:2px;padding:8px 10px;margin:6px 0;border-radius:10px;border:1px solid rgba(232,184,92,.55);background:rgba(232,184,92,.12);font-size:12px;line-height:1.35}.ae-2h-note b{color:#f0c46a}html[data-interface=fantasy] .ae-2h-note{border-color:#9a6a2a;background:rgba(122,58,16,.1)}html[data-interface=fantasy] .ae-2h-note b{color:#7a3a10}.ae-2h-btn{width:100%;margin:6px 0}.ae-2h-locked{position:relative;opacity:.55}.ae-2h-locked::after{content:'🔒 Двуручное';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(20,14,8,.85);color:#f0c46a;pointer-events:none}.ae-2h-tile::before{content:'2H';position:absolute;left:3px;top:3px;z-index:3;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;background:#7a2f1c;color:#ffe2a8;pointer-events:none}.ae-2h-tile{position:relative}.ae-head-tools{display:flex;align-items:center;gap:2px}.ae-bell{position:relative}.ae-bell-n{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e5484d;color:#fff;font:800 11px/18px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0b0f0d}.ae-bell.has-new svg{animation:aering 2.4s ease-in-out infinite;transform-origin:50% 10%}@keyframes aering{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(14deg)}88%{transform:rotate(-12deg)}92%{transform:rotate(8deg)}96%{transform:rotate(-4deg)}}.ae-bell-f{position:relative;flex:none;align-self:center;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin:0 2px;border-radius:9px;border:1px solid #6b5631;background:rgba(20,14,8,.55);color:#e3c983}.ae-bell-f .ae-bell-n{top:-5px;right:-6px}.ae-bell-f.ae-bell-row{position:absolute;right:46px;top:4px;z-index:2}.shell-hud-content{position:relative}.ae-bell-f.ae-bell-nick{position:absolute;z-index:3;width:30px;height:30px;margin:0}.ae-bell-nick svg{width:19px;height:19px}.ae-bell-nick .ae-bell-n{top:-6px;right:-8px;min-width:16px;height:16px;line-height:16px;font-size:10px}.ae-inbox-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:inherit;font:inherit;font-size:13px;line-height:1.3}.ae-inbox-row small{display:block;opacity:.6;font-size:11px;margin-top:2px}.ae-inbox-row.is-new{border-color:rgba(240,196,106,.6);background:rgba(240,196,106,.1)}.ae-inbox-i{font-size:20px;width:26px;text-align:center;flex:0 0 26px}.ae-mail{display:flex;flex-direction:column;gap:6px}.ae-mail.is-new{border-color:rgba(240,196,106,.7)!important}.ae-mail-text{margin:0;font-size:13px;line-height:1.4;white-space:pre-wrap}.ae-mail-gifts{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(240,196,106,.12);font-weight:700;font-size:13px}.ae-mail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
 html.ae-zoomed,html.ae-zoomed body{min-height:calc(100vh / var(--ae-zoom))}html.ae-zoomed .game-shell,html.ae-zoomed .min-h-screen{min-height:calc(100vh / var(--ae-zoom))!important}
 .ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}

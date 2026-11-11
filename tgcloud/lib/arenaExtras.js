@@ -387,8 +387,36 @@ function socketGem(world, body, userId, now) {
   if (body.gemItemId) { const gem = rows(world, 'owned_items').find(i => i.id === body.gemItemId && same(i.owner_telegram_id, userId));
     if (!gem || gem.item_json?.templateId !== 'ae_gem_' + body.gem || gem.locked || Number(gem.quantity) < 1) return fail('Кристалла нет в сумке.');
     takeServerItem(world, userId, gem.id, 1, now); }
+  else { const w = gemWallet(world, userId); if (!w || !(w.g[body.gem] > 0)) return fail('Кристалла нет в сумке.'); w.g[body.gem]--; }
   if (gear) { const j = gear.item_json; j.stats = {...(j.stats || {}), [g[0]]: (Number(j.stats?.[g[0]]) || 0) + g[1]}; j.gems = [...(j.gems || []), body.gem]; gear.updated_at = new Date(now).toISOString(); }
   return ok({ok: true, item: gear ? gear.item_json : null});
+}
+// ---------- crystals are counted on the server: the device bag only shows what the ledger allows ----------
+// Before this, any crystal that appeared on a device (an old bug, an edited save) could be socketed for free.
+const GEM_CAP_INIT = 3, GEM_ADD_DAY = 40;
+const gemWallet = (world, u) => rows(world, 'ae_gem_wallet').find(r => same(r.u, u));
+const gemIdOf = tpl => { const m = /^ae_gem_([a-z]+)$/.exec(String(tpl || '')); return m && GEM_STAT[m[1]] ? m[1] : null; };
+function gemAdd(world, u, gem, n, now) { let w = gemWallet(world, u); if (!w) { w = {u: String(u), g: {}, at: new Date(now).toISOString()}; rows(world, 'ae_gem_wallet').push(w); } w.g[gem] = Math.max(0, (w.g[gem] || 0) + n); return w; }
+function handleGems(world, path, body, userId, now) {
+  const counts = src => Object.fromEntries(Object.keys(GEM_STAT).map(k => [k, Math.max(0, Math.min(999, Math.floor(Number(src?.[k]) || 0)))]));
+  if (path === '/api/items/gems/sync') { // the device reports its bag: a first sync adopts it (capped), later ones can only lower the count
+    let w = gemWallet(world, userId), local = counts(body.gems);
+    if (!w) { w = {u: String(userId), g: Object.fromEntries(Object.entries(local).map(([k, v]) => [k, Math.min(v, GEM_CAP_INIT)])), at: new Date(now).toISOString()}; rows(world, 'ae_gem_wallet').push(w); }
+    else if (body.lower) for (const k of Object.keys(GEM_STAT)) w.g[k] = Math.min(w.g[k] || 0, local[k]);
+    return ok({gems: counts(w.g)});
+  }
+  if (path === '/api/items/gems/add') { // crafted in the Workshop or bought in the shop
+    const gem = GEM_STAT[body.gem] ? body.gem : null; if (!gem) return fail('Неизвестный кристалл.');
+    const op = String(body.operationId || ''); if (!/^[0-9a-f-]{36}$/i.test(op)) return fail('Нет идентификатора операции.');
+    const log = rows(world, 'ae_gem_ops'), dup = log.find(o => o.op === op); if (dup) return ok({gems: counts(gemWallet(world, userId)?.g), replayed: true});
+    if (!gemWallet(world, userId)) return fail('Обновите сумку и попробуйте снова.');
+    const today = log.filter(o => same(o.u, userId) && Date.parse(o.at) > now - DAY).length;
+    if (today >= GEM_ADD_DAY) return fail(`За сутки можно создать или купить до ${GEM_ADD_DAY} кристаллов.`);
+    log.push({op, u: String(userId), gem, how: body.how === 'craft' ? 'craft' : 'buy', at: new Date(now).toISOString()});
+    world.tables.ae_gem_ops = log.filter(o => Date.parse(o.at) > now - 3 * DAY);
+    return ok({gems: counts(gemAdd(world, userId, gem, 1, now).g)});
+  }
+  return null;
 }
 // Materials, potions and other stackables may go to the server too (clan storage, sales): sane numbers only.
 const STACK_TYPES = new Set(['material', 'ore', 'potion', 'consumable', 'fish', 'food', 'scroll', 'gem', 'resource']);
@@ -408,6 +436,7 @@ function claimItems(world, body, userId, now) {
   const items = mine.map(r => ({id: r.id, item_json: r.item_json, quantity: Number(r.quantity) || 1, locked: !!r.locked, equipped_slot: r.equipped_slot || null, bound_clan_id: r.bound_clan_id || null}));
   const ids = new Set(mine.map(r => r.id));
   if (ids.size) world.tables.owned_items = rows(world, 'owned_items').filter(r => !ids.has(r.id));
+  for (const r of mine) { const gem = gemIdOf(r.item_json?.templateId); if (gem) gemAdd(world, userId, gem, Number(r.quantity) || 1, now); }
   rows(world, 'ae_claims').push({op, u: String(userId), items, at: new Date(now).toISOString()});
   world.tables.ae_claims = rows(world, 'ae_claims').filter(c => Date.parse(c.at) > now - 3 * DAY);
   return ok({items});
@@ -424,6 +453,7 @@ function handleDeposit(world, body, userId, now) {
   const gear = GEAR_TYPES.has(it.type), qty = gear ? 1 : Math.max(1, Math.min(999, Math.floor(Number(body.quantity) || 1)));
   it.stackCount = qty;
   const bad = gear ? plausibleGear(it) : plausibleStack(it); if (bad) return fail(bad);
+  const gemDep = gemIdOf(it.templateId); if (gemDep) { const w = gemWallet(world, userId); if (!w || (w.g[gemDep] || 0) < qty) return fail('Столько кристаллов нет в сумке.'); w.g[gemDep] -= qty; }
   const item_json = {...it}; for (const k of ['id', 'serverOwned', 'stackCount', 'isEquipped', 'isLocked', 'boundToClan', 'slot', 'marketTradable', 'aeOver', 'aePetBase']) delete item_json[k];
   if (it.aeOver?.base) item_json.stats = it.aeOver.base; // over-level gear travels with its real stats
   const stamp = new Date(now).toISOString(), id = crypto.randomUUID();
@@ -537,6 +567,7 @@ export function handleExtras(world, input, user, now, notify) {
     const bad = it && saleCheck(world, user.id, it.item_json); if (bad) return fail(bad);
   }
   if (path === '/api/items/socket-gem' && method === 'POST') return socketGem(world, body, user.id, now);
+  if (path.startsWith('/api/items/gems/') && method === 'POST') { const r = handleGems(world, path, body, user.id, now); if (r) return r; }
   if (path === '/api/trade' || path.startsWith('/api/trade/')) return handleTrade(world, path, method, body, user.id, now, notify);
   if (path.startsWith('/api/duel')) return handleDuel(world, path, method, body, user.id, now, notify);
   if (path === '/api/admin/promo' || path === '/api/promo/redeem') return handlePromo(world, path, method, body, user, now);
