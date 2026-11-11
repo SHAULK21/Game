@@ -167,7 +167,7 @@
   const baseName = i => String(i.name || '').replace(/\s★\d$/, '');
   const mergeCost = i => Math.round(150 * (ascOf(i) + 1) * (RARITY[i.rarity] || 1) * Math.max(1, Number(i.level) || 1) ** 0.5);
   const free = i => !i.isEquipped && !i.isLocked && !i.boundToClan;
-  const mergeKey = i => [baseName(i).toLocaleLowerCase(), i.rarity, i.type, ascOf(i)].join('|');
+  const mergeKey = i => [baseName(i).toLocaleLowerCase(), i.rarity, i.type, ascOf(i), i.twoHanded ? '2h' : ''].join('|');
   const rank = i => (Number(i.level) || 0) * 1000 + (Number(i.upgradeLevel) || 0);
   // Worn items never merge — including server-held ones, which carry no isEquipped flag (the slot lives on the hero).
   const wornIds = p => new Set(Object.values(p?.equipped || {}).filter(Boolean).map(e => e.id));
@@ -601,7 +601,7 @@
     ['✨ Навыки и таланты', `<p>У каждого класса 3–4 навыка, один из них — <b>ульта</b>. <b>Ранг навыка</b> (I–IV) растёт с уровнем и главной характеристикой класса и усиливает урон до ×1.4. Некоторые навыки работают <b>в связке</b>: применённые подряд, они бьют сильнее (метка «Связка»).</p><p><b>Дерево талантов</b> даёт урон навыков, экономию маны, силу и длительность эффектов, добивание, стойки, возврат маны и многое другое. Новые навыки открываются с развитием героя.</p><p>Навыки и таланты работают <b>во всех боях</b>: с монстрами, в коопе, дуэлях и Орде. В коопе, дуэлях и Орде навыки ограничены только маной.</p>`],
     ['🧙 Классы и характеристики', `<p><b>Воин</b>, <b>Рыцарь</b> — танки. <b>Берсерк</b> — физический урон. <b>Разбойник</b>, <b>Ассасин</b> — скорость и взрывной урон. <b>Лучник</b> — дальний бой. <b>Маг</b>, <b>Некромант</b> — магия. <b>Паладин</b>, <b>Друид</b> — урон и лечение.</p><p>За каждый уровень — 5 очков характеристик. <b>🍀 Удача</b> повышает шанс, что найденная вещь станет на ступень реже, и чаще приносит легендарные находки (подробности — в Профиле).</p><p><b>♻️ Сброс характеристик</b>: экран героя или Профиль → «Сбросить». Возвращаются все вложенные очки, уровень, вещи, навыки и таланты не меняются. Первый сброс бесплатный, далее — 50 серебра за уровень героя.</p>`],
     ['🗺️ Локации', `<p>Равнины (1–8) → Шепчущий лес (5–12) → Забытый склеп (8–18) → Тёмный лес (12–25) → Гиблые болота (25–40) → Пылающая пустыня (40–55) → Проклятые земли (55–75) → Демонический разлом (75–90) → Драконий сандор (90–120).</p><p>В каждой земле свои режимы охоты и свои уникальные монстры. Победа над местным боссом открывает новые режимы и награду за освоение региона.</p>`],
-    ['🛡️ Снаряжение', `<p>Редкости: обычные, необычные, редкие, эпические, легендарные и мифические. Носить можно вещи любого класса по уровню.</p><p><b>🎁 Находки</b>: после каждой победы есть шанс найти новую вещь под ваш уровень, с босса — всегда. Точные шансы — в разделе «🎲 Редкость и шансы».</p><p><b>👑 Автоодевание</b> (Premium): герой сам надевает вещи, которые делают его сильнее. Переключатель — в сумке.</p><p><b>⬆️ Вещи выше уровня</b>: снаряжение можно надеть, если оно не больше чем на 10 уровней выше героя. Пока герой не дорос, характеристики вещи ослаблены на 6% за каждый уровень разницы (до 40% силы) — когда уровень сравняется, вещь заработает в полную силу.</p>`],
+    ['🛡️ Снаряжение', `<p>Редкости: обычные, необычные, редкие, эпические, легендарные и мифические. Носить можно вещи любого класса по уровню.</p><p><b>🎁 Находки</b>: после каждой победы есть шанс найти новую вещь под ваш уровень, с босса — всегда. Точные шансы — в разделе «🎲 Редкость и шансы».</p><p><b>👑 Автоодевание</b> (Premium): герой сам надевает вещи, которые делают его сильнее. Переключатель — в сумке.</p><p><b>⬆️ Вещи выше уровня</b>: снаряжение можно надеть, если оно не больше чем на 10 уровней выше героя. Пока герой не дорос, характеристики вещи ослаблены на 6% за каждый уровень разницы (до 40% силы) — когда уровень сравняется, вещь заработает в полную силу.</p><p><b>🗡️ Двуручное оружие</b>: атака ×1.6 по сравнению с обычным оружием того же уровня, но занимает обе руки — щит или второе оружие с ним не надеть (значок «2H» в сумке). 15% нового найденного или созданного оружия выпадает двуручным. Любое оружие, кроме кинжалов, можно перековать в двуручное за золото: откройте оружие в сумке → «⚒️ Перековать в двуручное». Вернуть одноручным нельзя.</p>`],
     ['🎲 Редкость и шансы', `<p><b>Редкости</b> (от слабых к сильным): обычная → необычная (×1.15 к характеристикам) → редкая (×1.35) → эпическая (×1.65) → легендарная (×2.1) → мифическая.</p>
 <table class="ae-wiki-table"><tr><th>Источник</th><th>Необ.</th><th>Ред.</th><th>Эпич.</th><th>Лег.</th></tr>
 <tr><td>Монстр</td><td>7%</td><td>4%</td><td>2%</td><td>0,8%</td></tr>
@@ -877,13 +877,15 @@
       for (const slot of AUTO_SLOTS) {
         const cur = me(); if (!cur || cur.worldJourney || document.documentElement.hasAttribute('data-in-combat')) break;
         const worn = cur.equipped?.[slot];
+        if (slot === 'offhand' && isTwoHand(cur.equipped?.weapon)) continue; // both hands are busy
         const cands = fresh.filter(i => i.type === slot && cur.inventory.some(x => x.id === i.id) && !i.serverOwned && !i.isLocked && !i.boundToClan && !i.isEquipped && (i.level || 1) <= (cur.level || 1))
           .filter(i => !worn || quickScore(i) > quickScore(worn) * 0.9).sort((a, c) => quickScore(c) - quickScore(a)).slice(0, 2);
         for (const c of cands) {
-          const before = heroPower(B().stats, cur.classId), prev = me().equipped?.[slot];
-          swapLocal(slot, c); await frame();
+          const before = heroPower(B().stats, cur.classId), prev = me().equipped?.[slot], prevOff = slot === 'weapon' && isTwoHand(c) ? me().equipped?.offhand : null;
+          swapLocal(slot, c); if (prevOff) unequipSlot('offhand'); await frame();
           const after = heroPower(B().stats, cur.classId);
           if (after > before * 1.002) done.push(c.name);
+          else if (prevOff) { if (prev) swapLocal(slot, me().inventory.find(i => i.id === prev.id) || prev); else unequipSlot(slot); await frame(); const off = me().inventory.find(i => i.id === prevOff.id); if (off) swapLocal('offhand', off); }
           else if (prev) swapLocal(slot, me().inventory.find(i => i.id === prev.id) || prev);
           else B().setPlayer(x => { const ue = x?.equipped?.[slot]; if (!ue || ue.id !== c.id) return x; const eq = {...x.equipped}; delete eq[slot]; return {...x, equipped: eq, inventory: [...x.inventory, {...ue, isEquipped: false}]}; });
           if (after <= before * 1.002) await frame();
@@ -1597,7 +1599,7 @@
   const dec = s => { try { return JSON.parse(decodeURIComponent(escape(atob(s)))); } catch { return null; } };
   const RAR_RU = RARITY_RU;
   function shareItem(item) {
-    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6)), w: uid(), i: item.id};
+    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6)), w: uid(), i: item.id};
     const text = `Продаю: ${baseName(item)}${compact.u ? ' +' + compact.u : ''}${compact.a ? ' ★' + compact.a : ''} ⟦ae:i:${enc(compact)}⟧`;
     if (text.length > 500) return toast('Слишком много характеристик для чата.');
     api('/api/chat/global', 'POST', {text}).then(() => { toast('Предмет отправлен в общий чат'); sfx.play('page'); }, e => toast(cleanError(e)));
@@ -1606,7 +1608,7 @@
     const fake = {name: o.n, rarity: o.r, level: o.l, upgradeLevel: o.u, ascension: o.a, type: o.t, stats: o.s};
     const icon = iconFor(fake) || '/assets/items/sprites/sword.webp';
     const card = h('button', {type: 'button', class: 'ae-chat-item', 'data-ae-rarity': o.r || 'common', onclick: e => { e.stopPropagation(); card.classList.toggle('is-open'); }},
-      h('img', {src: icon, alt: '', style: iconStyle(fake)}), h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}${o.a ? ' ★' + o.a : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`),
+      h('img', {src: icon, alt: '', style: iconStyle(fake)}), h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}${o.a ? ' ★' + o.a : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}${o.th ? ' · 🗡️ двуручное' : ''}`),
         h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик')));
     if (String(o.w || '') !== String(uid())) { const asked = myAsk(o);
       card.dataset.aeShown = JSON.stringify(o);
@@ -2052,7 +2054,7 @@
       if (watchedSlots && !autoBusy) { const off = Object.entries(watchedSlots).filter(([k, id]) => id && now[k] !== id).map(([, id]) => id); if (off.length) rememberJudged(off.flatMap(id => [id, id + '@L' + (p.level || 1)])); }
       watchedSlots = now; } }
     if (!changed && !Object.keys(cxPend).length) return;
-    for (const fn of changed ? [overLevelTick, legendaryTick, luckTick, arenaTick, clanTick, petXpTick] : [clanTick, petXpTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
+    for (const fn of changed ? [twoHandTick, overLevelTick, legendaryTick, luckTick, arenaTick, clanTick, petXpTick] : [clanTick, petXpTick]) try { fn(); } catch (e) { console.warn('ae watch', e); }
   }, 1000);
   setTimeout(() => loadClanX(), 6000); setInterval(() => loadClanX(), 600000);
   // ---------- player market: wallet top-up / withdrawal, auctions, selling and price offers from the chat ----------
@@ -2106,7 +2108,7 @@
     return true; };
   const leftShort = at => { const ms = Date.parse(at) - Date.now(); if (ms <= 0) return 'завершается'; const m = Math.ceil(ms / 60e3), hh = Math.floor(m / 60); return hh >= 24 ? `${Math.floor(hh / 24)} д ${hh % 24} ч` : hh ? `${hh} ч ${m % 60} мин` : `${m} мин`; };
   const lotItemRow = (it, extra) => { const fake = {...it}; return h('div', {class: 'ae-row ae-lot-item', 'data-ae-rarity': it.rarity || 'common'}, h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
-    h('div', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')), extra || ''); };
+    h('div', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')), extra || ''); };
   // Turn a bag item into a server-held one (needed to put it on sale), returns the server item id.
   async function serverIdOf(item) {
     if (item.serverOwned) return item.id;
@@ -2262,7 +2264,7 @@
           const err = canAct(); if (err) return toast(err); ev.currentTarget.disabled = true;
           try { const id = await serverIdOf(item), p = price.value ? Math.floor(Number(price.value)) : null;
             const r = await api('/api/ae-market/lot', 'POST', {kind: 'chat', itemId: id, price: p}); dropFromBag(id); rememberGone([id]);
-            const compact = {id: r.lot.id, p, n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, t: item.type, s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
+            const compact = {id: r.lot.id, p, n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, t: item.type, ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
             await api('/api/chat/global', 'POST', {text: `💰 Продаю: ${compact.n}${p ? ` — ${p} 🪙` : ' — жду предложений'} ⟦ae:l:${enc(compact)}⟧`});
             closePanel(); toast('Вещь выставлена в общем чате'); sfx.play('coins'); }
           catch (e) { toast(cleanError(e)); ev.currentTarget.disabled = false; } }}, sellable(item) ? '💰 Выставить на продажу' : 'Эту вещь нельзя продать'));
@@ -2288,7 +2290,7 @@
         for (const el of document.querySelectorAll('[data-ae-lot]')) if (el.dataset.aeLot === o.id) el.replaceWith(lotChatCard(o)); } };
     return h('div', {class: 'ae-chat-item ae-chat-lot' + (closed ? ' is-closed' : ''), 'data-ae-rarity': o.r || 'common', 'data-ae-lot': o.id, 'data-ae-lot-data': JSON.stringify(o), onclick: e => e.stopPropagation()},
       h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
-      h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}`), h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || ''),
+      h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}${o.th ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || ''),
         h('small', {class: 'ae-lot-price'}, closed ? (l.status === 'sold' ? `✅ Продано${l.soldPrice ? ` за ${fmt(l.soldPrice)} 🪙` : ''}` : '✖️ Снято с продажи') : o.p ? `💰 ${fmt(o.p)} 🪙` : '💬 Ждёт предложений')),
       closed ? '' : l?.mine ? h('button', {type: 'button', class: 'ae-btn', onclick: e => { e.stopPropagation(); openAuction('mine'); }}, l.offers?.length ? `Предложения: ${l.offers.length}` : 'Ваш лот')
         : h('span', {class: 'ae-lot-btns'}, o.p ? h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: buy}, 'Купить') : '', h('button', {type: 'button', class: 'ae-btn', onclick: offer}, l?.myOffer ? `Ваша: ${fmt(l.myOffer)}` : 'Своя цена')));
@@ -2634,13 +2636,100 @@
         }},
           h('img', {src: iconFor(item) || '/assets/sprites/generated/ui/gear/' + slot + '.webp', alt: '', style: iconStyle(item)}),
           h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(item)}${item.upgradeLevel ? ' +' + item.upgradeLevel : ''}${ascOf(item) ? ' ★' + ascOf(item) : ''}`),
-            h('small', {}, `${RARITY_RU[item.rarity] || ''} · ур. ${item.level || 1}${need ? ' · нужен ' + item.level + ' ур.' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(item.stats) || '')),
+            h('small', {}, `${RARITY_RU[item.rarity] || ''} · ур. ${item.level || 1}${item.twoHanded ? ' · 🗡️ двуручное' : ''}${need ? ' · нужен ' + item.level + ' ур.' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(item.stats) || '')),
           h('span', {class: 'ae-equip-go'}, need ? '🔒' : 'Надеть')));
       }
     });
     return st;
   }
 
+
+  // ---------- two-handed weapons: ×1.6 attack, both hands — no shield or second weapon while it is worn ----------
+  // A share of newly found weapons comes out two-handed; any weapon can also be reforged into one for gold.
+  const TWO_HAND_MULT = 1.6, TWO_HAND_CHANCE = 0.15;
+  const isTwoHand = i => !!i?.twoHanded;
+  const twoHandStats = st => { const out = {...(st || {})}; for (const k of ['attack', 'magicAttack']) if (Number(out[k]) > 0) out[k] = Math.round(out[k] * TWO_HAND_MULT); return out; };
+  const makeTwoHand = it => ({...it, twoHanded: true, stats: twoHandStats(it.stats), ...(it.aeOver?.base ? {aeOver: {...it.aeOver, base: twoHandStats(it.aeOver.base)}} : {})});
+  const canBeTwoHand = i => i && i.type === 'weapon' && !i.twoHanded && i.weaponClass !== 'dagger' && !/кинжал|стилет|кастет/i.test(i.name || '') && ((Number(i.stats?.attack) || 0) > 0 || (Number(i.stats?.magicAttack) || 0) > 0);
+  const TWO_HAND_SKIP = /^(own_|srv_|trade_|merge_|regional_)/; // bought, traded, merged or shop items keep what they are
+  const hashUnit = str => { let x = 2166136261; for (const c of String(str)) x = Math.imul(x ^ c.charCodeAt(0), 16777619); return (x >>> 0) / 4294967296; };
+  const thSeenKey = () => 'aeth_2h_seen_' + uid();
+  const RARITY_COST = {common: 1, uncommon: 1.4, rare: 2, epic: 3, legendary: 4.5, mythic: 6, ancient: 8, divine: 10};
+  const reforgeCost = i => Math.round((300 + Math.pow(i.level || 1, 2) * 5) * (RARITY_COST[i.rarity] || 1) / 50) * 50;
+  function unequipSlot(slot) {
+    B()?.setPlayer(x => { const ue = x?.equipped?.[slot]; if (!ue) return x; const eq = {...x.equipped}; delete eq[slot]; return {...x, equipped: eq, inventory: [...x.inventory, {...ue, isEquipped: false}]}; });
+    syncEquippedSoon();
+  }
+  let thPrev = null;
+  function twoHandTick() {
+    const p = me(), b = B(); if (!p || !b?.setPlayer || autoBusy) return;
+    // newly found weapons: some come out two-handed (decided once per item)
+    const weapons = (p.inventory || []).filter(i => i.type === 'weapon'), raw = localStorage.getItem(thSeenKey());
+    if (raw == null) localStorage.setItem(thSeenKey(), JSON.stringify([...weapons, ...Object.values(p.equipped || {}).filter(Boolean)].map(i => i.id)));
+    else {
+      let seen; try { seen = new Set(JSON.parse(raw)); } catch { seen = new Set(); }
+      const fresh = weapons.filter(i => !seen.has(i.id));
+      if (fresh.length) {
+        const lucky = fresh.filter(i => !TWO_HAND_SKIP.test(String(i.id)) && !i.serverOwned && canBeTwoHand(i) && hashUnit(i.id + ':' + uid()) < TWO_HAND_CHANCE);
+        fresh.forEach(i => seen.add(i.id)); localStorage.setItem(thSeenKey(), JSON.stringify([...seen].slice(-800)));
+        if (lucky.length) { const ids = new Set(lucky.map(i => i.id));
+          b.setPlayer(x => x && {...x, inventory: x.inventory.map(i => ids.has(i.id) && !i.twoHanded ? makeTwoHand(i) : i)});
+          toast(`🗡️ Двуручное оружие: «${baseName(lucky[0])}» — атака ×${TWO_HAND_MULT}, занимает обе руки`); sfx.play('coins'); return; }
+      }
+    }
+    // both hands: a two-handed weapon and a shield / second weapon cannot be worn together
+    if (p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return;
+    const w = p.equipped?.weapon, o = p.equipped?.offhand, cur = {w: w?.id || null, o: o?.id || null};
+    if (isTwoHand(w) && o) {
+      const shieldJustWorn = thPrev && thPrev.o !== cur.o && thPrev.w === cur.w;
+      if (shieldJustWorn) { unequipSlot('weapon'); toast(`«${baseName(w)}» снято: двуручное оружие не держат вместе со щитом или вторым оружием`); thPrev = {w: null, o: cur.o}; }
+      else { unequipSlot('offhand'); toast(`«${baseName(o)}» убран в сумку: двуручное оружие занимает обе руки`); thPrev = {w: cur.w, o: null}; }
+      return;
+    }
+    thPrev = cur;
+  }
+  function reforgeTwoHand(item) {
+    const p = me(); if (!p || !canBeTwoHand(item)) return;
+    if (item.serverOwned) return toast('Вещь ещё у рынка — подождите, пока она вернётся в сумку.');
+    if (item.isEquipped || Object.values(p.equipped || {}).some(e => e?.id === item.id)) return toast('Сначала снимите оружие с героя.');
+    const cost = reforgeCost(item);
+    if ((p.gold || 0) < cost) return toast(`Перековка стоит ${fmt(cost)} 🪙 — не хватает ${fmt(cost - (p.gold || 0))} 🪙.`);
+    if (!confirm(`Перековать «${baseName(item)}» в двуручное за ${fmt(cost)} 🪙?\n\nАтака ×${TWO_HAND_MULT}, но щит или второе оружие с ним надеть нельзя. Вернуть одноручным будет нельзя.`)) return;
+    B().setPlayer(x => { if (!x || (x.gold || 0) < cost) return x; const i = x.inventory.findIndex(e => e.id === item.id); if (i < 0 || x.inventory[i].twoHanded) return x;
+      const inv = x.inventory.slice(); inv[i] = makeTwoHand(inv[i]); return {...x, gold: x.gold - cost, inventory: inv}; });
+    toast(`⚒️ «${baseName(item)}» перекован в двуручное: атака ×${TWO_HAND_MULT}`); sfx.play('heavy');
+    document.querySelectorAll('[data-ae-2h]').forEach(e => e.remove());
+  }
+  // Item window: what a two-hander is, and the reforge button for one-handed weapons.
+  function injectTwoHand() {
+    if (!lastTileId) return;
+    const item = findItem(lastTileId); if (!item || item.type !== 'weapon') return;
+    const dialogs = [...document.querySelectorAll('.game-dialog-backdrop, .bottom-sheet-backdrop, .fixed.inset-0')].filter(d => (d.textContent || '').includes(baseName(item)) && d.querySelector('button'));
+    for (const d of dialogs) {
+      // the game's own weapon-class label «Двуручное оружие» only means a heavy weapon — real two-handers are marked by the add-on
+      for (const el of d.querySelectorAll('p, span, div, small')) if (!el.childElementCount && /^(🗡️ )?(Двуручное|Тяжёлое) оружие$/.test((el.textContent || '').trim())) { const t = item.twoHanded ? '🗡️ Двуручное оружие' : 'Тяжёлое оружие'; if (el.textContent !== t) el.textContent = t; }
+      const have = d.querySelector('[data-ae-2h]'); if (have && have.dataset.aeFor === item.id + (item.twoHanded ? '2' : '1')) continue; have?.remove();
+      const btns = [...d.querySelectorAll('button')].filter(b => /Надеть|Снять|Продать|Разобрать|Экипировать|кузниц/i.test(b.textContent || ''));
+      const anchor = btns[0]; if (!anchor) continue;
+      let row = anchor; while (row.parentElement && row.parentElement !== d && row.parentElement.querySelectorAll('button').length <= btns.length + 3 && !row.parentElement.querySelector('h1,h2,h3')) row = row.parentElement;
+      const note = item.twoHanded
+        ? h('div', {class: 'ae-2h-note', 'data-ae-2h': '1', 'data-ae-for': item.id + '2'}, h('b', {}, '🗡️ Двуручное оружие'), h('small', {}, `Атака ×${TWO_HAND_MULT} (уже учтено в характеристиках). Занимает обе руки: щит или второе оружие с ним надеть нельзя.`))
+        : canBeTwoHand(item) && !item.serverOwned ? h('button', {type: 'button', class: 'ae-btn ae-2h-btn', 'data-ae-2h': '1', 'data-ae-for': item.id + '1', onclick: e => { e.stopPropagation(); reforgeTwoHand(findItem(lastTileId) || item); }},
+          `⚒️ Перековать в двуручное · ${fmt(reforgeCost(item))} 🪙`) : null;
+      if (note) row.parentElement.insertBefore(note, row);
+    }
+  }
+  // Hero screen: the second-hand slot shows it is taken by the two-handed weapon.
+  function decorateTwoHandSlot() {
+    const locked = isTwoHand(me()?.equipped?.weapon);
+    for (const btn of document.querySelectorAll('[data-equipment-slot="offhand"], [data-modern-equipment-slot="offhand"]')) btn.classList.toggle('ae-2h-locked', locked);
+    for (const tile of document.querySelectorAll('[data-inventory-item]')) { const it = findItem(tile.getAttribute('data-inventory-item')); tile.classList.toggle('ae-2h-tile', isTwoHand(it)); }
+  }
+  document.addEventListener('click', e => {
+    const btn = e.target.closest?.('[data-equipment-slot="offhand"], [data-modern-equipment-slot="offhand"]'); if (!btn || btn.closest('.ae-panel')) return;
+    const w = me()?.equipped?.weapon; if (!isTwoHand(w) || me()?.equipped?.offhand) return;
+    e.preventDefault(); e.stopPropagation(); toast(`Обе руки заняты: «${baseName(w)}» — двуручное оружие. Снимите его, чтобы надеть щит или второе оружие.`);
+  }, true);
   // ---------- travel: one picture card with destination + smooth progress ----------
   function syncTravel() {
     for (const card of document.querySelectorAll('.ae-travel-card')) {
@@ -3461,7 +3550,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   }
   let heavyAt = 0, heavyTimer = 0;
   function heavyPass() {
-    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); injectMarketTools(); injectFishFeed(); } catch (e) { console.warn('ae heavy', e); } };
+    const run = () => { heavyAt = Date.now(); heavyTimer = 0; try { decorateLands(); decorateNicks(); renderChatItems(); injectShareButton(); injectTwoHand(); injectPvp(); injectTavern(); decorateTravel(); injectQuickBars(); injectSellToFriend(); injectForgeClaim(); decoratePets(); injectMarketDeposit(); paintNewsBadges(); paintPlaceBadges(); injectPetFood(); decorateAlchemy(); injectRespec(); injectClanInvite(); injectClanHQ(); injectClanTreasury(); injectGemPlaces(); liftMineExpedition(); injectMarketTools(); injectFishFeed(); } catch (e) { console.warn('ae heavy', e); } };
     const wait = 500 - (Date.now() - heavyAt);
     if (wait <= 0) run(); else if (!heavyTimer) heavyTimer = setTimeout(run, wait);
   }
@@ -3469,7 +3558,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
   new MutationObserver(muts => {
     for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) soundScan(n.matches?.('.combat-damage-pop') ? n.parentElement : n);
     if (queued) return; queued = true;
-    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); applyHeaderAvatar(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
+    requestAnimationFrame(() => { queued = false; try { injectEntries(); injectAdmin(); decorateDungeons(); injectBag(); injectDungeonExit(); decorateTiles(); decorateSlots(); decorateTwoHandSlot(); syncTravel(); hideLockUi(); injectModeToggle(); decorateCurrencies(); applyHeaderAvatar(); heavyPass(); } catch (e) { console.warn('ae inject', e); } });
   }).observe(document.documentElement, {childList: true, subtree: true});
   setInterval(() => { try { storyTick(); } catch (e) { console.warn('ae story', e); } }, 1200);
   // The game moves the travel bar by restyling it (no DOM insertions), so poll while a journey card is open.
@@ -3480,7 +3569,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
 .ae-clan-tag{display:inline-block;margin-right:4px;padding:0 4px;border-radius:5px;background:#3b2f1a;border:1px solid #c79a3e88;color:#f3d27a;font:700 0.82em/1.35 system-ui,sans-serif;vertical-align:baseline}html[data-interface=modern] .ae-clan-tag{background:#1e293b;border-color:#38bdf866;color:#7dd3fc}
 .ae-prof-clan{font-size:12.5px;color:#e5ce96;margin-top:2px}
 .ae-scale-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-scale-opt{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px}.ae-scale-opt small{opacity:.75}
-html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
+.ae-2h-note{display:flex;flex-direction:column;gap:2px;padding:8px 10px;margin:6px 0;border-radius:10px;border:1px solid rgba(232,184,92,.55);background:rgba(232,184,92,.12);font-size:12px;line-height:1.35}.ae-2h-note b{color:#f0c46a}html[data-interface=fantasy] .ae-2h-note{border-color:#9a6a2a;background:rgba(122,58,16,.1)}html[data-interface=fantasy] .ae-2h-note b{color:#7a3a10}.ae-2h-btn{width:100%;margin:6px 0}.ae-2h-locked{position:relative;opacity:.55}.ae-2h-locked::after{content:'🔒 Двуручное';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(20,14,8,.85);color:#f0c46a;pointer-events:none}.ae-2h-tile::before{content:'2H';position:absolute;left:3px;top:3px;z-index:3;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;background:#7a2f1c;color:#ffe2a8;pointer-events:none}.ae-2h-tile{position:relative}html.ae-zoomed .ae-float{zoom:calc(1 / var(--ae-zoom))}html.ae-scaled .max-w-sm{max-width:calc(24rem / var(--ae-scale))}html.ae-scaled .max-w-md{max-width:calc(28rem / var(--ae-scale))}html.ae-scaled .max-w-lg{max-width:calc(32rem / var(--ae-scale))}html.ae-scaled .max-w-xl{max-width:calc(36rem / var(--ae-scale))}html.ae-scaled .max-w-2xl{max-width:calc(42rem / var(--ae-scale))}
 html.ae-zoomed,html.ae-zoomed body{min-height:calc(100vh / var(--ae-zoom))}html.ae-zoomed .game-shell,html.ae-zoomed .min-h-screen{min-height:calc(100vh / var(--ae-zoom))!important}
 .ae-nick-ava{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:top;flex:none;vertical-align:middle;margin-right:6px;border:1px solid #e5c67866;background:#0b0d10;cursor:pointer;display:inline-block}html[data-interface=modern] .ae-nick-ava{border-color:#38bdf866}
 .ae-petlvl{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px;font-size:12.5px}.ae-petlvl small{opacity:.75;font-size:11.5px;line-height:1.35}.ae-petfood-bar.is-xp i{background:linear-gradient(90deg,#a855f7,#facc15)!important}

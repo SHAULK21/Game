@@ -338,7 +338,7 @@ export function saleCheck(world, userId, item_json) {
 // Any hero may sell gear of any level; the stats only have to fit the item's own level and rarity.
 function plausibleGear(it) {
   if (!GEAR_TYPES.has(it.type)) return 'Продать на рынке можно только экипировку.';
-  const cap = (40 + it.level * 14) * (RARITY_POWER[it.rarity] || 1) * (1 + it.upgradeLevel * 0.1) * (1 + (Number(it.ascension) || 0) * 0.12);
+  const cap = (40 + it.level * 14) * (RARITY_POWER[it.rarity] || 1) * (1 + it.upgradeLevel * 0.1) * (1 + (Number(it.ascension) || 0) * 0.12) * (it.twoHanded === true && it.type === 'weapon' ? 1.6 : 1);
   // Percent stats: chances stay under 75%, bonus multipliers (crit damage, vampirism…) may go higher on top-tier gear.
   const pctCap = k => /critDamage|critMultiplier/i.test(k) ? 400 : /vampir|lifesteal|armorPen|penetration/i.test(k) ? 100 : 75;
   for (const [k, v] of Object.entries(it.stats)) {
