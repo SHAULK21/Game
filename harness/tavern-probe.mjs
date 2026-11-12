@@ -1,0 +1,16 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, energy: 94, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']); ls.aeth_ui_scale = process.argv[3] || 'x1';
+const s = await launch({pageOptions: {viewport: {width: 412, height: 915}, isMobile: true, hasTouch: true}, localState: ls, setupWorld: (w) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.waitForTimeout(8000);
+for (const t of ['Позже']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {});
+await p.locator('.ae-x').first().click().catch(() => {});
+const {handleProgressRequest} = await import('../tgcloud/lib/gameEngine.js');
+for (let i = 0; i < 8; i++) await handleProgressRequest(s.world, {path: '/api/chat/global', method: 'POST', body: {text: 'Сообщение номер ' + (i + 1) + ' в общем чате таверны'}}, {id: 437290420, username: 'a', displayName: 'Админ'}, {now: () => Date.now(), isAdmin: () => true});
+console.log(await p.evaluate(() => [...document.querySelectorAll('[data-settlement-place]')].map(b => b.dataset.settlementPlace).join(','))); await p.evaluate(() => [...document.querySelectorAll('[data-settlement-place]')].find(b => /Таверна/.test(b.textContent))?.click()); await p.waitForTimeout(3000);
+console.log(await p.evaluate(() => (document.querySelector('.tavern-beer-card')?.outerHTML || '').replace(/<svg[\s\S]*?<\/svg>/g, '<svg/>').slice(0, 3000))); console.log(await p.evaluate(() => (document.querySelector('.chat-header')?.outerHTML || '').replace(/<svg[\s\S]*?<\/svg>/g, '<svg/>').slice(0, 1500)));
+console.log(await p.evaluate(() => { const out = []; const walk = (el, d) => { if (d > 7) return; for (const c of el.children) { const r = c.getBoundingClientRect(); if (r.height < 20) continue; out.push(`${'  '.repeat(d)}${c.tagName}.${String(c.className).slice(0, 80)} y${Math.round(r.top)} h${Math.round(r.height)} ovf=${getComputedStyle(c).overflowY} mh=${getComputedStyle(c).maxHeight}`); if (/chat|tavern|section|article|div/i.test(c.tagName)) walk(c, d + 1); } }; walk(document.querySelector('main'), 0); return out.slice(0, 60).join('\n') + `\nviewport ${innerHeight} doc ${document.documentElement.scrollHeight}`; }));
+await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({path: `tavern-${style}.png`}); console.log("stream", await p.evaluate(() => { const r = document.querySelector(".chat-stream").getBoundingClientRect(), i = document.querySelector("#tavern-chat input, #tavern-chat textarea, .tavern-chat-screen input")?.getBoundingClientRect(), n = document.querySelector("nav.game-nav").getBoundingClientRect(); return Math.round(r.top) + ".." + Math.round(r.bottom) + " h" + Math.round(r.height) + " input " + (i ? Math.round(i.top) + ".." + Math.round(i.bottom) : "none") + " nav " + Math.round(n.top) + " vh " + innerHeight; }));
+await s.close();
