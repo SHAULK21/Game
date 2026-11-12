@@ -42,6 +42,7 @@ export const TITLES = [
   T('clansman', '🏰', 'Брат по клану', 'Вступить в клан', c => c.clan ? 1 : 0, 1),
   T('patron', '👑', 'Покровитель королевства', 'Активный Premium', c => c.premium ? 1 : 0, 1),
   T('pioneer', '🧭', 'Первопроходец', 'Начать играть до 1 января 2027', c => c.pioneer ? 1 : 0, 1),
+  T('ascended_sss', '🌟', 'Первый вознесённый', 'Достичь вознесения ранга SSS', c => c.asc === 'SSS' ? 1 : 0, 1),
   T('keeper', '🗝️', 'Хранитель Аэтельгарда', 'Администрация игры', c => c.admin ? 1 : 0, 1)];
 
 function ctxOf(world, id, now) {
@@ -49,7 +50,7 @@ function ctxOf(world, id, now) {
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
-    friends, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID)};
+    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID)};
 }
 export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);
@@ -80,12 +81,18 @@ export function publicProfile(world, id, now) {
     avatar: av, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
+// Reaching ascension SSS: the «Первый вознесённый» achievement, announced once in the 🔔 history.
+function awardSSS(world, me, now) {
+  const pr = rows(world, 'ae_profiles').find(x => same(x.u, me)); if (!pr || pr.asc !== 'SSS' || pr.sssAt) return;
+  pr.sssAt = new Date(now).toISOString();
+  rows(world, 'ae_events').push({id: crypto.randomUUID(), to: String(me), icon: '🌟', text: 'Достижение «Первый вознесённый»: вы прошли все испытания вознесения до ранга SSS! Титул можно надеть в профиле.', kind: 'achievement', data: null, at: pr.sssAt, acked: false});
+}
 export function handleProfileRequest(world, input, user, now) {
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/ae-profile')) return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (!player(world, me)) return fail('Сначала создайте персонажа.', 404);
-  if (method === 'GET' && path === '/api/ae-profile') return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS});
+  if (method === 'GET' && path === '/api/ae-profile') { awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS}); }
   if (method === 'GET' && path === '/api/ae-profile/card') {
     const id = String(input.path.split('?')[1]?.match(/id=(\d+)/)?.[1] || body.id || '');
     const prof = publicProfile(world, id, now); return prof ? ok({profile: prof}) : fail('Игрок не найден.', 404);
@@ -105,7 +112,7 @@ export function handleProfileRequest(world, input, user, now) {
     const rank = String(body.rank || '');
     if (rank === 'E' || !rank) { pr.asc = null; return ok({profile: publicProfile(world, me, now)}); }
     const a = ASC.find(x => x[0] === rank); if (!a) return fail('Неизвестный ранг вознесения.');
-    pr.asc = rank; return ok({profile: publicProfile(world, me, now)});
+    pr.asc = rank; awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now)});
   }
   if (method === 'POST' && path === '/api/ae-profile/avatar') {
     if (!AVATARS.some(a => a.id === body.id)) return fail('Такой аватарки нет.', 404);
