@@ -1,0 +1,20 @@
+[
+ {
+  "name": "monster-armor-bypass",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14.js",
+  "old": "function Ie(e,t){return(t===`physical`?80:90)+(e.regionId===`arena`||e.regionId===`ascension`?0:Math.max(0,(e.level||1)-3)*1.2)}",
+  "new": "function Ie(e,t){return((t===`physical`?80:90)+(e.regionId===`arena`||e.regionId===`ascension`?0:Math.max(0,(e.level||1)-3)*1.2+Math.min(window.__aeBal?.cap??240,Math.max(0,(e.level||1)-10)*(window.__aeBal?.k??12))))*(e.threat>1?e.threat:1)}"
+ },
+ {
+  "name": "monster-level-damage-and-threat",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14.js",
+  "old": "o=1.28*Math.sqrt(t);return{...e,superCooldown:0,hp:Math.max(1,Math.round(e.maxHp*r)),maxHp:Math.max(1,Math.round(e.maxHp*r))",
+  "new": "o=1.28*Math.sqrt(t),T=e.regionId===`arena`?null:window.__aeThreat||null;if(T&&T.m>1){r*=T.m;a*=T.d||T.m}return{...e,superCooldown:0,threat:T&&T.m>1?T.m:void 0,hp:Math.max(1,Math.round(e.maxHp*r)),maxHp:Math.max(1,Math.round(e.maxHp*r))"
+ },
+ {
+  "name": "threat-rewards",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14.js",
+  "old": "expReward:Math.max(1,Math.round(e.expReward*1.2)),goldReward:Math.max(1,Math.round(e.goldReward*1.12)),potionCharges:e.regionId===`arena`",
+  "new": "expReward:Math.max(1,Math.round(e.expReward*1.2*(T&&T.m>1?T.r:1))),goldReward:Math.max(1,Math.round(e.goldReward*1.12*(T&&T.m>1?T.r:1))),potionCharges:e.regionId===`arena`"
+ }
+]
