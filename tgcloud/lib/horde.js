@@ -155,7 +155,9 @@ export function handleHordeRequest(world, input, user, now) {
     if (run && run.status === 'active') return ok({run: view(run)});
     if (run && !run.claimed && (run.loot.gold || run.loot.exp)) return fail('Сначала заберите награду прошлого похода.');
     if (body.stats) saveStats(world, me, body.stats, now);
-    const {base, hero: h} = fighterOf(world, p), weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
+    const {base: base0, hero: h} = fighterOf(world, p), mid = (a, b) => Math.round(Math.sqrt(Math.max(1, a) * Math.max(1, b)));
+    // monsters grow with the hero's real strength too (halfway), so strong gear helps but does not walk through the Horde
+    const base = h.real ? {...base0, atk: mid(mid(base0.atk, h.atk), h.atk), maxHp: mid(mid(base0.maxHp, h.maxHp), h.maxHp)} : base0, weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
     if (blood && !weekend && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
     run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, base, hero: h, hp: h.maxHp, maxMp: h.maxMp, mp: h.maxMp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
       loot: {gold: 0, exp: 0, fragments: 0}, log: [weekend ? '🌕 Выходные Кровавой луны! Награды ×2 — Орда беснуется!' : blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};

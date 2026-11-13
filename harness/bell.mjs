@@ -20,7 +20,7 @@ await p.locator('[data-ae-bell]').first().click(); await p.waitForTimeout(1500);
 console.log('panel:', (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, 400));
 await p.screenshot({path: `bell-${style}-mail.png`});
 const g0 = await p.evaluate(() => window.__aethBridge.player.gold);
-await p.locator('.ae-mail button', {hasText: 'Забрать'}).click(); await p.waitForTimeout(2000);
+await p.locator('.ae-mail button', {hasText: 'Забрать'}).last().click(); await p.waitForTimeout(2000);
 const g1 = await p.evaluate(() => window.__aethBridge.player.gold); console.log('gold', g0, '→', g1, '| premium', s.world.tables.players.find(x => String(x.telegram_id) === '437290420').premium_until);
 await p.evaluate(() => document.querySelector('.ae-premium')?.remove());
 console.log('second claim server:', JSON.stringify((await handleSocialRequest(s.world, {path: '/api/ae-inbox/claim', method: 'POST', body: {id: s.world.tables.ae_mail[0].id, operationId: crypto.randomUUID()}}, {id: 437290420}, Date.now())).body));

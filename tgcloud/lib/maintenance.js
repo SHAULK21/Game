@@ -1,4 +1,5 @@
 // Housekeeping for the single world document: keeps it small so every request stays cheap.
+import {compactQuestLog} from './arenaExtras.js';
 const DAY = 864e5;
 const at = row => Date.parse(row?.created_at || row?.updated_at || '') || 0;
 const keepRecent = (rows, cutoff) => (rows || []).filter(row => { const t = at(row); return !t || t >= cutoff; });
@@ -9,14 +10,14 @@ export function pruneWorld(world, now = Date.now()) {
   if (t.game_operations) t.game_operations = keepRecent(t.game_operations, now - 7 * DAY);
   if (t.progress_api_operations) t.progress_api_operations = keepRecent(t.progress_api_operations, now - 7 * DAY);
   if (t.inventory_bulk_disposals) t.inventory_bulk_disposals = keepRecent(t.inventory_bulk_disposals, now - 7 * DAY);
-  // Analytics: the admin panel reads at most 30 days.
-  for (const name of ['balance_battles', 'balance_sessions', 'balance_progress']) if (t[name]) t[name] = keepRecent(t[name], now - 45 * DAY);
+  // Analytics: kept for 14 days (the single world document has a size limit).
+  for (const name of ['balance_battles', 'balance_sessions', 'balance_progress']) if (t[name]) t[name] = keepRecent(t[name], now - 14 * DAY);
   // Delivered notifications and outbox rows.
   if (t.game_notifications) t.game_notifications = t.game_notifications.filter(n => !n.sent_at || Date.parse(n.sent_at) >= now - 30 * DAY);
   if (t.telegram_outbox) t.telegram_outbox = t.telegram_outbox.filter(o => !o.completed_at || Date.parse(o.completed_at) >= now - 7 * DAY);
   // Add-on tables: each cleans itself when used, this is the safety net for the ones nobody opens any more.
   const old = (name, days, key = 'at') => { if (t[name]) t[name] = t[name].filter(r => { const x = Date.parse(r?.[key] || ''); return !x || x >= now - days * DAY; }); };
-  old('ae_clan_raid_runs', 2); old('ae_clan_raid_setups', 2); old('ae_clan_requests', 8); old('ae_clan_invites', 8); old('ae_deposits', 3); old('ae_quest_log', 8); old('ae_clan_goals', 15);
+  old('ae_clan_raid_runs', 2); old('ae_clan_raid_setups', 2); old('ae_clan_requests', 8); old('ae_clan_invites', 8); old('ae_deposits', 3); compactQuestLog(world, now); old('ae_clan_goals', 15);
   old('ae_clan_welcomed', 30); old('ae_bug_reports', 30); old('ae_gem_ops', 3);
   if (t.ae_events) t.ae_events = t.ae_events.filter(e => Date.parse(e.at) > now - (e.acked ? 7 : 14) * DAY).slice(-800);
   for (const name of ['ae_clan_daily', 'ae_clan_chest']) if (t[name]) { const min = new Date(now - 2 * DAY).toISOString().slice(0, 10); t[name] = t[name].filter(r => String(r.day) >= min); }

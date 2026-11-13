@@ -77,10 +77,20 @@ export function bumpStat(world, userId, kind, n = 1) {
   if (!r) { r = {u: String(userId), c: {}}; list.push(r); }
   r.c[kind] = (r.c[kind] || 0) + n;
 }
+// One row per player + kind + day with a counter (a row per kill used to fill the world document).
+const dayIso = t => new Date(t).toISOString().slice(0, 10) + 'T00:00:00.000Z';
+const questCount = (log, kind, from) => log.reduce((n, r) => n + (r.k === kind && Date.parse(r.at) >= from ? r.n || 1 : 0), 0);
+export function compactQuestLog(world, now) {
+  const m = new Map();
+  for (const r of rows(world, 'ae_quest_log')) { if (!(Date.parse(r.at) > now - 9 * DAY)) continue; const at = dayIso(Date.parse(r.at)), k = r.u + '|' + r.k + '|' + at, o = m.get(k); if (o) o.n += r.n || 1; else m.set(k, {u: String(r.u), k: r.k, at, n: r.n || 1}); }
+  world.tables.ae_quest_log = [...m.values()];
+}
 export function logQuest(world, userId, kind, now, n = 1) {
   bumpStat(world, userId, kind, n);
-  const list = rows(world, 'ae_quest_log'); for (let i = 0; i < n; i++) list.push({u: String(userId), k: kind, at: new Date(now).toISOString()});
-  if (list.length > 20000 || Math.random() < 0.02) world.tables.ae_quest_log = list.filter(r => Date.parse(r.at) > now - 8 * DAY);
+  let list = rows(world, 'ae_quest_log');
+  if (list.length > 1500 || (list.length && list[0].n == null)) { compactQuestLog(world, now); list = rows(world, 'ae_quest_log'); }
+  const at = dayIso(now), row = list.find(r => same(r.u, userId) && r.k === kind && r.at === at);
+  if (row) row.n = (row.n || 1) + n; else list.push({u: String(userId), k: kind, at, n});
 }
 const SPECIAL_QUESTS = [
   {id: 'd_coop_win', period: 'day', kind: 'coop_win', need: 1, icon: '🏰', title: 'Пройти кооп-подземелье', reward: L => ({gold: 300 + L * 25, exp: 200 + L * 30, tickets: 1})},
@@ -106,7 +116,7 @@ function questView(world, userId, now) {
   const L = Math.max(1, Number(player(world, userId)?.level) || 1), log = rows(world, 'ae_quest_log').filter(r => same(r.u, userId)), claims = rows(world, 'ae_quest_claims');
   return SPECIAL_QUESTS.map(q => {
     const from = periodStart(q.period, now), key = `${q.id}:${from}`;
-    const progress = Math.min(q.need, log.filter(r => r.k === q.kind && Date.parse(r.at) >= from).length);
+    const progress = Math.min(q.need, questCount(log, q.kind, from));
     return {id: q.id, period: q.period, icon: q.icon, title: q.title, need: q.need, progress, reward: q.reward(L), claimed: claims.some(c => same(c.u, userId) && c.key === key), resetsAt: from + (q.period === 'week' ? 7 : 1) * DAY};
   });
 }
@@ -516,7 +526,7 @@ export function handleTrade(world, path, method, body, me, now, notify) {
 
 // The arena fight itself runs in the game client; it reports each finished fight here (capped per day).
 function reportArena(world, userId, body, now) {
-  const from = periodStart('day', now), n = rows(world, 'ae_quest_log').filter(r => same(r.u, userId) && r.k === 'arena_fight' && Date.parse(r.at) >= from).length;
+  const from = periodStart('day', now), n = questCount(rows(world, 'ae_quest_log').filter(r => same(r.u, userId)), 'arena_fight', from);
   if (n >= 30) return ok({ok: true, capped: true});
   logQuest(world, userId, 'arena_fight', now); if (body.won === true) { logQuest(world, userId, 'arena_win', now); creditDuel(world, userId, now); }
   return ok({ok: true});

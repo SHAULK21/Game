@@ -28,7 +28,20 @@ function findPlayer(world, who) {
   const s = String(who || '').trim().replace(/^@/, ''); if (!s) return null;
   return player(world, s) || rows(world, 'players').find(p => nameOf(p).toLocaleLowerCase() === s.toLocaleLowerCase()) || null;
 }
+// Welcome-back letters for new heroes: a gift on the 2nd, 3rd and 7th day after the hero was created (once each).
+const WELCOME = [[1, 'day2', '🎁 Подарок за второй день', 'Рады, что вы вернулись в Аэтельгард! Держите припасы на сегодня.', {gold: 500, energy: 50, arenaTickets: 2}],
+  [2, 'day3', '🎁 Третий день в королевстве', 'Герой крепнет. Немного серебра на заточку и осколок вознесения.', {silver: 400, energy: 50, fragments: 1}],
+  [6, 'day7', '🏅 Неделя в Аэтельгарде', 'Целая неделя приключений! Королевство благодарит вас.', {gold: 2000, fragments: 3, arenaTickets: 3, premiumDays: 1}]];
+function welcomeLetters(world, me, p, now) {
+  const born = created(p); if (!born || now - born > 9 * DAY) return;
+  const list = rows(world, 'ae_mail');
+  for (const [days, key, title, text, gifts] of WELCOME) {
+    if (now - born < days * DAY || list.some(m => m.to === String(me) && m.welcome === key)) continue;
+    list.push({id: crypto.randomUUID(), op: 'welcome-' + key + '-' + me, to: String(me), welcome: key, title, text, gifts, at: iso(now)});
+  }
+}
 function inbox(world, me, now) {
+  const p0 = player(world, me); if (p0) welcomeLetters(world, me, p0, now);
   const p = player(world, me), seen = rows(world, 'ae_inbox_seen').find(r => same(r.u, me))?.at || '';
   const events = rows(world, 'ae_events').filter(e => same(e.to, me)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40).map(e => ({id: e.id, icon: e.icon, text: e.text, kind: e.kind, at: e.at, isNew: e.at > seen}));
   const mail = rows(world, 'ae_mail').filter(m => visible(m, me, p, now)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30).map(m => mailView(world, m, me));
