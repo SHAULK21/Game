@@ -1,0 +1,152 @@
+11-14 00:40:27.376   488  1399 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.aethelgard.rpg/.MainActivity} from uid 2000
+11-14 00:40:27.450   956   956 D MediaPlayerList: Name of package changed: com.aethelgard.rpg
+11-14 00:40:27.451   956   956 D MediaPlayerList: Name of package changed: com.aethelgard.rpg
+11-14 00:40:27.680   488  1952 D CoreBackPreview: Window{5db6055 u0 Splash Screen com.aethelgard.rpg}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@a48b237, mPriority=0}
+11-14 00:40:27.745   488  1618 W BackupTransportManager: Package com.aethelgard.rpg enabled setting: 0
+11-14 00:40:27.755   488   528 I ActivityManager: Start proc 3571:com.aethelgard.rpg/u0a174 for next-top-activity {com.aethelgard.rpg/com.aethelgard.rpg.MainActivity}
+11-14 00:40:27.773  3571  3571 I .aethelgard.rpg: Using CollectorTypeCC GC.
+11-14 00:40:27.774  3571  3571 W .aethelgard.rpg: Unexpected CPU variant for x86: x86_64.
+11-14 00:40:27.774  3571  3571 W .aethelgard.rpg: Known variants: atom, sandybridge, silvermont, kabylake, default
+11-14 00:40:27.807  3571  3571 D nativeloader: Configuring classloader-namespace for other apk /data/app/~~qXcdLDdC2V86laND9yWd7g==/com.aethelgard.rpg-c19ctwijSlLY3dfBkmLorQ==/base.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~qXcdLDdC2V86laND9yWd7g==/com.aethelgard.rpg-c19ctwijSlLY3dfBkmLorQ==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.aethelgard.rpg
+11-14 00:40:27.811  3571  3571 V GraphicsEnvironment: ANGLE Developer option for 'com.aethelgard.rpg' set to: 'default'
+11-14 00:40:27.811  3571  3571 V GraphicsEnvironment: ANGLE GameManagerService for com.aethelgard.rpg: false
+11-14 00:40:28.478  3571  3571 W .aethelgard.rpg: Entry not found
+11-14 00:40:28.643  3571  3625 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.aethelgard.rpg/app_webview/variations_seed_new"
+11-14 00:40:28.643  3571  3625 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.aethelgard.rpg/app_webview/variations_seed"
+11-14 00:40:29.261   984   984 D CarrierSvcBindHelper: onPackageAdded: com.aethelgard.rpg
+11-14 00:40:29.291   488   528 I ActivityManager: Start proc 3654:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {com.aethelgard.rpg/org.chromium.content.app.SandboxedProcessService0:0}
+11-14 00:40:29.606   984   984 D CarrierSvcBindHelper: onPackageModified: com.aethelgard.rpg
+11-14 00:40:29.622   984   984 D ImsResolver: maybeAddedImsService, packageName: com.aethelgard.rpg
+11-14 00:40:29.642   984   984 D ImsResolver: maybeAddedImsService, packageName: com.aethelgard.rpg
+11-14 00:40:29.675  3654  3654 I cr_WebViewApkApp: Launched version=109.0.5414.123 minSdkVersion=29 isBundle=false processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+11-14 00:40:29.726  3571  3644 E chromium: [ERROR:simple_version_upgrade.cc(152)] Failed to write a new fake index.
+11-14 00:40:29.739  3571  3644 E chromium: [ERROR:simple_file_enumerator.cc(21)] opendir /data/user/0/com.aethelgard.rpg/cache/WebView/Default/HTTP Cache/Code Cache/wasm: No such file or directory (2)
+11-14 00:40:29.739  3571  3644 E chromium: [ERROR:simple_index_file.cc(614)] Could not reconstruct index from disk
+11-14 00:40:29.769   488   875 D ConnectivityService: requestNetwork for uid/pid:10174/3571 activeRequest: null callbackRequest: 96 [NetworkRequest [ REQUEST id=97, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10174 RequestorUid: 10174 RequestorPkg: com.aethelgard.rpg UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647
+11-14 00:40:29.791   488   528 I ActivityManager: Start proc 3745:com.google.android.webview:webview_apk/u0a124 for service {com.google.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
+11-14 00:40:29.825   488   698 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=97, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10174 RequestorUid: 10174 RequestorPkg: com.aethelgard.rpg UnderlyingNetworks: Null] ]
+11-14 00:40:29.825   488   698 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=97, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10174 RequestorUid: 10174 RequestorPkg: com.aethelgard.rpg UnderlyingNetworks: Null] ]
+11-14 00:40:29.825   488   698 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=97, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10174 RequestorUid: 10174 RequestorPkg: com.aethelgard.rpg UnderlyingNetworks: Null] ]
+11-14 00:40:29.825   488   698 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=97, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10174 RequestorUid: 10174 RequestorPkg: com.aethelgard.rpg UnderlyingNetworks: Null] ]
+11-14 00:40:29.997   488   514 D CoreBackPreview: Window{c25f78 u0 com.aethelgard.rpg/com.aethelgard.rpg.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@af36eb6, mPriority=0}
+11-14 00:40:30.496   488  1956 D CoreBackPreview: Window{5db6055 u0 Splash Screen com.aethelgard.rpg EXITING}: Setting back callback null
+11-14 00:40:30.519   488  1952 W InputManager-JNI: Input channel object '5db6055 Splash Screen com.aethelgard.rpg (client)' was disposed without first being removed with the input manager!
+11-14 00:40:30.594   488   516 I ActivityTaskManager: Displayed com.aethelgard.rpg/.MainActivity: +3s73ms
+11-14 00:40:30.677  1514  1514 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1877 onStartInput(EditorInfo{inputType=0x0(NULL) imeOptions=0x0 privateImeOptions=null actionName=UNSPECIFIED actionLabel=null actionId=0 initialSelStart=-1 initialSelEnd=-1 initialCapsMode=0x0 hintText=null label=null packageName=com.aethelgard.rpg fieldId=-1 fieldName=null extras=null}, false)
+11-14 00:40:31.113  3745  3793 W cr_AWNetworkFetcherTask: 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-541412337:48)
+11-14 00:40:32.040  3745  3793 W cr_AWNetworkFetcherTask: 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-541412337:48)
+11-14 00:40:32.154  3745  3793 W cr_AWNetworkFetcherTask: 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-541412337:48)
+11-14 00:40:32.154  3745  3793 W cr_AWNetworkFetcherTask: 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-541412337:48)
+11-14 00:40:35.063  1275  3176 I BlockstoreStorage: Clearing Blockstore Data for package com.aethelgard.rpg [CONTEXT service_id=258 ]
+11-14 00:40:35.292  1058  3962 I FontLog : Package com.aethelgard.rpg has no metadata [CONTEXT service_id=132 ]
+11-14 00:40:35.710  1615  1615 I AiAiEcho: EchoSearch: AppFetcherImpl is initialized with [19] apps [time=36, reason=com.aethelgard.rpg is added]
+11-14 00:40:40.288  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.288  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.288  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.288  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.290  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:5)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:2)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.307  3158  3267 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+11-14 00:40:40.496  4494  4494 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:40:40.529  4494  4494 I AndroidRuntime: Using default boot image
+11-14 00:40:40.530  4494  4494 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:40:40.621  3158  4503 W .apps.messaging: Verification of void org.chromium.net.NetworkChangeNotifier.<init>() took 131.955ms (174.30 bytecodes/s) (1688B approximate peak alloc)
+11-14 00:40:40.765  4494  4494 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:40:41.272  3158  4511 I cr_CronetUrlRequestContext: destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@99f7708
+11-14 00:40:41.952  4494  4494 D AndroidRuntime: Shutting down VM
+11-14 00:40:42.901   488  1851 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=aethelgard://login/... flg=0x10000000 pkg=com.aethelgard.rpg cmp=com.aethelgard.rpg/.MainActivity} from uid 2000
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_set_header_color [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_set_background_color [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_set_bottom_bar_color [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_request_theme ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_request_viewport ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_request_safe_area ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.605  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_request_content_safe_area ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.984  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_ready ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.984  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_expand ", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.984  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_set_header_color [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:44.984  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_set_background_color [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:45.295  3571  3571 I chromium: [INFO:CONSOLE(135)] "[Telegram.WebView] > postEvent web_app_setup_back_button [object Object]", source: https://telegram.org/js/telegram-web-app.js (135)
+11-14 00:40:45.542   488  1079 W NotificationService: Toast already killed. pkg=com.aethelgard.rpg token=android.os.BinderProxy@7a5c02b
+11-14 00:40:52.558  4924  4924 I HibernationPolicy: android.cameraextensions=Thu Jan 01 00:00:00 UTC 1970, com.google.android.apps.wallpaper.nexus=Thu Jan 01 00:00:00 UTC 1970, com.android.localtransport=Sat Nov 14 00:40:12 UTC 2026, com.google.android.apps.nexuslauncher=Sat Nov 14 00:40:49 UTC 2026, com.google.android.nearby.halfsheet=Thu Jan 01 00:00:00 UTC 1970, com.android.carrierdefaultapp=Thu Jan 01 00:00:00 UTC 1970, com.android.theme.font.notoserifsource=Thu Jan 01 00:00:00 UTC 1970, com.android.proxyhandler=Thu Jan 01 00:00:00 UTC 1970, com.google.android.safetycenter.resources=Thu Jan 01 00:00:00 UTC 1970, com.android.internal.display.cutout.emulation.waterfall=Thu Jan 01 00:00:00 UTC 1970, com.android.intentresolver=Thu Jan 01 00:00:00 UTC 1970, com.google.android.connectivity.resources=Thu Jan 01 00:00:00 UTC 1970, com.android.providers.contacts.auto_generated_rro_product__=Thu Jan 01 00:00:00 UTC 1970, com.google.android.feedback=Thu Jan 01 00:00:00 UTC 1970, com.google.android.printservice.recommendation=Thu Jan 01 00:00:00 UTC 1970, com.android.managedprovisioning=Sat Nov 14 00:40:09 UTC 2026, com.android.soundpicker=Thu Jan 01 00:00:00 UTC 1970, com.google.android.documentsui=Sat Nov 14 00:40:35 UTC 2026, com.android.systemui.emulation.pixel_3a_xl=Thu Jan 01 00:00:00 UTC 1970, com.android.systemui.emulation.pixel_6_pro=Thu Jan 01 00:00:00 UTC 1970, com.android.systemui.emulation.pixel_7_pro=Thu Jan 01 00:00:00 UTC 1970, com.google.mainline.telemetry=Thu Jan 01 00:00:00 UTC 1970, com.google.android.systemui.gxoverlay=Thu Jan 01 00:00:00 UTC 1970, com.android.carrierconfig.auto_generated_rro_product__=Thu Jan 01 00:00:00 UTC 1970, com.android.emulator.multidisplay=Sat Nov 14 00:40:34 UTC 2026, com.android.providers.partnerbookmarks=Thu Jan 01 00:00:00 UTC 1970, com.android.wallpaper.livepicker=Thu Jan 01 00:00:00 UTC 1970, com.android.providers.telephony.auto_generated_rro_product__=Thu Jan 01 00:00:00 UTC 1970, com.android.phone.auto_generated_rro_vendor__=Thu Jan 01 00:00:00 UTC 1970, com.google.mainline.adservices=Thu Jan 01 00:00:00 UTC 1970, com.android.imsserviceentitlement=Thu Jan 01 00:00:00 UTC 1970, com.google.android.sdksetup=Sat Nov 14 00:40:11 UTC 2026, com.android.internal.emulation.pixel_2_xl=Thu Jan 01 00:00:00 UTC 1970, com.android.internal.emulation.pixel_3_xl=Thu Jan 01 00:00:00 UTC 1970, com.android.internal.emulation.pixel_4_xl=Thu Jan 01 00:00:00 UTC 1970, com.android.storagemanager=Thu Jan 01 00:00:00 UTC 1970, com.android.bookmarkprovider=Thu Jan 01 00:00:00 UTC 1970, com.google.android.overlay.pixelconfigcommon=Thu Jan 01 00:00:00 UTC 1970, com.android.settings=Sat Nov 14 00:40:35 UTC 2026, com.android.systemui.emulation.pixel_3a=Thu Jan 01 00:00:00 UTC 1970, com.android.systemui.emulation.pixel_4a=Thu Jan 01 00:00:00 UTC 1970, com.android.systemui.emulation.pixel_6a=Thu Jan 01 00:00:00 UTC 1970, com.google.android.settings.intelligence=Sat Nov 14 00:40:34 UTC 2026, com.google.android.uwb.resources=Thu Jan 01 00:00:00 UTC 1970, com.android.cts.ctsshim=Thu Jan 01 00:00:00 UTC 1970, com.google.android.wifi.resources=Thu Jan 01 00:00:00 UTC 1970, com.android.remoteprovisioner=Sat Nov 14 00:40:41 UTC 2026, com.google.android.wifi.dialog=Thu Jan 01 00:00:00 UTC 1970, com.android.vpndialogs=Thu Jan 01 00:00:00 UTC 1970, com.google.android.apps.wallpaper=Sat Nov 14 00:40:14 UTC 2026, com.google.android.odad=Thu Jan 01 00:00:00 UTC 1970, com.android.phone=Sat Nov 14 00:40:03 UTC 2026, com.android.shell=Thu Jan 01 00:00:00 UTC 1970, com.android.wallpaperbackup=Thu Jan 01 00:00:00 UTC 1970, com.android.providers.blockednumber=Thu Jan 01 00:00:00 UTC 1970, com.android.settings.auto_generated_rro_product__=Thu Jan 01 00:00:00 UTC 1970, com.android.providers.userdictionary=Thu Jan 01 00:00:00 UTC 1970, com.android.emergency=Sat Nov 14 00:40:49 UTC 2026, com.android.internal.systemui.navbar.gestural=Thu Jan 01 00:00:00 UTC 1970, com.aethelgard.rpg=Sat Nov 14 00:40:27 UTC 2026, com.android.location.fused=Sat Nov 14 00:40:02 UTC 2026, com.android.systemui=Sat Nov 14 00:40
+11-14 00:40:56.969  5320  5320 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:40:57.000  5320  5320 I AndroidRuntime: Using default boot image
+11-14 00:40:57.000  5320  5320 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:40:57.276  5320  5320 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:40:58.536  5320  5320 D AndroidRuntime: Shutting down VM
+11-14 00:41:00.237  4547  4547 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:00.582  5408  5408 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:00.895  5426  5426 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.109  5444  5444 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.370  5460  5460 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.507  5476  5476 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.625  5495  5495 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.726  5513  5513 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:01.887  5529  5529 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.026  5548  5548 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.142  5566  5566 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.257  5584  5584 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.452  5602  5602 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.677  5625  5625 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.781  5643  5643 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.898  5660  5660 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:02.956  5678  5678 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:03.015  5696  5696 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:09.149  5924  5924 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:09.198  5941  5941 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:09.262  5958  5958 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:11.072  5983  5983 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:11.146  6000  6000 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:11.272  6017  6017 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:12.332  6048  6048 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:12.415  6066  6066 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:12.496  6083  6083 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:13.829  6159  6159 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:41:13.854  6159  6159 I AndroidRuntime: Using default boot image
+11-14 00:41:13.854  6159  6159 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:41:14.152  6159  6159 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:41:15.336  6159  6159 D AndroidRuntime: Shutting down VM
+11-14 00:41:17.232  3571  3660 D .aethelgard.rpg: PlayerBase::PlayerBase()
+11-14 00:41:17.242   488  1079 I MediaFocusControl: requestAudioFocus() from uid/pid 10174/3571 AA=USAGE_MEDIA/CONTENT_TYPE_MUSIC clientId=android.media.AudioManager@a2bf383org.chromium.content.browser.AudioFocusDelegate@33ac900 callingPack=com.aethelgard.rpg req=3 flags=0x0 sdk=34
+11-14 00:41:17.249   488  1580 I MediaFocusControl: requestAudioFocus() from uid/pid 10174/3571 AA=USAGE_MEDIA/CONTENT_TYPE_MUSIC clientId=android.media.AudioManager@a2bf383org.chromium.content.browser.AudioFocusDelegate@33ac900 callingPack=com.aethelgard.rpg req=3 flags=0x0 sdk=34
+11-14 00:41:17.254   488   884 I MediaFocusControl: requestAudioFocus() from uid/pid 10174/3571 AA=USAGE_MEDIA/CONTENT_TYPE_MUSIC clientId=android.media.AudioManager@a2bf383org.chromium.content.browser.AudioFocusDelegate@33ac900 callingPack=com.aethelgard.rpg req=3 flags=0x0 sdk=34
+11-14 00:41:18.720   488   747 W NotificationService: Toast already killed. pkg=com.aethelgard.rpg token=android.os.BinderProxy@f1d8ad3
+11-14 00:41:20.131  6549  6549 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:41:20.146  6549  6549 I AndroidRuntime: Using default boot image
+11-14 00:41:20.146  6549  6549 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:41:20.329  6549  6549 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:41:21.390  6549  6549 D AndroidRuntime: Shutting down VM
+11-14 00:41:24.801   488  1399 W NotificationService: Toast already killed. pkg=com.aethelgard.rpg token=android.os.BinderProxy@6fee1bc
+11-14 00:41:25.140  6713  6713 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:41:25.144  6713  6713 I AndroidRuntime: Using default boot image
+11-14 00:41:25.144  6713  6713 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:41:25.220  6713  6713 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:41:26.233  6713  6713 D AndroidRuntime: Shutting down VM
+11-14 00:41:27.090   488  2162 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.aethelgard.rpg/.MainActivity} from uid 2000
+11-14 00:41:28.696  6745  6745 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:28.914  6780  6780 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:30.492  6801  6801 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:30.572  6818  6818 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:30.635  6836  6836 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+11-14 00:41:34.188  6886  6886 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-14 00:41:34.214  6886  6886 I AndroidRuntime: Using default boot image
+11-14 00:41:34.214  6886  6886 I AndroidRuntime: Leaving lock profiling enabled
+11-14 00:41:34.521  6886  6886 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-14 00:41:35.655  6886  6886 D AndroidRuntime: Shutting down VM
