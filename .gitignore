@@ -8,3 +8,4 @@ harness/native-uk.js
 harness/engine-patched.js
 capabilities.json
 backups/
+.apk-signing-secrets.txt
