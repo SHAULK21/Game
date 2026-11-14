@@ -2080,6 +2080,11 @@
       const tag = clanTags.get(el.dataset.aeUid), cm = clanMeta.get(el.dataset.aeUid) || {};
       { const nx = el.nextElementSibling?.classList.contains('ae-app-ico') ? el.nextElementSibling : null; // 📱 the player uses the Android app
         if (cm.app && !nx) el.after(h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱')); else if (!cm.app && nx) nx.remove(); }
+      // rating cards: the player's avatar instead of the rank helmet (places 2+; the 1st keeps its crown)
+      if (cm.avatar) { const row = el.parentElement, card = row?.parentElement, icon = row?.previousElementSibling, rank = (card?.firstElementChild?.textContent || '').trim();
+        if (icon && /^\d+$/.test(rank) && rank !== '1' && icon.tagName === 'SPAN' && icon.querySelector('img, svg') && !icon.classList.contains('ae-nick-flexrow')) {
+          icon.classList.add('ae-rank-ava'); let im = icon.querySelector(':scope > .ae-rank-img'); if (!im) { im = h('img', {class: 'ae-rank-img', alt: ''}); icon.append(im); }
+          if (im.getAttribute('src') !== cm.avatar) im.setAttribute('src', cm.avatar); } }
       // a column layout (rating cards) stacked avatar, tag, nickname and 📱 one under another: keep them in one row
       { const par = el.parentElement; if (par && !par.dataset.aeRow && !par.closest('.ae-panel')) { par.dataset.aeRow = '1'; const cs = getComputedStyle(par);
           if ((cs.display.includes('flex') && cs.flexDirection.startsWith('column')) || cs.display === 'block') { par.classList.add('ae-nick-flexrow');
@@ -4434,6 +4439,7 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-apk-gift{border-color:#f0cf7a!important;background:linear-gradient(135deg,#2a1d10,#141a17)!important}
 .ae-app-ico{display:inline-block;margin-left:4px;font-size:.85em;line-height:1;vertical-align:middle;filter:drop-shadow(0 0 3px #4ade8088)}
 .ae-nick-flexrow{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;column-gap:6px;row-gap:2px}.ae-nick-flexrow>*{flex-basis:100%}.ae-nick-flexrow>:is(.ae-nick-ava,.ae-clan-tag,.ae-app-ico,[data-ae-uid],.ae-nick-inline){flex-basis:auto;margin-top:0!important;margin-bottom:0!important}.ae-nick-flexrow>.ae-app-ico{margin-left:0}
+.ae-rank-ava{width:34px!important;height:34px!important}.ae-rank-ava>:not(.ae-rank-img){display:none!important}.ae-rank-img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid #a58a4f;box-shadow:0 0 6px #0008}.ae-rank-ava+.ae-nick-flexrow .ae-nick-ava{display:none!important}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
