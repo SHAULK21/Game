@@ -29,7 +29,7 @@ for (let i = 0; i < 70; i++) {
   const m = t.match(/(ПОБЕДА[^|]*|Победа[^|]*|ПОРАЖЕНИЕ[^|]*|Поражение[^|]*)/); if (m && !/Возможн/.test(m[0])) { result = m[0]; break; }
   const atk = b.find(x => /^атака$/i.test(x)) || b.find(x => /^Сразиться|^В бой|Атаковать|Начать бой|НАЧАТЬ ОХОТУ|Начать охоту|Отправиться в путь/i.test(x));
   if (!atk) { if (i % 10 === 0) console.log('waiting; btns:', b.filter(x => x.length < 40).slice(0, 10).join(' / ')); await p.waitForTimeout(1000); continue; }
-  if (!globalThis.__shot) { globalThis.__shot = 1; await geo('fight'); await p.screenshot({path: `apkb-${style}-${process.argv[4] || 'tg'}.png`}); }
+  if (!globalThis.__shot) { globalThis.__shot = 1; await geo('fight'); await p.mouse.move(180, 400); await p.mouse.wheel(0, 600); await p.waitForTimeout(800); console.log('SCROLL in fight:', await p.evaluate(() => scrollY)); await p.waitForTimeout(1500); console.log('SCROLL later:', await p.evaluate(() => scrollY)); await p.screenshot({path: `apkb-${style}-${process.argv[4] || 'tg'}.png`}); }
   await p.getByRole('button', {name: new RegExp('^\\s*' + atk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i')}).first().click().catch(()=>{}); await p.waitForTimeout(800);
 }
 await geo('end');

@@ -1,0 +1,47 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 14, energy: 30, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+save.player.level = 30; save.player.inventory.push({id: 'gear-1', templateId: 'x', name: 'Клинок сумеречного леса', type: 'weapon', rarity: 'uncommon', level: 12, upgradeLevel: 2, stats: {attack: 80}, icon: '⚔️', sellPrice: 40, disassembleYield: {}, stackCount: 1}); ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_story_seen_v2_437290420'] = JSON.stringify(['reg_plains']);
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); new E.NativePool(w, () => Date.now()).ensurePlayer({id: 555, displayName: 'Борис'});
+  Object.assign(w.tables.players.find(p => p.telegram_id == 555), {character_name: 'Борис', level: 16, class_id: 'druid'}); w.tables.players.find(p => p.telegram_id == 437290420).level = 14;
+  const cid = 'clan-test', st = new Date().toISOString(); (w.tables.clans ||= []).push({id: cid, tag: 'STR', name: 'Стражи Света', description: '', owner_telegram_id: 437290420, level: 6, xp: 5200, max_members: 30, raid_hp: 12000, raid_max_hp: 12000, raid_reset_at: new Date(Date.now() + 5 * 864e5).toISOString(), created_at: st, updated_at: st, treasury_gold: 400000, treasury_silver: 200000, treasury_ore: 900, recruitment_open: true, min_join_level: 1, projects: {}});
+  (w.tables.clan_members ||= []).push({clan_id: cid, telegram_id: 437290420, role: 'owner', joined_at: st, raid_damage: 0, last_raid_attack: null}, {clan_id: cid, telegram_id: 555, role: 'recruit', joined_at: st, raid_damage: 2400, last_raid_attack: null});
+  for (const id of [437290420, 555]) w.tables.players.find(p => p.telegram_id == id).clan_id = cid;
+  const ago = new Date(Date.now() - 20 * 60e3).toISOString(), soon = new Date(Date.now() + 95 * 60e3).toISOString();
+  (w.tables.ae_clan_fort ||= []).push({clan: cid, b: {hall: {lvl: 5}, walls: {lvl: 3}, barracks: {lvl: 3}, den: {lvl: 3, to: 4, since: ago, until: soon, helps: ['555']}, forge: {lvl: 2}}, g: {militia: 4, archer: 2}, upk_at: st, inc_at: st, hunt: 'hydra', bosses: {}, shield: null, atk_at: null, log: [{at: st, icon: '🏗️', text: 'Тест: крепость готова'}]});
+  w.tables.clans.push({id: 'clan-foe', tag: 'ORC', name: 'Орда Севера', owner_telegram_id: 556, level: 5, xp: 4100, max_members: 30, treasury_gold: 60000, treasury_silver: 20000, treasury_ore: 100, created_at: st, updated_at: st, recruitment_open: true, min_join_level: 1, projects: {}});
+  w.tables.clan_members.push({clan_id: 'clan-foe', telegram_id: 556, role: 'owner', joined_at: st, raid_damage: 0});
+  w.tables.ae_clan_fort.push({clan: 'clan-foe', b: {hall: {lvl: 2}, walls: {lvl: 1}}, g: {militia: 2}, upk_at: st, inc_at: st, hunt: 'hydra', bosses: {}, log: []});
+  new E.NativePool(w, () => Date.now()).ensurePlayer({id: 556, displayName: 'Вика'}); Object.assign(w.tables.players.find(p => p.telegram_id == 556), {character_name: 'Вика', level: 12, class_id: 'mage', referred_by: '437290420'});
+  w.tables.players.find(p => p.telegram_id == 555).referred_by = '437290420'; w.tables.players.find(p => p.telegram_id == 555).level = 6; (w.tables.referral_rewards ||= []).push({invitee: 556, inviter: '437290420', created_at: st}); (w.tables.friendships ||= []).push({pair: '437290420:556', a: '437290420', b: '556', requester: '437290420', status: 'accepted', created_at: st, updated_at: st}); }, engine: '../tgcloud/lib/gameEngine.js'});
+const p = s.page; p.setDefaultTimeout(5000); await p.setViewportSize({width: 390, height: 844}); p.on('dialog', d => d.accept());
+await p.waitForTimeout(5000);
+for (let k = 0; k < 3; k++) { for (const t of ['Позже', 'В бой, герой!']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {}); await p.waitForTimeout(250); }
+const P = () => p.evaluate(k => JSON.parse(localStorage.getItem(k)).player, key);
+const dismissStory = async () => { const b = p.locator('.ae-story button'); if (await b.count()) { await b.click(); await p.waitForTimeout(400); } };
+await dismissStory(); await p.waitForTimeout(4000);
+for (const t of ['Позже']) if (await p.getByRole('button', {name: t}).count()) await p.getByRole('button', {name: t}).first().click().catch(() => {});
+await p.evaluate(() => document.querySelector('[data-settlement-place="clan"]').click()); await p.waitForTimeout(3000);
+
+const panel = async (n = 700) => (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, n);
+await p.evaluate(() => window.__aethOpen.coop()); await p.waitForTimeout(1500);
+console.log('LIST:', await panel(400));
+await p.locator('.ae-panel .ae-card', {hasText: 'Пещера гоблинов'}).locator('button').click({force: true}); await p.waitForTimeout(1200);
+for (const r of ['Лекарь', 'Боец']) { await p.locator('.ae-coop-bots button', {hasText: r}).click({force: true}); await p.waitForTimeout(900); }
+await p.locator('.ae-panel .ae-body').evaluate(b => b.scrollTop = b.scrollHeight); await p.waitForTimeout(400); await p.screenshot({path: `coop-bots-lobby-${style}.png`}); console.log('LOGBOX', JSON.stringify(await p.evaluate(() => { const l = document.querySelector('.ae-panel .ae-log'); if (!l) return 'none'; const r = l.getBoundingClientRect(), cs = getComputedStyle(l); return {top: Math.round(r.top), h: Math.round(r.height), vh: innerHeight, color: cs.color, bg: cs.backgroundColor, items: l.children.length}; })));
+console.log('LOBBY:', await panel(600));
+await s.close(); process.exit(0); await p.waitForTimeout(1500);
+for (let i = 0; i < 120; i++) {
+  const room = s.world.tables.coop_rooms.at(-1); if (room.status !== 'active') break;
+  const path = p.locator('.ae-panel button', {hasText: 'Вести отряд сюда'});
+  if (await path.count()) { await path.first().click({force: true}); await p.waitForTimeout(700); continue; }
+  const atk = p.locator('.ae-panel button', {hasText: /^Атака$/}); if (await atk.count() && !(await atk.first().isDisabled())) { await atk.first().click({force: true}); await p.waitForTimeout(700); continue; }
+  if (i === 3) await p.screenshot({path: `coop-bots-fight-${style}.png`});
+  await p.waitForTimeout(500);
+}
+console.log('END status:', s.world.tables.coop_rooms.at(-1).status, '| stage', s.world.tables.coop_rooms.at(-1).stage);
+await p.screenshot({path: `coop-bots-end-${style}.png`});
+console.log('END:', await panel(500));
+console.log(s.log.filter(l => /pageerror/i.test(l)).slice(0, 5).join('\n'));
+await s.close();

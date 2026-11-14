@@ -1,0 +1,20 @@
+[
+ {
+  "name": "combo-multi-source",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19.js",
+  "old": "E.comboFrom&&Ct?.id===E.comboFrom&&r-Ct.turn<=3",
+  "new": "Ct&&(Ct.id===E.comboFrom||E.comboAlt?.includes(Ct.id))&&r-Ct.turn<=3"
+ },
+ {
+  "name": "combo-ready-multi",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19.js",
+  "old": "n?.skills.filter(e=>e.comboFrom===Ct.id)",
+  "new": "n?.skills.filter(e=>e.comboFrom===Ct.id||e.comboAlt?.includes(Ct.id))"
+ },
+ {
+  "name": "combo-map",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19.js",
+  "old": "return{...e,unlockedHiddenSkills:[...i],skills:[...n.map(e=>({...e,currentCooldown:a.get(e.id)?.currentCooldown||0})),...(e.skills||[]).filter(e=>e.id.startsWith(`asc_`))]}}",
+  "new": "{let CM={\"w_strike\":[1.25,\"w_shield\",\"w_charge\"],\"w_charge\":[1.25,\"w_shield\"],\"w_shatter\":[1.3,\"w_strike\",\"w_charge\"],\"w_hidden\":[1.3,\"w_shatter\",\"w_charge\"],\"b_frenzy\":[1.2,\"b_roar\"],\"b_blood\":[1.25,\"b_frenzy\",\"b_roar\"],\"b_execute\":[1.25,\"b_roar\",\"b_blood\",\"b_frenzy\"],\"b_hidden\":[1.3,\"b_blood\",\"b_roar\"],\"k_smite\":[1.25,\"k_bastion\"],\"k_counter\":[1.3,\"k_bastion\",\"k_smite\"],\"k_judgement\":[1.3,\"k_counter\",\"k_smite\"],\"k_hidden\":[1.25,\"k_judgement\"],\"r_strike\":[1.2,\"r_dance\"],\"r_poison\":[1.2,\"r_strike\"],\"r_burst\":[1.2,\"r_poison\",\"r_strike\"],\"r_dance\":[1.2,\"r_poison\",\"r_burst\"],\"r_hidden\":[1.3,\"r_burst\",\"r_dance\"],\"a_backstab\":[1.3,\"a_stealth\"],\"a_cut\":[1.25,\"a_stealth\",\"a_backstab\"],\"a_final\":[1.3,\"a_cut\",\"a_stealth\"],\"a_hidden\":[1.25,\"a_final\",\"a_stealth\"],\"arc_shot\":[1.25,\"arc_mark\"],\"arc_pierce\":[1.2,\"arc_mark\",\"arc_shot\"],\"arc_rain\":[1.25,\"arc_mark\",\"arc_pierce\"],\"arc_hidden\":[1.3,\"arc_rain\",\"arc_mark\"],\"m_fireball\":[1.25,\"m_frost\",\"m_storm\"],\"m_frost\":[1.2,\"m_fireball\"],\"m_storm\":[1.25,\"m_frost\"],\"m_apocalypse\":[1.3,\"m_storm\",\"m_fireball\"],\"m_hidden\":[1.3,\"m_frost\",\"m_apocalypse\"],\"n_drain\":[1.25,\"n_curse\",\"n_touch\"],\"n_touch\":[1.25,\"n_curse\"],\"n_legion\":[1.3,\"n_touch\",\"n_curse\"],\"n_hidden\":[1.3,\"n_legion\",\"n_curse\"],\"p_holy\":[1.25,\"p_heal\",\"p_aegis\"],\"p_judgement\":[1.3,\"p_heal\",\"p_holy\",\"p_aegis\"],\"p_hidden\":[1.25,\"p_judgement\",\"p_aegis\"],\"d_thorns\":[1.2,\"d_spores\",\"d_bloom\"],\"d_spores\":[1.3,\"d_thorns\"],\"d_wrath\":[1.3,\"d_spores\",\"d_thorns\"],\"d_hidden\":[1.25,\"d_wrath\",\"d_bloom\"]},SK=[...n,...(e.skills||[]).filter(e=>e.id.startsWith(`asc_`))],NM=new Map(SK.map(e=>[e.id,e.name])),CX=e=>{let c=CM[e.id];if(!c)return e;let S=c.slice(1).filter(t=>NM.has(t));if(!S.length)return e;let H=`Связка после: `+S.map(t=>`«${NM.get(t)}»`).join(` или `)+` (×${c[0]})`;return{...e,description:`${e.description||``} 🔗 ${H}`,comboFrom:S[0],comboAlt:S.slice(1),comboMultiplier:c[0],comboHint:H}};return{...e,unlockedHiddenSkills:[...i],skills:[...n.map(e=>CX({...e,currentCooldown:a.get(e.id)?.currentCooldown||0})),...(e.skills||[]).filter(e=>e.id.startsWith(`asc_`))]}}}"
+ }
+]

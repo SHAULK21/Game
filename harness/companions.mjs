@@ -25,7 +25,7 @@ for (const t of ['Позже']) if (await p.getByRole('button', {name: t}).count
 await p.evaluate(() => document.querySelector('[data-settlement-place="clan"]').click()); await p.waitForTimeout(3000);
 
 const panel = async (n = 700) => (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, n);
-await p.evaluate(() => window.__aethOpen.companions()); await p.waitForTimeout(1500);
+await p.evaluate(() => window.__aethOpen.companions()); await p.waitForTimeout(1500); await p.screenshot({path: 'barracks-story.png'}); await p.locator('.ae-story button').click().catch(() => console.log('no story')); await p.waitForTimeout(600);
 const gold0 = (await P()).gold; console.log('gold', gold0, 'START:', await panel(500));
 await p.locator('.ae-panel .ae-card', {hasText: 'Лекарь'}).locator('button', {hasText: 'Нанять'}).click({force: true}); await p.waitForTimeout(1200);
 console.log('gold after hire', (await P()).gold, '| comps', JSON.stringify(s.world.tables.ae_companions?.map(c => [c.name, c.lvl])));

@@ -15,6 +15,7 @@ export function cleanKit(raw, level = 1) {
     return {id: String(s.id), name: String(s.name || 'Навык').slice(0, 40), icon: String(s.icon || '✨').slice(0, 4), desc: String(s.desc || '').slice(0, 160),
       mana: Math.round(n(s.mana, 0, 400, 20)), mult: n(s.mult, 0, 5, 0), heal: n(s.heal, 0, 5, 0), type: /^[a-z]{3,12}$/.test(s.type || '') ? s.type : 'physical',
       comboFrom: /^[a-z0-9_]{2,40}$/i.test(String(s.comboFrom || '')) ? String(s.comboFrom) : null, comboMult: n(s.comboMult, 1, 2, 1.25),
+      comboAlt: (Array.isArray(s.comboAlt) ? s.comboAlt : []).filter(x => /^[a-z0-9_]{2,40}$/i.test(String(x))).slice(0, 4).map(String),
       armorBreak: n(s.armorBreak, 0, 0.5, 0), execT: n(s.execT, 0, 0.5, 0), execM: n(s.execM, 1, 3, 1.5), inf: f};
   }).filter(Boolean);
   const t = {}; for (const k of TALENTS) { const v = n(raw.talents?.[k], 0, k.endsWith('Chance') ? 60 : 200, 0); if (v) t[k] = v; }
@@ -35,7 +36,7 @@ export function castSkill(ctx) {
   const {self, foe, kit, sk} = ctx, t = kit?.talents || {}, parts = []; let combo = null;
   if (sk.mult > 0) {
     let m = sk.mult;
-    if (sk.comboFrom && ctx.ownLast?.id === sk.comboFrom) { m *= sk.comboMult; parts.push('🔗 связка навыков'); }
+    if (ctx.ownLast && (ctx.ownLast.id === sk.comboFrom || sk.comboAlt?.includes(ctx.ownLast.id))) { m *= sk.comboMult; parts.push('🔗 связка навыков'); }
     if (t.alternatingDamage && ctx.ownLast && ctx.ownLast.id !== sk.id) m *= 1 + t.alternatingDamage / 100;
     if (sk.execT && foe.hp / foe.maxHp <= sk.execT) m *= sk.execM;
     if (foe.hp / foe.maxHp < 0.3) m *= 1 + (t.executeDamage || 0) / 100;

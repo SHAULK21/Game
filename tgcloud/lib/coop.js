@@ -4,7 +4,7 @@
 import {clanCredit} from './clanPlus.js';
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
-import {companionOf, compStats, giveCompanionXp, COMP_ROLES} from './companions.js';
+import {companionOf, compStats, giveCompanionXp, COMP_ROLES, UNLOCK, isPaid} from './companions.js';
 import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf, gemProcs} from './skills.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
@@ -337,6 +337,8 @@ export async function handleCoopRequest(world, input, user, now, notify) {
       room.members = room.members.filter(m => m !== b); log(room, `${b.name} покидает отряд.`, now); return ok({room: view(room, me, world)}); }
     if (body.compId) {
       const c = companionOf(world, me, body.compId); if (!c) return fail('Соратник не найден.', 404);
+      if ((Number(p.level) || 1) < UNLOCK.coop) return fail(`Соратники в кооп-подземельях — с ${UNLOCK.coop} уровня.`);
+      if (!isPaid(c, now)) return fail(`${c.name} ждёт жалования — заплатите в Казарме.`);
       if (room.members.some(m => m.compId === c.id)) return fail('Этот соратник уже в отряде.');
       if (present(room).length >= MAX_MEMBERS) return fail('Отряд уже полный.');
       const b = companionBot(world, me, c); room.members.push(b);

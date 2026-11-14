@@ -25,9 +25,6 @@
     const z = uiScale(), meta = document.querySelector('meta[name=viewport]'), root = document.documentElement;
     root.classList.toggle('ae-scaled', z !== 1); root.style.setProperty('--ae-scale', String(z));
     if (scaleMode === 'zoom' && !force) return useZoom(z); // the viewport tag was already found not to work here
-    // Android app: the WebView re-fits a scaled viewport whenever content gets wider for a moment (battle shakes, flashes),
-    // which shifted the whole page and cut the header in half. CSS zoom keeps the page fixed.
-    if (window.AethApk) { meta?.setAttribute('content', BASE_VIEWPORT); return useZoom(z); }
     useZoom(1);
     const base = deviceWidth();
     if (z === 1 || !meta || !matchMedia('(pointer: coarse)').matches || base < 200) { meta?.setAttribute('content', BASE_VIEWPORT); scaleBase = 0; if (z !== 1) useZoom(z); return; }
@@ -78,7 +75,7 @@
       return {id: k.id, name: k.name, icon: k.icon, desc: k.description || '', levelReq: k.levelReq || 1, type: k.damageType,
         mana: Math.max(0, Math.ceil((k.manaCost || 0) * (1 - (t.manaCostReduction || 0) / 100))),
         mult: (k.damageMultiplier || 0) * RM[r - 1] * (1 + (t.skillDamage || 0) / 100), heal: (k.healMultiplier || 0),
-        comboFrom: k.comboFrom || null, comboMult: k.comboMultiplier || 1.25, armorBreak: (k.armorBreak || 0) / 100, execT: k.executeThreshold || 0, execM: k.executeMultiplier || 1.5,
+        comboFrom: k.comboFrom || null, comboAlt: k.comboAlt || [], comboMult: k.comboMultiplier || 1.25, armorBreak: (k.armorBreak || 0) / 100, execT: k.executeThreshold || 0, execM: k.executeMultiplier || 1.5,
         inflicts: inf ? {type: inf.type, chance: Math.min(1, (inf.chance ?? 1) * (1 + (t.effectChance || 0) / 100)), duration: (inf.duration || 1) + (t.effectDuration || 0) + (['shield', 'fury', 'fortify', 'haste'].includes(inf.type) ? (t.buffDuration || 0) : 0),
           power: (inf.power || 0) * (inf.type === 'vulnerability' ? 1 + (t.vulnerabilityPower || 0) / 100 : 1)} : null};
     });
@@ -416,38 +413,70 @@
   // ---------- companion assist in ordinary fights (tag-team style): one hero fights, the companion steps in at the right moment ----------
   // Two assists per fight with a 3-round cooldown; when the hero drops below 25% HP the companion steps in by itself once.
   let asComps = null, asAt = 0, asFight = null;
-  const asPick = () => { if (!asComps?.length) return null; const id = localStorage.getItem('aeth_assist_comp'); return asComps.find(c => c.id === id) || [...asComps].sort((a, b) => b.lvl - a.lvl)[0]; };
+  const asPick = () => { const ok = (asComps || []).filter(c => c.paid !== false); if (!ok.length) return null; const id = localStorage.getItem('aeth_assist_comp'); return ok.find(c => c.id === id) || [...ok].sort((a, b) => b.lvl - a.lvl)[0]; };
   async function asLoad() { if (Date.now() - asAt < 300e3 && asComps) return; asAt = Date.now(); try { asComps = (await api('/api/ae-comp')).companions || []; } catch { asComps = asComps || []; } }
-  function asStrike(auto) {
+  // Three ways to help (shared 2 charges per fight, 3-round cooldown): 🛡 guard (takes the monster's prepared special
+  // on itself — full block — or +40% defence for 2 turns), ⚔ strike (as before), 🔗 combo (a light hit that opens a
+  // combo: your next skill within 3 turns is stronger, an ultimate ×1.45).
+  function asStrike(mode = 'strike', auto = false) {
     const c = B()?.combat, comp = asPick(), f = asFight; if (!c || !comp || !f || !c.monster) return;
     if (f.left <= 0 || c.phase !== 'player' || (c.turn || 0) < f.readyAt) return;
     const m = c.monster, st = comp.stats, lvlF = Math.max(0.4, Math.min(1.1, comp.lvl / Math.max(1, m.level || 1))), armor = 100 / (100 + (m.defense || 0) * 0.5);
     const maxHp = B()?.stats?.maxHp || 1, low = c.hp / maxHp < 0.35;
     let dmg = 0, heal = 0, text = '';
-    if (comp.role === 'heal') { heal = Math.round(maxHp * (auto || low ? 0.32 : 0.22) * lvlF); dmg = Math.round(Math.max(st.atk * 0.8 * armor, m.maxHp * 0.04) * lvlF); text = `💚 ${comp.name} страхует: +${fmt(heal)} HP и −${fmt(dmg)} врагу`; }
-    else if (comp.role === 'tank') { heal = Math.round(maxHp * (auto || low ? 0.2 : 0.1) * lvlF); dmg = Math.round(Math.max(st.atk * 1.4 * armor, m.maxHp * 0.07) * lvlF); text = `🛡️ ${comp.name} закрывает вас щитом: +${fmt(heal)} HP и сокрушающий выпад −${fmt(dmg)}`; }
+    if (mode === 'guard') {
+      heal = comp.role === 'heal' ? Math.round(maxHp * 0.15 * lvlF) : comp.role === 'tank' ? Math.round(maxHp * 0.06 * lvlF) : 0;
+      text = c.intent ? `🛡️ ${comp.name} принимает «${c.intent.name || 'особый приём'}» на себя — удар не пройдёт` : `🛡️ ${comp.name} встаёт рядом: +40% защиты на 2 хода`;
+      text += heal ? `, +${fmt(heal)} HP` : '';
+    } else if (mode === 'combo') {
+      dmg = Math.round(Math.max(st.atk * 0.9 * armor, m.maxHp * 0.035) * lvlF);
+      text = `🔗 ${comp.name} открывает связку (−${fmt(dmg)}): ваш следующий навык сильнее, ульта ×1.45`;
+    } else if (comp.role === 'heal') { heal = Math.round(maxHp * (auto || low ? 0.32 : 0.22) * lvlF); dmg = Math.round(Math.max(st.atk * 0.8 * armor, m.maxHp * 0.04) * lvlF); text = `💚 ${comp.name} страхует: +${fmt(heal)} HP и −${fmt(dmg)} врагу`; }
+    else if (comp.role === 'tank') { heal = Math.round(maxHp * (auto || low ? 0.2 : 0.1) * lvlF); dmg = Math.round(Math.max(st.atk * 1.4 * armor, m.maxHp * 0.07) * lvlF); text = `🛡️ ${comp.name}: сокрушающий выпад −${fmt(dmg)} и +${fmt(heal)} HP`; }
     else { dmg = Math.round(Math.max(st.atk * 2.2 * armor, m.maxHp * 0.12) * lvlF); heal = auto ? Math.round(maxHp * 0.1) : 0; text = `🔥 ${comp.name}: «Огненный шар» −${fmt(dmg)}${heal ? ` и +${fmt(heal)} HP` : ''}`; }
     if (!c.assist(dmg, heal, (auto ? '⚡ СТРАХОВКА! ' : '🤝 ') + text)) return;
-    f.left--; f.used++; f.readyAt = (c.turn || 0) + 3;
-    sfx.play(comp.role === 'heal' ? 'magic' : 'heavy', 0.5); try { Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
-    fxFlash(comp.role === 'heal' ? '#4ade80' : comp.role === 'tank' ? '#93c5fd' : '#fb923c', 0.3);
-    if (auto) bigBanner(`⚡ ${comp.name} страхует вас!`, false);
+    if (mode === 'guard') c.addEffect?.(c.intent ? {type: 'invulnerable', name: comp.name, duration: 1, value: 1} : {type: 'fortify', name: comp.name, duration: 2, value: 40});
+    if (mode === 'combo') c.setLast?.('comp_assist');
+    f.left--; f.used++; f.readyAt = (c.turn || 0) + 3; asMenu = false;
+    sfx.play(mode === 'guard' ? 'shield' : comp.role === 'heal' ? 'magic' : 'heavy', 0.5); try { Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
+    fxFlash(mode === 'guard' ? '#93c5fd' : mode === 'combo' ? '#c084fc' : comp.role === 'heal' ? '#4ade80' : '#fb923c', 0.3);
+    if (auto) bigBanner(`⚡ ${comp.name} страхует вас!`, false); else if (mode === 'combo') toast('🔗 Связка открыта: примените навык в течение 3 ходов');
     paintAssist(true);
   }
+  let asMenu = false;
+  document.addEventListener('pointerdown', e => { if (asMenu && !e.target.closest?.('[data-ae-assist], .ae-assist-menu')) { asMenu = false; paintAssist(true); } }, true);
+  // Where the companion lives on the battle screen: a medallion in the scene (fantasy: top-left of the scene; modern: under «VS»).
+  function asAnchor() {
+    const sc = document.querySelector('main .combat-scene'); if (sc) return {el: sc, abs: true};
+    const vs = [...document.querySelectorAll('main div, main span')].find(e => !e.childElementCount && (e.textContent || '').trim() === 'VS');
+    if (vs?.parentElement) return {el: vs.parentElement, abs: false};
+    const grid = document.querySelector('.combat-action-grid') || [...document.querySelectorAll('main button')].find(b => /^Атака$/.test((b.textContent || '').trim()) && b.closest('.grid'))?.closest('.grid');
+    return grid ? {el: grid, before: true} : null;
+  }
   function paintAssist(force) {
-    const c = B()?.combat, grid = document.querySelector('.combat-action-grid') || [...document.querySelectorAll('main button, .ae-panel button')].find(b => /^Атака$/.test((b.textContent || '').trim()) && b.closest('.grid'))?.closest('.grid'), comp = asPick();
-    const old = document.querySelector('[data-ae-assist]');
-    if (!c?.inCombat || c.ended || !grid || !comp || c.monster?.regionId === 'arena' || c.monster?.regionId === 'ascension') { old?.remove(); return; }
+    const c = B()?.combat, comp = asPick(), an = asAnchor();
+    const old = document.querySelector('[data-ae-assist]'), oldMenu = document.querySelector('.ae-assist-menu');
+    if ((me()?.level || 1) < 10 || !c?.inCombat || c.ended || !an || !comp || c.monster?.regionId === 'arena' || c.monster?.regionId === 'ascension') { old?.remove(); oldMenu?.remove(); asMenu = false; return; }
     const key = (c.monster?.id || '') + ':' + (c.monster?.maxHp || 0);
-    if (!asFight || asFight.key !== key) asFight = {key, left: 2, used: 0, readyAt: 0, auto: false, won: false};
-    const f = asFight, wait = Math.max(0, f.readyAt - (c.turn || 0)), ready = f.left > 0 && !wait && c.phase === 'player';
-    const sig = [comp.id, f.left, wait, c.phase].join('|');
-    if (old && old.dataset.sig === sig && !force && old.parentElement === grid.parentElement) return;
-    const role = {heal: 'лечение', tank: 'щит и удар', dps: 'мощный удар'}[comp.role] || '';
-    const btn = h('button', {type: 'button', class: 'ae-assist' + (ready ? ' is-ready' : ''), 'data-ae-assist': '1', 'data-sig': sig, disabled: !ready, onclick: () => asStrike(false)},
-      h('img', {src: heroPortrait(comp.stats.classId), alt: ''}), h('span', {class: 'ae-grow'}, h('b', {}, `${comp.icon} ${comp.name} · ${comp.lvl} ур.`),
-        h('small', {}, f.left <= 0 ? 'Помощь в этом бою закончилась' : wait ? `Готов через ${wait} ход.` : `Позвать на помощь: ${role}`)), h('i', {class: 'ae-assist-n'}, String(f.left)));
-    if (old) old.replaceWith(btn); else grid.before(btn);
+    if (!asFight || asFight.key !== key) { asFight = {key, left: 2, used: 0, readyAt: 0, auto: false, won: false}; asMenu = false; }
+    const f = asFight, wait = Math.max(0, f.readyAt - (c.turn || 0)), ready = f.left > 0 && !wait && c.phase === 'player', threat = !!c.intent;
+    const sig = [comp.id, f.left, wait, c.phase, threat, asMenu].join('|');
+    if (old && old.dataset.sig === sig && !force && (an.before ? old.nextElementSibling === an.el : old.parentElement === an.el)) return;
+    const med = h('button', {type: 'button', class: 'ae-assist-med' + (ready ? ' is-ready' : '') + (threat && ready ? ' is-threat' : '') + (an.abs ? ' is-abs' : ''), 'data-ae-assist': '1', 'data-sig': sig,
+      title: `${comp.name}: защита, удар или связка`, onclick: () => { if (!ready) return toast(f.left <= 0 ? 'Соратник уже помог дважды в этом бою' : wait ? `Соратник будет готов через ${wait} ход.` : 'Дождитесь своего хода'); asMenu = !asMenu; paintAssist(true); }},
+      h('img', {src: heroPortrait(comp.stats.classId), alt: ''}), h('i', {class: 'ae-assist-n'}, String(f.left)), wait && f.left ? h('small', {}, `${wait}`) : threat && ready ? h('small', {class: 'is-warn'}, '!') : '');
+    if (old) old.replaceWith(med); else if (an.before) an.el.before(med); else an.el.append(med);
+    oldMenu?.remove();
+    if (asMenu && ready) {
+      const r = med.getBoundingClientRect(), z = pageZoom();
+      const btn = (mode, icon, label, sub, hot) => h('button', {type: 'button', class: 'ae-assist-act' + (hot ? ' is-hot' : ''), onclick: () => asStrike(mode)}, h('b', {}, `${icon} ${label}`), h('small', {}, sub));
+      const menu = h('div', {class: 'ae-assist-menu', style: `top:${Math.round((r.bottom + 6) / z)}px;left:${Math.max(6, Math.min(innerWidth / z - 266, Math.round(r.left / z) - 8))}px`},
+        h('div', {class: 'ae-assist-head'}, `${comp.icon} ${comp.name} · ${comp.lvl} ур. · помощь ${f.left}/2`),
+        btn('guard', '🛡️', 'Защита', threat ? `примет «${c.intent.name || 'приём'}» на себя` : '+40% защиты на 2 хода', threat),
+        btn('strike', comp.role === 'heal' ? '💚' : '⚔️', comp.role === 'heal' ? 'Лечение' : 'Удар', {heal: 'лечит и бьёт', tank: 'выпад и щит', dps: 'огненный шар'}[comp.role] || ''),
+        btn('combo', '🔗', 'Связка', 'следующий навык сильнее, ульта ×1.45'));
+      document.body.append(menu);
+    }
   }
   setInterval(() => {
     if (document.hidden || !document.documentElement.hasAttribute('data-in-combat')) { if (asFight && !asFight.done) { const c = B()?.combat; if (asFight.used && c && !c.inCombat) asFight.done = true; } return; }
@@ -455,19 +484,26 @@
     if (!asComps) { asLoad(); return; }
     try { paintAssist(); } catch (e) { console.warn('ae assist', e); }
     const f = asFight, comp = asPick(), maxHp = B()?.stats?.maxHp || 0;
-    if (f && comp && !f.auto && f.left > 0 && c.phase === 'player' && !c.ended && maxHp && c.hp > 0 && c.hp / maxHp < 0.25) { f.auto = true; f.readyAt = 0; asStrike(true); }
+    if (f && comp && (me()?.level || 1) >= 16 && !f.auto && f.left > 0 && c.phase === 'player' && !c.ended && maxHp && c.hp > 0 && c.hp / maxHp < 0.25) { f.auto = true; f.readyAt = 0; asStrike(c.intent ? 'guard' : 'strike', true); }
     if (f && comp && c.ended && f.used && !f.done) { f.done = true;
       if (/victory/.test(String(document.querySelector('.combat-command-center')?.dataset?.outcome || '')) || (c.monster && c.monster.hp <= 0))
         api('/api/ae-comp/fightxp', 'POST', {id: comp.id}).then(r => { if (r.gained) toast(`${comp.icon} ${comp.name}: +${fmt(r.gained)} опыта${r.up ? ` — ${r.lvl} уровень!` : ''}`); if (r.up) asAt = 0; }).catch(() => {}); }
   }, 400);
   // ---------- companions: your own bot allies — hire, level up, dress in your gear, take into co-op ----------
+  // Go to a crafting place (settlement tile, or the bottom-nav entry when the hero is elsewhere).
+  function goCraft(id) {
+    closePanel();
+    setTimeout(() => { const t = document.querySelector(`[data-settlement-place="${id}"]`); if (t) return t.click();
+      const nav = [...document.querySelectorAll('nav button, nav a')].find(n => /Создание|Мастерская/.test(n.textContent || '')); if (id === 'crafting' && nav) return nav.click();
+      toast('Мастерская и кузница — в поселении.'); }, 250);
+  }
   function openCompanions() {
     let d = null, pick = null;
     const load = async () => { try { d = await api('/api/ae-comp'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const pay = (n, then) => { const p = me() || {}; if ((p.gold || 0) < n) return toast(`Нужно ${fmt(n)} 🪙.`); const err = canAct?.(); if (err) return toast(err); return then(); };
     const spend = n => B()?.setPlayer(x => x && {...x, gold: Math.max(0, (x.gold || 0) - n)});
     const giveBack = items => { const add = (items || []).filter(Boolean); if (add.length) B()?.setPlayer(x => x && {...x, inventory: [...x.inventory, ...add]}); };
-    const call = async (path, body, msg) => { try { const r = await api(path, 'POST', body); d = r; compCount = (r.companions || []).length; if (r.paid) spend(r.paid); giveBack(r.back ? [r.back] : r.backs); if (msg) toast(typeof msg === 'function' ? msg(r) : msg); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const call = async (path, body, msg) => { try { const r = await api(path, 'POST', body); d = r; compSync(r); asComps = r.companions || asComps; if (r.paid) spend(r.paid); giveBack(r.back ? [r.back] : r.backs); if (msg) toast(typeof msg === 'function' ? msg(r) : msg); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const equip = async (c, it) => {
       try { const err = canAct?.(); if (err) return toast(err);
         const srv = it.serverOwned ? it : await depositItem(it, 1);
@@ -477,14 +513,26 @@
       } catch (e) { toast(cleanError(e)); }
       if (openPanelState === st) st.rerender();
     };
-    const st = openPanel('🛡 Соратники', body => {
+    const sk = 'aeth_barracks_story_' + uid();
+    if (!localStorage.getItem(sk)) { localStorage.setItem(sk, '1'); setTimeout(() => showStory('/assets/story/royal-preparation.webp', 'Казарма', 'Плечом к плечу',
+      'Старый сержант распахивает ворота казармы: «Одному в эти земли больше не пройти — твари с каждым днём злее. Здесь собираются те, кто готов идти с тобой: щитоносцы, лекари и боевые маги. Нанимай, учи, одевай в своё снаряжение — и они прикроют тебя в самый тяжёлый момент». Казарма будет открываться постепенно: чем опытнее вы, тем больше она даёт.', 'Войти в казарму'), 200); }
+    const st = openPanel('🛡 Казарма · Соратники', body => {
       if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const HL = d.heroLevel, U = d.unlock || {};
+      const road = [[U.barracks, '🛡 Казарма и первый соратник · слоты оружия и доспеха'], [U.train, '🏋️ Тренировки соратников'], [U.assist, '⚔️ Соратник помогает в обычных боях · шлем, сапоги, перчатки'],
+        [U.coop, '🤝 Соратники в кооп-подземельях'], [U.second, '👥 Второй соратник · поножи, пояс, плащ'], [U.autoAssist, '⚡ Страховка: соратник сам спасает при низком здоровье'], [18, '💍 Щит, амулет, кольцо и артефакт'], [U.third, '🏆 Третий соратник — казарма открыта полностью']];
+      const next = road.find(([l]) => HL < l);
+      body.append(h('details', {class: 'ae-combos', open: HL < U.barracks}, h('summary', {}, next ? `🔓 Открытие казармы · дальше: ${next[0]} ур.` : '🔓 Казарма открыта полностью'),
+        ...road.map(([l, t]) => h('div', {class: 'ae-combo-row' + (HL >= l ? ' ae-good' : '')}, h('span', {}, HL >= l ? '✅' : '🔒'), h('b', {}, `${l} ур.`), h('span', {class: 'ae-sub'}, t)))));
+      if (HL < U.barracks) return body.append(h('p', {class: 'ae-empty'}, `Казарма откроется на ${U.barracks} уровне героя.`));
       body.append(h('p', {class: 'ae-note'}, 'Соратники — ваши личные боты-союзники. В отличие от наёмников они растут в уровнях, носят вашу экипировку и не берут долю награды. Берите их в кооп-подземелья: в комнате нажмите имя соратника.'));
       if (pick) {
         const c = d.companions.find(x => x.id === pick); if (!c) { pick = null; return st.rerender(); }
         const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id));
-        const list = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && !i.isEquipped && !i.isLocked && !worn.has(i.id) && !i.boundToClan && (i.serverOwned || transferable(i))).sort((a, b) => (b.level || 0) - (a.level || 0));
+        const list = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && (d.heroLevel >= (d.slotLvl?.[i.type] || 0)) && !i.isEquipped && !i.isLocked && !worn.has(i.id) && !i.boundToClan && (i.serverOwned || transferable(i))).sort((a, b) => (b.level || 0) - (a.level || 0));
         body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 Вещь для: ${c.name} (${c.lvl} ур., до ${c.lvl + 3} ур. вещи)`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { pick = null; st.rerender(); }}, '← Назад')));
+        body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => goCraft('crafting')}, '🔨 Создать в мастерской'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => goCraft('blacksmith')}, '⚒️ Заточить в кузнице')));
+        body.append(h('p', {class: 'ae-sub'}, 'Соратнику подходит любая экипировка из сумки: найденная, купленная или созданная в мастерской. Надетые на героя вещи сначала снимите.'));
         if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'В сумке нет подходящей экипировки (надетые на героя вещи сначала снимите).'));
         for (const it of list) { const heavy = (it.level || 1) > c.lvl + 3, cur = c.gear[it.type];
           body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', disabled: heavy, onclick: () => equip(c, it)},
@@ -503,17 +551,21 @@
           h('div', {class: 'ae-comp-gear'}, d.slots.map(sl => { const it = c.gear[sl];
             return it ? h('button', {type: 'button', class: 'ae-comp-slot is-on', 'data-ae-rarity': it.rarity || 'common', title: `${it.name} — снять`, onclick: () => confirm(`Снять «${it.name}» и вернуть в сумку?`) && call('/api/ae-comp/unequip', {id: c.id, slot: sl}, 'Вещь вернулась в сумку')},
               h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}))
+              : HL < (d.slotLvl?.[sl] || 0) ? h('span', {class: 'ae-comp-slot is-locked', title: `${d.slotRu[sl]} — с ${d.slotLvl[sl]} ур.`}, h('small', {}, `🔒${d.slotLvl[sl]}`))
               : h('span', {class: 'ae-comp-slot', title: d.slotRu[sl]}, h('i', {}, {weapon: '⚔️', offhand: '🛡️', helmet: '⛑️', armor: '🥋', pants: '👖', gloves: '🧤', boots: '🥾', belt: '🎗️', cloak: '🧥', amulet: '📿', ring: '💍', artifact: '🔮'}[sl] || '')); })),
           h('div', {class: 'ae-sub'}, gear.length ? `Надето: ${gear.map(([, it]) => it.name).join(', ')}. Нажмите на вещь, чтобы снять.` : 'Снаряжения нет — оденьте соратника из своей сумки.', ` · походов ${c.runs}, побед ${c.wins}`),
+          h('div', {class: 'ae-comp-wage' + (c.paid ? '' : ' is-due')}, h('span', {class: 'ae-grow'}, c.paid ? `💰 Жалование оплачено до ${new Date(c.paidUntil).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}` : '😴 Отдыхает — ждёт жалования', h('small', {}, `${fmt(c.wage)} 🪙 в день. Без оплаты соратник не помогает в боях и не ходит в кооп.`)),
+            ...[[1, 'День'], [7, 'Неделя']].map(([n, l]) => h('button', {class: 'ae-btn' + (c.paid ? '' : ' ae-primary'), type: 'button', onclick: () => pay(c.wage * n, () => call('/api/ae-comp/pay', {id: c.id, days: n, pay: c.wage * n}, `💰 ${c.name}: жалование оплачено`))}, `${l} · ${fmt(c.wage * n)} 🪙`))),
           h('div', {class: 'ae-row ae-wrap'},
             h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = c.id; st.rerender(); }}, '👕 Надеть вещь'),
             (() => { const xp = Math.round(c.need * 0.35), cost = Math.round(xp * 0.5);
-              return h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`))}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
+              return HL < U.train ? h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: true}, `🔒 Тренировки с ${U.train} ур.`) : h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`))}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
           h('div', {class: 'ae-row'},
             h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { const n = prompt('Новое имя соратника:', c.name); if (n) call('/api/ae-comp/rename', {id: c.id, name: n}); }}, '✏️ Имя'),
             h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => confirm(`Отпустить ${c.name}? Вся его экипировка вернётся в сумку, уровень пропадёт.`) && call('/api/ae-comp/dismiss', {id: c.id}, 'Соратник ушёл, вещи в сумке')}, 'Отпустить'))));
       }
       body.append(h('p', {class: 'ae-sub'}, `🏋️ Тренировок сегодня: ${d.train.left} из ${d.train.per}. Ещё опыт соратники получают в кооп-подземельях — за победу полный, за поражение часть.`));
+      if (d.hire == null && d.nextHireAt) body.append(h('p', {class: 'ae-pill'}, `👥 Следующий соратник — с ${d.nextHireAt} уровня.`));
       if (d.hire != null) {
         body.append(h('h3', {class: 'ae-h3'}, `Нанять соратника · ${fmt(d.hire)} 🪙`));
         if (d.heroLevel < 5) body.append(h('p', {class: 'ae-sub'}, 'Соратники доступны с 5 уровня героя.'));
@@ -700,7 +752,7 @@
       if (room.status === 'lobby') {
         const freeComps = (comps || []).filter(c => !room.members.some(m => m.comp && String(m.id) === 'comp:' + c.id));
         if (room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🛡 Ваши соратники'),
-          freeComps.length ? h('div', {class: 'ae-row ae-wrap'}, freeComps.map(c => h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => post('/api/coop/bot', {compId: c.id}, `${c.name} в отряде`)}, `${c.icon} ${c.name} · ${c.lvl} ур.`)))
+          (me()?.level || 1) < 12 ? h('div', {class: 'ae-sub'}, '🔒 Соратники в коопе — с 12 уровня. Пока можно взять наёмников ниже.') : freeComps.length ? h('div', {class: 'ae-row ae-wrap'}, freeComps.map(c => h('button', {class: 'ae-btn ae-grow' + (c.paid !== false ? ' ae-primary' : ''), type: 'button', disabled: c.paid === false, onclick: () => post('/api/coop/bot', {compId: c.id}, `${c.name} в отряде`)}, `${c.icon} ${c.name} · ${c.lvl} ур.${c.paid === false ? ' · 😴 ждёт жалования' : ''}`)))
             : h('div', {class: 'ae-sub'}, (comps || []).length ? 'Все соратники уже в отряде.' : 'Наймите своих соратников: они растут в уровнях, носят вашу экипировку и не берут долю награды.'),
           h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openCompanions(); }}, '🛡 Соратники: прокачка и снаряжение')));
         if (room.isHost && room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🤖 Наёмники (обычные боты)'),
@@ -1745,7 +1797,8 @@
   const APK_URL = 'https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk';
   if (isApk) document.documentElement.classList.add('ae-apk');
   // Android app: a fight starting further down a scrolled page must not leave the header half off the screen.
-  if (isApk) new MutationObserver(() => { if (document.documentElement.hasAttribute('data-in-combat')) requestAnimationFrame(() => window.scrollTo(0, 0)); }).observe(document.documentElement, {attributes: true, attributeFilter: ['data-in-combat']});
+  // (the runtime re-sets the attribute on every DOM change, so react only to the moment a fight starts)
+  if (isApk) { let wasFight = false; new MutationObserver(() => { const on = document.documentElement.hasAttribute('data-in-combat'); if (on && !wasFight) requestAnimationFrame(() => window.scrollTo(0, 0)); wasFight = on; }).observe(document.documentElement, {attributes: true, attributeFilter: ['data-in-combat']}); }
   function openApkInfo() {
     const tgData = !isApk && window.Telegram?.WebApp?.initData || '';
     openPanel('📱 Приложение Android', body => {
@@ -3782,7 +3835,8 @@
     if (document.querySelector('[data-settlement-place="clan"]')) return clickPlace('clan');
     if (back) { back.click(); setTimeout(() => clickPlace('clan'), 450); } };
   const clickPlace = id => { const b = document.querySelector(`[data-settlement-place="${id}"]`); if (b) b.click(); else toast('Это место доступно в поселении.'); };
-  let compCount = null; setTimeout(() => api('/api/ae-comp').then(r => { compCount = (r.companions || []).length; }, () => {}), 8000);
+  let compCount = null, compDue = 0; const compSync = r => { compCount = (r.companions || []).length; compDue = (r.companions || []).filter(c => c.paid === false).length; };
+  setTimeout(() => api('/api/ae-comp').then(compSync, () => {}), 8000); setInterval(() => { if (!document.hidden && compCount) api('/api/ae-comp').then(compSync, () => {}); }, 30 * 60e3);
   function placeBadge(id, p) {
     const now = Date.now(), cast = p.fishing?.cast, exp = p.miningExpedition;
     if (id === 'pets' && p.activePet) { const sat = petSat(); if (sat < HUNGRY_AT) return ['warn', '🍖 Питомец голоден']; if (sat < 50) return ['info', '🍖 Пора покормить']; }
@@ -3793,7 +3847,9 @@
     if (id === 'chat' && p.energy < p.maxEnergy) return ['ready', '⚡ Энергия +25'];
     // The board's own quests (not the co-op/PvP/Horde «Задания» — those have their badge on the quick bar).
     if (id === 'quests') { const n = (B()?.quests || []).filter(q => q.completed && !q.claimed).length; if (n) return ['ready', `🎁 ${n} ${plural(n, 'награда', 'награды', 'наград')}`]; }
+    if (id === 'barracks' && (p.level || 1) < 5) return ['busy', '🔒 С 5 уровня'];
     if (id === 'barracks' && (p.level || 1) >= 5 && compCount === 0) return ['ready', '🛡 Наймите соратника'];
+    if (id === 'barracks' && compDue) return ['warn', '💰 Жалование'];
     if (placeSeen()[id] !== today()) return ['new', '✨ Загляните'];
     return null;
   }
@@ -4298,7 +4354,7 @@ html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full:hover>div>
 .ae-fort-log{display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid #ffffff12;font-size:13px}.ae-fort-log small{display:block;opacity:.6;font-size:11px}
 .ae-fort-entry{margin:6px 0}
 .ae-comp{display:flex;flex-direction:column;gap:7px}.ae-comp-gear{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}.ae-comp-slot{aspect-ratio:1;border-radius:9px;border:1px dashed #6b563177;background:#0f1512;display:flex;align-items:center;justify-content:center;padding:0}.ae-comp-slot.is-on{border:1px solid #c99a3c;background:#1d1a12}.ae-comp-slot img{width:80%;height:80%;object-fit:contain}.ae-comp-slot>i{font-style:normal;opacity:.3;font-size:18px;filter:grayscale(1)}.ae-comp-slot>i img{width:20px;height:20px}.ae-wrap{flex-wrap:wrap}
-html.ae-apk,html.ae-apk body{overflow-x:hidden!important;overscroll-behavior:none}html.ae-apk body{-webkit-tap-highlight-color:transparent}html.ae-apk[data-in-combat] header.game-header,html.ae-apk[data-in-combat] header:first-of-type{position:sticky;top:0;z-index:40}
+html.ae-apk body{-webkit-tap-highlight-color:transparent;overflow-x:clip}html.ae-apk[data-in-combat] header.game-header,html.ae-apk[data-in-combat] header:first-of-type{position:sticky;top:0;z-index:40}
 html:not(.ae-anim-off) .ae-backdrop{animation:ae-fade-in .18s ease-out}html:not(.ae-anim-off) .ae-panel:not(.ae-battle-mode){animation:ae-sheet-up .26s cubic-bezier(.2,.9,.3,1.15)}
 @keyframes ae-fade-in{from{opacity:0}}@keyframes ae-sheet-up{from{transform:translateY(28px) scale(.98);opacity:0}}
 html:not(.ae-anim-off) .ae-btn,html:not(.ae-anim-off) .ae-tab,html:not(.ae-anim-off) [data-settlement-place]{transition:transform .12s ease,filter .12s ease,box-shadow .2s ease}
@@ -4307,8 +4363,25 @@ html:not(.ae-anim-off) .ae-bar>i{transition:width .5s cubic-bezier(.2,.8,.2,1)}h
 html:not(.ae-anim-off) main>*{animation:ae-fade-in .22s ease-out}
 @media (max-width:480px){.ae-backdrop{padding:0 0 env(safe-area-inset-bottom)!important}.ae-panel:not(.ae-battle-mode){max-width:100%!important;border-radius:18px 18px 0 0!important;max-height:92vh!important;border-bottom:0!important}
  .ae-btn{min-height:42px}.ae-tab{min-height:38px}.ae-row>.ae-btn{min-width:44px}.ae-body{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}}
-html.ae-apk .ae-btn{min-height:44px}html.ae-apk .ae-panel{max-height:94vh!important}html.ae-apk input,html.ae-apk textarea{font-size:16px}
+html.ae-apk .ae-btn{min-height:44px}html.ae-apk .ae-backdrop{top:0!important;bottom:auto!important;height:var(--app-visible-height,100dvh)!important;padding:0!important}html.ae-apk .ae-panel:not(.ae-battle-mode){height:var(--app-visible-height,100dvh)!important;max-height:none!important;max-width:none!important;border-radius:0!important;border:0!important}html.ae-apk input,html.ae-apk textarea{font-size:16px}
 .ae-assist{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 8px;padding:6px 10px 6px 6px;border-radius:14px;border:1px solid #6b563188;background:linear-gradient(90deg,#1d2420,#141a17);color:#f1ead8;text-align:left;font:13px/1.25 system-ui,sans-serif;opacity:.6}.ae-assist img{width:40px;height:40px;border-radius:10px;object-fit:cover}.ae-assist small{display:block;opacity:.75;font-size:11.5px}.ae-assist-n{font-style:normal;min-width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#000a;border:1px solid #f0cf7a88;font-weight:800;color:#ffe6a8}.ae-assist.is-ready{opacity:1;border-color:#f0cf7a;box-shadow:0 0 0 1px #f0cf7a55 inset,0 0 14px #f0cf7a44;animation:ae-assist-glow 1.6s ease-in-out infinite}@keyframes ae-assist-glow{50%{box-shadow:0 0 0 1px #f0cf7a88 inset,0 0 22px #f0cf7a77}}
+html[data-in-combat][data-interface=modern] header.game-header{padding-top:calc(4px + var(--app-safe-top,0px))!important;padding-bottom:4px!important}
+html[data-in-combat][data-interface=modern] header.game-header :is(.modern-brand,.modern-resources,.modern-appearance){display:none!important}
+html[data-in-combat][data-interface=modern] header.game-header .modern-header-inner{gap:0!important}
+html[data-in-combat][data-interface=modern] header.game-header .modern-header-inner>.flex{min-height:0!important}
+html[data-in-combat][data-interface=modern] header.game-header img{width:34px!important;height:34px!important}
+html[data-in-combat][data-interface=modern] header.game-header .modern-header-inner>.flex :is(h1,h2,strong,b){font-size:14px!important;line-height:1.1!important}
+html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-nav-items{height:38px!important}
+html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-icon{width:19px!important;height:19px!important}
+.ae-comp-slot.is-locked{opacity:.45;border-style:dotted}.ae-comp-slot.is-locked small{font-size:10px;color:#cbd5e1}
+.ae-comp-wage{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;border-radius:12px;background:#0f1512;border:1px solid #6b563155;font-size:13px}.ae-comp-wage small{display:block;opacity:.7;font-size:11px}.ae-comp-wage.is-due{border-color:#f59e0b;background:#2a1d0c}
+.ae-assist-med{position:relative;width:48px;height:48px;padding:0;border-radius:50%;border:2px solid #6b5631;background:#0b0f0d;box-shadow:0 2px 10px #000a;opacity:.7;flex:none;margin:4px auto 0;z-index:5}
+.ae-assist-med.is-abs{position:absolute;left:8px;top:44px;margin:0}.ae-assist-med img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.ae-assist-med .ae-assist-n{position:absolute;right:-6px;bottom:-4px;min-width:20px;height:20px;font-size:11px}.ae-assist-med small{position:absolute;left:-6px;top:-6px;min-width:18px;height:18px;border-radius:50%;background:#334155;color:#fff;font:700 11px/18px system-ui;text-align:center}.ae-assist-med small.is-warn{background:#dc2626}
+.ae-assist-med.is-ready{opacity:1;border-color:#f0cf7a;animation:ae-assist-glow 1.6s ease-in-out infinite}.ae-assist-med.is-threat{border-color:#ef4444;box-shadow:0 0 14px #ef4444aa}
+.ae-assist-menu{position:fixed;z-index:60;width:260px;display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:14px;background:#141a17f2;border:1px solid #f0cf7a88;box-shadow:0 10px 30px #000c;animation:ae-sheet-up .18s ease-out}
+.ae-assist-head{font:700 12px system-ui;color:#ffe6a8;padding:0 2px 2px}.ae-assist-act{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:7px 10px;border-radius:10px;border:1px solid #6b563199;background:#1d2420;color:#f1ead8;font:13px system-ui}
+.ae-assist-act small{opacity:.7;font-size:11px}.ae-assist-act.is-hot{border-color:#ef4444;background:#3a1414}.ae-assist-act:active{transform:scale(.97)}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4399,7 +4472,7 @@ html[data-interface=fantasy] .ae-panel{background:#1b1712;border-color:#a28a52;f
 .ae-bar{position:relative;height:18px;border-radius:9px;background:#0008;overflow:hidden;margin-top:6px}.ae-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#16a34a,#4ade80)}.ae-bar.is-foe i{background:linear-gradient(90deg,#b91c1c,#f87171)}.ae-bar.is-down i{background:#475569}
 .ae-bar span{position:relative;display:block;text-align:center;font-size:11px;line-height:18px;color:#fff;text-shadow:0 1px 2px #000}
 .ae-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-act{font-weight:700}.ae-foe{border-color:#f8717166}
-.ae-log{font-size:12px;color:#cbd5e1;background:#0006;border-radius:10px;padding:8px;max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.ae-log{font-size:12px;color:#cbd5e1;background:#0006;border-radius:10px;padding:8px;max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:3px}.ae-body>*{flex-shrink:0}.ae-log{min-height:72px}.ae-log>div{flex-shrink:0}
 .ae-wiki{background:#ffffff0a;border:1px solid #ffffff17;border-radius:12px;padding:0 12px}.ae-wiki summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700;color:#e5ce96}.ae-wiki p{margin:0 0 10px;font-size:13.5px}.ae-wiki a{color:#93c5fd}
 .ae-entry{margin:14px 10px 8px}.ae-entry h3{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#d5ba89}
 .ae-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}

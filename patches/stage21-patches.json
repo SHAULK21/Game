@@ -1,0 +1,20 @@
+[
+ {
+  "name": "bridge-combat-more",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20.js",
+  "old": ",combat:{monster:o,hp:Ve,mp:qe,phase:Ye,turn:m,inCombat:k,ended:A,",
+  "new": ",combat:{monster:o,hp:Ve,mp:qe,phase:Ye,turn:m,inCombat:k,ended:A,intent:at,effects:Qe,addEffect:t=>{k&&!A&&$e(e=>Xt(e,t))},setLast:t=>{k&&!A&&wt({id:t,turn:m})},"
+ },
+ {
+  "name": "combo-companion",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20.js",
+  "old": "CX=e=>{let c=CM[e.id];if(!c)return e;let S=c.slice(1).filter(t=>NM.has(t));if(!S.length)return e;let H=`Связка после: `+S.map(t=>`«${NM.get(t)}»`).join(` или `)+` (×${c[0]})`;return{...e,description:`${e.description||``} 🔗 ${H}`,comboFrom:S[0],comboAlt:S.slice(1),comboMultiplier:c[0],comboHint:H}};",
+  "new": "CX=e=>{let c=CM[e.id]||(e.damageMultiplier>0?[e.isUltimate?1.4:1.3]:null);if(!c)return e;let S=c.slice(1).filter(t=>NM.has(t)),U=e.isUltimate?1.45:Math.max(1.3,c[0]);let H=(S.length?`Связка после: `+S.map(t=>`«${NM.get(t)}»`).join(` или `)+` (×${c[0]})`+` или помощи соратника (×${U})`:`Связка после помощи соратника (×${U})`);return{...e,description:`${e.description||``} 🔗 ${H}`,comboFrom:S[0]||`comp_assist`,comboAlt:[...S.slice(1),`comp_assist`],comboMultiplier:c[0],comboAssistMult:U,comboHint:H}};"
+ },
+ {
+  "name": "combo-companion-mult",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20.js",
+  "old": "Ct&&(Ct.id===E.comboFrom||E.comboAlt?.includes(Ct.id))&&r-Ct.turn<=3&&(x*=E.comboMultiplier||1.25,",
+  "new": "Ct&&(Ct.id===E.comboFrom||E.comboAlt?.includes(Ct.id))&&r-Ct.turn<=3&&(x*=Ct.id===`comp_assist`?E.comboAssistMult||1.3:E.comboMultiplier||1.25,"
+ }
+]
