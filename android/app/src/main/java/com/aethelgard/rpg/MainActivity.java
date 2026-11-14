@@ -55,12 +55,13 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#0b0f0d"));
         setContentView(web);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(true); // the built-in login screen (file:///android_asset/login.html)
-        s.setLoadWithOverviewMode(true);
+        s.setLoadWithOverviewMode(false); // the game scales itself (viewport tag); overview mode left a gap at the bottom
         s.setUseWideViewPort(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setSupportMultipleWindows(true);
@@ -154,6 +155,8 @@ public class MainActivity extends Activity {
         if (fullscreen) decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         else decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        // the page measures its height on resize: tell it once the bars have actually moved
+        if (web != null) for (int ms : new int[]{120, 450}) web.postDelayed(() -> web.evaluateJavascript("window.dispatchEvent(new Event('resize'))", null), ms);
     }
 
     @Override
