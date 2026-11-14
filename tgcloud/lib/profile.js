@@ -1,4 +1,5 @@
 import {placeOf} from './clanPlus.js';
+import {COMP_TITLES, compCtx} from './companions.js';
 // Titles earned across the whole game + a chosen avatar (game characters only). Others see both on the player card.
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -43,6 +44,7 @@ export const TITLES = [
   T('patron', '👑', 'Покровитель королевства', 'Активный Premium', c => c.premium ? 1 : 0, 1),
   T('pioneer', '🧭', 'Первопроходец', 'Начать играть до 1 января 2027', c => c.pioneer ? 1 : 0, 1),
   T('ascended_sss', '🌟', 'Первый вознесённый', 'Достичь вознесения ранга SSS', c => c.asc === 'SSS' ? 1 : 0, 1),
+  ...COMP_TITLES.map(([id, icon, name, desc, val, need]) => T(id, icon, name, desc, c => val(c.comp), need)),
   T('keeper', '🗝️', 'Хранитель Аэтельгарда', 'Администрация игры', c => c.admin ? 1 : 0, 1)];
 
 function ctxOf(world, id, now) {
@@ -50,7 +52,7 @@ function ctxOf(world, id, now) {
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
-    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID)};
+    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id)};
 }
 export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);

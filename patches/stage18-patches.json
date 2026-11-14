@@ -1,0 +1,20 @@
+[
+ {
+  "name": "bridge-combat-assist",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17.js",
+  "old": "window.__aethBridge={player:n,stats:H,quests:Ht,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se,exitDungeon:aa,returnToSettlement:Ni,inDungeonRun:!!F,equipItem:gi};",
+  "new": "window.__aethBridge={player:n,stats:H,quests:Ht,setPlayer:i,api:fe,busy:ne,sound:U,canAct:K,gainExp:Se,exitDungeon:aa,returnToSettlement:Ni,inDungeonRun:!!F,equipItem:gi,combat:{monster:o,hp:Ve,mp:qe,phase:Ye,turn:m,inCombat:k,ended:A,assist:(D,R,X)=>{if(!k||!o||A||Ye!==`player`||!(o.hp>0))return!1;let Z={id:`assist_`+Date.now(),turn:m,text:X,type:`player`},d=Math.max(0,o.hp-Math.max(0,Math.round(D||0)));R>0&&Ue(e=>Math.min(H?.maxHp||e+R,e+Math.round(R)));if(d<=0){l(e=>e?{...e,hp:0}:null),b.current=!1,pe(!0),he(`victory`),Ze(`ended`),Yi(o,m,[Z])}else l(e=>e&&{...e,hp:d}),p(e=>[...e,Z]);return!0}}};"
+ },
+ {
+  "name": "monsters-after-30",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17.js",
+  "old": "if(T&&T.m>1){r*=T.m;a*=T.d||T.m}return{...e,superCooldown:0,threat:",
+  "new": "if(T&&T.m>1){r*=T.m;a*=T.d||T.m}let G30=Math.max(0,(e.level||1)-30)*(window.__aeBal?.g??1);G30&&(r*=1+Math.min(1,G30*.025),a*=1+Math.min(.5,G30*.0125));return{...e,superCooldown:0,threat:"
+ },
+ {
+  "name": "rewards-after-30",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17.js",
+  "old": "expReward:Math.max(1,Math.round(e.expReward*1.2*(T&&T.m>1?T.r:1))),goldReward:Math.max(1,Math.round(e.goldReward*1.12*(T&&T.m>1?T.r:1)))",
+  "new": "expReward:Math.max(1,Math.round(e.expReward*1.2*(T&&T.m>1?T.r:1)*(1+Math.min(.5,G30*.01)))),goldReward:Math.max(1,Math.round(e.goldReward*1.12*(T&&T.m>1?T.r:1)*(1+Math.min(.5,G30*.01))))"
+ }
+]

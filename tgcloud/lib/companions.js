@@ -39,7 +39,7 @@ export function giveCompanionXp(world, me, id, xp, won) {
   const c = companionOf(world, me, id); if (!c) return null;
   const cap = Math.max(1, Number(player(world, me)?.level) || 1), before = c.lvl;
   c.runs = (c.runs || 0) + 1; if (won) c.wins = (c.wins || 0) + 1;
-  addXp(c, Math.round(xp), cap);
+  addXp(c, Math.round(xp), cap); compAwards(world, me, Date.now());
   return {name: c.name, xp: Math.round(xp), up: c.lvl - before, lvl: c.lvl};
 }
 function addXp(c, xp, cap) {
@@ -52,9 +52,40 @@ const backToBag = (world, me, item, now) => {
   rows(world, 'owned_items').push({id, owner_telegram_id: Number(me), item_json: item, quantity: 1, equipped_slot: null, locked: false, bound_clan_id: null, character_id: null, origin: 'companion', created_at: stamp, updated_at: stamp});
   return {...item, id, serverOwned: true, marketTradable: true, isLocked: false, isEquipped: false, stackCount: 1};
 };
+// ---------- achievements (shown with all other titles in the profile; announced once in the 🔔 history) ----------
+export function compCtx(world, me) {
+  const list = mine(world, me), heroL = Number(player(world, me)?.level) || 1;
+  return {count: list.length, roles: new Set(list.map(c => c.role)).size, maxLvl: list.reduce((m, c) => Math.max(m, c.lvl || 1), 0), gear: list.reduce((m, c) => Math.max(m, Object.keys(c.gear || {}).length), 0),
+    wins: list.reduce((s2, c) => s2 + (c.wins || 0), 0), peer: list.some(c => heroL >= 20 && (c.lvl || 1) >= heroL) ? 1 : 0};
+}
+export const COMP_TITLES = [
+  ['comp_first', '🛡️', 'Командир', 'Нанять первого соратника', c => c.count, 1],
+  ['comp_squad', '⚔️', 'Полный отряд', 'Нанять трёх соратников', c => c.count, 3],
+  ['comp_roles', '🎭', 'Щит, свет и пламя', 'Собрать соратников всех трёх ролей: танка, лекаря и бойца', c => c.roles, 3],
+  ['comp_mentor', '📈', 'Наставник', 'Поднять соратника до 30 уровня', c => c.maxLvl, 30],
+  ['comp_grand', '🏅', 'Великий наставник', 'Поднять соратника до 60 уровня', c => c.maxLvl, 60],
+  ['comp_legend', '👑', 'Легендарный соратник', 'Поднять соратника до 100 уровня', c => c.maxLvl, 100],
+  ['comp_peer', '🤝', 'Равный герою', 'Поднять соратника до своего уровня (с 20 уровня героя)', c => c.peer, 1],
+  ['comp_armorer', '🧰', 'Оружейник', 'Одеть соратника во все 12 слотов', c => c.gear, 12],
+  ['comp_veterans', '🏆', 'Ветераны походов', 'Соратники победили в 25 кооп-подземельях', c => c.wins, 25],
+];
+export function compAwards(world, me, now) {
+  const c = compCtx(world, me); let r = rows(world, 'ae_comp_ach').find(x => same(x.u, me));
+  for (const [id, icon, name, desc, val, need] of COMP_TITLES) {
+    if ((Number(val(c)) || 0) < need || r?.got.includes(id)) continue;
+    if (!r) { r = {u: String(me), got: []}; rows(world, 'ae_comp_ach').push(r); }
+    r.got.push(id);
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: String(me), icon, text: `Достижение «${name}»: ${desc.toLowerCase()}. Титул можно надеть в профиле.`, kind: 'achievement', at: iso(now), acked: false});
+  }
+}
 const NAMES = {tank: ['Бран Железный', 'Тора Стойкая', 'Эдрик Щит'], heal: ['Лиара Светлая', 'Мирена', 'Отец Альвин'], dps: ['Кейн Пламя', 'Ирвена Буря', 'Дарен Клинок']};
 
 export function handleCompanions(world, path, method, body, me, now) {
+  const r = companionsRoute(world, path, method, body, me, now);
+  if (method === 'POST' && r.status < 300) { try { compAwards(world, me, now); } catch (e) { console.warn('comp awards', e?.message); } }
+  return r;
+}
+function companionsRoute(world, path, method, body, me, now) {
   const p = player(world, me); if (!p) return fail('Сначала создайте персонажа.', 404);
   const L = Math.max(1, Number(p.level) || 1), list = () => ok({companions: mine(world, me).map(view), max: MAX, hire: HIRE[mine(world, me).length] ?? null, roles: COMP_ROLES, slots: SLOTS, slotRu: SLOT_RU,
     train: {left: Math.max(0, TRAIN_PER_DAY - mine(world, me).reduce((s, c) => s + (c.trainDay === iso(now).slice(0, 10) ? c.trains || 0 : 0), 0)), per: TRAIN_PER_DAY}, heroLevel: L});
@@ -70,6 +101,12 @@ export function handleCompanions(world, path, method, body, me, now) {
     return ok({...list().body, paid: HIRE[n]});
   }
   const c = companionOf(world, me, body.id); if (!c) return fail('Соратник не найден.', 404);
+  if (path === '/api/ae-comp/fightxp') {  // the companion helped in an ordinary fight that was won
+    const day = iso(now).slice(0, 10); if (c.fxDay !== day) { c.fxDay = day; c.fxN = 0; }
+    if (c.fxN >= 40) return ok({gained: 0, lvl: c.lvl, capped: true});
+    c.fxN++; const before = c.lvl, xp = Math.max(5, Math.round(xpNeed(c.lvl) * 0.04)); addXp(c, xp, L);
+    return ok({gained: xp, lvl: c.lvl, up: c.lvl - before, name: c.name});
+  }
   if (path === '/api/ae-comp/rename') { const name = String(body.name || '').replace(/\s+/g, ' ').trim().slice(0, 24); if (name.length < 2) return fail('Имя слишком короткое.'); c.name = name; return list(); }
   if (path === '/api/ae-comp/train') {
     const day = iso(now).slice(0, 10), used = mine(world, me).reduce((s, x) => s + (x.trainDay === day ? x.trains || 0 : 0), 0);
