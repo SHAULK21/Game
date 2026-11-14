@@ -493,6 +493,7 @@
       const room = state.mine, lvl = me()?.level || 1;
       if (!room) {
         body.append(h('p', {class: 'ae-note'}, 'Соберите отряд до 3 героев. Лидер ведёт отряд через 7 залов: на развилках он выбирает путь — можно нарваться на элиту, сорваться с карниза или найти сокровище и святилище. В конце — босс. Сила героев считается по уровню и классу. Лекари (друид, паладин) лечат сильнее. Награда — золото, серебро, опыт и шанс на Осколок вознесения.'));
+        body.append(h('div', {class: 'ae-pill'}, '🤖 Нет компании? Откройте комнату и возьмите до двух союзников-ботов: танка, лекаря или бойца.'));
         body.append(h('h3', {class: 'ae-h3'}, 'Открыть комнату'));
         for (const d of state.dungeons) body.append(h('div', {class: 'ae-row ae-card'}, h('img', {class: 'ae-dthumb', src: dIcon(COOP_ICONS[d.id] || 'goblin_cave'), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, d.name), h('div', {class: 'ae-sub'}, `ур. ${d.minLevel}–${d.maxLevel}`)),
           h('button', {class: 'ae-btn ae-primary', disabled: lvl < d.minLevel, onclick: () => post('/api/coop/create', {dungeonId: d.id}, 'Комната открыта. Позовите друзей!')}, lvl < d.minLevel ? `с ${d.minLevel} ур.` : 'Открыть')));
@@ -521,7 +522,7 @@
           chips.length ? h('div', {class: 'ae-chips'}, chips.map(c => h('span', {class: 'ae-chip'}, c))) : '',
           h('div', {class: 'ae-bv-members'}, room.members.filter(m => String(m.id) !== uid()).map(m => h('div', {class: 'ae-bv-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)},
             h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
-              h('small', {}, `${m.hp ? (m.acted ? '✅ походил(а)' : '⏳ выбирает ход') : '💀 без сил'} · мана ${fmt(m.mp)}/${fmt(m.maxMp)}`)),
+              h('small', {}, `${m.hp ? (m.bot ? '🤖 ходит после вас' : m.acted ? '✅ походил(а)' : '⏳ выбирает ход') : '💀 без сил'} · мана ${fmt(m.mp)}/${fmt(m.maxMp)}`)),
             !m.hp && (meFight.potions || 0) > 0 && !acted ? h('button', {class: 'ae-btn', type: 'button', onclick: act('potion', {targetId: m.id})}, '🧪 Поднять') : ''))),
           acted && waiting.length ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => confirm(`Не ждать ${waiting.map(w => w.name).join(', ')}? Их ход будет пропущен.`) && post('/api/coop/act', {action: 'hurry'})}, `⏩ Не ждать (${waiting.map(w => w.name).join(', ')})`) : '',
           h('div', {class: 'ae-pings'}, [['help', '🆘 Помощь'], ['guard', '🛡️ Прикрой'], ['combo', '⚡ Связка'], ['focus', '🎯 В атаку'], ['ok', '👍 Ок']].map(([k, t]) => h('button', {type: 'button', class: 'ae-ping', onclick: () => { sfx.play('bell', 0.25); post('/api/coop/ping', {kind: k}); }}, t))));
@@ -577,10 +578,14 @@
       }
       for (const m of room.members) body.append(h('div', {class: 'ae-card ae-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `${m.name}${String(m.id) === uid() ? ' (вы)' : ''}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`),
         h('span', {class: 'ae-sub'}, `${CLASS_RU[m.classId] || m.classId} · ${m.level} ур.${m.guardUntil > 0 ? ' · 🛡️ щит' : ''}`)), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
-        m.atk ? h('div', {class: 'ae-sub'}, `⚔️ ${fmt(m.atk)} · 🛡️ ${fmt(m.def)}${m.healer ? ' · 💚 лекарь' : ''}${m.spell ? ` · ${m.spell.icon} ${m.spell.name}` : ''}${m.hp ? '' : ' · без сил'}`) : ''));
+        m.atk ? h('div', {class: 'ae-sub'}, `⚔️ ${fmt(m.atk)} · 🛡️ ${fmt(m.def)}${m.healer ? ' · 💚 лекарь' : ''}${m.spell ? ` · ${m.spell.icon} ${m.spell.name}` : ''}${m.hp ? '' : ' · без сил'}`) : '',
+        m.bot && room.isHost && room.status === 'lobby' ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => post('/api/coop/unbot', {id: m.id}, 'Наёмник отпущен')}, 'Отпустить') : ''));
       const mine = room.members.find(m => String(m.id) === uid());
       if (room.status === 'lobby') {
-        if (room.isHost) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', disabled: room.members.length < 2, onclick: () => post('/api/coop/start', {}, 'В бой!')}, room.members.length < 2 ? 'Ждём хотя бы одного союзника…' : '⚔️ Начать поход'));
+        if (room.isHost && room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🤖 Союзники-боты'),
+          h('div', {class: 'ae-sub'}, 'Нет друзей онлайн? Возьмите наёмника — он сам ходит после вас. Наёмники забирают 15% награды.'),
+          h('div', {class: 'ae-row'}, [['tank', '🛡️ Танк'], ['heal', '💚 Лекарь'], ['dps', '🔥 Боец']].map(([r, l]) => h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => post('/api/coop/bot', {role: r}, 'Наёмник в отряде')}, l)))));
+        if (room.isHost) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', disabled: room.members.length < 2, onclick: () => post('/api/coop/start', {}, 'В бой!')}, room.members.length < 2 ? 'Ждём союзника — или возьмите бота' : '⚔️ Начать поход'));
         else body.append(h('p', {class: 'ae-note'}, 'Ждём, когда лидер начнёт поход.'));
         body.append(h('button', {class: 'ae-btn ae-wide ae-coop-share', type: 'button', onclick: () => shareCoop(room)}, '📢 Позвать в общий чат'));
         body.append(h('h3', {class: 'ae-h3'}, 'Позвать друзей'));
@@ -2057,16 +2062,86 @@
   const MEDAL = {1: '🥇', 2: '🥈', 3: '🥉'};
   const pbar = (cur, max, label, cls = '') => h('div', {class: 'ae-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
   function openClanHQ(startTab = 'main') {
-    let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '';
+    let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '', fort = null, fortTab = 'build', tgts = null;
+    const fortCall = async (path, body) => { try { fort = await api('/api/ae-clanx/fort' + path, 'POST', body); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } rer(); };
     const load = async () => { try { d = await api('/api/ae-clanx'); clanX = d; clanXAt = Date.now(); err = ''; } catch (e) { err = cleanError(e); } rer(); };
     const rer = () => { if (openPanelState === st) st.rerender(); };
     const loadTab = async t => {
-      try { if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
+      try { if (t === 'fort') { fort = await api('/api/ae-clanx/fort'); if (fortTab === 'raid') tgts = (await api('/api/ae-clanx/fort/targets')).targets; } if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
       rer();
     };
     const go = t => { tab = t; rer(); loadTab(t); };
     const claimGoal = async g => { try { const r = await api('/api/ae-clanx/goal/claim', 'POST', {key: g.key}); applyReward(r.reward); sfx.play('coins'); bigBanner(`🎯 Награда клана: ${rewardText(r.reward)}`, false); await load(); } catch (e) { toast(cleanError(e)); } };
     const openChest = async () => { try { const r = await api('/api/ae-clanx/chest', 'POST', {}); applyReward(r.reward); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} bigBanner(`🎁 Клановый сундук: ${rewardText(r.reward)}`, !!r.reward.fragments); await load(); } catch (e) { toast(cleanError(e)); } };
+    const res = (c, t) => { const lack = k => (t?.[k] ?? 0) < (c[k] || 0); return h('span', {class: 'ae-fort-cost'}, h('span', {class: lack('gold') ? 'ae-bad' : ''}, `${fmt(c.gold)} 🪙`), c.silver ? h('span', {class: lack('silver') ? 'ae-bad' : ''}, ` · ${fmt(c.silver)} 🥈`) : '', c.ore ? h('span', {class: lack('ore') ? 'ae-bad' : ''}, ` · ${fmt(c.ore)} руды`) : ''); };
+    const hrs = ms => { const m = Math.round(ms / 60e3); return m >= 60 ? `${Math.floor(m / 60)} ч${m % 60 ? ' ' + (m % 60) + ' мин' : ''}` : `${m} мин`; };
+    function fortBody(body) {
+      if (!fort) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const F = fort, T = F.treasury;
+      body.append(h('div', {class: 'ae-fort-top'},
+        h('div', {}, h('small', {}, 'Казна'), h('b', {}, `${fmt(T.gold)} 🪙`), h('small', {}, `${fmt(T.silver)} 🥈 · ${fmt(T.ore)} руды`)),
+        h('div', {}, h('small', {}, 'Оборона'), h('b', {}, `🛡️ ${fmt(F.defense)}`), h('small', {}, F.shield ? `щит ${untilText(F.shield)}` : `${F.count}/${F.cap} защитников`)),
+        h('div', {}, h('small', {}, 'Сутки'), h('b', {class: F.income - F.upkeep < 0 ? 'ae-bad' : 'ae-good'}, `${F.income - F.upkeep >= 0 ? '+' : ''}${fmt(F.income - F.upkeep)} 🪙`), h('small', {}, `доход ${fmt(F.income)} · жалование ${fmt(F.upkeep)}`))));
+      const live = F.assaults.filter(a => !a.done);
+      for (const a of live) body.append(h('div', {class: 'ae-card ae-fort-alarm' + (a.side === 'def' ? ' is-def' : '')},
+        h('b', {}, a.side === 'att' ? `⚔️ Сбор на набег: [${a.foe?.tag}] «${a.foe?.name}»` : `🚨 На нас идёт [${a.foe?.tag}] «${a.foe?.name}»!`),
+        h('div', {class: 'ae-sub'}, `Штурм через ${untilText(a.ends)} · в строю: ${a.side === 'att' ? a.att : a.def} (сила ${fmt(a.pw)})${a.names.length ? ' — ' + a.names.join(', ') : ''}`),
+        a.joined ? h('div', {class: 'ae-sub ae-good'}, a.side === 'att' ? '✅ Вы в отряде' : '✅ Вы на стенах') : h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => fortCall('/join', {id: a.id})}, a.side === 'att' ? `⚔️ Вступить в отряд (+${fmt(F.myPw)})` : `🛡️ Встать на стены (+${fmt(F.myPw)})`)));
+      const sub = [['build', '🏗️ Здания'], ['guard', '🛡️ Защита'], ['hunt', '🐾 Охота'], ['raid', '⚔️ Набеги'], ['log', '📜 Журнал']];
+      body.append(h('div', {class: 'ae-tabs ae-fort-tabs'}, sub.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (fortTab === k ? ' is-on' : ''), onclick: () => { fortTab = k; rer(); if (k === 'raid') api('/api/ae-clanx/fort/targets').then(r => { tgts = r.targets; rer(); }, e => toast(cleanError(e))); }}, l))));
+      if (fortTab === 'build') {
+        body.append(h('p', {class: 'ae-sub'}, `Стройка идёт по часам (1–20 ч) и оплачивается из казны. Одновременно: ${F.slots} ${F.slots > 1 ? 'стройки' : 'стройка'} (сейчас ${F.busy}). Каждый соклановец может один раз помочь стройке — минус 3% времени.${F.spend ? '' : ' Начинать стройку могут глава, офицеры и казначей.'}`));
+        for (const b of F.buildings) {
+          const bl = b.building, pct = bl ? Math.min(100, 100 * (Date.now() - Date.parse(bl.since)) / Math.max(1, Date.parse(bl.until) - Date.parse(bl.since))) : 0;
+          body.append(h('div', {class: 'ae-card ae-fort-b' + (bl ? ' is-busy' : '')},
+            h('div', {class: 'ae-row'}, h('span', {class: 'ae-hq-ic'}, b.icon), h('div', {class: 'ae-grow'}, h('b', {}, b.name, ' ', h('span', {class: 'ae-fort-lvl'}, `${b.lvl}/10`)), h('div', {class: 'ae-sub'}, b.desc))),
+            h('div', {class: 'ae-fort-pips'}, Array.from({length: 10}, (_, i) => h('i', {class: i < b.lvl ? 'is-on' : bl && i === b.lvl ? 'is-next' : ''}))),
+            bl ? [pbar(pct, 100, `🏗️ ${bl.to} ур. · готово через ${untilText(bl.until)} · помощь ${bl.helps}/15`, 'is-mp'),
+              h('div', {class: 'ae-row'}, bl.helped ? h('span', {class: 'ae-sub ae-good ae-grow'}, '✅ Вы помогли') : h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', disabled: bl.helps >= 15, onclick: () => fortCall('/help', {key: b.k})}, '🔨 Помочь (−3%)'),
+                F.lead ? h('button', {class: 'ae-btn', type: 'button', onclick: () => { if (confirm(`Отменить стройку «${b.name}»? Вернётся половина стоимости.`)) fortCall('/cancel', {key: b.k}); }}, 'Отменить') : '')]
+            : b.next ? h('div', {class: 'ae-row ae-fort-next'}, h('div', {class: 'ae-grow ae-sub'}, `${b.lvl ? 'Улучшить до' : 'Построить'} ${b.next.lvl} ур.: `, res(b.next.cost, T), ` · ⏱ ${hrs(b.next.time)}`, b.block ? h('div', {class: 'ae-bad'}, b.block) : ''),
+              F.spend ? h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: !!b.block || F.busy >= F.slots, onclick: () => { if (confirm(`${b.lvl ? 'Улучшить' : 'Построить'} «${b.name}» до ${b.next.lvl} ур. за ${fmt(b.next.cost.gold)} 🪙? Займёт ${hrs(b.next.time)}.`)) fortCall('/build', {key: b.k}); }}, b.lvl ? '⬆️' : '🏗️') : '')
+              : h('div', {class: 'ae-sub ae-good'}, '🏆 Максимальный уровень')));
+        }
+      }
+      if (fortTab === 'guard') {
+        body.append(h('p', {class: 'ae-sub'}, `Защитники стоят на стенах днём и ночью и получают жалование из казны каждый час (${fmt(F.upkeep)} 🪙 в сутки). Пустая казна — и они уходят. Мест: ${F.count}/${F.cap} (+3 за уровень Казарм).`));
+        body.append(h('div', {class: 'ae-pill'}, `🛡️ Оборона ${fmt(F.defense)} = (200 + защитники + 300 × Стены) × (1 + 10% × Стены + 6% × Башня) + 15% силы активных участников. Во время штурма — плюс полная сила тех, кто встал на стены.`));
+        for (const g of F.guards) body.append(h('div', {class: 'ae-card ae-row' + (g.open ? '' : ' is-locked')}, h('span', {class: 'ae-hq-ic'}, g.icon),
+          h('div', {class: 'ae-grow'}, h('b', {}, `${g.name} ×${g.n}`), h('div', {class: 'ae-sub'}, `сила ${fmt(g.pw)} · найм ${fmt(g.hire)} 🪙 · жалование ${fmt(g.upkeep)} 🪙/сутки${g.open ? '' : ` · нужны Казармы ${g.need} ур.`}`)),
+          F.spend && g.open ? h('div', {class: 'ae-fort-hire'}, h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: F.count >= F.cap, onclick: () => { const n = Math.floor(Number(prompt(`Сколько нанять? Свободно мест: ${F.cap - F.count}. Один стоит ${fmt(g.hire)} 🪙 + ${fmt(g.upkeep)} 🪙 в сутки.`, '1')) || 0); if (n > 0) fortCall('/hire', {kind: g.k, n}); }}, 'Нанять'),
+            g.n ? h('button', {class: 'ae-btn', type: 'button', onclick: () => { const n = Math.floor(Number(prompt(`Сколько распустить? (${g.n})`, '1')) || 0); if (n > 0) fortCall('/dismiss', {kind: g.k, n}); }}, 'Распустить') : '') : ''));
+      }
+      if (fortTab === 'hunt') {
+        const H = F.hunt, cur = H.bosses.find(b => b.k === H.target), can = cur && cur.open && cur.hp > 0;
+        body.append(h('p', {class: 'ae-sub'}, `Глава и офицеры ведут клан на одного из боссов. Каждый участник бьётся с ним раз в сутки (отдельно от Стража врат). Здоровье босса общее — добейте его всем кланом. Кузница +${(F.bonus.forge || 0) * 3}% к атаке, Святилище −${(F.bonus.shrine || 0) * 3}% к урону по вам.`));
+        if (H.run || can) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', disabled: !H.run && H.doneToday, onclick: () => { closePanel(); openClanRaid(true); }},
+          H.run ? (H.run.status === 'active' ? '⚔️ Продолжить охоту' : '🎁 Итоги охоты') : H.doneToday ? 'Охота уже была сегодня' : `${cur.icon} В бой: ${cur.name}`));
+        for (const b of H.bosses) body.append(h('div', {class: 'ae-card ae-fort-boss' + (b.k === H.target ? ' is-target' : '') + (b.open ? '' : ' is-locked')},
+          h('div', {class: 'ae-row'}, h('img', {class: 'ae-fort-bimg', src: b.img, alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${b.icon} ${b.name}`, b.k === H.target ? ' 🎯' : ''), h('div', {class: 'ae-sub'}, b.text),
+            h('div', {class: 'ae-sub'}, `Победа: +${fmt(b.reward.gold)} 🪙 · +${fmt(b.reward.silver)} 🥈 · +${b.reward.ore} руды · +${b.reward.xp} опыта клана${b.kills ? ` · повержен ${b.kills} раз` : ''}`))),
+          b.open ? pbar(b.hp, b.max, b.respawn ? `Повержен · возродится через ${untilText(b.respawn)}` : `${fmt(b.hp)} / ${fmt(b.max)} HP`, 'is-foe') : h('div', {class: 'ae-sub ae-bad'}, `🔒 Нужно Логово охотников ${b.den} ур.`),
+          F.lead && b.open && b.k !== H.target ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => fortCall('/target', {boss: b.k})}, `🎯 Вести клан на ${b.name}`) : ''));
+      }
+      if (fortTab === 'raid') {
+        body.append(h('p', {class: 'ae-sub'}, `Набег: глава или офицер выбирает цель, 30 минут идёт сбор — соклановцы вступают в отряд, а враг может встать на стены. Сила отряда = сумма сил героев × ${F.attackMul}% (Кузница +3%, Казармы +5% за уровень). Победа — до 25% незащищённой казны врага (Сокровищница прячет 6% за уровень) и 25% его защитников. После набега у цели щит 8 ч, у вас — отдых 12 ч. Нападать и быть целью можно только с Цитаделью.`));
+        body.append(h('div', {class: 'ae-pill'}, `Ваша сила: ${fmt(F.myPw)}${F.cooldown ? ` · отряд отдыхает ещё ${untilText(F.cooldown)}` : ''}`));
+        if (!tgts) body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+        else if (!tgts.length) body.append(h('p', {class: 'ae-empty'}, 'Целей пока нет: другие кланы ещё не построили Цитадель.'));
+        else for (const c of tgts) body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-hq-ic'}, c.emblem),
+          h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`), h('div', {class: 'ae-sub'}, `ур. ${c.level} · ${c.members} уч. · стены ${c.walls} · защитников ${c.guards}`),
+            h('div', {class: 'ae-sub'}, c.def != null ? `🛡️ оборона ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙 (🗼 разведка башни)` : `🛡️ оборона ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])} (точнее — со Сторожевой башней)`)),
+          c.shield ? h('span', {class: 'ae-sub'}, `🛡️ щит ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : F.lead ? h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: !!F.cooldown || live.some(a => a.side === 'att'), onclick: () => { if (confirm(`Объявить набег на [${c.tag}] «${c.name}»? Через 30 минут — штурм, их клан будет предупреждён.`)) fortCall('/assault', {clanId: c.id}); }}, '⚔️ Набег') : ''));
+        if (F.history.length) { body.append(h('h3', {class: 'ae-h3'}, 'Последние сражения'));
+          for (const a of F.history) { const r = a.res || {}, won = a.side === 'att' ? r.win : !r.win;
+            body.append(h('div', {class: 'ae-card ae-sub ' + (won ? 'ae-good' : 'ae-bad')}, `${won ? '🏆' : '🏳️'} ${a.side === 'att' ? 'Набег на' : 'Оборона от'} [${a.foe?.tag || '?'}]: ${fmt(r.att)} против ${fmt(r.def)}${r.gold ? ` · ${a.side === 'att' ? '+' : '−'}${fmt(r.gold)} 🪙` : ''}`)); } }
+      }
+      if (fortTab === 'log') {
+        if (!F.log.length) body.append(h('p', {class: 'ae-empty'}, 'Пока тихо. Постройте Цитадель — с неё начинается крепость.'));
+        for (const l of F.log) body.append(h('div', {class: 'ae-fort-log'}, h('span', {}, l.icon), h('div', {class: 'ae-grow'}, l.text, h('small', {}, new Date(l.at).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})))));
+      }
+    }
+    const fortTimer = setInterval(() => { if (openPanelState !== st) return clearInterval(fortTimer); if (tab === 'fort' && fort && !document.hidden) rer(); }, 30000);
     const st = openPanel('🏰 Штаб клана', body => {
       if (err) return body.append(h('p', {class: 'ae-empty'}, err));
       if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
@@ -2075,7 +2150,7 @@
       body.append(h('div', {class: 'ae-hq-head'}, h('span', {class: 'ae-hq-emblem'}, c.emblem || '🛡️'),
         h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`, place ? ' ' + MEDAL[place] : ''), h('div', {class: 'ae-sub'}, `Ур. ${c.level} · ${c.members}/${c.max} участников · вы: ${ROLE_RU[d.role] || d.role}`),
           pbar(c.xp % 1000, 1000, c.level >= 15 ? 'Максимальный уровень' : `До ур. ${c.level + 1}: ${fmt(c.xp % 1000)} / 1000 XP`, 'is-mp'))));
-      const tabs = [['main', '🏰 Штаб'], ['members', '📊 Вклад'], ['top', '🏆 Рейтинг'], ...(officer ? [['requests', `📨 Заявки${d.requests ? ' ' + d.requests : ''}`], ['settings', '⚙️']] : [])];
+      const tabs = [['main', '🏰 Штаб'], ['fort', '🏯 Крепость'], ['members', '📊 Вклад'], ['top', '🏆 Рейтинг'], ...(officer ? [['requests', `📨 Заявки${d.requests ? ' ' + d.requests : ''}`], ['settings', '⚙️']] : [])];
       body.append(h('div', {class: 'ae-tabs'}, tabs.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => go(k)}, l))));
       if (tab === 'main') {
         const b = d.bonus;
@@ -2096,6 +2171,7 @@
           pbar(r.hp, r.max, `${fmt(r.hp)} / ${fmt(r.max)} HP`, 'is-foe'),
           h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', disabled: (!r.run && (r.doneToday || r.hp <= 0)), onclick: () => { closePanel(); openClanRaid(); }},
             r.run ? (r.run.status === 'active' ? '⚔️ Продолжить бой' : '🎁 Итоги боя') : r.hp <= 0 ? 'Страж повержен' : r.doneToday ? 'Бой уже был сегодня' : '⚔️ В бой со Стражем')));
+        body.append(h('button', {type: 'button', class: 'ae-bag-merge ae-fort-entry', onclick: () => go('fort')}, h('span', {class: 'ae-entry-icon'}, '🏯'), h('span', {class: 'ae-grow'}, h('b', {}, 'Крепость клана'), h('small', {}, 'Здания до 10 ур., защитники, охота на боссов и набеги на другие кланы')), h('span', {class: 'ae-coop-go'}, '›')));
         const w = d.war;
         body.append(h('div', {class: 'ae-card ae-hq-war'}, h('b', {}, '⚔️ Война кланов'), w && w.foe ? [
           h('div', {class: 'ae-hq-vs'}, h('span', {}, `${c.emblem} [${c.tag}]`), h('b', {}, `${fmt(w.mine)} : ${fmt(w.theirs)}`), h('span', {}, `[${w.foe.tag}] ${w.foe.emblem}`)),
@@ -2109,6 +2185,7 @@
         body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openClanInvite(); }}, '👥 Позвать друзей'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openCoop(); }}, '🤝 Кооп с соклановцами')));
         body.append(h('p', {class: 'ae-sub'}, '🤝 Если в кооп-подземелье с вами соклановец — награда +20% и выше шанс осколка.'));
       }
+      if (tab === 'fort') fortBody(body);
       if (tab === 'members') {
         if (!mem) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
         if (mem.mvp) body.append(h('div', {class: 'ae-pill'}, `👑 Лучший прошлой недели: ${mem.mvp.name} — ${fmt(mem.mvp.pts)} очков`));
@@ -2152,51 +2229,52 @@
     load().then(() => { if (tab !== 'main') loadTab(tab); });
   }
   // ---------- the Gate Guardian: a real turn-based fight ----------
-  function openClanRaid() {
+  function openClanRaid(hunt = false) {
     let run = null, busy = false, skillsOpen = false, err = '';
+    const base = hunt ? '/api/ae-clanx/fort/hunt' : '/api/ae-clanx/raid', bossName = () => hunt ? (run?.bossName || 'Клановый босс') : 'Страж клановых врат';
     const rer = () => { if (openPanelState === st) st.rerender(); };
     const act = async (action, skillId) => {
       if (busy || !run || run.status !== 'active') return; busy = true;
       const before = run.foe.hp, hp0 = run.hp;
-      try { run = (await api('/api/ae-clanx/raid/act', 'POST', {action, skillId})).run; sfx.play(run.foe.hp < before ? 'hit' : 'tick', 0.4);
+      try { run = (await api(base + '/act', 'POST', {action, skillId})).run; sfx.play(run.foe.hp < before ? 'hit' : 'tick', 0.4);
         if (run.foe.hp < before) floatAt('[data-bv-foe]', '−' + fmt(before - run.foe.hp), 'is-dmg'); if (run.hp < hp0) floatAt('[data-bv-hero]', '−' + fmt(hp0 - run.hp), 'is-hurt');
         if (run.status === 'ended') { sfx.play(run.result?.defeated ? 'coins' : 'fail', 0.5); loadClanX(true); } }
       catch (e) { toast(cleanError(e)); } finally { busy = false; rer(); }
     };
     const floatAt = (sel, text, cls) => requestAnimationFrame(() => { const el = st.body.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * 0.45}px;top:${r.top + r.height * 0.25}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); });
-    const claim = async () => { try { const r = await api('/api/ae-clanx/raid/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); toast('Награда: ' + rewardText(r.reward)); } closePanel(); setTimeout(reopenClan, 300); } catch (e) { toast(cleanError(e)); } };
-    const st = openPanel('🐲 Страж клановых врат', body => {
-      if (err) return body.append(h('p', {class: 'ae-empty'}, err), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openClanHQ(); }}, '← В штаб клана'));
+    const claim = async () => { try { const r = await api(base + '/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); toast('Награда: ' + rewardText(r.reward)); } closePanel(); setTimeout(() => hunt ? openClanHQ('fort') : reopenClan(), 300); } catch (e) { toast(cleanError(e)); } };
+    const st = openPanel(hunt ? '🐾 Клановая охота' : '🐲 Страж клановых врат', body => {
+      if (err) return body.append(h('p', {class: 'ae-empty'}, err), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openClanHQ(hunt ? 'fort' : 'main'); }}, '← В штаб клана'));
       if (!run) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       battleMode(body, run.status === 'active');
       if (run.status === 'active') {
         const cls = me()?.classId || 'warrior', ph = run.phase;
-        body.append(battleView({location: 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: '/assets/catacombs-DeUOVUij.webp',
+        body.append(battleView({location: hunt ? 'Клановая охота' : 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: '/assets/catacombs-DeUOVUij.webp',
           turn: 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
           hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
-          foe: {name: 'Страж клановых врат', level: 'Рейдовый босс', hp: run.foe.hp, maxHp: run.foe.maxHp, atk: run.foe.atk, img: '/assets/sprites/generated/monsters/v_cr_colossus.webp'},
+          foe: {name: bossName(), level: hunt ? 'Клановый босс' : 'Рейдовый босс', hp: run.foe.hp, maxHp: run.foe.maxHp, atk: run.foe.atk, img: hunt ? run.img : '/assets/sprites/generated/monsters/v_cr_colossus.webp'},
           note: run.log.at(-1),
-          intent: run.heavyNext ? {label: 'Страж готовит:', name: '💢 Сокрушающий удар', text: 'Двойной урон на следующем ходу — самое время встать в защиту.', value: '×2'} : {label: 'Фаза:', name: ph.name, text: ph.text},
-          series: {label: 'Урон за бой', value: fmt(run.dealt), sub: run.ally ? `🤝 Связка от ${run.ally.name} ждёт ваш атакующий навык` : 'Ваш навык с эффектом станет связкой для следующего соклановца'},
+          intent: run.heavyNext ? {label: hunt ? 'Босс готовит:' : 'Страж готовит:', name: hunt ? '💢 Мощную атаку' : '💢 Сокрушающий удар', text: 'Усиленный урон на следующем ходу — самое время встать в защиту.', value: '×2'} : {label: 'Фаза:', name: ph.name, text: ph.text},
+          series: {label: 'Урон за бой', value: fmt(run.dealt), sub: hunt ? (run.text || '') : run.ally ? `🤝 Связка от ${run.ally.name} ждёт ваш атакующий навык` : 'Ваш навык с эффектом станет связкой для следующего соклановца'},
           actions: [{kind: 'attack', label: 'Атака', onClick: () => act('attack')},
             {kind: 'skill', label: 'Навыки', attr: {'aria-expanded': String(skillsOpen)}, onClick: () => { skillsOpen = !skillsOpen; rer(); }},
             {kind: 'defend', label: 'Защита (+12% MP)', onClick: () => act('defend')},
             {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => act('potion')}],
-          secondary: [{label: 'Отступить', onClick: async () => { if (!confirm('Отступить? Нанесённый урон засчитается, но новый бой — только завтра.')) return; try { run = (await api('/api/ae-clanx/raid/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } rer(); }}],
+          secondary: [{label: 'Отступить', onClick: async () => { if (!confirm('Отступить? Нанесённый урон засчитается, но новый бой — только завтра.')) return; try { run = (await api(base + '/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } rer(); }}],
           log: run.log, menu: skillsOpen ? skillMenu({mp: run.mp, onClose: () => { skillsOpen = false; rer(); }, onUse: k => { skillsOpen = false; act('skill', k.id); }}) : null}));
         return;
       }
       const r = run.result || {};
-      body.append(h('div', {class: 'ae-card ae-result ' + (r.defeated ? 'is-win' : '')}, h('b', {}, r.defeated ? '🏆 Страж клановых врат повержен!' : `⚔️ Урон по Стражу: ${fmt(r.total || run.dealt)}`),
-        h('div', {class: 'ae-sub'}, `Здоровье Стража: ${fmt(r.raidHp ?? run.foe.hp)} / ${fmt(run.foe.maxHp)}${r.combos ? ` · связок с соклановцами: ${r.combos}` : ''}`),
+      body.append(h('div', {class: 'ae-card ae-result ' + (r.defeated ? 'is-win' : '')}, h('b', {}, r.defeated ? `🏆 ${bossName()} повержен!` : `⚔️ Урон: ${fmt(r.total || run.dealt)}`),
+        h('div', {class: 'ae-sub'}, `Здоровье босса: ${fmt(r.raidHp ?? run.foe.hp)} / ${fmt(run.foe.maxHp)}${r.combos ? ` · связок с соклановцами: ${r.combos}` : ''}`),
         r.item?.item_json ? h('div', {class: 'ae-sub ae-good'}, `🎁 Недельный трофей рейда: ${r.item.item_json.name} — в «Моих серверных вещах» клана`) : '',
         r.reward ? h('div', {class: 'ae-sub'}, `Награда за бой: ${rewardText(r.reward)}`) : ''));
       body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: claim}, '🎁 Забрать и вернуться'));
       body.append(h('div', {class: 'ae-log'}, run.log.slice().reverse().slice(0, 8).map(l => h('div', {}, l))));
     }, {cls: 'ae-horde-panel'});
     (async () => {
-      try { const o = await api('/api/ae-clanx'); const cur = o?.raid?.run;
-        run = cur || (await api('/api/ae-clanx/raid/start', 'POST', {})).run; } catch (e) { err = cleanError(e); }
+      try { const o = await api(hunt ? '/api/ae-clanx/fort' : '/api/ae-clanx'); const cur = hunt ? o?.hunt?.run : o?.raid?.run;
+        run = cur || (await api(base + '/start', 'POST', {})).run; } catch (e) { err = cleanError(e); }
       rer();
     })();
   }
@@ -4056,6 +4134,18 @@ html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full:hover>div>
 .ae-hq-bonus{padding:10px 12px;border-radius:12px;border:1px solid #e5ce9655;background:linear-gradient(135deg,#e5ce9618,#ffffff05);margin:8px 0;display:flex;flex-direction:column;gap:6px}.ae-hq-bonus small{opacity:.8;font-size:12px;line-height:1.35}
 .ae-hq-pills{display:flex;flex-wrap:wrap;gap:6px}.ae-hq-pills span{padding:3px 9px;border-radius:999px;background:#22c55e22;border:1px solid #22c55e66;color:#bbf7d0;font-size:12px;font-weight:700}
 .ae-hq-ic{font-size:24px;width:34px;text-align:center;flex:none}.ae-hq-chest.is-ready{border-color:#facc15aa;box-shadow:0 0 0 1px #facc1544,0 0 18px #facc1522}
+.ae-bad{color:#fca5a5}.ae-fort-top{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}.ae-fort-top>div{background:#0f1512;border:1px solid #6b563155;border-radius:12px;padding:7px 8px;display:flex;flex-direction:column;min-width:0}
+.ae-fort-top small{font-size:10.5px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-fort-top b{font-size:14px;white-space:nowrap}
+.ae-fort-tabs{flex-wrap:wrap}.ae-fort-tabs .ae-tab{flex:1 1 auto;padding-inline:8px}
+.ae-fort-b{display:flex;flex-direction:column;gap:6px}.ae-fort-b.is-busy{border-color:#f0cf7a99;box-shadow:0 0 0 1px #f0cf7a33 inset}
+.ae-fort-lvl{font-size:11px;padding:1px 7px;border-radius:999px;background:#2a2112;color:#ffe6a8;margin-left:4px;vertical-align:middle}
+.ae-fort-pips{display:flex;gap:3px}.ae-fort-pips i{flex:1;height:5px;border-radius:3px;background:#ffffff1a}.ae-fort-pips i.is-on{background:linear-gradient(90deg,#f0cf7a,#c99a3c)}.ae-fort-pips i.is-next{background:#f0cf7a55;animation:ae-fort-pulse 1.4s ease-in-out infinite}
+@keyframes ae-fort-pulse{50%{opacity:.35}}.ae-fort-next{align-items:center}.ae-fort-cost{white-space:normal}
+.ae-fort-hire{display:flex;flex-direction:column;gap:4px}.ae-card.is-locked{opacity:.6}
+.ae-fort-boss{display:flex;flex-direction:column;gap:6px}.ae-fort-boss.is-target{border-color:#f87171aa;box-shadow:0 0 14px #ef444433}.ae-fort-bimg{width:56px;height:56px;object-fit:contain;flex:none;filter:drop-shadow(0 2px 6px #000a)}
+.ae-fort-alarm{border-color:#f0cf7a;background:linear-gradient(#2a1d10,#141a17)}.ae-fort-alarm.is-def{border-color:#ef4444;background:linear-gradient(#3a1414,#141a17);animation:ae-fort-pulse 2.4s ease-in-out infinite}
+.ae-fort-log{display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid #ffffff12;font-size:13px}.ae-fort-log small{display:block;opacity:.6;font-size:11px}
+.ae-fort-entry{margin:6px 0}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4393,5 +4483,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {coop: () => openCoop(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

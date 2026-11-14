@@ -1,5 +1,6 @@
 // Housekeeping for the single world document: keeps it small so every request stays cheap.
 import {compactQuestLog} from './arenaExtras.js';
+import {pruneFort} from './clanFort.js';
 const DAY = 864e5;
 const at = row => Date.parse(row?.created_at || row?.updated_at || '') || 0;
 const keepRecent = (rows, cutoff) => (rows || []).filter(row => { const t = at(row); return !t || t >= cutoff; });
@@ -18,7 +19,7 @@ export function pruneWorld(world, now = Date.now()) {
   // Add-on tables: each cleans itself when used, this is the safety net for the ones nobody opens any more.
   const old = (name, days, key = 'at') => { if (t[name]) t[name] = t[name].filter(r => { const x = Date.parse(r?.[key] || ''); return !x || x >= now - days * DAY; }); };
   old('ae_clan_raid_runs', 2); old('ae_clan_raid_setups', 2); old('ae_clan_requests', 8); old('ae_clan_invites', 8); old('ae_deposits', 3); compactQuestLog(world, now); old('ae_clan_goals', 15);
-  old('ae_clan_welcomed', 30); old('ae_bug_reports', 30); old('ae_gem_ops', 3);
+  old('ae_clan_welcomed', 30); old('ae_clan_hunt_runs', 2); pruneFort(world, now); old('ae_bug_reports', 30); old('ae_gem_ops', 3);
   if (t.ae_events) t.ae_events = t.ae_events.filter(e => Date.parse(e.at) > now - (e.acked ? 7 : 14) * DAY).slice(-800);
   for (const name of ['ae_clan_daily', 'ae_clan_chest']) if (t[name]) { const min = new Date(now - 2 * DAY).toISOString().slice(0, 10); t[name] = t[name].filter(r => String(r.day) >= min); }
   if (t.clan_storage_events) t.clan_storage_events = t.clan_storage_events.slice(-400);

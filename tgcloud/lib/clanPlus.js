@@ -25,14 +25,14 @@ export function clanOf(world, id) {
   const clan = m && rows(world, 'clans').find(c => same(c.id, m.clan_id));
   return clan ? {m, clan} : {};
 }
-const membersOf = (world, clan) => rows(world, 'clan_members').filter(x => same(x.clan_id, clan.id));
-const metaOf = (world, clan, create) => { let r = rows(world, 'ae_clan_meta').find(x => same(x.clan, clan.id)); if (!r && create) { r = {clan: clan.id, welcome: '', emblem: '🛡️'}; rows(world, 'ae_clan_meta').push(r); } return r || {welcome: '', emblem: '🛡️'}; };
-function addClanXp(clan, xp) {
+export const membersOf = (world, clan) => rows(world, 'clan_members').filter(x => same(x.clan_id, clan.id));
+export const metaOf = (world, clan, create) => { let r = rows(world, 'ae_clan_meta').find(x => same(x.clan, clan.id)); if (!r && create) { r = {clan: clan.id, welcome: '', emblem: '🛡️'}; rows(world, 'ae_clan_meta').push(r); } return r || {welcome: '', emblem: '🛡️'}; };
+export function addClanXp(clan, xp) {
   clan.xp = Number(clan.xp || 0) + xp;
   clan.level = Math.max(Number(clan.level) || 1, Math.min(15, 1 + Math.floor(clan.xp / 1000)));
   clan.max_members = Math.max(Number(clan.max_members) || 30, Math.min(50, 30 + Math.floor(clan.xp / 1000) * 2));
 }
-const tellClan = (world, clan, text, key, now, notify, icon = '🛡️') => {
+export const tellClan = (world, clan, text, key, now, notify, icon = '🛡️') => {
   for (const m of membersOf(world, clan)) {
     notify?.(world, m.telegram_id, text, key + ':' + m.telegram_id, now);
     rows(world, 'ae_events').push({id: crypto.randomUUID(), to: String(m.telegram_id), icon, text, kind: 'clan', at: iso(now), acked: false});
@@ -155,29 +155,32 @@ function top(world, now) {
 }
 
 // ---------- the raid as a real fight ----------
+// Fort buildings that help in every clan boss fight: the Forge (+3% attack per level), the Shrine (−3% damage taken per level, +1 potion at 5 and 10).
+export const fortOf = (world, clanId) => rows(world, 'ae_clan_fort').find(x => same(x.clan, clanId)) || null;
+export function fortBonus(world, clanId) { const b = fortOf(world, clanId)?.b || {}, lv = k => Number(b[k]?.lvl) || 0; return {atk: 1 + lv('forge') * 0.03, guard: 1 - lv('shrine') * 0.03, potions: (lv('shrine') >= 5 ? 1 : 0) + (lv('shrine') >= 10 ? 1 : 0), forge: lv('forge'), shrine: lv('shrine')}; }
 const raidHpOf = L => 1e4 + (Math.min(15, Math.max(1, L)) - 1) * 2e3;
 const raidWin = (L, research = 0, supplies = 0) => ({xp: Math.round((500 + (L - 1) * 100) * (1 + Math.min(10, research) * 0.05)), gold: Math.round((250 + (L - 1) * 75) * (1 + Math.min(10, research) * 0.05)),
   silver: Math.round((100 + (L - 1) * 40) * (1 + Math.min(10, supplies) * 0.1)), ore: Math.round((10 + (L - 1) * 3) * (1 + Math.min(10, supplies) * 0.1))});
 const ARMOR = 0.45, TURNS = 12;
-const todayStart = now => { const d = new Date(now); d.setUTCHours(0, 0, 0, 0); return d.getTime(); };
+export const todayStart = now => { const d = new Date(now); d.setUTCHours(0, 0, 0, 0); return d.getTime(); };
 function raidReset(world, clan, now) {
   if (Date.parse(clan.raid_reset_at || 0) > now) return;
   clan.raid_hp = raidHpOf(Number(clan.level) || 1); clan.raid_max_hp = clan.raid_hp; clan.raid_reset_at = iso(now + 7 * DAY);
   for (const m of membersOf(world, clan)) m.raid_damage = 0;
 }
-const phaseOf = (hp, max) => hp > max * 0.66 ? {n: 1, name: 'Каменный щит', text: 'Страж закрыт щитом: урон по нему ниже.', taken: 0.85, atk: 1} : hp > max * 0.33 ? {n: 2, name: 'Ярость врат', text: 'Страж в ярости: бьёт сильнее.', taken: 1, atk: 1.3}
+export const phaseOf = (hp, max) => hp > max * 0.66 ? {n: 1, name: 'Каменный щит', text: 'Страж закрыт щитом: урон по нему ниже.', taken: 0.85, atk: 1} : hp > max * 0.33 ? {n: 2, name: 'Ярость врат', text: 'Страж в ярости: бьёт сильнее.', taken: 1, atk: 1.3}
   : {n: 3, name: 'Последний рубеж', text: 'Страж трещит по швам: урон по нему выше, но он бьёт отчаянно.', taken: 1.25, atk: 1.5};
-function raidView(run) {
+export function raidView(run) {
   if (!run) return null;
   const foeHp = Math.max(0, run.bossHp0 - run.dealt), ph = phaseOf(foeHp, run.bossMax);
   return {id: run.id, status: run.status, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, potions: run.potions, turn: run.turn, turns: TURNS, dealt: run.dealt, barrier: run.barrier || 0,
-    foe: {hp: foeHp, maxHp: run.bossMax, atk: Math.round(run.maxHp * 0.06 * ph.atk * (run.hero?.guardMul || 1))}, phase: ph, heavyNext: (run.turn + 1) % 3 === 0, ally: run.allyLast ? {name: run.allyName, setup: setupOf(run.allyLast)} : null,
+    foe: {hp: foeHp, maxHp: run.bossMax, atk: Math.round(run.maxHp * 0.06 * ph.atk * (run.mod?.atk || 1) * (run.hero?.guardMul || 1))}, phase: ph, heavyNext: (run.turn + 1) % (run.mod?.every || 3) === 0, boss: run.boss || null, ally: run.allyLast ? {name: run.allyName, setup: setupOf(run.allyLast)} : null,
     log: run.log.slice(-14), result: run.result || null};
 }
-function raidTurn(world, me, run, action, skillId) {
-  const h = run.hero, kit = kitOf(world, me), foe = run.foe, before = run.dealt;
+export function raidTurn(world, me, run, action, skillId) {
+  const h = run.hero, kit = kitOf(world, me), foe = run.foe, before = run.dealt, BN = run.bossName || 'Страж', md = run.mod || {}, AR = md.armor ?? ARMOR;
   const foeHp = () => Math.max(0, run.bossHp0 - run.dealt), ph = phaseOf(foeHp(), run.bossMax);
-  const hitFoe = mult => { const dmg = Math.max(1, Math.round(h.atk * rand(0.9, 1.1) * mult * ARMOR * (1 + (h.pen || 0)) * ph.taken * outMult(run) * inMult(foe))); run.dealt = Math.min(run.bossHp0, run.dealt + dmg);
+  const hitFoe = mult => { const dmg = Math.max(1, Math.round(h.atk * rand(0.9, 1.1) * mult * AR * (1 + (h.pen || 0)) * ph.taken * outMult(run) * inMult(foe))); run.dealt = Math.min(run.bossHp0, run.dealt + dmg);
     if (h.vamp) { const v = Math.round(dmg * h.vamp); if (v) { run.hp = Math.min(h.maxHp, run.hp + v); run.vampTurn = (run.vampTurn || 0) + v; } } return dmg; };
   let guard = false;
   run.vampTurn = 0;
@@ -191,7 +194,7 @@ function raidTurn(world, me, run, action, skillId) {
       const self = {hp: run.hp, maxHp: h.maxHp, mp: run.mp, maxMp: run.maxMp, atk: h.atk, crit: h.crit, barrier: run.barrier || 0, fury: run.fury || 0, name: 'Вы'};
       const shadow = {hp: foeHp(), maxHp: run.bossMax, dots: foe.dots, vuln: foe.vuln, stunned: foe.stunned};
       const s0 = shadow.hp, r = castSkill({self, foe: shadow, kit, sk, ownLast: run.lastSkill, allyLast: run.allyLast, allyName: run.allyName, hit: mult => hitFoe(mult)});
-      const dotHit = Math.max(0, s0 - shadow.hp); if (dotHit) run.dealt = Math.min(run.bossHp0, run.dealt + Math.round(dotHit * ARMOR));
+      const dotHit = Math.max(0, s0 - shadow.hp); if (dotHit) run.dealt = Math.min(run.bossHp0, run.dealt + Math.round(dotHit * AR));
       Object.assign(foe, {dots: shadow.dots || foe.dots, vuln: shadow.vuln || 0, stunned: shadow.stunned || 0});
       Object.assign(run, {hp: Math.min(h.maxHp, self.hp + (run.vampTurn || 0)), mp: self.mp, barrier: self.barrier, fury: self.fury}); run.lastSkill = {id: sk.id};
       if (r.combo) { run.log.push(`${r.combo.icon} Связка с ${run.allyName}: «${r.combo.name}» ×${r.combo.mult}!`); run.allyLast = null; run.combos = (run.combos || 0) + 1; }
@@ -207,23 +210,35 @@ function raidTurn(world, me, run, action, skillId) {
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.06));
   }
   if (run.vampTurn) run.log.push(`🩸 Вампиризм: +${run.vampTurn} HP`);
-  if (foe.dots?.length) { let t = 0; for (const d of foe.dots) { t += Math.round(d.per * ARMOR); d.left--; } foe.dots = foe.dots.filter(d => d.left > 0); if (t) { run.dealt = Math.min(run.bossHp0, run.dealt + t); run.log.push(`🩸 Эффекты: −${t}`); } }
+  if (foe.dots?.length) { let t = 0; for (const d of foe.dots) { t += Math.round(d.per * AR); d.left--; } foe.dots = foe.dots.filter(d => d.left > 0); if (t) { run.dealt = Math.min(run.bossHp0, run.dealt + t); run.log.push(`🩸 Эффекты: −${t}`); } }
   run.turn++;
-  if (foeHp() <= 0) { run.status = 'ended'; run.killed = true; run.log.push('🏆 Страж клановых врат повержен!'); return run.dealt - before; }
+  if (foeHp() <= 0) { run.status = 'ended'; run.killed = true; run.log.push(`🏆 ${run.bossFull || 'Страж клановых врат'} повержен!`); return run.dealt - before; }
   // the Guardian strikes back
   if (run.fury > 0) run.fury--; if (foe.vuln > 0) foe.vuln--;
-  if (foe.stunned > 0) { foe.stunned--; run.log.push('💫 Страж оглушён и пропускает ход'); }
-  else if (h.evasion && Math.random() < h.evasion) run.log.push(`💨 Вы уклонились от ${run.turn % 3 === 0 ? 'сокрушающего удара' : 'удара Стража'}!`);
+  if (foe.stunned > 0) { foe.stunned--; run.log.push(`💫 ${BN} оглушён и пропускает ход`); }
+  else if (h.evasion && Math.random() < h.evasion) run.log.push(`💨 Вы уклонились от ${run.turn % (md.every || 3) === 0 ? 'сокрушающего удара' : 'удара: ' + BN}!`);
   else {
-    const heavy = run.turn % 3 === 0, raw = h.maxHp * 0.06 * ph.atk * (heavy ? 2 : 1) * rand(0.9, 1.1) * (h.guardMul || 1) * (guard ? 0.5 : 1);
+    const heavy = run.turn % (md.every || 3) === 0, raw = h.maxHp * 0.06 * ph.atk * (md.atk || 1) * (heavy ? (md.heavy || 2) : 1) * rand(0.9, 1.1) * (h.guardMul || 1) * (guard ? 0.5 : 1);
     let left = Math.max(1, Math.round(raw)); if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
-    run.hp = Math.max(0, run.hp - left); run.log.push(`${heavy ? '💢 Сокрушающий удар' : '🗿 Страж бьёт'}: −${left}${guard ? ' (защита)' : ''}`);
+    run.hp = Math.max(0, run.hp - left); run.log.push(`${heavy ? (md.heavyName || '💢 Сокрушающий удар') : (md.hitName || '🗿 ' + BN + ' бьёт')}: −${left}${guard ? ' (защита)' : ''}`);
+    if (md.leech) { const v = Math.round(left * md.leech); if (v) { run.dealt = Math.max(0, run.dealt - v); run.log.push(`🩸 ${BN} пьёт жизнь: +${v} HP себе`); } }
   }
+  if (md.regen && foeHp() > 0) { const v = Math.min(run.dealt, Math.round(Math.max(0, run.dealt - before) * md.regen)); if (v) { run.dealt -= v; run.log.push(`🌿 ${BN} регенерирует: +${v} HP`); } }
+  if (md.drain && run.mp > 0) { const v = Math.min(run.mp, Math.round(run.maxMp * md.drain)); run.mp -= v; run.log.push(`🌀 ${BN} вытягивает ману: −${v} MP`); }
   if (run.hp > 0 && (h.hpRegen || h.mpRegen)) { run.hp = Math.min(h.maxHp, run.hp + Math.round(h.hpRegen || 0)); run.mp = Math.min(run.maxMp, run.mp + Math.round(h.mpRegen || 0)); }
   if (run.hp <= 0) { run.status = 'ended'; run.log.push('💀 Вы без сил — бой окончен, урон засчитан.'); }
-  else if (run.turn >= TURNS) { run.status = 'ended'; run.log.push('⏳ Страж отбросил вас за врата — бой окончен, урон засчитан.'); }
+  else if (run.turn >= TURNS) { run.status = 'ended'; run.log.push(`⏳ ${run.bossFull ? 'Время вышло' : 'Страж отбросил вас за врата'} — бой окончен, урон засчитан.`); }
   return run.dealt - before;
 }
+// The hero for a clan boss fight: real stats (gear, attributes, talents, pet) as the game computes them, or the level formula; plus the fort's Forge and Shrine.
+export function clanHero(world, me, p, clanId) {
+  const base = baseStats(p), b = blendedStats(world, me, p), rs = realStats(world, me, p), src = rs || b, fb = fortBonus(world, clanId);
+  return {level: base.level, maxHp: src.maxHp, atk: Math.round(src.atk * fb.atk), def: src.def ?? base.def, crit: src.crit ?? 0.14, critDmg: Math.max(1.2, Math.min(4, rs?.critDmg || 1.6)),
+    evasion: Math.min(0.35, (rs?.evasion || 0) / ((rs?.evasion || 0) + 100)), vamp: Math.min(0.5, (rs?.vamp || 0) / 100), pen: Math.min(0.6, (rs?.pen || 0) / 100),
+    hpRegen: Math.min(src.maxHp * 0.05, rs?.hpRegen || 0), mpRegen: rs?.mpRegen || 0,
+    maxMp: Math.max(60, Math.min(4000, src.maxMp || 100 + base.level * 8)), guardMul: Math.max(0.3, Math.min(1.5, (base.def + 150) / ((src.def || base.def) + 150)) * fb.guard), real: !!rs};
+}
+export const heroLine = hero => `${hero.real ? '📋 Ваши характеристики' : '📋 Характеристики по уровню (зайдите в игру, чтобы учесть экипировку)'}: ❤️ ${hero.maxHp} · ⚔️ ${hero.atk} · 🛡️ ${hero.def} · 💥 крит ${Math.round(hero.crit * 100)}% ×${hero.critDmg.toFixed(2)}${hero.evasion ? ` · 💨 уклонение ${Math.round(hero.evasion * 100)}%` : ''}${hero.vamp ? ` · 🩸 вампиризм ${Math.round(hero.vamp * 100)}%` : ''}${hero.pen ? ` · 🗡️ пробивание ${Math.round(hero.pen * 100)}%` : ''}${hero.hpRegen ? ` · реген ${Math.round(hero.hpRegen)} HP/ход` : ''}`;
 async function raidFinish(world, me, run, now, native, notify) {
   let {clan, m} = clanOf(world, me), p = player(world, me);
   if (!clan || !same(clan.id, run.clan)) { run.result = {total: 0, lost: true}; return run; }
@@ -268,18 +283,12 @@ async function handleRaid(world, path, body, me, now, native, notify) {
     if (Number(clan.raid_hp) <= 0) return fail('Страж уже повержен на этой неделе. Новый — после сброса рейда.');
     if (m.last_raid_attack && Date.parse(m.last_raid_attack) >= todayStart(now)) return fail('Сегодня вы уже бились со Стражем. Новый бой — в 00:00 UTC.');
     if (body.stats) saveStats(world, me, body.stats, now);
-    const base = baseStats(p), b = blendedStats(world, me, p);
-    // The hero's real stats (gear, attributes, talents, pet) exactly as the game computes them; the level formula only if never reported.
-    const rs = realStats(world, me, p), src = rs || b;
-    const hero = {level: base.level, maxHp: src.maxHp, atk: src.atk, def: src.def ?? base.def, crit: src.crit ?? 0.14, critDmg: Math.max(1.2, Math.min(4, rs?.critDmg || 1.6)),
-      evasion: Math.min(0.35, (rs?.evasion || 0) / ((rs?.evasion || 0) + 100)), vamp: Math.min(0.5, (rs?.vamp || 0) / 100), pen: Math.min(0.6, (rs?.pen || 0) / 100),
-      hpRegen: Math.min(src.maxHp * 0.05, rs?.hpRegen || 0), mpRegen: rs?.mpRegen || 0,
-      maxMp: Math.max(60, Math.min(4000, src.maxMp || 100 + base.level * 8)), guardMul: Math.max(0.45, Math.min(1.5, (base.def + 150) / ((src.def || base.def) + 150))), real: !!rs};
+    const hero = clanHero(world, me, p, clan.id), fb = fortBonus(world, clan.id);
     const ally = rows(world, 'ae_clan_raid_setups').filter(x => same(x.clan, clan.id) && !same(x.u, me) && Date.parse(x.at) > now - DAY).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
-    run = {id: crypto.randomUUID(), u: String(me), clan: clan.id, status: 'active', hero, hp: hero.maxHp, maxHp: hero.maxHp, mp: hero.maxMp, maxMp: hero.maxMp, potions: 2, turn: 0, dealt: 0,
+    run = {id: crypto.randomUUID(), u: String(me), clan: clan.id, status: 'active', hero, hp: hero.maxHp, maxHp: hero.maxHp, mp: hero.maxMp, maxMp: hero.maxMp, potions: 2 + fb.potions, turn: 0, dealt: 0,
       bossHp0: Number(clan.raid_hp), bossMax: Number(clan.raid_max_hp) || raidHpOf(Number(clan.level) || 1), foe: {dots: [], vuln: 0, stunned: 0}, barrier: 0, fury: 0, lastSkill: null,
       allyLast: ally?.sk || null, allyName: ally?.name || null, log: ['🐲 Страж клановых врат пробуждается!',
-        `${hero.real ? '📋 Ваши характеристики' : '📋 Характеристики по уровню (зайдите в игру, чтобы учесть экипировку)'}: ❤️ ${hero.maxHp} · ⚔️ ${hero.atk} · 🛡️ ${hero.def} · 💥 крит ${Math.round(hero.crit * 100)}% ×${hero.critDmg.toFixed(2)}${hero.evasion ? ` · 💨 уклонение ${Math.round(hero.evasion * 100)}%` : ''}${hero.vamp ? ` · 🩸 вампиризм ${Math.round(hero.vamp * 100)}%` : ''}${hero.pen ? ` · 🗡️ пробивание ${Math.round(hero.pen * 100)}%` : ''}${hero.hpRegen ? ` · реген ${Math.round(hero.hpRegen)} HP/ход` : ''}`, ...(ally ? [`🤝 ${ally.name} подготовил(а) связку «${ally.sk.name}» — ваш следующий навык станет сильнее!`] : [])], at: iso(now)};
+        heroLine(hero), ...(ally ? [`🤝 ${ally.name} подготовил(а) связку «${ally.sk.name}» — ваш следующий навык станет сильнее!`] : [])], at: iso(now)};
     rows(world, 'ae_clan_raid_runs').push(run);
     return ok({run: raidView(run)}, 201);
   }

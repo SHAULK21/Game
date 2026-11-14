@@ -83,7 +83,8 @@ function rollIntent(room, foe) {
   foe.intent = aoe ? {kind: 'aoe'} : {kind: heavy ? 'heavy' : 'strike', targetId: t.id, targetName: t.name};
 }
 function spawn(room, foe, now) { room.foe = foe; rollIntent(room, foe); for (const m of present(room)) m.acted = false; room.round = (room.round || 0) + 1; }
-const waitingFor = room => alive(room).filter(m => !m.acted);
+const waitingFor = room => alive(room).filter(m => !m.acted && !m.bot);
+const humans = room => present(room).filter(m => !m.bot);
 // Everyone alive has acted (or the round was hurried): dots tick, then the enemy acts and a new round starts.
 function endRound(world, room, now) {
   const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId), foe = room.foe;
@@ -103,7 +104,7 @@ function applyDots(room, now) {
 }
 function foeDown(world, room, d, now) {
   log(room, `Победа над врагом «${room.foe.name}»!`, now); room.lastSkill = null;
-  for (const m of present(room)) logQuest(world, m.id, 'coop_kill', now);
+  for (const m of humans(room)) logQuest(world, m.id, 'coop_kill', now);
   for (const m of alive(room)) { const kr = kitOf(world, m.id).talents?.killRecovery || 0; m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * (0.15 + kr / 100))); m.mp = Math.min(m.maxMp, (m.mp || 0) + Math.round(m.maxMp * 0.2)); }
   if (room.stage >= ROOMS) finish(world, room, d, now);
   else offerPaths(room, now);
@@ -140,11 +141,11 @@ function view(room, me, world) {
     waiting: room.foe ? waitingFor(room).map(m => ({id: String(m.id), name: m.name})) : [],
     options: room.phase === 'choose' ? room.options.map(o => ({id: o.id, name: o.name, icon: o.icon, hint: o.hint, votes: Object.values(room.votes || {}).filter(v => v === o.id).length})) : [],
     myVote: room.votes?.[String(me)] || null, bonus: room.bonus || 0, log: room.log.slice(-18), isHost: same(room.hostId, me),
-    members: present(room).map(m => ({id: m.id, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
+    members: present(room).map(m => ({id: m.id, bot: !!m.bot, role: m.role || null, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
       mp: m.mp ?? m.maxMp ?? 100, maxMp: m.maxMp || 100, acted: !!m.acted, potions: same(m.id, me) ? (m.potions ?? POTIONS) : undefined})),
     reward: room.rewards?.[String(me)] || null};
 }
-const tellParty = (world, room, except, icon, text, now) => { for (const m of present(room)) if (!same(m.id, except)) pushEvent(world, m.id, icon, text, 'coop', {roomId: room.id}, now); };
+const tellParty = (world, room, except, icon, text, now) => { for (const m of humans(room)) if (!same(m.id, except)) pushEvent(world, m.id, icon, text, 'coop', {roomId: room.id}, now); };
 
 function offerPaths(room, now) {
   if (room.stage >= ROOMS) { room.phase = 'fight'; room.foe = null; return; }
@@ -195,7 +196,8 @@ function enemyTurn(room, now) {
 }
 function finish(world, room, d, now) {
   room.status = 'won'; room.phase = 'end'; room.rewards = {};
-  const team = present(room), mult = (1 + 0.1 * (team.length - 1)) * (1 + (room.bonus || 0));
+  const team = humans(room), hired = present(room).some(m => m.bot), mult = (1 + 0.1 * (team.length - 1)) * (1 + (room.bonus || 0)) * (hired ? 0.85 : 1);
+  if (hired) log(room, '🤖 Наёмники забирают свою долю: награда −15%.', now);
   for (const m of team) logQuest(world, m.id, 'coop_win', now);
   const clanId = id => rows(world, 'clan_members').find(x => String(x.telegram_id) === String(id))?.clan_id;
   for (const m of team) {
@@ -206,6 +208,47 @@ function finish(world, room, d, now) {
   if (team.some(m => room.rewards[String(m.id)].clanBonus)) log(room, '🛡️ Соклановцы в отряде: +20% к награде и шанс осколка выше!', now);
   log(room, `Победа! «${d.boss}» больше не угрожает королевству. Заберите награду.`, now);
   tellParty(world, room, null, '🏆', `Отряд прошёл «${d.name}»! Заберите награду в кооп-подземельях.`, now);
+}
+
+// ---------- bot allies: anyone can go alone and take up to two hired heroes (tank, healer, damage) ----------
+const BOT_ROLES = {
+  tank: {cls: 'knight', label: 'Танк', names: ['Сэр Борн', 'Гарет Щит', 'Ульрих Стойкий']},
+  heal: {cls: 'druid', label: 'Лекарь', names: ['Сестра Мирра', 'Травница Ив', 'Элайна']},
+  dps: {cls: 'mage', label: 'Боец', names: ['Каэль Огнерук', 'Ровена', 'Зорн Клинок']},
+};
+function makeBot(room, host, role) {
+  const R = BOT_ROLES[role], taken = new Set(room.members.map(m => m.name)), name = R.names.find(n => !taken.has(n + ' 🤖')) || R.names[0];
+  const lvl = Math.max(1, Number(host?.level) || 1), base = memberStats({level: lvl, class_id: R.cls}), hostS = host ? memberStats(host, null) : base;
+  // as strong as an average hero of the host's level (a bit behind a well-geared player)
+  const maxHp = Math.round(base.maxHp * 0.85), atk = Math.round(Math.max(base.atk, hostS.atk * 0.8) * 0.75), maxMp = 100 + lvl * 4;
+  return {id: 'bot:' + crypto.randomUUID().slice(0, 8), bot: true, role, name: name + ' 🤖', ...base, maxHp, hp: maxHp, atk, def: Math.round(base.def * 0.95), maxMp, mp: maxMp, potions: 2, talents: {}};
+}
+function botAct(world, room, d, b, now) {
+  const foe = room.foe, team = present(room), ally = team.filter(m => m !== b);
+  b.mp = Math.min(b.maxMp, (b.mp || 0) + Math.round(b.maxMp * 0.1));
+  const downed = ally.find(m => m.hp <= 0 && !m.bot) || ally.find(m => m.hp <= 0);
+  const hurt = team.filter(m => m.hp > 0).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0];
+  if (b.hp < b.maxHp * 0.3 && b.potions > 0 && b.role !== 'heal') { b.potions--; const v = Math.round(b.maxHp * 0.4); b.hp = Math.min(b.maxHp, b.hp + v); log(room, `🧪 ${b.name} пьёт зелье: +${v} HP`, now); return; }
+  if (b.role === 'heal') {
+    if (downed && b.potions > 0) { b.potions--; const v = Math.round(downed.maxHp * 0.3); downed.hp = v; log(room, `🧪 ${b.name} поднимает ${downed.name}: +${v} HP`, now); return; }
+    if (hurt && hurt.hp < hurt.maxHp * 0.55 && b.mp >= 30) { b.mp -= 30; const v = Math.round(b.atk * 0.9 + hurt.maxHp * 0.1); hurt.hp = Math.min(hurt.maxHp, hurt.hp + v); log(room, `💚 ${b.name} лечит ${hurt.name}: +${v} HP`, now); return; }
+  }
+  if (b.role === 'tank' && foe.intent && foe.intent.kind !== 'aoe' && !team.some(m => m.guard) && (foe.intent.kind === 'heavy' || (foe.intent.targetId && !same(foe.intent.targetId, b.id)))) {
+    b.guard = true; log(room, `🛡️ ${b.name} закрывает отряд щитом`, now); return; }
+  const strong = b.role === 'dps' ? b.mp >= 30 : b.role === 'tank' && b.mp >= 25 && (room.round || 1) % 3 === 0;
+  if (strong) { b.mp -= b.role === 'dps' ? 30 : 25; const dmg = hitFoe(room, b, b.role === 'dps' ? 1.9 : 1.6, now); log(room, `${b.role === 'dps' ? '🔥' : '⚔️'} ${b.name} — «${b.role === 'dps' ? 'Огненный шар' : 'Сокрушающий выпад'}»: ${dmg}`, now); return; }
+  const crit = Math.random() < 0.12, dmg = hitFoe(room, b, (crit ? 1.6 : 1) * (b.role === 'heal' ? 0.8 : 1), now);
+  log(room, `${b.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}`, now);
+}
+// Bots act once the humans have; if every human is down, the bots fight on by themselves until the hall is decided.
+function advance(world, room, d, now) {
+  for (let i = 0; i < 60; i++) {
+    if (room.status !== 'active' || room.phase !== 'fight' || !room.foe || room.foe.hp <= 0) return;
+    if (waitingFor(room).length) return;
+    for (const b of alive(room).filter(m => m.bot && !m.acted)) { botAct(world, room, d, b, now); b.acted = true; if (room.foe.hp <= 0) { foeDown(world, room, d, now); return; } }
+    endRound(world, room, now);
+    if (alive(room).some(m => !m.bot)) return;
+  }
 }
 
 export async function handleCoopRequest(world, input, user, now, notify) {
@@ -257,7 +300,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
   if (path === '/api/coop/leave') {
     self.left = true; log(room, `${self.name} покидает отряд.`, now);
     tellParty(world, room, me, '🚪', `${self.name} покинул(а) отряд в «${d.name}».`, now);
-    const rest = present(room);
+    const rest = humans(room);
     if (!rest.length) room.status = room.status === 'won' ? 'won' : 'expired';
     else if (same(room.hostId, me)) { room.hostId = rest[0].id; log(room, `Новый лидер отряда: ${rest[0].name}.`, now); }
     if (room.status === 'active' && !alive(room).length) room.status = 'failed';
@@ -270,6 +313,16 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     pushEvent(world, friend, '🛡️', `${nameOf(p)} зовёт вас в кооп «${d.name}»`, 'coop-invite', {roomId: room.id}, now);
     notify?.(world, friend, `🛡️ ${nameOf(p)} зовёт вас в кооп-подземелье «${d.name}». Откройте игру → Ещё → Кооп-подземелья.`, 'coop-invite:' + me, now);
     return ok({invited: true});
+  }
+  if (path === '/api/coop/bot' || path === '/api/coop/unbot') {
+    if (!same(room.hostId, me)) return fail('Союзников-ботов берёт лидер отряда.');
+    if (room.status !== 'lobby') return fail('Поход уже начат.');
+    if (path === '/api/coop/unbot') { room.members = room.members.filter(m => !(m.bot && m.id === body.id)); log(room, 'Бот-союзник покидает отряд.', now); return ok({room: view(room, me, world)}); }
+    if (!BOT_ROLES[body.role]) return fail('Нет такой роли.');
+    if (present(room).length >= MAX_MEMBERS) return fail('Отряд уже полный.');
+    const b = makeBot(room, p, body.role); room.members.push(b);
+    log(room, `🤖 ${b.name} (${BOT_ROLES[body.role].label}) присоединяется к отряду.`, now);
+    return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/start') {
     if (!same(room.hostId, me)) return fail('Начать может только лидер отряда.');
@@ -299,7 +352,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
       if (!self.acted) return fail('Сначала сделайте свой ход.');
       const w = waitingFor(room); if (!w.length) return fail('Все уже походили.');
       log(room, `⏩ ${self.name} не ждёт: ${w.map(m => m.name).join(', ')} пропускает ход`, now);
-      endRound(world, room, now); return ok({room: view(room, me, world)});
+      for (const m of w) m.acted = true; advance(world, room, d, now); return ok({room: view(room, me, world)});
     }
     if (self.hp <= 0) return fail('Вы без сил. Союзник может поднять вас лечением, или дождитесь святилища.');
     if (self.acted) return fail(`Вы уже походили. Ждём: ${waitingFor(room).map(m => m.name).join(', ')}.`);
@@ -333,7 +386,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     }
     self.acted = true;
     if (room.foe && room.foe.hp <= 0) foeDown(world, room, d, now);
-    else if (!waitingFor(room).length) endRound(world, room, now);
+    else advance(world, room, d, now);
     return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/ping') {

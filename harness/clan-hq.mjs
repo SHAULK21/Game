@@ -24,8 +24,8 @@ await p.screenshot({path: `clan-hq-${style}.png`});
 console.log('HQ:', (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, 900));
 await p.locator('.ae-panel button', {hasText: 'Открыть'}).click(); await p.waitForTimeout(1200);
 console.log('gold after chest:', (await P()).gold, '| chest btn now:', await p.locator('.ae-hq-chest').innerText().then(t => t.replace(/\n/g, ' ')));
-for (const t of ['📊 Вклад', '🏆 Рейтинг', '⚙️']) { await p.locator('.ae-tab', {hasText: t}).click({force: true}); await p.waitForTimeout(1000); console.log(t, '→', (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, 300)); }
-await p.locator('.ae-hq-em', {hasText: '🐉'}).click({force: true}); await p.locator('.ae-panel textarea').fill('Привет, бей Стража!'); await p.locator('.ae-panel button', {hasText: 'Сохранить'}).click({force: true}); await p.waitForTimeout(800);
+for (const t of ['Вклад', 'Рейтинг', 'Заявки']) { await p.locator('.ae-tab', {hasText: t}).click({force: true}); await p.waitForTimeout(1000); console.log(t, '→', (await p.locator('.ae-panel').innerText()).replace(/\n+/g, ' | ').slice(0, 300)); }
+
 console.log('meta:', JSON.stringify(s.world.tables.ae_clan_meta));
 await p.locator('.ae-x').click().catch(() => {}); await p.waitForTimeout(400);
 await p.locator('button[data-ae-raid]').click({force: true}); await p.waitForTimeout(2000);
