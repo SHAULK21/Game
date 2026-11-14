@@ -5,6 +5,7 @@ import {saveStats} from './heroStats.js';
 import {encodeDocument, STORAGE_CELL_LIMIT} from './storageCodec.js';
 import {handleClanPlus, clanTick, clanOf} from './clanPlus.js';
 import {handleFort, fortTick} from './clanFort.js';
+import {handleCompanions} from './companions.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -233,9 +234,10 @@ export async function handleLiveRequest(world, input, user, now, native, notify)
   try { if (now - lastClanSweep > 300e3 || now < lastClanSweep) { lastClanSweep = now; clanSuccession(world, now, notify); } clanTick(world, String(user.id), now, notify); } catch (e) { console.warn('clan succession', e?.message); }
   try { const {clan} = clanOf(world, String(user.id)); if (clan) fortTick(world, clan, now, notify); } catch (e) { console.warn('fort tick', e?.message); }
   const path = String(input?.path || '').split('?')[0];
-  if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
+  if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-comp') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (path === '/api/ae-pet') { if (!player(world, me)) return fail('Сначала создайте персонажа.', 404); return handlePet(world, body, me, now); }
+  if (path.startsWith('/api/ae-comp')) return handleCompanions(world, path, method, body, me, now);
   if (path.startsWith('/api/ae-clanx/fort')) return handleFort(world, path, method, body, me, now, notify);
   if (path.startsWith('/api/ae-clanx')) return handleClanPlus(world, path, method, body, me, now, native, notify);
   if (path.startsWith('/api/ae-clan')) return handleClanInvites(world, path, method, body, me, now, notify);

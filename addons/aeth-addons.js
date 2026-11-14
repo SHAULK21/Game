@@ -410,7 +410,73 @@
     document.body.append(el); setTimeout(() => el.classList.add('is-on'), 10); setTimeout(() => el.remove(), 2200);
   }
   const COOP_ACTS = [['attack', '⚔️ Атака', 'быстрый удар'], ['power', '💥 Мощный удар', '×2.2 урона'], ['heal', '💚 Лечение', 'самому раненому'], ['guard', '🛡️ Прикрыть', '−60% урона, враг бьёт вас']];
+  // ---------- companions: your own bot allies — hire, level up, dress in your gear, take into co-op ----------
+  function openCompanions() {
+    let d = null, pick = null;
+    const load = async () => { try { d = await api('/api/ae-comp'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const pay = (n, then) => { const p = me() || {}; if ((p.gold || 0) < n) return toast(`Нужно ${fmt(n)} 🪙.`); const err = canAct?.(); if (err) return toast(err); return then(); };
+    const spend = n => B()?.setPlayer(x => x && {...x, gold: Math.max(0, (x.gold || 0) - n)});
+    const giveBack = items => { const add = (items || []).filter(Boolean); if (add.length) B()?.setPlayer(x => x && {...x, inventory: [...x.inventory, ...add]}); };
+    const call = async (path, body, msg) => { try { const r = await api(path, 'POST', body); d = r; if (r.paid) spend(r.paid); giveBack(r.back ? [r.back] : r.backs); if (msg) toast(typeof msg === 'function' ? msg(r) : msg); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const equip = async (c, it) => {
+      try { const err = canAct?.(); if (err) return toast(err);
+        const srv = it.serverOwned ? it : await depositItem(it, 1);
+        const r = await api('/api/ae-comp/equip', 'POST', {id: c.id, itemId: srv.id}); d = r; pick = null;
+        B()?.setPlayer(x => x && {...x, inventory: [...x.inventory.filter(i => i.id !== srv.id), ...(r.back ? [r.back] : [])]}); rememberGone([srv.id]);
+        sfx.play('equip'); toast(`${c.name} надевает «${baseName(it)}»`);
+      } catch (e) { toast(cleanError(e)); }
+      if (openPanelState === st) st.rerender();
+    };
+    const st = openPanel('🛡 Соратники', body => {
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      body.append(h('p', {class: 'ae-note'}, 'Соратники — ваши личные боты-союзники. В отличие от наёмников они растут в уровнях, носят вашу экипировку и не берут долю награды. Берите их в кооп-подземелья: в комнате нажмите имя соратника.'));
+      if (pick) {
+        const c = d.companions.find(x => x.id === pick); if (!c) { pick = null; return st.rerender(); }
+        const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id));
+        const list = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && !i.isEquipped && !i.isLocked && !worn.has(i.id) && !i.boundToClan && (i.serverOwned || transferable(i))).sort((a, b) => (b.level || 0) - (a.level || 0));
+        body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 Вещь для: ${c.name} (${c.lvl} ур., до ${c.lvl + 3} ур. вещи)`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { pick = null; st.rerender(); }}, '← Назад')));
+        if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'В сумке нет подходящей экипировки (надетые на героя вещи сначала снимите).'));
+        for (const it of list) { const heavy = (it.level || 1) > c.lvl + 3, cur = c.gear[it.type];
+          body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', disabled: heavy, onclick: () => equip(c, it)},
+            h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}),
+            h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${d.slotRu[it.type] || it.type} · ур. ${it.level || 1}${heavy ? ' · слишком тяжёлая' : ''}${cur ? ` · заменит «${cur.name}»` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')),
+            h('span', {class: 'ae-equip-go'}, 'Надеть'))); }
+        return;
+      }
+      if (!d.companions.length) body.append(h('p', {class: 'ae-empty'}, 'Пока ни одного соратника.'));
+      for (const c of d.companions) {
+        const s = c.stats, gear = Object.entries(c.gear);
+        body.append(h('div', {class: 'ae-card ae-comp'},
+          h('div', {class: 'ae-row'}, h('img', {class: 'ae-avatar', src: heroPortrait(s.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${c.icon} ${c.name}`, h('span', {class: 'ae-fort-lvl'}, `${c.lvl} ур.`)), h('div', {class: 'ae-sub'}, `${c.roleLabel} · ${c.roleText}`))),
+          pbar(c.xp, c.need, c.lvl >= d.heroLevel ? `Не выше вашего уровня (${d.heroLevel})` : `Опыт: ${fmt(c.xp)} / ${fmt(c.need)}`, 'is-mp'),
+          h('div', {class: 'ae-hq-pills'}, h('span', {}, `❤️ ${fmt(s.maxHp)}`), h('span', {}, `⚔️ ${fmt(s.atk)}`), h('span', {}, `🛡️ ${fmt(s.def)}`), h('span', {}, `💥 ${Math.round(s.crit * 100)}%`), h('span', {}, `🔷 ${fmt(s.maxMp)}`)),
+          h('div', {class: 'ae-comp-gear'}, d.slots.map(sl => { const it = c.gear[sl];
+            return it ? h('button', {type: 'button', class: 'ae-comp-slot is-on', 'data-ae-rarity': it.rarity || 'common', title: `${it.name} — снять`, onclick: () => confirm(`Снять «${it.name}» и вернуть в сумку?`) && call('/api/ae-comp/unequip', {id: c.id, slot: sl}, 'Вещь вернулась в сумку')},
+              h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}))
+              : h('span', {class: 'ae-comp-slot', title: d.slotRu[sl]}, h('i', {}, {weapon: '⚔️', offhand: '🛡️', helmet: '⛑️', armor: '🥋', pants: '👖', gloves: '🧤', boots: '🥾', belt: '🎗️', cloak: '🧥', amulet: '📿', ring: '💍', artifact: '🔮'}[sl] || '')); })),
+          h('div', {class: 'ae-sub'}, gear.length ? `Надето: ${gear.map(([, it]) => it.name).join(', ')}. Нажмите на вещь, чтобы снять.` : 'Снаряжения нет — оденьте соратника из своей сумки.', ` · походов ${c.runs}, побед ${c.wins}`),
+          h('div', {class: 'ae-row ae-wrap'},
+            h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = c.id; st.rerender(); }}, '👕 Надеть вещь'),
+            (() => { const xp = Math.round(c.need * 0.35), cost = Math.round(xp * 0.5);
+              return h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`))}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
+          h('div', {class: 'ae-row'},
+            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { const n = prompt('Новое имя соратника:', c.name); if (n) call('/api/ae-comp/rename', {id: c.id, name: n}); }}, '✏️ Имя'),
+            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => confirm(`Отпустить ${c.name}? Вся его экипировка вернётся в сумку, уровень пропадёт.`) && call('/api/ae-comp/dismiss', {id: c.id}, 'Соратник ушёл, вещи в сумке')}, 'Отпустить'))));
+      }
+      body.append(h('p', {class: 'ae-sub'}, `🏋️ Тренировок сегодня: ${d.train.left} из ${d.train.per}. Ещё опыт соратники получают в кооп-подземельях — за победу полный, за поражение часть.`));
+      if (d.hire != null) {
+        body.append(h('h3', {class: 'ae-h3'}, `Нанять соратника · ${fmt(d.hire)} 🪙`));
+        if (d.heroLevel < 5) body.append(h('p', {class: 'ae-sub'}, 'Соратники доступны с 5 уровня героя.'));
+        else for (const [k, r] of Object.entries(d.roles)) body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-hq-ic'}, r.icon), h('div', {class: 'ae-grow'}, h('b', {}, r.label), h('div', {class: 'ae-sub'}, r.text)),
+          h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => pay(d.hire, () => call('/api/ae-comp/hire', {role: k, pay: d.hire}, '🛡 Новый соратник в отряде!'))}, 'Нанять')));
+        body.append(h('p', {class: 'ae-sub'}, `Новый соратник приходит на ${Math.max(1, d.heroLevel - 5)} уровне. Всего — до ${d.max}.`));
+      }
+    });
+    load();
+  }
   function openCoop() {
+    let comps = null;
+    api('/api/ae-comp').then(r => { comps = r.companions || []; if (openPanelState === st) st.rerender(); }, () => { comps = []; });
     let state = null, friends = [], busy = false, cdEnd = {}, foeAt = 0, guardEnd = 0, chainEnd = 0, spellCd = 12000, skillsOpen = false;
     let prevFoe = null, prevHp = {}, seenLog = null, shakeUntil = 0; const hitUntil = {}, floats = [];
     // Turn server state changes into feedback: damage numbers, shakes, flashes, combo banners, party signals.
@@ -579,10 +645,15 @@
       for (const m of room.members) body.append(h('div', {class: 'ae-card ae-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `${m.name}${String(m.id) === uid() ? ' (вы)' : ''}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`),
         h('span', {class: 'ae-sub'}, `${CLASS_RU[m.classId] || m.classId} · ${m.level} ур.${m.guardUntil > 0 ? ' · 🛡️ щит' : ''}`)), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
         m.atk ? h('div', {class: 'ae-sub'}, `⚔️ ${fmt(m.atk)} · 🛡️ ${fmt(m.def)}${m.healer ? ' · 💚 лекарь' : ''}${m.spell ? ` · ${m.spell.icon} ${m.spell.name}` : ''}${m.hp ? '' : ' · без сил'}`) : '',
-        m.bot && room.isHost && room.status === 'lobby' ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => post('/api/coop/unbot', {id: m.id}, 'Наёмник отпущен')}, 'Отпустить') : ''));
+        m.bot && (room.isHost || String(m.owner) === uid()) && room.status === 'lobby' ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => post('/api/coop/unbot', {id: m.id}, 'Наёмник отпущен')}, 'Отпустить') : ''));
       const mine = room.members.find(m => String(m.id) === uid());
       if (room.status === 'lobby') {
-        if (room.isHost && room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🤖 Союзники-боты'),
+        const freeComps = (comps || []).filter(c => !room.members.some(m => m.comp && String(m.id) === 'comp:' + c.id));
+        if (room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🛡 Ваши соратники'),
+          freeComps.length ? h('div', {class: 'ae-row ae-wrap'}, freeComps.map(c => h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => post('/api/coop/bot', {compId: c.id}, `${c.name} в отряде`)}, `${c.icon} ${c.name} · ${c.lvl} ур.`)))
+            : h('div', {class: 'ae-sub'}, (comps || []).length ? 'Все соратники уже в отряде.' : 'Наймите своих соратников: они растут в уровнях, носят вашу экипировку и не берут долю награды.'),
+          h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openCompanions(); }}, '🛡 Соратники: прокачка и снаряжение')));
+        if (room.isHost && room.members.length < 3) body.append(h('div', {class: 'ae-card ae-coop-bots'}, h('b', {}, '🤖 Наёмники (обычные боты)'),
           h('div', {class: 'ae-sub'}, 'Нет друзей онлайн? Возьмите наёмника — он сам ходит после вас. Наёмники забирают 15% награды.'),
           h('div', {class: 'ae-row'}, [['tank', '🛡️ Танк'], ['heal', '💚 Лекарь'], ['dps', '🔥 Боец']].map(([r, l]) => h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => post('/api/coop/bot', {role: r}, 'Наёмник в отряде')}, l)))));
         if (room.isHost) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', disabled: room.members.length < 2, onclick: () => post('/api/coop/start', {}, 'В бой!')}, room.members.length < 2 ? 'Ждём союзника — или возьмите бота' : '⚔️ Начать поход'));
@@ -3080,7 +3151,7 @@
 
   // ---------- menu entry points ----------
   const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Размер интерфейса', 'Сделать игру крупнее или компактнее', () => openUiScale()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
-    ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
+    ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['🛡', 'Соратники', 'Свои боты-союзники: качайте и одевайте', openCompanions], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
       h('div', {class: 'ae-entry-grid'}, ENTRIES.map(([icon, title, sub, fn]) => h('button', {class: 'ae-entry-btn', type: 'button', 'data-ae-news-btn': title === 'Что нового' ? '1' : null, onclick: e => { e.stopPropagation(); fn(); }},
@@ -4146,6 +4217,7 @@ html:not([data-interface=modern]) [data-ae-mine-lifted] button.w-full:hover>div>
 .ae-fort-alarm{border-color:#f0cf7a;background:linear-gradient(#2a1d10,#141a17)}.ae-fort-alarm.is-def{border-color:#ef4444;background:linear-gradient(#3a1414,#141a17);animation:ae-fort-pulse 2.4s ease-in-out infinite}
 .ae-fort-log{display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid #ffffff12;font-size:13px}.ae-fort-log small{display:block;opacity:.6;font-size:11px}
 .ae-fort-entry{margin:6px 0}
+.ae-comp{display:flex;flex-direction:column;gap:7px}.ae-comp-gear{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}.ae-comp-slot{aspect-ratio:1;border-radius:9px;border:1px dashed #6b563177;background:#0f1512;display:flex;align-items:center;justify-content:center;padding:0}.ae-comp-slot.is-on{border:1px solid #c99a3c;background:#1d1a12}.ae-comp-slot img{width:80%;height:80%;object-fit:contain}.ae-comp-slot>i{font-style:normal;opacity:.3;font-size:18px;filter:grayscale(1)}.ae-comp-slot>i img{width:20px;height:20px}.ae-wrap{flex-wrap:wrap}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4483,5 +4555,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {coop: () => openCoop(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

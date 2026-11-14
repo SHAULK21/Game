@@ -4,6 +4,7 @@
 import {clanCredit} from './clanPlus.js';
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
+import {companionOf, compStats, giveCompanionXp, COMP_ROLES} from './companions.js';
 import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf, gemProcs} from './skills.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
@@ -141,7 +142,7 @@ function view(room, me, world) {
     waiting: room.foe ? waitingFor(room).map(m => ({id: String(m.id), name: m.name})) : [],
     options: room.phase === 'choose' ? room.options.map(o => ({id: o.id, name: o.name, icon: o.icon, hint: o.hint, votes: Object.values(room.votes || {}).filter(v => v === o.id).length})) : [],
     myVote: room.votes?.[String(me)] || null, bonus: room.bonus || 0, log: room.log.slice(-18), isHost: same(room.hostId, me),
-    members: present(room).map(m => ({id: m.id, bot: !!m.bot, role: m.role || null, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
+    members: present(room).map(m => ({id: m.id, bot: !!m.bot, comp: !!m.compId, owner: m.owner || null, role: m.role || null, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
       mp: m.mp ?? m.maxMp ?? 100, maxMp: m.maxMp || 100, acted: !!m.acted, potions: same(m.id, me) ? (m.potions ?? POTIONS) : undefined})),
     reward: room.rewards?.[String(me)] || null};
 }
@@ -196,7 +197,7 @@ function enemyTurn(room, now) {
 }
 function finish(world, room, d, now) {
   room.status = 'won'; room.phase = 'end'; room.rewards = {};
-  const team = humans(room), hired = present(room).some(m => m.bot), mult = (1 + 0.1 * (team.length - 1)) * (1 + (room.bonus || 0)) * (hired ? 0.85 : 1);
+  const team = humans(room), hired = present(room).some(m => m.bot && !m.compId), mult = (1 + 0.1 * (team.length - 1)) * (1 + (room.bonus || 0)) * (hired ? 0.85 : 1);
   if (hired) log(room, '🤖 Наёмники забирают свою долю: награда −15%.', now);
   for (const m of team) logQuest(world, m.id, 'coop_win', now);
   const clanId = id => rows(world, 'clan_members').find(x => String(x.telegram_id) === String(id))?.clan_id;
@@ -239,6 +240,21 @@ function botAct(world, room, d, b, now) {
   if (strong) { b.mp -= b.role === 'dps' ? 30 : 25; const dmg = hitFoe(room, b, b.role === 'dps' ? 1.9 : 1.6, now); log(room, `${b.role === 'dps' ? '🔥' : '⚔️'} ${b.name} — «${b.role === 'dps' ? 'Огненный шар' : 'Сокрушающий выпад'}»: ${dmg}`, now); return; }
   const crit = Math.random() < 0.12, dmg = hitFoe(room, b, (crit ? 1.6 : 1) * (b.role === 'heal' ? 0.8 : 1), now);
   log(room, `${b.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}`, now);
+}
+// A player's own companion (leveled and geared on the Companions screen) joins as a bot that acts like a hireling of its role.
+function companionBot(world, me, c) {
+  const st = compStats(c);
+  return {id: 'comp:' + c.id, bot: true, compId: c.id, owner: String(me), role: c.role, name: c.name + ' 🛡', level: st.level, classId: st.classId, healer: c.role === 'heal',
+    maxHp: st.maxHp, hp: st.maxHp, atk: st.atk, def: st.def, crit: st.crit, maxMp: st.maxMp, mp: st.maxMp, potions: 2, talents: {}};
+}
+// When a run ends (won or lost) companions get experience: full on a win, a share of the halls passed otherwise.
+function settleCompanions(world, room) {
+  if (room.compDone || !['won', 'failed'].includes(room.status)) return;
+  room.compDone = true; const d = COOP_DUNGEONS.find(x => x.id === room.dungeonId), won = room.status === 'won';
+  for (const m of room.members.filter(x => x.compId)) {
+    const r = giveCompanionXp(world, m.owner, m.compId, d.exp * (won ? 1 : 0.25 * Math.max(1, room.stage) / ROOMS), won);
+    if (r) log(room, `🛡 ${r.name}: +${r.xp} опыта${r.up ? ` — новый уровень ${r.lvl}!` : ''}`, Date.now());
+  }
 }
 // Bots act once the humans have; if every human is down, the bots fight on by themselves until the hall is decided.
 function advance(world, room, d, now) {
@@ -315,9 +331,19 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     return ok({invited: true});
   }
   if (path === '/api/coop/bot' || path === '/api/coop/unbot') {
-    if (!same(room.hostId, me)) return fail('Союзников-ботов берёт лидер отряда.');
     if (room.status !== 'lobby') return fail('Поход уже начат.');
-    if (path === '/api/coop/unbot') { room.members = room.members.filter(m => !(m.bot && m.id === body.id)); log(room, 'Бот-союзник покидает отряд.', now); return ok({room: view(room, me, world)}); }
+    if (path === '/api/coop/unbot') { const b = room.members.find(m => m.bot && m.id === body.id); if (!b) return fail('Бот не найден.', 404);
+      if (!same(room.hostId, me) && !same(b.owner, me)) return fail('Отпустить бота может лидер или хозяин соратника.');
+      room.members = room.members.filter(m => m !== b); log(room, `${b.name} покидает отряд.`, now); return ok({room: view(room, me, world)}); }
+    if (body.compId) {
+      const c = companionOf(world, me, body.compId); if (!c) return fail('Соратник не найден.', 404);
+      if (room.members.some(m => m.compId === c.id)) return fail('Этот соратник уже в отряде.');
+      if (present(room).length >= MAX_MEMBERS) return fail('Отряд уже полный.');
+      const b = companionBot(world, me, c); room.members.push(b);
+      log(room, `🛡 Соратник ${c.name} (${COMP_ROLES[c.role].label}, ${c.lvl} ур.) встаёт в строй.`, now);
+      return ok({room: view(room, me, world)});
+    }
+    if (!same(room.hostId, me)) return fail('Наёмников берёт лидер отряда.');
     if (!BOT_ROLES[body.role]) return fail('Нет такой роли.');
     if (present(room).length >= MAX_MEMBERS) return fail('Отряд уже полный.');
     const b = makeBot(room, p, body.role); room.members.push(b);
@@ -339,7 +365,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     const opt = room.options.find(o => o.id === body.optionId);
     if (!opt) return fail('Такого пути нет.');
     if (path === '/api/coop/vote') { room.votes[String(me)] = opt.id; log(room, `${self.name} предлагает: «${opt.name}».`, now); return ok({room: view(room, me, world)}); }
-    enterHall(world, room, d, opt.id, now);
+    enterHall(world, room, d, opt.id, now); settleCompanions(world, room);
     return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/act') {
@@ -352,7 +378,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
       if (!self.acted) return fail('Сначала сделайте свой ход.');
       const w = waitingFor(room); if (!w.length) return fail('Все уже походили.');
       log(room, `⏩ ${self.name} не ждёт: ${w.map(m => m.name).join(', ')} пропускает ход`, now);
-      for (const m of w) m.acted = true; advance(world, room, d, now); return ok({room: view(room, me, world)});
+      for (const m of w) m.acted = true; advance(world, room, d, now); settleCompanions(world, room); return ok({room: view(room, me, world)});
     }
     if (self.hp <= 0) return fail('Вы без сил. Союзник может поднять вас лечением, или дождитесь святилища.');
     if (self.acted) return fail(`Вы уже походили. Ждём: ${waitingFor(room).map(m => m.name).join(', ')}.`);
@@ -387,6 +413,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
     self.acted = true;
     if (room.foe && room.foe.hp <= 0) foeDown(world, room, d, now);
     else advance(world, room, d, now);
+    settleCompanions(world, room);
     return ok({room: view(room, me, world)});
   }
   if (path === '/api/coop/ping') {
