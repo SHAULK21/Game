@@ -437,46 +437,33 @@
     if (!c.assist(dmg, heal, (auto ? '⚡ СТРАХОВКА! ' : '🤝 ') + text)) return;
     if (mode === 'guard') c.addEffect?.(c.intent ? {type: 'invulnerable', name: comp.name, duration: 1, value: 1} : {type: 'fortify', name: comp.name, duration: 2, value: 40});
     if (mode === 'combo') c.setLast?.('comp_assist');
-    f.left--; f.used++; f.readyAt = (c.turn || 0) + 3; asMenu = false;
+    f.left--; f.used++; f.readyAt = (c.turn || 0) + 3;
     sfx.play(mode === 'guard' ? 'shield' : comp.role === 'heal' ? 'magic' : 'heavy', 0.5); try { Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
     fxFlash(mode === 'guard' ? '#93c5fd' : mode === 'combo' ? '#c084fc' : comp.role === 'heal' ? '#4ade80' : '#fb923c', 0.3);
     if (auto) bigBanner(`⚡ ${comp.name} страхует вас!`, false); else if (mode === 'combo') toast('🔗 Связка открыта: примените навык в течение 3 ходов');
     paintAssist(true);
   }
-  let asMenu = false;
-  document.addEventListener('pointerdown', e => { if (asMenu && !e.target.closest?.('[data-ae-assist], .ae-assist-menu')) { asMenu = false; paintAssist(true); } }, true);
-  // Where the companion lives on the battle screen: a medallion in the scene (fantasy: top-left of the scene; modern: under «VS»).
+  // The companion on the battle screen: a slim row right above the battle actions — portrait, name, charges and three
+  // buttons (guard / strike / combo), one tap each.
   function asAnchor() {
-    const sc = document.querySelector('main .combat-scene'); if (sc) return {el: sc, abs: true};
-    const vs = [...document.querySelectorAll('main div, main span')].find(e => !e.childElementCount && (e.textContent || '').trim() === 'VS');
-    if (vs?.parentElement) return {el: vs.parentElement, abs: false};
     const grid = document.querySelector('.combat-action-grid') || [...document.querySelectorAll('main button')].find(b => /^Атака$/.test((b.textContent || '').trim()) && b.closest('.grid'))?.closest('.grid');
-    return grid ? {el: grid, before: true} : null;
+    return grid ? {el: grid} : null;
   }
   function paintAssist(force) {
     const c = B()?.combat, comp = asPick(), an = asAnchor();
-    const old = document.querySelector('[data-ae-assist]'), oldMenu = document.querySelector('.ae-assist-menu');
-    if ((me()?.level || 1) < 10 || !c?.inCombat || c.ended || !an || !comp || c.monster?.regionId === 'arena' || c.monster?.regionId === 'ascension') { old?.remove(); oldMenu?.remove(); asMenu = false; return; }
+    const old = document.querySelector('[data-ae-assist]');
+    if ((me()?.level || 1) < 10 || !c?.inCombat || c.ended || !an || !comp || c.monster?.regionId === 'arena' || c.monster?.regionId === 'ascension') { old?.remove(); return; }
     const key = (c.monster?.id || '') + ':' + (c.monster?.maxHp || 0);
-    if (!asFight || asFight.key !== key) { asFight = {key, left: 2, used: 0, readyAt: 0, auto: false, won: false}; asMenu = false; }
+    if (!asFight || asFight.key !== key) asFight = {key, left: 2, used: 0, readyAt: 0, auto: false, won: false};
     const f = asFight, wait = Math.max(0, f.readyAt - (c.turn || 0)), ready = f.left > 0 && !wait && c.phase === 'player', threat = !!c.intent;
-    const sig = [comp.id, f.left, wait, c.phase, threat, asMenu].join('|');
-    if (old && old.dataset.sig === sig && !force && (an.before ? old.nextElementSibling === an.el : old.parentElement === an.el)) return;
-    const med = h('button', {type: 'button', class: 'ae-assist-med' + (ready ? ' is-ready' : '') + (threat && ready ? ' is-threat' : '') + (an.abs ? ' is-abs' : ''), 'data-ae-assist': '1', 'data-sig': sig,
-      title: `${comp.name}: защита, удар или связка`, onclick: () => { if (!ready) return toast(f.left <= 0 ? 'Соратник уже помог дважды в этом бою' : wait ? `Соратник будет готов через ${wait} ход.` : 'Дождитесь своего хода'); asMenu = !asMenu; paintAssist(true); }},
-      h('img', {src: heroPortrait(comp.stats.classId), alt: ''}), h('i', {class: 'ae-assist-n'}, String(f.left)), wait && f.left ? h('small', {}, `${wait}`) : threat && ready ? h('small', {class: 'is-warn'}, '!') : '');
-    if (old) old.replaceWith(med); else if (an.before) an.el.before(med); else an.el.append(med);
-    oldMenu?.remove();
-    if (asMenu && ready) {
-      const r = med.getBoundingClientRect(), z = pageZoom();
-      const btn = (mode, icon, label, sub, hot) => h('button', {type: 'button', class: 'ae-assist-act' + (hot ? ' is-hot' : ''), onclick: () => asStrike(mode)}, h('b', {}, `${icon} ${label}`), h('small', {}, sub));
-      const menu = h('div', {class: 'ae-assist-menu', style: `top:${Math.round((r.bottom + 6) / z)}px;left:${Math.max(6, Math.min(innerWidth / z - 266, Math.round(r.left / z) - 8))}px`},
-        h('div', {class: 'ae-assist-head'}, `${comp.icon} ${comp.name} · ${comp.lvl} ур. · помощь ${f.left}/2`),
-        btn('guard', '🛡️', 'Защита', threat ? `примет «${c.intent.name || 'приём'}» на себя` : '+40% защиты на 2 хода', threat),
-        btn('strike', comp.role === 'heal' ? '💚' : '⚔️', comp.role === 'heal' ? 'Лечение' : 'Удар', {heal: 'лечит и бьёт', tank: 'выпад и щит', dps: 'огненный шар'}[comp.role] || ''),
-        btn('combo', '🔗', 'Связка', 'следующий навык сильнее, ульта ×1.45'));
-      document.body.append(menu);
-    }
+    const sig = [comp.id, f.left, wait, c.phase, threat].join('|');
+    if (old && old.dataset.sig === sig && !force && old.nextElementSibling === an.el) return;
+    const act = (mode, icon, label, hot) => h('button', {type: 'button', class: 'ae-as-b' + (hot && ready ? ' is-hot' : ''), disabled: !ready, onclick: () => asStrike(mode)}, h('i', {}, icon), h('span', {}, label));
+    const row = h('div', {class: 'ae-assist-row' + (ready ? ' is-ready' : '') + (threat && ready ? ' is-threat' : ''), 'data-ae-assist': '1', 'data-sig': sig},
+      h('img', {src: heroPortrait(comp.stats.classId), alt: ''}),
+      h('div', {class: 'ae-as-who'}, h('b', {}, comp.name), h('small', {}, f.left <= 0 ? 'помощь закончилась' : wait ? `готов через ${wait} ход.` : threat ? '⚠️ враг готовит приём!' : `помощь ${f.left}/2`)),
+      act('guard', '🛡️', 'Защита', threat), act('strike', comp.role === 'heal' ? '💚' : '⚔️', comp.role === 'heal' ? 'Лечение' : 'Удар'), act('combo', '🔗', 'Связка'));
+    if (old) old.replaceWith(row); else an.el.before(row);
   }
   setInterval(() => {
     if (document.hidden || !document.documentElement.hasAttribute('data-in-combat')) { if (asFight && !asFight.done) { const c = B()?.combat; if (asFight.used && c && !c.inCombat) asFight.done = true; } return; }
@@ -1704,10 +1691,13 @@
     const hero = document.querySelector('header .shell-hud-content > .shell-hero-button');
     if (hero && !hero.parentElement.querySelector(':scope > [data-ae-bell]')) { document.querySelectorAll('header .shell-brand-row [data-ae-bell]').forEach(e => e.remove()); hero.after(make('ae-bell-f ae-bell-nick')); paintBell(); }
     if (hero) { // placed by hand next to the nickname (the hero block is a button, the bell cannot live inside it)
-      const bell = hero.parentElement.querySelector(':scope > [data-ae-bell]'), nameRow = hero.querySelector('.flex.min-w-0.items-center') || hero.querySelector('span span');
-      if (bell && nameRow) { const box = hero.parentElement.getBoundingClientRect(), last = nameRow.lastElementChild || nameRow, r = last.getBoundingClientRect(), z = pageZoom();
+      const bell = hero.parentElement.querySelector(':scope > [data-ae-bell]'), vis = e => { const q = e?.getBoundingClientRect(); return q && q.width > 2 && q.height > 2 ? e : null; };
+      const nm = String(me()?.name || '').trim(), nameEl = nm && [...hero.querySelectorAll('span, b, strong, div, p')].find(e => !e.childElementCount && (e.textContent || '').trim() === nm && vis(e));
+      const nameRow = vis(hero.querySelector('.flex.min-w-0.items-center')) || nameEl || null;
+      if (bell) { const box = hero.parentElement.getBoundingClientRect(), z = pageZoom(), last = nameRow ? (vis(nameRow.lastElementChild) || nameRow) : null;
+        const r = last ? last.getBoundingClientRect() : (() => { const hr = hero.getBoundingClientRect(); return {right: hr.right, top: hr.top + hr.height / 2 - 15, bottom: hr.top + hr.height / 2 + 15}; })();
         const res = hero.parentElement.querySelector('.shell-hud-resources')?.getBoundingClientRect(), maxLeft = res && res.top < r.bottom && res.bottom > r.top ? (res.left - box.left) / z - 36 : 1e4;
-        const left = Math.round(Math.min((r.right - box.left) / z + 10, maxLeft)), top = Math.round(((r.top + r.bottom) / 2 - box.top) / z - 15);
+        const left = Math.max(4, Math.round(Math.min((r.right - box.left) / z + 10, maxLeft))), top = Math.max(2, Math.min(Math.round(box.height / z) - 32, Math.round(((r.top + r.bottom) / 2 - box.top) / z - 15)));
         if (bell.style.left !== left + 'px') bell.style.left = left + 'px'; if (bell.style.top !== top + 'px') bell.style.top = top + 'px'; } }
     else if (!hero && fantasyRow && !document.querySelector('header [data-ae-bell]')) { const set = fantasyRow.querySelector('details.shell-settings'); const b = make('ae-bell-f ae-bell-row'); if (set) set.before(b); else fantasyRow.append(b); paintBell(); }
   }
@@ -1796,6 +1786,22 @@
   const APK = window.AethApk || null, isApk = !!APK;
   const APK_URL = 'https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk';
   if (isApk) document.documentElement.classList.add('ae-apk');
+  // The game's dialogs lock page scrolling (body overflow:hidden) and restore the old value on close; when two of them
+  // overlap and close out of order the lock stays forever and the page no longer scrolls. Unlock when no dialog is open.
+  const gameDialogOpen = () => [...document.querySelectorAll('[role="dialog"], .game-dialog-backdrop, body > div .fixed.inset-0, .ae-story')].some(e => { const r = e.getBoundingClientRect(); return r.width > 50 && r.height > 50 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden'; });
+  let unlockedAt = 0;
+  setInterval(() => { const b = document.body, d = document.documentElement; if (!b) return;
+    if ((b.style.overflow === 'hidden' || d.style.overflow === 'hidden') && !gameDialogOpen()) { b.style.overflow = ''; d.style.overflow = ''; unlockedAt = Date.now(); console.warn('ae: page scroll was locked — unlocked'); } }, 1000);
+  // Scroll diagnostics from the Android app: after a swipe that did not move the page, report what the page looked like.
+  if (isApk) { let t0 = null, sent = 0;
+    addEventListener('touchstart', e => { const t = e.touches[0]; t0 = t ? {y: t.clientY, sy: scrollY, at: Date.now(), tgt: e.target} : null; }, {passive: true, capture: true});
+    addEventListener('touchend', e => { if (!t0 || sent >= 3) return; const t = e.changedTouches[0], dy = t ? t0.y - t.clientY : 0, moved = Math.abs(scrollY - t0.sy);
+      if (Math.abs(dy) < 80 || moved > 5 || Date.now() - t0.at > 1500) return;
+      let a = t0.tgt, chain = [], scroller = null; for (let i = 0; a && a.nodeType === 1 && i < 8; i++, a = a.parentElement) { const cs = getComputedStyle(a); chain.push(`${a.tagName}.${String(a.className || '').slice(0, 28)}|${cs.overflowY}|${cs.touchAction}`); if (!scroller && /auto|scroll/.test(cs.overflowY) && a.scrollHeight > a.clientHeight + 4) scroller = a; }
+      const cs = n => getComputedStyle(n), b = document.body, d = document.documentElement; sent++;
+      api('/api/ae-diag', 'POST', {kind: 'apk-scroll', d: {ua: navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] || navigator.userAgent.slice(-60), dy: Math.round(dy), sy: Math.round(scrollY), docH: d.scrollHeight, inner: innerHeight, vv: visualViewport ? [Math.round(visualViewport.height), visualViewport.scale] : null,
+        html: [cs(d).overflowY, d.style.overflow, cs(d).height], body: [cs(b).overflowY, b.style.overflow, cs(b).height, cs(b).position], dialog: gameDialogOpen(), unlockedAt, scroller: scroller ? [scroller.tagName + '.' + String(scroller.className).slice(0, 30), scroller.scrollTop, scroller.scrollHeight, scroller.clientHeight] : null,
+        chain, meta: document.querySelector('meta[name=viewport]')?.content, page: (document.querySelector('main')?.innerText || '').slice(0, 40), panel: !!document.querySelector('.ae-backdrop'), ver: APK.versionName?.()}}).catch(() => {}); }, {passive: true, capture: true}); }
   // Android app: a fight starting further down a scrolled page must not leave the header half off the screen.
   // (the runtime re-sets the attribute on every DOM change, so react only to the moment a fight starts)
   if (isApk) { let wasFight = false; new MutationObserver(() => { const on = document.documentElement.hasAttribute('data-in-combat'); if (on && !wasFight) requestAnimationFrame(() => window.scrollTo(0, 0)); wasFight = on; }).observe(document.documentElement, {attributes: true, attributeFilter: ['data-in-combat']}); }
@@ -4382,6 +4388,10 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-assist-menu{position:fixed;z-index:60;width:260px;display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:14px;background:#141a17f2;border:1px solid #f0cf7a88;box-shadow:0 10px 30px #000c;animation:ae-sheet-up .18s ease-out}
 .ae-assist-head{font:700 12px system-ui;color:#ffe6a8;padding:0 2px 2px}.ae-assist-act{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:7px 10px;border-radius:10px;border:1px solid #6b563199;background:#1d2420;color:#f1ead8;font:13px system-ui}
 .ae-assist-act small{opacity:.7;font-size:11px}.ae-assist-act.is-hot{border-color:#ef4444;background:#3a1414}.ae-assist-act:active{transform:scale(.97)}
+.ae-assist-row{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:4px 5px;border-radius:12px;border:1px solid #6b563188;background:linear-gradient(90deg,#1d2420,#141a17);color:#f1ead8;font:12px/1.2 system-ui,sans-serif;opacity:.75}
+.ae-assist-row>img{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:none}.ae-as-who{flex:1;min-width:0}.ae-as-who b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-as-who small{display:block;opacity:.75;font-size:10.5px;white-space:nowrap}
+.ae-as-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:52px;height:38px;padding:2px 4px;border-radius:9px;border:1px solid #6b5631;background:#0f1512;color:#ffe6a8;font:600 10.5px system-ui}.ae-as-b i{font-style:normal;font-size:14px;line-height:1}
+.ae-as-b:disabled{opacity:.45}.ae-assist-row.is-ready{opacity:1;border-color:#f0cf7a}.ae-assist-row.is-threat{border-color:#ef4444;box-shadow:0 0 12px #ef444466}.ae-as-b.is-hot{border-color:#ef4444;background:#3a1414;animation:ae-assist-glow 1.4s ease-in-out infinite}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}

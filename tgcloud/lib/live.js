@@ -234,9 +234,17 @@ export async function handleLiveRequest(world, input, user, now, native, notify)
   try { if (now - lastClanSweep > 300e3 || now < lastClanSweep) { lastClanSweep = now; clanSuccession(world, now, notify); } clanTick(world, String(user.id), now, notify); } catch (e) { console.warn('clan succession', e?.message); }
   try { const {clan} = clanOf(world, String(user.id)); if (clan) fortTick(world, clan, now, notify); } catch (e) { console.warn('fort tick', e?.message); }
   const path = String(input?.path || '').split('?')[0];
-  if (!path.startsWith('/api/ae-pet') && !path.startsWith('/api/ae-comp') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
+  if (!path.startsWith('/api/ae-pet') && path !== '/api/ae-diag' && !path.startsWith('/api/ae-comp') && !path.startsWith('/api/ae-clan') && path !== '/api/ae-referrals' && path !== '/api/ae-stats' && path !== '/api/ae-track' && path !== '/api/ae-admin/stats') return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (path === '/api/ae-pet') { if (!player(world, me)) return fail('Сначала создайте персонажа.', 404); return handlePet(world, body, me, now); }
+  if (path === '/api/ae-diag') {  // client diagnostics (APK scrolling): the last 30 reports, readable by the admin
+    const list = (world.tables.ae_client_diag ||= []);
+    if (method === 'GET') return String(me) === '437290420' ? ok({reports: list.slice(-30).reverse()}) : fail('Недостаточно прав.', 403);
+    if (list.filter(r => String(r.u) === String(me) && Date.parse(r.at) > now - 3600e3).length >= 6) return ok({ok: true});
+    { const j = JSON.stringify(body.d || {}); list.push({u: String(me), at: new Date(now).toISOString(), kind: String(body.kind || '').slice(0, 20), d: j.length <= 2500 ? body.d : j.slice(0, 2500)}); }
+    world.tables.ae_client_diag = list.filter(r => Date.parse(r.at) > now - 3 * 864e5).slice(-30);
+    return ok({ok: true});
+  }
   if (path.startsWith('/api/ae-comp')) return handleCompanions(world, path, method, body, me, now);
   if (path.startsWith('/api/ae-clanx/fort')) return handleFort(world, path, method, body, me, now, notify);
   if (path.startsWith('/api/ae-clanx')) return handleClanPlus(world, path, method, body, me, now, native, notify);
