@@ -59,6 +59,9 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
+        s.setAllowFileAccess(true); // the built-in login screen (file:///android_asset/login.html)
+        s.setLoadWithOverviewMode(true);
+        s.setUseWideViewPort(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setSupportMultipleWindows(true);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
