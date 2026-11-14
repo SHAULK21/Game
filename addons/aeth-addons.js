@@ -157,7 +157,7 @@
     for (const [n, [c, r]] of Object.entries(a.icons)) rules.push(`.ae-ic[data-i="${n}"]{background-position:${a.cols > 1 ? c / (a.cols - 1) * 100 : 0}% ${a.rows > 1 ? r / (a.rows - 1) * 100 : 0}%}`);
     for (const [n, svg] of Object.entries(AE_LINE)) { const url = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>`)}")`;
       rules.push(`.ae-ic[data-i="${n}"]{background:currentColor;-webkit-mask:${url} center/88% no-repeat;mask:${url} center/88% no-repeat}`); }
-    rules.push('.ae-apk-list{margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.45}.ae-apk-list li{margin:3px 0}.ae-gem-img{width:40px;height:40px;object-fit:contain;flex:none}.ae-gem-chip-img{width:1.4em;height:1.4em;object-fit:contain;vertical-align:-.35em}.ae-entry-icon .ae-ic,.ae-pop-i .ae-ic,.ae-inbox-i .ae-ic,.ae-gem-i .ae-ic{width:1.15em;height:1.15em;vertical-align:-.2em}.ae-head h2 .ae-ic{margin-right:.15em}');
+    rules.push('.ae-fx-canvas{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147482000}.ae-fx-flash{position:fixed;inset:0;pointer-events:none;z-index:2147481999;transition:opacity .38s ease-out}@keyframes aeShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-5px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,-1px)}}@keyframes aeShakeBig{0%,100%{transform:translate(0,0)}15%{transform:translate(-11px,4px)}30%{transform:translate(9px,-6px)}45%{transform:translate(-7px,3px)}60%{transform:translate(5px,-2px)}80%{transform:translate(-2px,1px)}}.ae-fx-shake{animation:aeShake .32s ease-out}.ae-fx-shake-big{animation:aeShakeBig .42s ease-out}@keyframes aeFlinch{0%{transform:translateX(0);filter:none}30%{transform:translateX(9px) scale(.985);filter:brightness(1.8) sepia(1) hue-rotate(-40deg) saturate(4)}100%{transform:translateX(0);filter:none}}.ae-fx-flinch{animation:aeFlinch .24s ease-out}@keyframes aeRage{0%,100%{filter:drop-shadow(0 0 6px rgba(255,40,20,.7)) saturate(1.2)}50%{filter:drop-shadow(0 0 18px rgba(255,70,20,.95)) saturate(1.5) brightness(1.08)}}.ae-fx-rage{animation:aeRage 1.1s ease-in-out infinite}@keyframes aeDissolve{0%{opacity:1;filter:none}60%{opacity:.4;filter:brightness(2) sepia(1) saturate(3) blur(1px)}100%{opacity:0;filter:brightness(3) blur(3px);transform:translateY(-8px) scale(.96)}}.ae-fx-dissolve{animation:aeDissolve 1.4s ease-in forwards}.ae-relink{position:fixed;inset:0;z-index:2147483000;background:rgba(5,7,6,.86);display:flex;align-items:center;justify-content:center;padding:20px}.ae-relink-card{max-width:380px;width:100%;background:#141a17;border:1px solid #a58a4f;border-radius:16px;padding:18px;color:#f1ead8;display:flex;flex-direction:column;gap:8px;text-align:center}.ae-relink-card h2{margin:0;color:#ffe6a8;font:800 20px Georgia,serif}.ae-relink-card p{margin:0 0 6px;font-size:13.5px;line-height:1.45}.ae-apk-list{margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.45}.ae-apk-list li{margin:3px 0}.ae-gem-img{width:40px;height:40px;object-fit:contain;flex:none}.ae-gem-chip-img{width:1.4em;height:1.4em;object-fit:contain;vertical-align:-.35em}.ae-entry-icon .ae-ic,.ae-pop-i .ae-ic,.ae-inbox-i .ae-ic,.ae-gem-i .ae-ic{width:1.15em;height:1.15em;vertical-align:-.2em}.ae-head h2 .ae-ic{margin-right:.15em}');
     document.head.append(h('style', {}, rules.join('\n')));
   })();
   const AE_IC_SCOPE = '.ae-backdrop, .ae-toast, .ae-pop, .ae-bv, .ae-bag-merge, .ae-coop-card, .ae-market-one, .ae-entry, .ae-2h-note, .ae-2h-btn, .ae-story, .ae-chat-item, .ae-float, .ae-premium, .ae-weekend, .ae-quick-btn, .ae-exp-ready, .ae-forge-up, .ae-pill-btn, .ae-place-badge';
@@ -1630,7 +1630,7 @@
           h('b', {}, '1. Установите'), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { try { Telegram.WebApp.openLink(APK_URL); } catch { window.open(APK_URL); } }}, '⬇️ Скачать APK'),
           h('p', {class: 'ae-sub'}, 'Android спросит разрешение на установку из браузера — это нормально для приложений не из Play Маркета.'),
           h('b', {}, '2. Подключите своего героя'),
-          h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', disabled: !tgData, onclick: () => { const url = location.origin + '/apk-login.html#d=' + encodeURIComponent(tgData);
+          h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', disabled: !tgData, onclick: () => { const url = location.origin + '/apk-login#d=' + encodeURIComponent(tgData);
             try { Telegram.WebApp.openLink(url); } catch { window.open(url); } }}, '🔗 Подключить приложение'),
           h('button', {type: 'button', class: 'ae-btn ae-wide', disabled: !tgData, onclick: async () => { try { await navigator.clipboard.writeText(tgData); toast('Код скопирован. Вставьте его в приложении: «У меня есть код входа».'); } catch { toast('Не удалось скопировать — используйте кнопку «Подключить приложение».'); } }}, '📋 Скопировать код входа'),
           h('p', {class: 'ae-sub'}, '⚠️ Ссылка и код — это ваш вход в игру. Никому их не пересылайте.'));
@@ -1656,6 +1656,25 @@
     if (isApk) APK.share(text); else { try { Telegram.WebApp.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Aethelgardr_RPG_Bot') + '&text=' + encodeURIComponent(text)); } catch {} }
   }
   if (isApk) {
+    // links: outside Telegram, openLink/openTelegramLink/window.open must go to the browser or the Telegram app
+    const ext = u => { try { APK.openExternal(String(u)); } catch {} };
+    const hookLinks = () => { const w = window.Telegram?.WebApp; if (!w || w.__aeLinks) return; w.__aeLinks = true; w.openLink = u => ext(u); w.openTelegramLink = u => ext(u); };
+    hookLinks(); setTimeout(hookLinks, 3000);
+    const origOpen = window.open; window.open = (u, ...rest) => { if (u && !String(u).startsWith(location.origin)) { ext(u); return null; } return origOpen.call(window, u, ...rest); };
+    // an expired Telegram login: the server answers 401 — offer to reconnect instead of a dead screen
+    let relinkShown = 0;
+    const onUnauthorized = () => { if (Date.now() - relinkShown < 120e3) return; relinkShown = Date.now(); setTimeout(openRelink, 300); };
+    const of = window.fetch; window.fetch = async (...a) => { const r = await of(...a); try { if (r.status === 401 && String(a[0]?.url || a[0]).includes('/api/')) onUnauthorized(); } catch {} return r; };
+    const xo = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (m, u, ...rest) { this.__aeUrl = String(u); return xo.call(this, m, u, ...rest); };
+    const xs = XMLHttpRequest.prototype.send; XMLHttpRequest.prototype.send = function (...a) { this.addEventListener('loadend', () => { if (this.status === 401 && (this.__aeUrl || '').includes('/api/')) onUnauthorized(); }); return xs.apply(this, a); };
+    function openRelink() {
+      const box = h('div', {class: 'ae-relink'}, h('div', {class: 'ae-relink-card'}, h('h2', {}, '🔑 Нужно переподключиться'),
+        h('p', {}, 'Вход через Telegram устарел. Откройте игру в Telegram → Меню → «📱 Приложение Android» → «🔗 Подключить приложение». Или скопируйте там код входа и вставьте его сюда.'),
+        h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => ext('https://t.me/Aethelgardr_RPG_Bot')}, 'Открыть игру в Telegram'),
+        h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => { const v = (APK.paste() || '').trim(); if (v.includes('hash=') && v.includes('user=')) APK.saveLogin(v); else toast('В буфере нет кода входа. Скопируйте его в игре в Telegram.'); }}, '📋 Вставить код входа'),
+        h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => box.remove()}, 'Позже')));
+      document.querySelector('.ae-relink')?.remove(); document.body.append(box);
+    }
     // Telegram's haptics do nothing outside Telegram: the phone vibrates instead
     const hookHaptics = () => { const hf = window.Telegram?.WebApp?.HapticFeedback; if (!hf || hf.__ae) return; hf.__ae = true;
       const ms = {light: 12, medium: 25, heavy: 45, rigid: 20, soft: 10, success: 60, warning: 40, error: 90};
@@ -1691,6 +1710,98 @@
     } catch { if (manual) toast('Не удалось проверить обновления.'); }
   }
   if (isApk) setTimeout(() => { const k = 'aeth_apk_upd_check', last = Number(localStorage.getItem(k) || 0); if (Date.now() - last > 12 * 3600e3) { localStorage.setItem(k, String(Date.now())); checkApkUpdate(false); } }, 15000);
+
+  // ---------- ⚔️ combat VFX: slashes, sparks, spell bursts, crit flash and shake, monster flinch, rage aura, death dissolve ----------
+  // One canvas over the screen, driven by the hits the game already shows (.combat-damage-pop / .ae-float); works in Telegram and the app.
+  const fxMode = () => localStorage.getItem('aeth_fx') || (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'low' : 'high');
+  const FX_STYLE = {warrior: ['slash', '#ffd38a'], knight: ['slash', '#e8eef7'], paladin: ['slash', '#ffe68a'], berserker: ['cleave', '#ff8a5a'], rogue: ['twin', '#c7f0ff'], assassin: ['twin', '#c58cff'],
+    archer: ['arrow', '#d9ff9a'], hunter: ['arrow', '#ffe0a0'], mage: ['burst', '#7ec8ff'], necromancer: ['burst', '#9cff7a'], druid: ['burst', '#8dffb0']};
+  const fx = {cv: null, ctx: null, parts: [], running: false, last: 0};
+  function fxCanvas() {
+    if (fx.cv && fx.cv.isConnected) return fx.cv;
+    const cv = document.createElement('canvas'); cv.className = 'ae-fx-canvas ae-float'; document.body.append(cv); fx.cv = cv; fx.ctx = cv.getContext('2d'); fxResize(); return cv;
+  }
+  function fxResize() { if (!fx.cv) return; const r = fx.cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); fx.cv.width = Math.round(r.width * d); fx.cv.height = Math.round(r.height * d); fx.scale = fx.cv.width / Math.max(1, r.width); }
+  addEventListener('resize', () => fxResize());
+  // a point on screen (getBoundingClientRect space) → canvas pixels
+  const fxPt = (x, y) => { const r = fx.cv.getBoundingClientRect(), k = fx.cv.width / Math.max(1, r.width); return [(x - r.left) * k, (y - r.top) * k]; };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function fxAdd(p) { if (fx.parts.length > (fxMode() === 'low' ? 90 : 240)) fx.parts.shift(); fx.parts.push(p); if (!fx.running) { fx.running = true; fx.last = performance.now(); requestAnimationFrame(fxLoop); } }
+  function fxLoop(t) {
+    const dt = Math.min(0.05, (t - fx.last) / 1000); fx.last = t; const c = fx.ctx, cv = fx.cv; if (!c) { fx.running = false; return; }
+    c.clearRect(0, 0, cv.width, cv.height); c.globalCompositeOperation = 'lighter';
+    fx.parts = fx.parts.filter(p => (p.life -= dt) > 0);
+    for (const p of fx.parts) {
+      const a = Math.max(0, p.life / p.max); p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.g || 0) * dt; p.vx *= p.drag || 1; p.vy *= p.drag || 1;
+      c.globalAlpha = a * (p.alpha || 1);
+      if (p.k === 'spark') { c.strokeStyle = p.col; c.lineWidth = p.w; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); c.stroke(); }
+      else if (p.k === 'dot') { c.fillStyle = p.col; c.beginPath(); c.arc(p.x, p.y, p.r * (0.4 + a * 0.6), 0, 6.283); c.fill(); }
+      else if (p.k === 'ring') { const rr = p.r0 + (p.r1 - p.r0) * (1 - a); c.strokeStyle = p.col; c.lineWidth = p.w * a + 0.5; c.beginPath(); c.arc(p.x, p.y, rr, 0, 6.283); c.stroke(); }
+      else if (p.k === 'arc') { const prog = 1 - a, sweep = p.sweep * Math.min(1, prog * 2.2); c.strokeStyle = p.col; c.lineCap = 'round';
+        for (let i = 0; i < 3; i++) { c.lineWidth = p.w * (1 - i * 0.3) * a; c.globalAlpha = a * (1 - i * 0.28); c.beginPath(); c.arc(p.x, p.y, p.r + i * 3, p.a0, p.a0 + sweep, p.sweep < 0); c.stroke(); } }
+      else if (p.k === 'streak') { c.strokeStyle = p.col; c.lineWidth = p.w * a; c.lineCap = 'round'; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.dx * (0.3 + 0.7 * a), p.y - p.dy * (0.3 + 0.7 * a)); c.stroke(); }
+      else if (p.k === 'glow') { const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); g.addColorStop(0, p.col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 6.283); c.fill(); }
+    }
+    c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    if (fx.parts.length) requestAnimationFrame(fxLoop); else { fx.running = false; c.clearRect(0, 0, cv.width, cv.height); }
+  }
+  function sparks(x, y, n, col, speed = 420, w = 2) { const k = fx.scale || 1; for (let i = 0; i < n; i++) { const a = rnd(0, 6.283), v = rnd(0.35, 1) * speed * k; fxAdd({k: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 520 * k, drag: 0.94, w: w * k, col, life: rnd(0.25, 0.55), max: 0.55}); } }
+  function fxShake(el, strong) { if (!el || fxMode() === 'off') return; el.classList.remove('ae-fx-shake', 'ae-fx-shake-big'); void el.offsetWidth; el.classList.add(strong ? 'ae-fx-shake-big' : 'ae-fx-shake'); setTimeout(() => el.classList.remove('ae-fx-shake', 'ae-fx-shake-big'), 420); }
+  function fxFlinch(el) { if (!el) return; el.classList.remove('ae-fx-flinch'); void el.offsetWidth; el.classList.add('ae-fx-flinch'); setTimeout(() => el.classList.remove('ae-fx-flinch'), 260); }
+  function fxFlash(col, strength = 0.35) { if (fxMode() === 'off') return; const d = h('div', {class: 'ae-fx-flash ae-float', style: `background:${col};opacity:${strength}`}); document.body.append(d); requestAnimationFrame(() => { d.style.opacity = '0'; }); setTimeout(() => d.remove(), 420); }
+  // what hit, where: kind = normal | critical | super | shield | poison | fire | bleed | hurt | heal
+  function fxHit(rect, kind, onHero) {
+    if (fxMode() === 'off' || !rect || !rect.width) return; fxCanvas(); if (!fx.cv.width) fxResize();
+    const k = fx.scale || 1, [x, y] = fxPt(rect.left + rect.width * rnd(0.35, 0.65), rect.top + rect.height * rnd(0.35, 0.55)), low = fxMode() === 'low';
+    const [style, col] = FX_STYLE[me()?.classId] || FX_STYLE.warrior;
+    if (onHero) { // the monster hits the hero
+      const big = kind === 'critical' || kind === 'super';
+      sparks(x, y, low ? 6 : big ? 18 : 10, '#ff6a4a', big ? 520 : 380); fxAdd({k: 'glow', x, y, r: (big ? 90 : 60) * k, col: 'rgba(255,60,40,.55)', vx: 0, vy: 0, life: 0.25, max: 0.25});
+      if (big) { fxFlash('radial-gradient(circle,transparent 45%,rgba(200,20,20,.85))', 0.55); try { Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {} }
+      return;
+    }
+    if (kind === 'shield') { fxAdd({k: 'ring', x, y, r0: 20 * k, r1: 70 * k, w: 5 * k, col: '#7fd3ff', vx: 0, vy: 0, life: 0.45, max: 0.45}); sparks(x, y, 8, '#bfe9ff', 260); return; }
+    if (kind === 'poison' || kind === 'fire' || kind === 'bleed') { const c2 = kind === 'poison' ? '#8dff5a' : kind === 'fire' ? '#ffae3a' : '#ff4a4a';
+      for (let i = 0; i < (low ? 5 : 12); i++) fxAdd({k: 'dot', x: x + rnd(-30, 30) * k, y: y + rnd(-10, 25) * k, vx: rnd(-20, 20) * k, vy: rnd(-120, -50) * k * (kind === 'bleed' ? -0.6 : 1), r: rnd(3, 6) * k, col: c2, life: rnd(0.5, 0.9), max: 0.9}); return; }
+    const crit = kind === 'critical', sup = kind === 'super', size = (crit ? 1.45 : sup ? 1.6 : 1) * k;
+    if (style === 'slash' || style === 'cleave') { const a0 = rnd(-2.6, -2.1); fxAdd({k: 'arc', x, y, r: 48 * size, a0, sweep: (style === 'cleave' ? 2.6 : 2.1), w: (style === 'cleave' ? 9 : 6) * size, col, vx: 0, vy: 0, life: 0.32, max: 0.32}); }
+    else if (style === 'twin') { for (const d of [-1, 1]) fxAdd({k: 'streak', x: x + d * 22 * k, y: y + 26 * k, dx: -d * 60 * size, dy: -70 * size, w: 4 * size, col, vx: 0, vy: 0, life: 0.25, max: 0.25}); }
+    else if (style === 'arrow') fxAdd({k: 'streak', x, y, dx: 140 * size, dy: 18 * size, w: 3.5 * size, col, vx: 0, vy: 0, life: 0.22, max: 0.22});
+    else { fxAdd({k: 'glow', x, y, r: 70 * size, col: col + 'cc', vx: 0, vy: 0, life: 0.35, max: 0.35}); fxAdd({k: 'ring', x, y, r0: 10 * k, r1: 60 * size, w: 5 * k, col, vx: 0, vy: 0, life: 0.4, max: 0.4}); }
+    sparks(x, y, low ? 6 : crit || sup ? 26 : 12, crit ? '#fff3c4' : col, crit || sup ? 560 : 420, crit ? 2.6 : 2);
+    if (crit) { fxAdd({k: 'ring', x, y, r0: 16 * k, r1: 110 * k, w: 7 * k, col: '#fff1b0', vx: 0, vy: 0, life: 0.4, max: 0.4}); fxFlash('rgba(255,245,210,.9)', 0.28); }
+    if (sup) { fxAdd({k: 'ring', x, y, r0: 20 * k, r1: 150 * k, w: 9 * k, col, vx: 0, vy: 0, life: 0.55, max: 0.55}); fxAdd({k: 'glow', x, y, r: 120 * k, col: col + '99', vx: 0, vy: 0, life: 0.5, max: 0.5}); }
+  }
+  // death: the monster crumbles into embers, a few coins fly up
+  function fxDeath(el) {
+    if (fxMode() === 'off' || !el) return; fxCanvas(); const r = el.getBoundingClientRect(); if (!r.width) return; const k = fx.scale || 1, low = fxMode() === 'low';
+    el.classList.add('ae-fx-dissolve'); setTimeout(() => el.classList.remove('ae-fx-dissolve'), 1600);
+    for (let i = 0; i < (low ? 20 : 55); i++) { const [x, y] = fxPt(r.left + r.width * rnd(0.2, 0.8), r.top + r.height * rnd(0.15, 0.9)); fxAdd({k: 'dot', x, y, vx: rnd(-40, 40) * k, vy: rnd(-160, -40) * k, drag: 0.98, r: rnd(2, 4.5) * k, col: Math.random() < 0.5 ? '#ffb347' : '#ff6a2a', life: rnd(0.8, 1.6), max: 1.6}); }
+    const [cx, cy] = fxPt(r.left + r.width / 2, r.top + r.height * 0.55);
+    for (let i = 0; i < (low ? 6 : 14); i++) fxAdd({k: 'dot', x: cx, y: cy, vx: rnd(-220, 220) * k, vy: rnd(-520, -280) * k, g: 900 * k, r: 4.5 * k, col: '#ffd34a', life: 1.1, max: 1.1});
+  }
+  // native fights: hit pops, the reward card, the rage line
+  const artOf = target => document.querySelector(target === 'player' ? '.combat-player-art' : '.combat-monster-art');
+  new MutationObserver(list => {
+    if (fxMode() === 'off') return;
+    for (const m of list) for (const n of m.addedNodes) {
+      if (n.nodeType !== 1) continue;
+      if (n.classList?.contains('combat-damage-pop')) {
+        const target = n.closest('.combat-damage-player') ? 'player' : 'monster', kind = n.dataset.impact || 'normal', art = artOf(target) || n;
+        fxHit(art.getBoundingClientRect(), kind, target === 'player');
+        if (target === 'monster') { fxFlinch(art); if (kind === 'critical' || kind === 'super') fxShake(document.querySelector('.combat-scene'), true); }
+        else fxShake(document.querySelector('.combat-scene'), kind === 'critical' || kind === 'super');
+      } else if (n.classList?.contains('ae-float')) {
+        if (n.classList.contains('ae-fx-canvas') || n.classList.contains('ae-fx-flash')) continue;
+        const r = n.getBoundingClientRect(), box = {left: r.left - 40, top: r.top - 10, width: 80, height: 80};
+        if (n.classList.contains('is-dmg')) fxHit(box, n.classList.contains('is-big') ? 'critical' : 'normal', false);
+        else if (n.classList.contains('is-hurt')) fxHit(box, 'normal', true);
+      } else if (n.matches?.('.combat-reward') || n.querySelector?.('.combat-reward')) fxDeath(artOf('monster'));
+      else if (/в ярости!/.test(n.textContent || '') && n.textContent.length < 160) { const a = artOf('monster'); if (a) a.classList.add('ae-fx-rage'); }
+    }
+  }).observe(document.body, {childList: true, subtree: true});
+  // rage ends with the fight
+  setInterval(() => { if (!document.documentElement.hasAttribute('data-in-combat')) document.querySelectorAll('.ae-fx-rage').forEach(e => e.classList.remove('ae-fx-rage')); }, 2000);
   // ---------- promo codes ----------
   function openPromo() {
     openPanel('🎁 Промокод', body => {
@@ -3381,6 +3492,8 @@
     const st = openPanel('🔍 Размер интерфейса', body => {
       const cur = localStorage.getItem('aeth_ui_scale') || 'x1';
       body.append(h('p', {class: 'ae-note'}, 'Уменьшите интерфейс, если на экране тесно. Настройка сохраняется на этом устройстве.'));
+      const fxCur = fxMode();
+      body.append(h('h3', {class: 'ae-h3'}, '✨ Эффекты боя'), h('div', {class: 'ae-scale-list'}, [['high', 'Полные'], ['low', 'Лёгкие'], ['off', 'Выключены']].map(([k, l]) => h('button', {type: 'button', class: 'ae-btn ae-scale-opt' + (k === fxCur ? ' ae-primary is-on' : ''), onclick: () => { localStorage.setItem('aeth_fx', k); st.rerender(); }}, h('b', {}, l)))));
       body.append(h('div', {class: 'ae-scale-list'}, UI_SCALES.map(([k, label, z]) => h('button', {type: 'button', class: 'ae-btn ae-scale-opt' + (k === cur ? ' ae-primary is-on' : ''), onclick: () => {
         localStorage.setItem('aeth_ui_scale', k); applyUiScale(); sfx.play('page'); st.rerender(); setTimeout(() => window.dispatchEvent(new Event('resize')), 50); }},
         h('b', {}, label), h('small', {}, `${Math.round(z * 100)}%`)))));
