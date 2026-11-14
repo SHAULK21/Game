@@ -18,6 +18,13 @@ export const AVATARS = [
   {id: 'char_assassin', name: 'Тень гильдии', src: '/assets/char_rogue_assassin_1790595929467-anO2E87T.jpg'},
   {id: 'char_hunter', name: 'Следопыт', src: '/assets/game_hero_hunter_1790595108742-wgn-kliT.jpg'}];
 
+// Profile banners: chosen only in the Android app (an app perk), seen by everyone on the player card.
+export const BANNERS = [['plains', 'Зелёные равнины', '/assets/plains-DfAnHj7l.webp'], ['forest', 'Тёмный лес', '/assets/forest-B0c-87GO.webp'], ['crypt', 'Забытый склеп', '/assets/crypt-BTumbge1.webp'],
+  ['swamp', 'Гиблые болота', '/assets/swamp-DLuFAhXR.webp'], ['desert', 'Пылающая пустыня', '/assets/desert-CWB6P9JN.webp'], ['rift', 'Демонический разлом', '/assets/rift-DTdreQra.webp'],
+  ['dragon', 'Логово дракона', '/assets/cave-dragon-C5DdFomJ.webp'], ['court', 'Двор замка', '/assets/story/courtyard.webp'], ['king', 'Тронный зал', '/assets/story/king.webp'],
+  ['party', 'Плечом к плечу', '/assets/story/coop-first-victory.webp'], ['boss', 'Первый босс', '/assets/story/first-boss.webp'], ['tavern', 'Таверна', '/assets/story/tavern-beer.webp']].map(([id, name, src]) => ({id, name, src}));
+// The Android app gift: once per hero, claimed only from the app.
+export const APK_GIFT = {premiumDays: 7, gold: 5000, silver: 1000, energy: 100, fragments: 3, arenaTickets: 3};
 // [id, icon, name, how to earn, value(ctx), need]
 const T = (id, icon, name, desc, value, need) => ({id, icon, name, desc, value, need});
 export const TITLES = [
@@ -45,6 +52,7 @@ export const TITLES = [
   T('pioneer', '🧭', 'Первопроходец', 'Начать играть до 1 января 2027', c => c.pioneer ? 1 : 0, 1),
   T('ascended_sss', '🌟', 'Первый вознесённый', 'Достичь вознесения ранга SSS', c => c.asc === 'SSS' ? 1 : 0, 1),
   ...COMP_TITLES.map(([id, icon, name, desc, val, need]) => T(id, icon, name, desc, c => val(c.comp), need)),
+  T('pocket_hero', '📱', 'Герой в кармане', 'Играть в мобильном приложении Android', c => c.apk ? 1 : 0, 1),
   T('keeper', '🗝️', 'Хранитель Аэтельгарда', 'Администрация игры', c => c.admin ? 1 : 0, 1)];
 
 function ctxOf(world, id, now) {
@@ -52,7 +60,7 @@ function ctxOf(world, id, now) {
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
-    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id)};
+    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id), apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
 export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);
@@ -80,7 +88,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 // Reaching ascension SSS: the «Первый вознесённый» achievement, announced once in the 🔔 history.
@@ -94,14 +102,14 @@ export function handleProfileRequest(world, input, user, now) {
   if (!path.startsWith('/api/ae-profile')) return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (!player(world, me)) return fail('Сначала создайте персонажа.', 404);
-  if (method === 'GET' && path === '/api/ae-profile') { awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS}); }
+  if (method === 'GET' && path === '/api/ae-profile') { awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS, banners: BANNERS}); }
   if (method === 'GET' && path === '/api/ae-profile/card') {
     const id = String(input.path.split('?')[1]?.match(/id=(\d+)/)?.[1] || body.id || '');
     const prof = publicProfile(world, id, now); return prof ? ok({profile: prof}) : fail('Игрок не найден.', 404);
   }
   if (method === 'POST' && path === '/api/ae-profile/batch') {
     const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 40).map(String);
-    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
+    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, app: p.app, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
   if (method === 'POST' && path === '/api/ae-profile/title') {
@@ -115,6 +123,21 @@ export function handleProfileRequest(world, input, user, now) {
     if (rank === 'E' || !rank) { pr.asc = null; return ok({profile: publicProfile(world, me, now)}); }
     const a = ASC.find(x => x[0] === rank); if (!a) return fail('Неизвестный ранг вознесения.');
     pr.asc = rank; awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now)});
+  }
+  if (path === '/api/ae-profile/apk') {  // the Android app gift (status / claim) — the claim only counts from the app
+    if (method === 'GET') { if (/[?&]app=1/.test(String(input.path))) { if (!pr) { pr = {u: me}; rows(world, 'ae_profiles').push(pr); } pr.apkSeen = new Date(now).toISOString(); } return ok({claimed: !!pr?.apkAt, gift: APK_GIFT}); }
+    if (body.apk !== true || !(Number(body.ver) >= 1)) return fail('Подарок можно получить только в мобильном приложении.');
+    if (pr.apkAt) return fail('Подарок за приложение уже получен.');
+    const p = player(world, me); pr.apkAt = new Date(now).toISOString();
+    p.premium_until = new Date(Math.max(now, Date.parse(p.premium_until || 0) || 0) + APK_GIFT.premiumDays * 864e5).toISOString(); p.updated_at = pr.apkAt;
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: me, icon: '📱', text: 'Подарок за мобильное приложение: Premium на 7 дней и награды! Титул «Герой в кармане» можно надеть в профиле.', kind: 'achievement', at: pr.apkAt, acked: false});
+    return ok({gifts: APK_GIFT, premiumUntil: p.premium_until, profile: publicProfile(world, me, now)});
+  }
+  if (method === 'POST' && path === '/api/ae-profile/banner') {
+    if (body.apk !== true) return fail('Баннеры профиля выбираются только в мобильном приложении.');
+    if (body.id == null || body.id === '') { pr.banner = null; return ok({profile: publicProfile(world, me, now)}); }
+    if (!BANNERS.some(b => b.id === body.id)) return fail('Такого баннера нет.', 404);
+    pr.banner = body.id; return ok({profile: publicProfile(world, me, now)});
   }
   if (method === 'POST' && path === '/api/ae-profile/avatar') {
     if (!AVATARS.some(a => a.id === body.id)) return fail('Такой аватарки нет.', 404);

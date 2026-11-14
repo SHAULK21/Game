@@ -1805,11 +1805,31 @@
   // Android app: a fight starting further down a scrolled page must not leave the header half off the screen.
   // (the runtime re-sets the attribute on every DOM change, so react only to the moment a fight starts)
   if (isApk) { let wasFight = false; new MutationObserver(() => { const on = document.documentElement.hasAttribute('data-in-combat'); if (on && !wasFight) requestAnimationFrame(() => window.scrollTo(0, 0)); wasFight = on; }).observe(document.documentElement, {attributes: true, attributeFilter: ['data-in-combat']}); }
+  // The Android app gift: offered once on start inside the app (also to those who already use it).
+  async function apkGiftCheck() {
+    if (!isApk || localStorage.getItem('aeth_apk_gift_' + uid())) return;
+    let st; try { st = await api('/api/ae-profile/apk'); } catch { return; }
+    if (st.claimed) { localStorage.setItem('aeth_apk_gift_' + uid(), '1'); return; }
+    const g = st.gift, root = h('div', {class: 'ae-story', role: 'dialog'}, h('div', {class: 'ae-story-card'}, h('img', {src: '/assets/story/royal-reward.webp', alt: ''}),
+      h('div', {class: 'ae-story-text'}, h('small', {}, 'Мобильное приложение'), h('h2', {}, '🎁 Подарок за приложение'),
+        h('p', {}, `Спасибо, что играете в приложении! Вас ждут: 👑 Premium на ${g.premiumDays} дней, ${fmt(g.gold)} 🪙, ${fmt(g.silver)} 🥈, ${g.energy} ⚡, ${g.fragments} ✦ осколка, ${g.arenaTickets} 🎟️ билета арены, титул «📱 Герой в кармане» и баннеры профиля.`),
+        h('button', {class: 'ae-btn ae-primary ae-wide', onclick: async ev => { ev.currentTarget.disabled = true;
+          try { const r = await api('/api/ae-profile/apk', 'POST', {apk: true, ver: Number(APK.version?.() || 1)}); const parts = grantReward(r.gifts || {}); localStorage.setItem('aeth_apk_gift_' + uid(), '1');
+            sfx.play('coins'); B()?.sound?.playVictory?.(); toast(`🎁 Получено: ${parts.join(', ')}`); setTimeout(() => checkPremium(), 600); loadMyProfile(); }
+          catch (e) { toast(cleanError(e)); if (/уже получен/.test(cleanError(e))) localStorage.setItem('aeth_apk_gift_' + uid(), '1'); }
+          root.classList.add('is-out'); setTimeout(() => root.remove(), 300); }}, 'Забрать подарок'))));
+    document.body.append(root);
+  }
+  if (isApk) setTimeout(() => { api('/api/ae-profile/apk?app=1').catch(() => {}); if (uid() && me()) apkGiftCheck(); else setTimeout(apkGiftCheck, 8000); }, 7000);
+  // In Telegram: tell once that the app gift is waiting (only to those who have not claimed it).
+  if (!isApk) setTimeout(async () => { const k = 'aeth_apk_gift_hint_' + uid(); if (!uid() || localStorage.getItem(k)) return;
+    try { const st = await api('/api/ae-profile/apk'); localStorage.setItem(k, '1'); if (!st.claimed) popup({icon: '📱', text: 'Подарок в приложении Android: Premium на 7 дней, золото, осколки и баннеры профиля!', act: 'Подробнее', fn: () => openApkInfo()}); } catch {} }, 25000);
   function openApkInfo() {
     const tgData = !isApk && window.Telegram?.WebApp?.initData || '';
     openPanel('📱 Приложение Android', body => {
       if (!isApk) {
         body.append(h('p', {class: 'ae-note'}, 'Играйте тем же героем без Telegram: отдельное приложение для Android. Прогресс общий — можно чередовать Telegram и приложение.'),
+          h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '🎁 Подарок за вход через приложение'), h('div', {class: 'ae-sub'}, 'Premium на 7 дней, 5 000 🪙, 1 000 🥈, 100 ⚡, 3 ✦ осколка и 3 🎟️ билета арены, титул «📱 Герой в кармане» и баннеры профиля. Получить можно только в приложении — и новым, и тем, кто уже им пользуется.')),
           h('div', {class: 'ae-card'}, h('b', {}, 'Что есть только в приложении'), h('ul', {class: 'ae-apk-list'},
             h('li', {}, '🔔 Напоминания на телефон: энергия восполнилась, питомец проголодался, начались выходные Кровавой луны'),
             h('li', {}, '📳 Вибрация на ударах и победах'), h('li', {}, '🖥️ Полный экран без панелей Telegram'),
@@ -2050,7 +2070,7 @@
     if (clanTagsBusy) return; const want = ids.filter(id => !clanTags.has(id)).slice(0, 40);
     if (!want.length && Date.now() - clanTagsAt < 120000) return;
     clanTagsBusy = true; clanTagsAt = Date.now();
-    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null, avatar: p.avatar || null}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
+    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null, avatar: p.avatar || null, app: !!p.app}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
     catch {} finally { clanTagsBusy = false; }
   }
   function paintClanTags() {
@@ -2058,6 +2078,8 @@
     loadClanTags([...new Set(els.map(e => e.dataset.aeUid))]);
     for (const el of els) {
       const tag = clanTags.get(el.dataset.aeUid), cm = clanMeta.get(el.dataset.aeUid) || {};
+      { const nx = el.nextElementSibling?.classList.contains('ae-app-ico') ? el.nextElementSibling : null; // 📱 the player uses the Android app
+        if (cm.app && !nx) el.after(h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱')); else if (!cm.app && nx) nx.remove(); }
       let prev = el.previousElementSibling?.classList.contains('ae-clan-tag') ? el.previousElementSibling : null;
       if (!tag) { prev?.remove(); prev = null; }
       else {
@@ -2089,8 +2111,8 @@
   }
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
-  const profileHeader = pr => h('div', {class: 'ae-prof-head'}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
-    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
+  const profileHeader = pr => h('div', {class: 'ae-prof-head' + (pr.banner ? ' has-banner' : ''), style: pr.banner ? `--ae-banner:url("${pr.banner.src}")` : ''}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
+    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
       pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.pet ? h('div', {class: 'ae-prof-pet'}, h('img', {src: `/assets/pets/icon-${pr.pet.id}.webp`, alt: '', onerror: e => e.target.remove()}), h('span', {}, `${pr.pet.name} · ур. ${pr.pet.level}`), h('small', {}, `${RARITY_RU[pr.pet.rarity] || ''}${pr.pet.hungry ? ' · голоден' : ''}`)) : h('div', {class: 'ae-sub'}, '🐾 Без питомца'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
@@ -2128,8 +2150,18 @@
       body.append(profileHeader(pr));
       { const li = me() ? luckInfo(me()) : null; if (li) body.append(h('div', {class: 'ae-pill'}, `🍀 Удача ${li.luck}: шанс улучшить редкость найденной вещи ${Math.round(li.bump * 100)}% · легендарные находки ×${li.legMul.toFixed(2)}`)); }
       { const r = me() ? respecInfo(me()) : null; if (r) body.append(h('div', {class: 'ae-row ae-card'}, h('div', {class: 'ae-grow'}, h('b', {}, '♻️ Характеристики'), h('div', {class: 'ae-sub'}, r.spent ? `Вложено очков: ${r.spent}. Сброс ${r.cost ? `— ${fmt(r.cost)} серебра` : '— первый бесплатно'}.` : 'Вложенных очков нет.')), h('button', {class: 'ae-btn' + (r.spent ? ' ae-primary' : ''), type: 'button', disabled: !r.spent, onclick: () => { closePanel(); doRespec(); }}, 'Сбросить'))); }
-      body.append(h('div', {class: 'ae-tabs'}, [['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка']].map(([k, l]) =>
+      body.append(h('div', {class: 'ae-tabs'}, [['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка'], ['banners', '🏞️ Баннер']].map(([k, l]) =>
         h('button', {type: 'button', class: 'ae-pill-btn' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      if (tab === 'banners') {
+        if (!isApk) body.append(h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '📱 Баннеры профиля — только в мобильном приложении'), h('div', {class: 'ae-sub'}, 'Выбранный баннер увидят все игроки в вашем профиле. Установите приложение и подключите героя — там же ждёт подарок: Premium на 7 дней.'),
+          h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); openApkInfo(); }}, '📱 Приложение Android')));
+        else body.append(h('p', {class: 'ae-sub'}, 'Баннер — фон вашей карточки. Его увидят все игроки.'));
+        body.append(h('div', {class: 'ae-banner-grid'}, [{id: null, name: 'Без баннера', src: ''}, ...(data.banners || [])].map(b => h('button', {type: 'button', class: 'ae-banner-pick' + ((pr.banner?.id || null) === b.id ? ' is-on' : '') + (isApk ? '' : ' is-locked'), style: b.src ? `background-image:url("${b.src}")` : '', onclick: async () => {
+          if (!isApk) return toast('📱 Баннеры выбираются в мобильном приложении');
+          try { const r = await api('/api/ae-profile/banner', 'POST', {id: b.id, apk: true}); data.profile = r.profile; myProfile = data; sfx.play('page'); st.rerender(); } catch (e) { toast(cleanError(e)); }
+        }}, h('span', {}, (isApk ? '' : '🔒 ') + b.name)))));
+        return;
+      }
       if (tab === 'avatars') {
         body.append(h('p', {class: 'ae-sub'}, 'Выберите аватарку — её увидят другие игроки в вашем профиле.'));
         body.append(h('div', {class: 'ae-avatar-grid'}, data.avatars.map(a => h('button', {type: 'button', class: 'ae-avatar-pick' + (a.id === pr.avatar.id ? ' is-on' : ''), title: a.name, onclick: async () => {
@@ -4392,6 +4424,11 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-assist-row>img{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:none}.ae-as-who{flex:1;min-width:0}.ae-as-who b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-as-who small{display:block;opacity:.75;font-size:10.5px;white-space:nowrap}
 .ae-as-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:52px;height:38px;padding:2px 4px;border-radius:9px;border:1px solid #6b5631;background:#0f1512;color:#ffe6a8;font:600 10.5px system-ui}.ae-as-b i{font-style:normal;font-size:14px;line-height:1}
 .ae-as-b:disabled{opacity:.45}.ae-assist-row.is-ready{opacity:1;border-color:#f0cf7a}.ae-assist-row.is-threat{border-color:#ef4444;box-shadow:0 0 12px #ef444466}.ae-as-b.is-hot{border-color:#ef4444;background:#3a1414;animation:ae-assist-glow 1.4s ease-in-out infinite}
+.ae-prof-head.has-banner{position:relative;padding:12px;border-radius:14px;overflow:hidden;background:linear-gradient(90deg,#0b0f0dee 0%,#0b0f0dbb 55%,#0b0f0d55 100%),var(--ae-banner) center/cover no-repeat;border:1px solid #f0cf7a66}
+.ae-banner-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ae-banner-pick{position:relative;height:70px;border-radius:12px;border:2px solid #6b563188;background:#141a17 center/cover no-repeat;display:flex;align-items:flex-end;padding:0;overflow:hidden}
+.ae-banner-pick span{width:100%;padding:4px 6px;background:linear-gradient(transparent,#000c);color:#ffe6a8;font:600 11.5px system-ui;text-align:left}.ae-banner-pick.is-on{border-color:#f0cf7a;box-shadow:0 0 12px #f0cf7a66}.ae-banner-pick.is-locked{filter:saturate(.5) brightness(.75)}
+.ae-apk-gift{border-color:#f0cf7a!important;background:linear-gradient(135deg,#2a1d10,#141a17)!important}
+.ae-app-ico{display:inline-block;margin-left:4px;font-size:.85em;line-height:1;vertical-align:middle;filter:drop-shadow(0 0 3px #4ade8088)}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
