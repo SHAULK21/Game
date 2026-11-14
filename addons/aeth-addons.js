@@ -435,7 +435,7 @@
     paintAssist(true);
   }
   function paintAssist(force) {
-    const c = B()?.combat, grid = document.querySelector('.combat-action-grid'), comp = asPick();
+    const c = B()?.combat, grid = document.querySelector('.combat-action-grid') || [...document.querySelectorAll('main button, .ae-panel button')].find(b => /^Атака$/.test((b.textContent || '').trim()) && b.closest('.grid'))?.closest('.grid'), comp = asPick();
     const old = document.querySelector('[data-ae-assist]');
     if (!c?.inCombat || c.ended || !grid || !comp || c.monster?.regionId === 'arena' || c.monster?.regionId === 'ascension') { old?.remove(); return; }
     const key = (c.monster?.id || '') + ':' + (c.monster?.maxHp || 0);
@@ -1841,6 +1841,9 @@
 
   // ---------- ⚔️ combat VFX: slashes, sparks, spell bursts, crit flash and shake, monster flinch, rage aura, death dissolve ----------
   // One canvas over the screen, driven by the hits the game already shows (.combat-damage-pop / .ae-float); works in Telegram and the app.
+  // Monster damage by monster level (read by the game when a monster is created): the early and middle game hit harder;
+  // after 30 monsters are already tougher (more HP and attack), so the extra damage tapers off there.
+  window.__aeBal = {...(window.__aeBal || {}), atkAt: L => L < 5 ? 1.1 : L <= 30 ? 1.6 : L <= 45 ? 1.6 - (L - 30) * 0.02 : Math.max(1.2, 1.3 - (L - 45) * 0.007)};
   const fxMode = () => localStorage.getItem('aeth_fx') || (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'low' : 'high');
   const syncAnim = () => document.documentElement.classList.toggle('ae-anim-off', fxMode() === 'off'); syncAnim();
   const FX_STYLE = {warrior: ['slash', '#ffd38a'], knight: ['slash', '#e8eef7'], paladin: ['slash', '#ffe68a'], berserker: ['cleave', '#ff8a5a'], rogue: ['twin', '#c7f0ff'], assassin: ['twin', '#c58cff'],

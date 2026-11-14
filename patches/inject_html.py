@@ -19,6 +19,6 @@ script = MARK + '''<script>
 </script><!-- /aeth-runtime -->'''
 import re
 s = re.sub(r'<script type="module" src="/assets/aeth-addons-v\d+\.js"></script>', '', s)
-script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v68.js"></script><!-- /aeth-runtime -->')
+script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v69.js"></script><!-- /aeth-runtime -->')
 s = s.replace('</body>', script + '\n</body>', 1)
 open(p, 'w', encoding='utf-8').write(s); print('index.html runtime injected')
