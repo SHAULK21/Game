@@ -1,0 +1,58 @@
+name: Android APK
+
+# Builds the Android app (android/) and publishes it as a GitHub release:
+# https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APK_VERSION_CODE: ${{ github.run_number }}
+      APK_VERSION_NAME: 1.0.${{ github.run_number }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/release.jks
+          else
+            # no permanent key yet: a one-off key for this build (an update will need the app reinstalled)
+            echo "::warning::ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD secrets are missing — signing with a temporary key"
+            echo "ANDROID_KEYSTORE_PASSWORD=tempkey-${{ github.run_id }}" >> "$GITHUB_ENV"
+            keytool -genkeypair -keystore android/app/release.jks -alias aethelgard -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "tempkey-${{ github.run_id }}" -keypass "tempkey-${{ github.run_id }}" -dname "CN=Aethelgard RPG"
+          fi
+      - name: Build
+        run: gradle -p android :app:assembleRelease --no-daemon --stacktrace
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk Aethelgard.apk
+          rm -f android/app/release.jks
+          gh release create "apk-1.0.${{ github.run_number }}" Aethelgard.apk \
+            --title "Aethelgard RPG для Android 1.0.${{ github.run_number }}" \
+            --notes "Скачать: Aethelgard.apk ниже. Установка: откройте файл на телефоне и разрешите установку из браузера. Подключение героя: игра в Telegram → Меню → «📱 Приложение Android» → «Подключить приложение»." \
+            --latest

@@ -192,7 +192,7 @@ function report(world, now) {
   const total = players.length, wau = new Set(act.filter(a => a.day > dayKey(now - 7 * DAY)).map(a => String(a.telegram_id))).size;
   const mau = new Set(act.filter(a => a.day > dayKey(now - 30 * DAY)).map(a => String(a.telegram_id))).size;
   return ok({total, dau: byDay.get(dayKey(now))?.size || 0, wau, mau, daily, retention: {d1: ret(lastDays, 1), d3: ret(lastDays, 3), d7: ret(lastDays, 7)}, sections, quit: {n: quitN, list: quitList},
-    storage: storageInfo(world), botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
+    storage: storageInfo(world), apkAuthMaxAgeH: world.tables.ae_apk_diag?.[0]?.maxAgeH || 0, botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
 }
 
 // How full the single world document is (its stored form must stay under the storage cell limit).

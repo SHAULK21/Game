@@ -157,7 +157,7 @@
     for (const [n, [c, r]] of Object.entries(a.icons)) rules.push(`.ae-ic[data-i="${n}"]{background-position:${a.cols > 1 ? c / (a.cols - 1) * 100 : 0}% ${a.rows > 1 ? r / (a.rows - 1) * 100 : 0}%}`);
     for (const [n, svg] of Object.entries(AE_LINE)) { const url = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>`)}")`;
       rules.push(`.ae-ic[data-i="${n}"]{background:currentColor;-webkit-mask:${url} center/88% no-repeat;mask:${url} center/88% no-repeat}`); }
-    rules.push('.ae-gem-img{width:40px;height:40px;object-fit:contain;flex:none}.ae-gem-chip-img{width:1.4em;height:1.4em;object-fit:contain;vertical-align:-.35em}.ae-entry-icon .ae-ic,.ae-pop-i .ae-ic,.ae-inbox-i .ae-ic,.ae-gem-i .ae-ic{width:1.15em;height:1.15em;vertical-align:-.2em}.ae-head h2 .ae-ic{margin-right:.15em}');
+    rules.push('.ae-apk-list{margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.45}.ae-apk-list li{margin:3px 0}.ae-gem-img{width:40px;height:40px;object-fit:contain;flex:none}.ae-gem-chip-img{width:1.4em;height:1.4em;object-fit:contain;vertical-align:-.35em}.ae-entry-icon .ae-ic,.ae-pop-i .ae-ic,.ae-inbox-i .ae-ic,.ae-gem-i .ae-ic{width:1.15em;height:1.15em;vertical-align:-.2em}.ae-head h2 .ae-ic{margin-right:.15em}');
     document.head.append(h('style', {}, rules.join('\n')));
   })();
   const AE_IC_SCOPE = '.ae-backdrop, .ae-toast, .ae-pop, .ae-bv, .ae-bag-merge, .ae-coop-card, .ae-market-one, .ae-entry, .ae-2h-note, .ae-2h-btn, .ae-story, .ae-chat-item, .ae-float, .ae-premium, .ae-weekend, .ae-quick-btn, .ae-exp-ready, .ae-forge-up, .ae-pill-btn, .ae-place-badge';
@@ -1613,6 +1613,84 @@
       h('div', {class: 'ae-sub'}, 'Письмо появится у игроков в 🔔 → «Почта». Подарок каждый игрок забирает один раз. Письма хранятся 30 дней; «всем» получают герои, созданные до отправки.'),
       to, who, title, text, h('div', {class: 'ae-mail-grid'}, ...G.map(([k]) => gi[k])), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: send}, '✉️ Отправить'), box);
   }
+
+  // ---------- 📱 Android app (APK): connect it from Telegram; inside the app — reminders, vibration, screen, sharing, updates ----------
+  const APK = window.AethApk || null, isApk = !!APK;
+  const APK_URL = 'https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk';
+  if (isApk) document.documentElement.classList.add('ae-apk');
+  function openApkInfo() {
+    const tgData = !isApk && window.Telegram?.WebApp?.initData || '';
+    openPanel('📱 Приложение Android', body => {
+      if (!isApk) {
+        body.append(h('p', {class: 'ae-note'}, 'Играйте тем же героем без Telegram: отдельное приложение для Android. Прогресс общий — можно чередовать Telegram и приложение.'),
+          h('div', {class: 'ae-card'}, h('b', {}, 'Что есть только в приложении'), h('ul', {class: 'ae-apk-list'},
+            h('li', {}, '🔔 Напоминания на телефон: энергия восполнилась, питомец проголодался, начались выходные Кровавой луны'),
+            h('li', {}, '📳 Вибрация на ударах и победах'), h('li', {}, '🖥️ Полный экран без панелей Telegram'),
+            h('li', {}, '🔆 Экран не гаснет во время боя'), h('li', {}, '📤 «Поделиться героем» в любой мессенджер'), h('li', {}, '⬆️ Сообщает о новых версиях'))),
+          h('b', {}, '1. Установите'), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { try { Telegram.WebApp.openLink(APK_URL); } catch { window.open(APK_URL); } }}, '⬇️ Скачать APK'),
+          h('p', {class: 'ae-sub'}, 'Android спросит разрешение на установку из браузера — это нормально для приложений не из Play Маркета.'),
+          h('b', {}, '2. Подключите своего героя'),
+          h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', disabled: !tgData, onclick: () => { const url = location.origin + '/apk-login.html#d=' + encodeURIComponent(tgData);
+            try { Telegram.WebApp.openLink(url); } catch { window.open(url); } }}, '🔗 Подключить приложение'),
+          h('button', {type: 'button', class: 'ae-btn ae-wide', disabled: !tgData, onclick: async () => { try { await navigator.clipboard.writeText(tgData); toast('Код скопирован. Вставьте его в приложении: «У меня есть код входа».'); } catch { toast('Не удалось скопировать — используйте кнопку «Подключить приложение».'); } }}, '📋 Скопировать код входа'),
+          h('p', {class: 'ae-sub'}, '⚠️ Ссылка и код — это ваш вход в игру. Никому их не пересылайте.'));
+        return;
+      }
+      const tog = (key, def, label, hint, after) => { const on = APK.getPref(key, def);
+        return h('button', {type: 'button', class: 'ae-inbox-row' + (on ? ' is-new' : ''), onclick: () => { APK.setPref(key, !on); after?.(!on); openApkInfo(); }},
+          h('span', {class: 'ae-inbox-i'}, on ? '✅' : '⬜'), h('span', {class: 'ae-grow'}, h('b', {}, label), h('small', {}, hint))); };
+      body.append(h('p', {class: 'ae-note'}, `Версия приложения ${APK.versionName()}. Герой тот же, что и в Telegram.`),
+        tog('notify', true, 'Напоминания', 'Энергия, питомец, выходные Кровавой луны', on => { if (!on) [1, 2, 3].forEach(i => APK.cancel(i)); else apkRemindTick(true); }),
+        tog('vibrate', true, 'Вибрация', 'На ударах, победах и заточке'),
+        tog('fullscreen', true, 'Полный экран', 'Скрыть системные панели'),
+        tog('awake', false, 'Не гасить экран всегда', 'Без этого экран не гаснет только в бою'),
+        h('div', {class: 'ae-grid2'},
+          h('button', {type: 'button', class: 'ae-btn', onclick: () => shareHero()}, '📤 Поделиться героем'),
+          h('button', {type: 'button', class: 'ae-btn', onclick: () => checkApkUpdate(true)}, '⬆️ Проверить обновления')),
+        h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => { if (confirm('Выйти из героя в приложении? Подключить снова можно из игры в Telegram.')) APK.logout(); }}, '🚪 Выйти из аккаунта'));
+    }, {cls: 'ae-hq-panel'});
+  }
+  function shareHero() {
+    const p = me() || {}, st = B()?.stats || {};
+    const text = `⚔️ Мой герой в Aethelgard RPG: ${p.name || 'Герой'}, ${p.level || 1} ур.\nАтака ${fmt(st.attack || st.magicAttack || 0)} · Защита ${fmt(st.defense || 0)} · HP ${fmt(st.maxHp || 0)}\nИграй в Telegram: https://t.me/Aethelgardr_RPG_Bot`;
+    if (isApk) APK.share(text); else { try { Telegram.WebApp.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/Aethelgardr_RPG_Bot') + '&text=' + encodeURIComponent(text)); } catch {} }
+  }
+  if (isApk) {
+    // Telegram's haptics do nothing outside Telegram: the phone vibrates instead
+    const hookHaptics = () => { const hf = window.Telegram?.WebApp?.HapticFeedback; if (!hf || hf.__ae) return; hf.__ae = true;
+      const ms = {light: 12, medium: 25, heavy: 45, rigid: 20, soft: 10, success: 60, warning: 40, error: 90};
+      hf.impactOccurred = s => { APK.vibrate(ms[s] || 20); return hf; }; hf.notificationOccurred = s => { APK.vibrate(ms[s] || 40); return hf; }; hf.selectionChanged = () => { APK.vibrate(8); return hf; }; };
+    hookHaptics(); setTimeout(hookHaptics, 3000);
+    // keep the screen on in battle (or always, if chosen)
+    let awake = null;
+    setInterval(() => { const want = APK.getPref('awake', false) || document.documentElement.hasAttribute('data-in-combat') || !!document.querySelector('.ae-battle-backdrop');
+      if (want !== awake) { awake = want; APK.keepAwake(want); } }, 1500);
+    window.addEventListener('aeth-apk-resume', () => { try { loadInbox(true); } catch {} });
+  }
+  // reminders on the phone: energy full (1), pet hungry (2), Blood Moon weekend (3)
+  let remindSig = '';
+  function apkRemindTick(force) {
+    if (!isApk || !APK.getPref('notify', true)) return; const p = me(); if (!p) return;
+    const energyAt = p.energy < p.maxEnergy ? (p.lastEnergyRegenTimestamp || Date.now()) + (p.maxEnergy - p.energy) * 12e4 : 0;
+    let petAt = 0; try { if (p.activePet) { const sat = petSat(); petAt = sat > HUNGRY_AT ? Date.now() + (sat - HUNGRY_AT) * PET_DAY / 100 : 0; } } catch {}
+    const bm = (() => { const d = new Date(Date.now() + 3 * 3600e3), day = d.getUTCDay(); if (day === 6 || day === 0) return 0; const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + (6 - day)) - 3 * 3600e3); return t.getTime() + 10 * 3600e3; })();
+    const sig = [Math.round(energyAt / 6e4), Math.round(petAt / 6e4), bm].join('|'); if (!force && sig === remindSig) return; remindSig = sig;
+    if (energyAt) APK.schedule(1, energyAt, '⚡ Энергия восполнилась', `${p.name || 'Герой'} готов к походу — энергия ${p.maxEnergy}/${p.maxEnergy}.`); else APK.cancel(1);
+    if (petAt) APK.schedule(2, petAt, '🐾 Питомец проголодался', `${p.activePet?.name || 'Питомец'} ждёт корма — голодный питомец слабее в бою.`); else APK.cancel(2);
+    if (bm) APK.schedule(3, bm, '🌕 Выходные Кровавой луны', 'В Орде двойные награды до конца воскресенья!'); else APK.cancel(3);
+  }
+  if (isApk) { setTimeout(() => apkRemindTick(true), 9000); setInterval(() => { if (!document.hidden) apkRemindTick(); }, 60e3); }
+  // a new version on GitHub
+  async function checkApkUpdate(manual) {
+    if (!isApk) return;
+    try {
+      const r = await fetch('https://api.github.com/repos/SHAULK21/Game/releases/latest', {headers: {Accept: 'application/vnd.github+json'}}); if (!r.ok) throw new Error();
+      const j = await r.json(), code = Number(String(j.tag_name || '').match(/(\d+)$/)?.[1] || 0);
+      if (code > APK.version()) { if (confirm(`Вышла новая версия приложения (${j.name || j.tag_name}). Скачать?`)) APK.openExternal(APK_URL); }
+      else if (manual) toast('У вас последняя версия приложения.');
+    } catch { if (manual) toast('Не удалось проверить обновления.'); }
+  }
+  if (isApk) setTimeout(() => { const k = 'aeth_apk_upd_check', last = Number(localStorage.getItem(k) || 0); if (Date.now() - last > 12 * 3600e3) { localStorage.setItem(k, String(Date.now())); checkApkUpdate(false); } }, 15000);
   // ---------- promo codes ----------
   function openPromo() {
     openPanel('🎁 Промокод', body => {
@@ -2812,7 +2890,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Размер интерфейса', 'Сделать игру крупнее или компактнее', () => openUiScale()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Размер интерфейса', 'Сделать игру крупнее или компактнее', () => openUiScale()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -3294,10 +3372,11 @@
     profile: '<circle cx="14" cy="10" r="4.5"/><path d="M5.5 23.5c.8-4.4 4.3-7 8.5-7s7.7 2.6 8.5 7"/><path d="M20.5 4.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="currentColor" stroke="none"/>',
     horde: '<path d="M14 4c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.5 3 5.6V21a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3.4c1.8-1.1 3-3 3-5.6 0-4.6-3.5-8-8.5-8z"/><circle cx="10.6" cy="12.6" r="1.8"/><circle cx="17.4" cy="12.6" r="1.8"/><path d="M12 22v-2.4M16 22v-2.4"/>',
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
+    phone: '<rect x="8" y="3.5" width="12" height="21" rx="2.5"/><path d="M12.5 20.5h3"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
   const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
-    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Размер интерфейса', () => openUiScale()]];
+    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Размер интерфейса', () => openUiScale()], ['phone', 'Приложение Android', () => openApkInfo()]];
   function openUiScale() {
     const st = openPanel('🔍 Размер интерфейса', body => {
       const cur = localStorage.getItem('aeth_ui_scale') || 'x1';

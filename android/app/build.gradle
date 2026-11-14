@@ -1,0 +1,34 @@
+plugins { id 'com.android.application' }
+
+def vCode = (System.getenv('APK_VERSION_CODE') ?: '1') as Integer
+def vName = System.getenv('APK_VERSION_NAME') ?: '1.0.0'
+
+android {
+    namespace 'com.aethelgard.rpg'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.aethelgard.rpg'
+        minSdk 23
+        targetSdk 34
+        versionCode vCode
+        versionName vName
+    }
+    signingConfigs {
+        release {
+            def ks = file('release.jks')
+            if (ks.exists()) {
+                storeFile ks
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'aethelgard'
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig file('release.jks').exists() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

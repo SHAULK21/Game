@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aethelgard RPG</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:#0b0f0d radial-gradient(circle at 50% 0,#2a1d10 0,#0b0f0d 60%);color:#f1ead8;font:15px/1.45 system-ui,-apple-system,Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;text-align:center}
+  h1{font:900 34px/1.05 Georgia,serif;color:#ffe6a8;margin:0 0 6px;letter-spacing:.5px}
+  .sub{color:#d5ba7d;margin:0 0 26px;font-weight:600}
+  .card{width:100%;max-width:380px;background:#141a17;border:1px solid #6b5631;border-radius:16px;padding:18px 16px;margin-bottom:14px;text-align:left}
+  .card b{color:#ffe6a8}
+  ol{margin:8px 0 0;padding-left:20px}li{margin:6px 0}
+  button{width:100%;max-width:380px;min-height:50px;border-radius:14px;border:1px solid #a58a4f;background:linear-gradient(#f0cf7a,#c99a3c);color:#1d1408;font:800 16px system-ui,sans-serif;margin:6px 0}
+  button.alt{background:#1d2420;color:#ffe6a8}
+  textarea{width:100%;min-height:70px;border-radius:12px;border:1px solid #6b5631;background:#0b0f0d;color:#f1ead8;padding:10px;font:12px monospace;margin-top:8px}
+  .err{color:#ff8a7a;min-height:20px;font-size:13px}
+</style>
+</head>
+<body>
+  <h1>Aethelgard<br>RPG</h1>
+  <p class="sub">Тот же герой, что и в Telegram</p>
+  <div class="card">
+    <b>Как подключить приложение</b>
+    <ol>
+      <li>Нажмите «Открыть игру в Telegram».</li>
+      <li>В игре: Меню → <b>«📱 Приложение Android»</b> → <b>«Подключить приложение»</b>.</li>
+      <li>Телефон вернёт вас сюда — герой загрузится сам.</li>
+    </ol>
+  </div>
+  <button onclick="AethApk.openExternal('https://t.me/Aethelgardr_RPG_Bot')">Открыть игру в Telegram</button>
+  <button class="alt" onclick="document.getElementById('code').hidden=false;pasteCode()">У меня есть код входа</button>
+  <div id="code" class="card" hidden>
+    Скопируйте код в игре (кнопка «Скопировать код») и вставьте сюда:
+    <textarea id="t" placeholder="query_id=…&amp;user=…&amp;hash=…"></textarea>
+    <div class="err" id="e"></div>
+    <button onclick="useCode()">Войти</button>
+  </div>
+<script>
+  function pasteCode(){ try { var v = AethApk.paste(); if (v && v.indexOf('hash=') >= 0) document.getElementById('t').value = v.trim(); } catch (e) {} }
+  function useCode(){
+    var v = (document.getElementById('t').value || '').trim();
+    if (v.indexOf('hash=') < 0 || v.indexOf('user=') < 0) { document.getElementById('e').textContent = 'Это не код входа. Скопируйте его в игре ещё раз.'; return; }
+    AethApk.saveLogin(v);
+  }
+</script>
+</body>
+</html>

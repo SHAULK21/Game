@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Подключение приложения · Aethelgard</title>
+<style>
+  body{margin:0;min-height:100vh;background:#0b0f0d;color:#f1ead8;font:16px/1.45 system-ui,-apple-system,Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  h1{font:900 28px Georgia,serif;color:#ffe6a8;margin:0 0 10px}
+  p{max-width:360px;color:#d8cfb8}
+  a.btn{display:block;width:100%;max-width:360px;box-sizing:border-box;padding:15px;border-radius:14px;background:linear-gradient(#f0cf7a,#c99a3c);color:#1d1408;font-weight:800;text-decoration:none;margin:8px 0}
+  a.alt{background:#1d2420;color:#ffe6a8;border:1px solid #6b5631}
+  small{opacity:.7;max-width:360px}
+</style>
+</head>
+<body>
+  <h1>⚔️ Aethelgard RPG</h1>
+  <p id="msg">Открываем приложение…</p>
+  <a class="btn" id="open" href="#">Открыть в приложении</a>
+  <a class="btn alt" href="https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk">Скачать приложение (APK)</a>
+  <small>Ссылка одноразовая и личная — не пересылайте её никому: с ней можно войти в вашего героя.</small>
+<script>
+  // The game in Telegram sends the signed login here (#d=...): this page only hands it to the installed app.
+  var d = new URLSearchParams(location.hash.slice(1)).get('d') || '';
+  var open = document.getElementById('open'), msg = document.getElementById('msg');
+  if (!d || d.indexOf('hash=') < 0) { msg.textContent = 'Ссылка устарела. Откройте игру в Telegram и нажмите «Подключить приложение» ещё раз.'; open.style.display = 'none'; }
+  else {
+    var enc = encodeURIComponent(d), fallback = encodeURIComponent('https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk');
+    open.href = /Android/i.test(navigator.userAgent)
+      ? 'intent://login?d=' + enc + '#Intent;scheme=aethelgard;package=com.aethelgard.rpg;S.browser_fallback_url=' + fallback + ';end'
+      : 'aethelgard://login?d=' + enc;
+    history.replaceState(null, '', location.pathname); // do not keep the login in the browser history
+    setTimeout(function () { location.href = open.href; }, 300);
+    msg.textContent = 'Если приложение не открылось само — нажмите кнопку ниже. Нет приложения? Скачайте его.';
+  }
+</script>
+</body>
+</html>

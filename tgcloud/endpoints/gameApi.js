@@ -24,6 +24,9 @@ async function handle(input, ctx) {
   const at = Date.now();
   try {
     const reply = await nativeTransactions.update(PRODUCTION_DOCUMENT, async world => {
+      // how old a Telegram login the platform still accepts (the Android app reuses one login for a long time)
+      const authAgeH = (at - Number(ctx.initData.auth_date || 0) * 1000) / 3600e3;
+      if (authAgeH > 2 && authAgeH < 24 * 400) { const d = (world.tables.ae_apk_diag ||= [{maxAgeH: 0}])[0]; if (authAgeH > d.maxAgeH) Object.assign(d, {maxAgeH: Math.round(authAgeH), at: new Date(at).toISOString()}); }
       if (at - lastPrune > 3600e3 || Math.random() < 0.005) { lastPrune = at; pruneWorld(world, at); }
       const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
       const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
