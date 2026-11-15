@@ -1702,7 +1702,34 @@
     else if (!hero && fantasyRow && !document.querySelector('header [data-ae-bell]')) { const set = fantasyRow.querySelector('details.shell-settings'); const b = make('ae-bell-f ae-bell-row'); if (set) set.before(b); else fantasyRow.append(b); paintBell(); }
   }
   const agoText = at => { const m = Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60e3)); return m < 1 ? 'только что' : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.floor(m / 60)} ч назад` : new Date(at).toLocaleDateString('ru-RU', {day: 'numeric', month: 'short'}); };
-  const EVENT_OPEN = {market: () => openAuction('mine'), 'market-item': () => openAuction('mine'), 'lot-offer': () => openAuction('mine'), 'auction-outbid': () => openAuction('all'), 'buy-request': () => openAuction('req')};
+  // Where an event leads: [button label, action]. By kind first, then by what the text is about.
+  function eventAction(e) {
+    const k = e.kind || '', t = String(e.text || ''), d = e.data || {}, place = id => () => { if (document.querySelector(`[data-settlement-place="${id}"]`)) clickPlace(id); else toast('Загляните в поселение.'); };
+    const byKind = {trade_offer: ['Смотреть', () => openFriends('trades')], trade_paid: ['Сделки', () => openFriends('trades')], trade_return: ['Сумка', () => openFriends('trades')],
+      coop: ['Открыть', openCoop], 'coop-invite': ['Открыть', openCoop], 'friend-accepted': ['Написать', () => openChat({id: d.id, name: ''})], friend: ['Друзья', () => openFriends('requests')],
+      premium: ['Ура!', () => checkPremium()], market: ['Мои лоты', () => openAuction('mine')], 'market-item': ['Мои лоты', () => openAuction('mine')], 'lot-offer': ['Ответить', () => openAuction('mine')],
+      'buy-request': ['Ответить', () => openAuction('req')], 'auction-outbid': ['Перебить', () => openAuction('all')], 'clan-hint': ['Найти клан', () => openClanSearch()],
+      'clan-request': ['Заявки', () => openClanHQ('requests')], 'clan-welcome': ['Штаб', () => openClanHQ()], 'clan-leader': ['Штаб', () => openClanHQ()], achievement: ['Профиль', () => openProfile()]};
+    if (k === 'clan-invite' && d.code) return ['Вступить', () => joinClanByCode(d.code)];
+    if (k === 'clan' || k === 'clan-war') { if (/набег|стройк|достроен|защитник|жаловани|крепост|охот|Гидр|Дракон|Титан|Демон|Лич|повержен\(а\)/i.test(t)) return ['Крепость', () => openClanHQ('fort')]; if (/наград/i.test(t)) return ['Забрать', () => openClanHQ()]; return ['Штаб', () => openClanHQ()]; }
+    if (byKind[k]) return byKind[k];
+    if (/достижени|титул/i.test(t)) return ['Профиль', () => openProfile()];
+    if (/соратник|казарм/i.test(t)) return ['Казарма', () => openCompanions()];
+    if (/набег|крепост|стройк/i.test(t)) return ['Крепость', () => openClanHQ('fort')];
+    if (/клан/i.test(t)) return ['Штаб', () => openClanHQ()];
+    if (/кооп|отряд|подземель/i.test(t)) return ['Кооп', openCoop];
+    if (/дуэл|вызов/i.test(t)) return ['Дуэли', () => openDuel()];
+    if (/орд|кровав/i.test(t)) return ['Орда', () => openHorde()];
+    if (/аукцион|ставк|лот|продан|рынок|покупк/i.test(t)) return ['Рынок', () => openAuction('mine')];
+    if (/друз|сообщени/i.test(t)) return ['Друзья', () => openFriends()];
+    if (/питом|голоден|проголодал/i.test(t)) return ['Питомец', place('pets')];
+    if (/экспедиц|шахт|руд/i.test(t)) return ['Шахта', place('mine')];
+    if (/рыб|клюёт|улов/i.test(t)) return ['Причал', place('fishing')];
+    if (/premium|премиум/i.test(t)) return ['Ура!', () => checkPremium()];
+    if (/приглаш|реферал/i.test(t)) return ['Друзья', () => openInvite()];
+    if (/задани|наград/i.test(t)) return ['Задания', () => openSpecialQuests()];
+    return null;
+  }
   const mailDoneKey = () => 'aeth_mail_done_' + uid(), mailPendKey = () => 'aeth_mail_pending_' + uid();
   const mailDone = () => { try { return new Set(JSON.parse(localStorage.getItem(mailDoneKey()) || '[]')); } catch { return new Set(); } };
   async function claimMail(m, opIn) {
@@ -1736,9 +1763,9 @@
         if (d.pm) extra.push(h('button', {type: 'button', class: 'ae-inbox-row is-new', onclick: () => { closePanel(); openFriends(); }}, h('span', {class: 'ae-inbox-i'}, '💬'), h('span', {class: 'ae-grow'}, h('b', {}, `Непрочитанные сообщения: ${d.pm}`), h('small', {}, 'Друзья → личные сообщения'))));
         body.append(...extra);
         if (!d.events.length && !extra.length) body.append(h('p', {class: 'ae-empty'}, 'Пока тихо. Здесь появятся продажи, ставки, дуэли, клан, питомец и всё, что случилось, пока вас не было.'));
-        for (const e of d.events) { const go = EVENT_OPEN[e.kind];
-          body.append(h(go ? 'button' : 'div', {type: go ? 'button' : null, class: 'ae-inbox-row' + (e.isNew ? ' is-new' : ''), onclick: go ? () => { closePanel(); go(); } : null},
-            h('span', {class: 'ae-inbox-i'}, e.icon || '🔔'), h('span', {class: 'ae-grow'}, h('span', {}, e.text), h('small', {}, agoText(e.at))), go ? h('span', {class: 'ae-coop-go'}, '›') : '')); }
+        for (const e of d.events) { const a = eventAction(e), go = a?.[1];
+          body.append(h(go ? 'button' : 'div', {type: go ? 'button' : null, class: 'ae-inbox-row' + (e.isNew ? ' is-new' : '') + (go ? ' is-link' : ''), onclick: go ? () => { closePanel(); setTimeout(go, 150); } : null},
+            h('span', {class: 'ae-inbox-i'}, e.icon || '🔔'), h('span', {class: 'ae-grow'}, h('span', {}, e.text), h('small', {}, agoText(e.at))), go ? h('span', {class: 'ae-inbox-go'}, a[0] + ' ›') : '')); }
         body.append(h('p', {class: 'ae-sub'}, 'История хранится 7 дней.'));
       } else {
         if (!d.mail.length) body.append(h('p', {class: 'ae-empty'}, 'Писем нет. Здесь появятся письма и подарки от администрации.'));
@@ -1824,6 +1851,20 @@
   // In Telegram: tell once that the app gift is waiting (only to those who have not claimed it).
   if (!isApk) setTimeout(async () => { const k = 'aeth_apk_gift_hint_' + uid(); if (!uid() || localStorage.getItem(k)) return;
     try { const st = await api('/api/ae-profile/apk'); localStorage.setItem(k, '1'); if (!st.claimed) popup({icon: '📱', text: 'Подарок в приложении Android: Premium на 7 дней, золото, осколки и баннеры профиля!', act: 'Подробнее', fn: () => openApkInfo()}); } catch {} }, 25000);
+  // Telegram's «⋮» menu of the game gets a «Settings» item: the updates channel, news and the game settings in one place.
+  function openTgSettings() {
+    const go = fn => () => { closePanel(); setTimeout(fn, 200); };
+    const item = (icon, title, sub, fn, hot) => h('button', {type: 'button', class: 'ae-bag-merge' + (hot ? ' ae-apk-gift' : ''), onclick: fn}, h('span', {class: 'ae-entry-icon'}, icon), h('span', {class: 'ae-grow'}, h('b', {}, title), h('small', {}, sub)), h('span', {class: 'ae-coop-go'}, '›'));
+    openPanel('⚙️ Настройки', body => body.append(
+      item('📣', 'Канал с обновлениями', 't.me/Aethelgardo — новости, промокоды и события', () => { try { Telegram.WebApp.openTelegramLink('https://t.me/Aethelgardo'); } catch { window.open('https://t.me/Aethelgardo'); } }, true),
+      item('📰', 'Что нового', 'Все обновления игры', go(() => openNews())),
+      item('🔔', 'Уведомления и почта', 'История событий и подарки', go(() => openInbox())),
+      item('🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', go(() => openUiScale())),
+      item('📱', 'Приложение Android', 'Подарок: Premium на 7 дней', go(() => openApkInfo())),
+      item('🎟️', 'Промокод', 'Активировать код из канала', go(() => openPromo())),
+      item('👤', 'Профиль', 'Титулы, аватарка и баннер', go(() => openProfile()))));
+  }
+  try { const sb = !isApk && window.Telegram?.WebApp?.SettingsButton; if (sb && Telegram.WebApp.isVersionAtLeast?.('7.0')) { sb.onClick(() => openTgSettings()); sb.show(); } } catch (e) { console.warn('ae settings button', e); }
   function openApkInfo() {
     const tgData = !isApk && window.Telegram?.WebApp?.initData || '';
     openPanel('📱 Приложение Android', body => {
@@ -3165,7 +3206,7 @@
     if (e.kind === 'market' || e.kind === 'auction-outbid') setTimeout(() => sweepWallet(true), 800);
     if (e.kind === 'trade_paid' && b) { if (!tradeDone().has('paid:' + e.data?.offerId)) { markTrade('paid:' + e.data?.offerId); b.setPlayer(p => p && {...p, gold: (p.gold || 0) + (Number(e.data?.gold) || 0)}); } }
     if (e.kind === 'trade_return' && b && e.data?.item) { if (!tradeDone().has('ret:' + e.data.offerId)) { markTrade('ret:' + e.data.offerId); giveItem(e.data.item); } }
-    const act = e.kind === 'trade_offer' ? ['Смотреть', () => openFriends('trades')] : e.kind === 'coop' || e.kind === 'coop-invite' ? ['Открыть', openCoop] : e.kind === 'clan-invite' && e.data?.code ? ['Вступить', () => joinClanByCode(e.data.code)] : e.kind === 'friend-accepted' ? ['Написать', () => openChat({id: e.data?.id, name: ''})] : e.kind === 'premium' ? ['Ура!', () => checkPremium()] : e.kind === 'lot-offer' ? ['Ответить', () => openAuction('mine')] : e.kind === 'buy-request' ? ['Ответить', () => openAuction('req')] : e.kind === 'auction-outbid' ? ['Перебить', () => openAuction('all')] : e.kind === 'clan-hint' ? ['Найти клан', () => openClanSearch()] : e.kind === 'clan-request' ? ['Заявки', () => openClanHQ('requests')] : e.kind === 'clan' || e.kind === 'clan-welcome' ? ['Штаб', () => openClanHQ()] : [null, null];
+    const act = eventAction(e) || [null, null];
     popup({icon: e.icon || '🔔', text: e.text, act: act[0], fn: act[1]});
   }
 
@@ -4440,6 +4481,7 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-app-ico{display:inline-block;margin-left:4px;font-size:.85em;line-height:1;vertical-align:middle;filter:drop-shadow(0 0 3px #4ade8088)}
 .ae-nick-flexrow{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;column-gap:6px;row-gap:2px}.ae-nick-flexrow>*{flex-basis:100%}.ae-nick-flexrow>:is(.ae-nick-ava,.ae-clan-tag,.ae-app-ico,[data-ae-uid],.ae-nick-inline){flex-basis:auto;margin-top:0!important;margin-bottom:0!important}.ae-nick-flexrow>.ae-app-ico{margin-left:0}
 .ae-rank-ava{width:34px!important;height:34px!important}.ae-rank-ava>:not(.ae-rank-img){display:none!important}.ae-rank-img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid #a58a4f;box-shadow:0 0 6px #0008}.ae-rank-ava+.ae-nick-flexrow .ae-nick-ava{display:none!important}
+.ae-inbox-row.is-link{cursor:pointer}.ae-inbox-go{flex:none;align-self:center;font:700 11.5px system-ui;color:#ffe6a8;padding:4px 8px;border-radius:999px;border:1px solid #6b5631;background:#0f1512;white-space:nowrap}.ae-inbox-row.is-link:active{transform:scale(.98)}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4777,5 +4819,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();
