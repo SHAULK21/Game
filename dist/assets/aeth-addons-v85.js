@@ -509,27 +509,53 @@
     const st = openPanel('🛡 Казарма · Соратники', body => {
       if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const HL = d.heroLevel, U = d.unlock || {};
-      body.append(h('div', {class: 'ae-barracks-hero'}, h('img', {src: '/assets/story/barracks.webp', alt: ''})));
+      if (!pick) body.append(h('div', {class: 'ae-barracks-hero'}, h('img', {src: '/assets/story/barracks.webp', alt: ''})));
       const road = [[U.barracks, '🛡 Казарма и первый соратник · слоты оружия и доспеха'], [U.train, '🏋️ Тренировки соратников'], [U.assist, '⚔️ Соратник помогает в обычных боях · шлем, сапоги, перчатки'],
         [U.coop, '🤝 Соратники в кооп-подземельях'], [U.second, '👥 Второй соратник · поножи, пояс, плащ'], [U.autoAssist, '⚡ Страховка: соратник сам спасает при низком здоровье'], [18, '💍 Щит, амулет, кольцо и артефакт'], [U.third, '🏆 Третий соратник — казарма открыта полностью']];
       const next = road.find(([l]) => HL < l);
-      body.append(h('details', {class: 'ae-combos', open: HL < U.barracks}, h('summary', {}, next ? `🔓 Открытие казармы · дальше: ${next[0]} ур.` : '🔓 Казарма открыта полностью'),
+      if (!pick) body.append(h('details', {class: 'ae-combos', open: HL < U.barracks}, h('summary', {}, next ? `🔓 Открытие казармы · дальше: ${next[0]} ур.` : '🔓 Казарма открыта полностью'),
         ...road.map(([l, t]) => h('div', {class: 'ae-combo-row' + (HL >= l ? ' ae-good' : '')}, h('span', {}, HL >= l ? '✅' : '🔒'), h('b', {}, `${l} ур.`), h('span', {class: 'ae-sub'}, t)))));
       if (HL < U.barracks) return body.append(h('p', {class: 'ae-empty'}, `Казарма откроется на ${U.barracks} уровне героя.`));
-      body.append(h('p', {class: 'ae-note'}, 'Соратники — ваши личные боты-союзники. В отличие от наёмников они растут в уровнях, носят вашу экипировку и не берут долю награды. Берите их в кооп-подземелья: в комнате нажмите имя соратника.'));
+      if (!pick) body.append(h('p', {class: 'ae-note'}, 'Соратники — ваши личные боты-союзники. В отличие от наёмников они растут в уровнях, носят вашу экипировку и не берут долю награды. Берите их в кооп-подземелья: в комнате нажмите имя соратника.'));
       if (pick) {
-        const c = d.companions.find(x => x.id === pick); if (!c) { pick = null; return st.rerender(); }
+        const c = d.companions.find(x => x.id === pick.id); if (!c) { pick = null; return st.rerender(); }
+        const SL = pick.slot, ru = sl => d.slotRu[sl] || sl, maxLvl = c.lvl + 3;
         const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id));
-        const list = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && (d.heroLevel >= (d.slotLvl?.[i.type] || 0)) && !i.isEquipped && !i.isLocked && !worn.has(i.id) && !i.boundToClan && (i.serverOwned || transferable(i))).sort((a, b) => (b.level || 0) - (a.level || 0));
-        body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 Вещь для: ${c.name} (${c.lvl} ур., до ${c.lvl + 3} ур. вещи)`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { pick = null; st.rerender(); }}, '← Назад')));
+        const bag = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && (!SL || i.type === SL));
+        const usable = i => !i.isEquipped && !worn.has(i.id) && !i.isLocked && !i.boundToClan && (i.serverOwned || transferable(i));
+        const open = sl => d.heroLevel >= (d.slotLvl?.[sl] || 0);
+        const list = bag.filter(i => usable(i) && open(i.type));
+        const fit = list.filter(i => (i.level || 1) <= maxLvl).sort((a, b) => (b.level || 0) - (a.level || 0) || (b.upgradeLevel || 0) - (a.upgradeLevel || 0));
+        const heavy = list.filter(i => (i.level || 1) > maxLvl).sort((a, b) => (a.level || 0) - (b.level || 0));
+        body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 ${SL ? ru(SL) : 'Вещь'} для: ${c.name}`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { pick = null; st.rerender(); }}, '← Назад')));
+        body.append(h('p', {class: 'ae-sub'}, `${c.name} — ${c.lvl} ур.: подходят вещи до ${maxLvl} ур. Сначала показаны самые сильные из подходящих.`));
+        // slot filter
+        body.append(h('div', {class: 'ae-comp-filter'}, h('button', {type: 'button', class: 'ae-pill-btn' + (!SL ? ' is-on' : ''), onclick: () => { pick = {id: c.id, slot: null}; st.rerender(); }}, 'Все'),
+          ...d.slots.map(sl => h('button', {type: 'button', class: 'ae-pill-btn' + (SL === sl ? ' is-on' : '') + (open(sl) ? '' : ' is-locked'), onclick: () => { pick = {id: c.id, slot: sl}; st.rerender(); }}, (open(sl) ? '' : '🔒') + ru(sl)))));
+        const cur = SL && c.gear[SL];
+        if (cur) body.append(h('div', {class: 'ae-card ae-row', 'data-ae-rarity': cur.rarity || 'common'}, h('img', {class: 'ae-comp-cur', src: iconFor(cur) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(cur)}),
+          h('span', {class: 'ae-grow'}, h('small', {class: 'ae-sub'}, 'Сейчас надето'), h('b', {}, `${cur.name}${cur.upgradeLevel ? ' +' + cur.upgradeLevel : ''}`), h('small', {}, `ур. ${cur.level || 1}`)),
+          h('button', {class: 'ae-btn', type: 'button', onclick: () => confirm(`Снять «${cur.name}» и вернуть в сумку?`) && call('/api/ae-comp/unequip', {id: c.id, slot: SL}, 'Вещь вернулась в сумку')}, 'Снять')));
+        // why nothing fits
+        if (!fit.length) {
+          const what = SL ? ru(SL).toLowerCase() : 'экипировки';
+          let why;
+          if (SL && !open(SL)) why = `🔒 Слот «${ru(SL)}» у соратников откроется на ${d.slotLvl[SL]} уровне героя (сейчас ${d.heroLevel}).`;
+          else if (!bag.length) why = SL ? `В сумке нет ни одной вещи для слота «${ru(SL)}». Найдите её в походах, купите на рынке или создайте в мастерской.` : 'В сумке нет экипировки. Найдите её в походах, купите на рынке или создайте в мастерской.';
+          else if (bag.every(i => i.isEquipped || worn.has(i.id))) why = `Все вещи для «${SL ? ru(SL) : 'этих слотов'}» надеты на героя. Сначала снимите вещь с героя — тогда её можно отдать соратнику.`;
+          else if (!list.length) why = 'Подходящие вещи в сумке заблокированы, привязаны к клану или их нельзя передать. Снимите блокировку с вещи в сумке.';
+          else why = `Все вещи (${what}) слишком высокого уровня: ${c.name} может надеть вещь до ${maxLvl} ур. Самая лёгкая — ${heavy[0].level} ур.: нужен соратник ${heavy[0].level - 3} ур. Тренируйте его или берите в кооп.`;
+          body.append(h('div', {class: 'ae-card ae-comp-why'}, h('b', {}, SL ? `Нет подходящих: ${ru(SL)}` : 'Нет подходящих вещей'), h('p', {class: 'ae-sub'}, why)));
+        }
         body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => goCraft('crafting')}, '🔨 Создать в мастерской'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => goCraft('blacksmith')}, '⚒️ Заточить в кузнице')));
-        body.append(h('p', {class: 'ae-sub'}, 'Соратнику подходит любая экипировка из сумки: найденная, купленная или созданная в мастерской. Надетые на героя вещи сначала снимите.'));
-        if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'В сумке нет подходящей экипировки (надетые на героя вещи сначала снимите).'));
-        for (const it of list) { const heavy = (it.level || 1) > c.lvl + 3, cur = c.gear[it.type];
-          body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', disabled: heavy, onclick: () => equip(c, it)},
+        const row = (it, tooHeavy) => { const was = c.gear[it.type];
+          return h('button', {type: 'button', class: 'ae-chat-item ae-equip-row' + (tooHeavy ? ' is-heavy' : ''), 'data-ae-rarity': it.rarity || 'common', disabled: tooHeavy, onclick: () => equip(c, it)},
             h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}),
-            h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${d.slotRu[it.type] || it.type} · ур. ${it.level || 1}${heavy ? ' · слишком тяжёлая' : ''}${cur ? ` · заменит «${cur.name}»` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)),
-            h('span', {class: 'ae-equip-go'}, 'Надеть'))); }
+            h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${ru(it.type)} · ур. ${it.level || 1}${tooHeavy ? ` · нужен соратник ${(it.level || 1) - 3} ур.` : was ? ` · заменит «${was.name}»` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)),
+            h('span', {class: 'ae-equip-go'}, tooHeavy ? '🔒' : 'Надеть')); };
+        if (fit.length) { body.append(h('h3', {class: 'ae-h3'}, `✅ Подходят · ${fit.length}`)); for (const it of fit) body.append(row(it, false)); }
+        if (heavy.length) { body.append(h('h3', {class: 'ae-h3'}, `⛔ Слишком высокий уровень · ${heavy.length}`)); for (const it of heavy) body.append(row(it, true)); }
+        if (!SL) body.append(h('p', {class: 'ae-sub'}, 'Надетые на героя вещи сначала снимите.'));
         return;
       }
       if (!d.companions.length) body.append(h('p', {class: 'ae-empty'}, 'Пока ни одного соратника.'));
@@ -540,15 +566,15 @@
           pbar(c.xp, c.need, c.lvl >= d.heroLevel ? `Не выше вашего уровня (${d.heroLevel})` : `Опыт: ${fmt(c.xp)} / ${fmt(c.need)}`, 'is-mp'),
           h('div', {class: 'ae-hq-pills'}, h('span', {}, `❤️ ${fmt(s.maxHp)}`), h('span', {}, `⚔️ ${fmt(s.atk)}`), h('span', {}, `🛡️ ${fmt(s.def)}`), h('span', {}, `💥 ${Math.round(s.crit * 100)}%`), h('span', {}, `🔷 ${fmt(s.maxMp)}`)),
           h('div', {class: 'ae-comp-gear'}, d.slots.map(sl => { const it = c.gear[sl];
-            return it ? h('button', {type: 'button', class: 'ae-comp-slot is-on', 'data-ae-rarity': it.rarity || 'common', title: `${it.name} — снять`, onclick: () => confirm(`Снять «${it.name}» и вернуть в сумку?`) && call('/api/ae-comp/unequip', {id: c.id, slot: sl}, 'Вещь вернулась в сумку')},
+            return it ? h('button', {type: 'button', class: 'ae-comp-slot is-on', 'data-ae-rarity': it.rarity || 'common', title: `${it.name} — заменить или снять`, onclick: () => { pick = {id: c.id, slot: sl}; st.rerender(); }},
               h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}))
-              : HL < (d.slotLvl?.[sl] || 0) ? h('span', {class: 'ae-comp-slot is-locked', title: `${d.slotRu[sl]} — с ${d.slotLvl[sl]} ур.`}, h('small', {}, `🔒${d.slotLvl[sl]}`))
-              : h('span', {class: 'ae-comp-slot', title: d.slotRu[sl]}, h('i', {}, {weapon: '⚔️', offhand: '🛡️', helmet: '⛑️', armor: '🥋', pants: '👖', gloves: '🧤', boots: '🥾', belt: '🎗️', cloak: '🧥', amulet: '📿', ring: '💍', artifact: '🔮'}[sl] || '')); })),
-          h('div', {class: 'ae-sub'}, gear.length ? `Надето: ${gear.map(([, it]) => it.name).join(', ')}. Нажмите на вещь, чтобы снять.` : 'Снаряжения нет — оденьте соратника из своей сумки.', ` · походов ${c.runs}, побед ${c.wins}`),
+              : HL < (d.slotLvl?.[sl] || 0) ? h('button', {type: 'button', class: 'ae-comp-slot is-locked', title: `${d.slotRu[sl]} — с ${d.slotLvl[sl]} ур.`, onclick: () => toast(`🔒 Слот «${d.slotRu[sl]}» у соратников откроется на ${d.slotLvl[sl]} уровне героя.`)}, h('small', {}, `🔒${d.slotLvl[sl]}`))
+              : h('button', {type: 'button', class: 'ae-comp-slot', title: `${d.slotRu[sl]}: выбрать вещь`, onclick: () => { pick = {id: c.id, slot: sl}; st.rerender(); }}, h('i', {}, {weapon: '⚔️', offhand: '🛡️', helmet: '⛑️', armor: '🥋', pants: '👖', gloves: '🧤', boots: '🥾', belt: '🎗️', cloak: '🧥', amulet: '📿', ring: '💍', artifact: '🔮'}[sl] || '')); })),
+          h('div', {class: 'ae-sub'}, gear.length ? `Надето: ${gear.map(([, it]) => it.name).join(', ')}. Нажмите на ячейку, чтобы надеть, заменить или снять вещь.` : 'Снаряжения нет — нажмите на ячейку, чтобы надеть вещь из сумки.', ` · походов ${c.runs}, побед ${c.wins}`),
           h('div', {class: 'ae-comp-wage' + (c.paid ? '' : ' is-due')}, h('span', {class: 'ae-grow'}, c.paid ? `💰 Жалование оплачено до ${new Date(c.paidUntil).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}` : '😴 Отдыхает — ждёт жалования', h('small', {}, `${fmt(c.wage)} 🪙 в день. Без оплаты соратник не помогает в боях и не ходит в кооп.`)),
             ...[[1, 'День'], [7, 'Неделя']].map(([n, l]) => h('button', {class: 'ae-btn' + (c.paid ? '' : ' ae-primary'), type: 'button', onclick: () => pay(c.wage * n, () => call('/api/ae-comp/pay', {id: c.id, days: n, pay: c.wage * n}, `💰 ${c.name}: жалование оплачено`))}, `${l} · ${fmt(c.wage * n)} 🪙`))),
           h('div', {class: 'ae-row ae-wrap'},
-            h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = c.id; st.rerender(); }}, '👕 Надеть вещь'),
+            h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = {id: c.id, slot: null}; st.rerender(); }}, '👕 Надеть вещь'),
             (() => { const xp = Math.round(c.need * 0.35), cost = Math.round(xp * 0.5);
               return HL < U.train ? h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: true}, `🔒 Тренировки с ${U.train} ур.`) : h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => { firstStory('training'); call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`); })}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
           h('div', {class: 'ae-row'},
@@ -4683,6 +4709,7 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-comp-filter{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 8px}.ae-comp-filter .ae-pill-btn{flex:0 0 auto;padding:5px 9px;font-size:11.5px}.ae-comp-filter .is-locked{opacity:.5}.ae-comp-why{border-color:#b9474788!important}.ae-comp-cur{width:42px;height:42px;object-fit:contain}.ae-equip-row.is-heavy{opacity:.55}button.ae-comp-slot{cursor:pointer;font:inherit;color:inherit}
 .ae-power-native{display:inline-flex;align-items:center;gap:5px;margin:6px 0 2px;padding:4px 12px 4px 8px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44;color:#ffe6a8;cursor:pointer;font:inherit}.ae-power-native b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-native small{font-size:11px;color:#e9dcc0;opacity:.85}.inventory-page-heading{flex-wrap:wrap}.inventory-page-heading>.ae-power-native{order:3;flex-basis:auto}
 .ae-power-badge{display:inline-flex;align-items:center;gap:5px;margin:3px 0;padding:3px 10px 3px 7px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44}.ae-power-badge b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-badge small{font-size:10.5px;color:#e9dcc0;opacity:.85}
 .ae-power-box summary{font-weight:700}.ae-power-row{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #6b563133}.ae-power-row small{display:block;font-size:10.5px;opacity:.7}.ae-power-row b{color:#ffe6a8}
