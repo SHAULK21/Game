@@ -27,11 +27,14 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
     if (String(input.path || '').startsWith('/api/ae-save')) {  // in-memory stand-in for the cloud_saves table (same rules as tgcloud/lib/cloudSave.js)
       const cs = (world.__cloud ||= {}), row = cs[String(userId)], meta = r => r ? {rev: r.rev, savedAt: r.savedAt, device: r.device, level: r.level, heroName: r.heroName} : {rev: 0};
       let res;
-      if ((input.method || 'GET') === 'GET') res = {status: 200, body: {...meta(row), ...(row && /full=1/.test(input.path) ? {data: row.data} : {})}};
+      const bak = cs[String(userId) + '#bak'];
+      if ((input.method || 'GET') === 'GET' && /bak=1/.test(input.path)) res = bak ? {status: 200, body: {...meta(bak), data: bak.data}} : {status: 404, body: {error: 'нет'}};
+      else if ((input.method || 'GET') === 'GET') res = {status: 200, body: {...meta(row), ...(bak ? {backup: meta(bak)} : {}), ...(row && /full=1/.test(input.path) ? {data: row.data} : {})}};
       else { const b = input.body || {}, sv = JSON.parse(b.data || 'null'), cur = row?.rev || 0;
         if (!sv?.player || String(sv.player.userId) !== String(userId)) res = {status: 403, body: {error: 'чужое'}};
         else if (row && !b.force && Number(b.baseRev) !== cur && row.device !== b.device) res = {status: 409, body: {conflict: true, ...meta(row)}};
-        else { cs[String(userId)] = {rev: cur + 1, savedAt: new Date().toISOString(), device: b.device, level: sv.player.level, heroName: sv.player.name, data: b.data}; res = {status: 200, body: {rev: cur + 1}}; } }
+        else { if (row && (sv.player.level < row.level || row.device !== b.device || b.force)) cs[String(userId) + '#bak'] = {...row};
+          cs[String(userId)] = {rev: cur + 1, savedAt: new Date().toISOString(), device: b.device, level: sv.player.level, heroName: sv.player.name, data: b.data}; res = {status: 200, body: {rev: cur + 1}}; } }
       calls.push({path: input.path, method: input.method, status: res.status, body: JSON.stringify(res.body).slice(0, 200)}); return res;
     }
     const res = (await handleSocialRequest(world, input, {...user, isAdmin: user.id === E.ADMIN_TELEGRAM_ID}, nowT, native)) || await E.handleProgressRequest(world, input, user, {now: () => Date.now(), isAdmin: id => id === E.ADMIN_TELEGRAM_ID});

@@ -1806,6 +1806,8 @@
     for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); } catch { return ''; } };
   const heroOf = raw => { try { const pl = JSON.parse(raw).player || {}; return {name: pl.name || 'Герой', level: pl.level || 1, cls: CLASS_NAME?.[pl.classId] || pl.classId || ''}; } catch { return {name: 'Герой', level: 1}; } };
   let cloudReady = false, cloudBusy = false;
+  // never swap the hero here for a weaker one without asking
+  const cloudWeaker = (m, raw) => !!raw && (Number(m.level) || 1) < (heroOf(raw).level || 1);
   // works before the game screen exists (hero creation on a new device), unlike api()
   const cloudApi = (path, method = 'GET', body) => new Promise((res, rej) => {
     const S = window.Telegram?.WebApp?.Serverless; if (!S) return rej(new Error('Нет связи с сервером.'));
@@ -1824,11 +1826,11 @@
   function cloudChoose(m, raw) {
     cloudReady = false; document.querySelector('.ae-cloud')?.remove();
     const here = heroOf(raw), when = m.savedAt ? new Date(m.savedAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
-    const keepHere = async () => { box.remove(); try { const r = await cloudApi('/api/ae-save', 'POST', {baseRev: m.rev, device: deviceId, data: localStorage.getItem(SAVE_KEY()) || raw, force: true}); markSynced(r.rev, localStorage.getItem(SAVE_KEY()) || raw); cloudReady = true; toast('☁️ Этот герой сохранён — теперь он будет на всех устройствах.'); } catch (e) { toast(cleanError(e)); } };
+    const keepHere = async () => { if (here.level < m.level && !confirm(`Здесь герой ниже уровнем (${here.level} ур.), чем в облаке (${m.level} ур.). Точно оставить его? Облачный сохранится как прошлая версия.`)) return; box.remove(); try { const r = await cloudApi('/api/ae-save', 'POST', {baseRev: m.rev, device: deviceId, data: localStorage.getItem(SAVE_KEY()) || raw, force: true}); markSynced(r.rev, localStorage.getItem(SAVE_KEY()) || raw); cloudReady = true; toast('☁️ Этот герой сохранён — теперь он будет на всех устройствах.'); } catch (e) { toast(cleanError(e)); } };
     const box = h('div', {class: 'ae-cloud'}, h('div', {class: 'ae-cloud-card ae-cloud-pick'},
       h('h2', {}, '☁️ Найдено два героя'), h('p', {}, 'На этом устройстве и на сервере разные сохранения. Выберите, каким героем играть на всех устройствах. Второе сохранение будет заменено.'),
       h('button', {type: 'button', class: 'ae-btn ae-wide' + (here.level >= m.level ? ' ae-primary' : ''), onclick: keepHere}, h('b', {}, `📱 С этого устройства: ${here.name}, ${here.level} ур.`)),
-      h('button', {type: 'button', class: 'ae-btn ae-wide' + (m.level > here.level ? ' ae-primary' : ''), onclick: () => { box.remove(); cloudRestore(m); }}, h('b', {}, `☁️ С другого устройства: ${m.heroName || 'Герой'}, ${m.level} ур.`), when ? h('small', {}, ` · сохранён ${when}`) : '')));
+      h('button', {type: 'button', class: 'ae-btn ae-wide' + (m.level > here.level ? ' ae-primary' : ''), onclick: () => { if (m.level < here.level && !confirm(`В облаке герой ниже уровнем (${m.level} ур.), чем здесь (${here.level} ур.). Точно загрузить его? Герой этого устройства сохранится как прошлая версия.`)) return; box.remove(); cloudRestore(m); }}, h('b', {}, `☁️ С другого устройства: ${m.heroName || 'Герой'}, ${m.level} ур.`), when ? h('small', {}, ` · сохранён ${when}`) : '')));
     document.body.append(box);
   }
   async function cloudInit() {
@@ -1839,6 +1841,7 @@
     const hasHero = !!(raw && heroOf(raw) && JSON.parse(raw)?.player);
     if (!m.rev) { cloudReady = true; return cloudPush(); }                    // first device: upload
     const dirty = hasHero && progressSig(raw) !== localStorage.getItem(cKey('sig'));
+    if (hasHero && m.rev > localRev && cloudWeaker(m, raw)) return cloudChoose(m, raw);  // the cloud hero is lower: ask
     if (!hasHero || (m.rev > localRev && !dirty)) return cloudRestore(m);   // newer hero on the server
     if (m.rev > localRev && dirty) { if (progressSig(raw) && localStorage.getItem(cKey('sig')) === null && m.level === heroOf(raw).level && m.heroName === heroOf(raw).name) { markSynced(m.rev, raw); cloudReady = true; return cloudPush(); } return cloudChoose(m, raw); }
     cloudReady = true; cloudPush();
@@ -1869,6 +1872,13 @@
         if (m.rev && !confirm(`Заменить героя в облаке (${m.heroName || 'Герой'}, ${m.level} ур.) героем с этого устройства (${here.name}, ${here.level} ур.)?`)) return;
         try { const cur = localStorage.getItem(SAVE_KEY()) || raw; const r = await cloudApi('/api/ae-save', 'POST', {baseRev: m.rev, device: deviceId, data: cur, force: true}); markSynced(r.rev, cur); cloudReady = true; toast('☁️ Герой сохранён. На другом устройстве откройте «Перенос героя» → «Загрузить из облака».'); openCloudPanel(); } catch (e) { toast(cleanError(e)); } }},
         h('b', {}, `⬆️ Сохранить в облако: ${here.name}, ${here.level} ур.`)));
+      if (m.backup) { const bw = m.backup.savedAt ? new Date(m.backup.savedAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
+        body.append(h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: async () => {
+          if (!confirm(`Вернуть прошлую версию: ${m.backup.heroName || 'Герой'}, ${m.backup.level} ур. (${bw})? Она станет основной на всех устройствах.`)) return;
+          try { const b = await cloudApi('/api/ae-save?bak=1'); if (!b?.data) return toast('Прошлой версии нет.');
+            const cur = await cloudApi('/api/ae-save'); const r = await cloudApi('/api/ae-save', 'POST', {baseRev: cur.rev, device: deviceId, data: b.data, force: true});
+            localStorage.setItem(SAVE_KEY(), b.data); markSynced(r.rev, b.data); cloudOverlay(`↩️ Возвращаем ${b.heroName || 'героя'} (${b.level} ур.)…`); setTimeout(() => location.reload(), 500);
+          } catch (e) { toast(cleanError(e)); } }}, h('b', {}, `↩️ Вернуть прошлую версию: ${m.backup.heroName || 'Герой'}, ${m.backup.level} ур.`), bw ? h('small', {}, ` · ${bw}`) : '')); }
       if (m.rev) body.append(h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => {
         if (here && !confirm(`Загрузить ${m.heroName || 'героя'} (${m.level} ур.) из облака? Герой на этом устройстве (${here.name}, ${here.level} ур.) будет заменён.`)) return;
         cloudRestore(m); }}, h('b', {}, `⬇️ Загрузить из облака: ${m.heroName || 'Герой'}, ${m.level} ур.`)));
@@ -1879,7 +1889,7 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudPush(); });
   // another device saved while this one sits idle: pick it up when the game comes back to the screen
   document.addEventListener('visibilitychange', async () => { if (document.hidden || !cloudReady || !tgUid()) return; try { const m = await cloudApi('/api/ae-save'); const raw = localStorage.getItem(SAVE_KEY()), localRev = Number(localStorage.getItem(cKey('rev'))) || 0;
-    if (m.rev > localRev && m.device !== deviceId) { if (raw && progressSig(raw) !== localStorage.getItem(cKey('sig'))) cloudChoose(m, raw); else cloudRestore(m); } } catch {} });
+    if (m.rev > localRev && m.device !== deviceId) { if (raw && (progressSig(raw) !== localStorage.getItem(cKey('sig')) || cloudWeaker(m, raw))) cloudChoose(m, raw); else cloudRestore(m); } } catch {} });
   // ---------- Premium: days left (header chip, profile line) ----------
   let premUntil = 0, premAt = 0;
   async function loadPremUntil(force) {
