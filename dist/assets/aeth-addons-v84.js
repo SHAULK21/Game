@@ -2249,8 +2249,10 @@
         : h('p', {class: 'ae-sub ae-doll-hint'}, Object.keys(g).length ? 'Нажмите на вещь, чтобы посмотреть её характеристики и кристаллы.' : 'Герой пока ничего не надел.')));
   }
   function openPlayerCard(id, name) {
-    let prof = null, picked = null;
+    let prof = null, picked = null, err = null, tries = 0;
     const st = openPanel('👤 ' + name, body => {
+      if (!prof) body.append(err ? h('div', {class: 'ae-card'}, h('p', {class: 'ae-bad'}, `Не удалось загрузить карточку: ${err}`), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => load()}, '🔄 Повторить'))
+        : h('p', {class: 'ae-empty'}, 'Загрузка…'));
       if (prof) body.append(profileHeader(prof), powerBlock(prof), h('div', {class: 'ae-prof-stats'},
         h('span', {}, `⚔️ Рейтинг дуэлей ${prof.stats.duelRating}`), h('span', {}, `🤝 Кооп-побед ${prof.stats.coopWins}`), h('span', {}, `🌕 Рекорд Орды ${prof.stats.hordeBest}`), h('span', {}, `🏅 Титулов ${prof.titlesEarned}`)));
       if (prof?.gear) body.append(h('h3', {class: 'ae-h3'}, '🛡️ Экипировка'), gearDoll(prof, k => { picked = picked === k ? null : k; st.rerender(); }, picked));
@@ -2261,7 +2263,15 @@
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => { closePanel(); openDuel(name); }}, '⚔️ Дуэль'),
         h('button', {class: 'ae-btn', type: 'button', onclick: () => closePanel()}, 'Закрыть')));
     });
-    (String(id) === uid() ? syncGear() : Promise.resolve()).then(() => api('/api/ae-profile/card?id=' + encodeURIComponent(id))).then(r => { prof = r.profile; if (openPanelState === st) st.rerender(); }, () => {});
+    const rer = () => { if (openPanelState === st) try { st.rerender(); } catch (e) { console.error('ae card render', e?.stack || e); } };
+    function load() {
+      err = null; tries++; rer();
+      return api('/api/ae-profile/card?id=' + encodeURIComponent(id)).then(r => { if (r?.profile) prof = r.profile; else err = 'пустой ответ сервера'; rer(); },
+        e => { if (tries < 2) return new Promise(res => setTimeout(res, 800)).then(load); if (!prof) err = cleanError(e) || 'нет связи с сервером'; rer(); });
+    }
+    load();
+    // your own card: send the current gear, then refresh once so the card shows it (the card never waits for this)
+    if (String(id) === uid()) syncGear().then(() => api('/api/ae-profile/card?id=' + encodeURIComponent(id))).then(r => { if (r?.profile) { prof = r.profile; err = null; rer(); } }, () => {});
   }
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
