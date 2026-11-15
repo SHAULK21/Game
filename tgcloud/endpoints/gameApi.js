@@ -43,6 +43,7 @@ async function handle(input, ctx) {
       validateNativeWorld(world); return response;
     }, {maxAttempts: input.path === '/api/admin/broadcasts' && String(input.method).toUpperCase() === 'POST' ? 32 : 8});
     if (input.path === '/api/admin/news' && reply.status < 300) reply.body.channel = await syncChannel(input, reply.body);
+    if (input.path === '/api/admin/news' && reply.status === 201 && reply.body?.bot) { try { const r = await drainDeliveries(40); reply.body.botSent = r.sent; } catch (error) { console.error('news bot drain failed', error?.code || error?.name); } }
     if (input.path === '/api/admin/premium/grant' && reply.status === 200 && !reply.body?.replayed)
       await sendPremiumWelcome(Number(input.body.targetId), Number(input.body.days), true);
     if (input.path === '/api/support/bug-report' && reply.status === 201 && reply.body?.report) {

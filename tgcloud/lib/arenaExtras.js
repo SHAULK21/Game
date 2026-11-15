@@ -65,7 +65,19 @@ function handleNews(world, path, method, body, user, now) {
       const dup = opId && list.find(x => x.op === opId); if (dup) return ok({post: dup, replayed: true});
       const post = {id: crypto.randomUUID(), op: opId || null, title, text, at: new Date(now).toISOString()};
       list.push(post); world.tables.ae_news = list.slice(-60);
-      return ok({post}, 201);
+      // the same post in the chat with the bot (where the «Play» button is)
+      let bot = 0;
+      if (body.toBot !== false) {
+        const msg = `📢 ${title}\n\n${text}`.slice(0, 4000), stamp = new Date(now).toISOString();
+        for (const pl of rows(world, 'players')) {
+          if (!pl.bot_started || pl.notification_settings?.announcements === false) continue;  // update news: everyone who started the bot, unless announcements are explicitly off
+          rows(world, 'telegram_outbox').push({id: crypto.randomUUID(), method: 'sendMessage', created_at: stamp, attempts: 0, completed_at: null, delivery_lease_owner: null, delivery_lease_until: null,
+            payload: {chat_id: Number(pl.telegram_id), text: msg, disable_web_page_preview: true, reply_markup: {inline_keyboard: [[{text: '🎮 Играть', web_app: {url: 'https://app8958621621.tgcloud.ai/'}}]]}}});
+          bot++;
+        }
+        post.bot = bot;
+      }
+      return ok({post, bot}, 201);
     }
   }
   return fail('API не найден.', 404);
