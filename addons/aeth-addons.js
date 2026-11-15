@@ -2216,16 +2216,24 @@
           h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}), it.upgradeLevel ? h('i', {class: 'ae-doll-up'}, '+' + it.upgradeLevel) : '',
           (it.gems || []).length ? h('span', {class: 'ae-doll-gems'}, (it.gems || []).map(id => h('b', {}, GEMS.find(x => x.id === id)?.icon || '💎'))) : '')
         : h('span', {class: 'ae-doll-slot is-empty', title: ru + ': пусто'}, h('small', {}, ru)); };
-    const it = picked && g[picked];
+    const it = picked && g[picked], pet = prof.pet && prof.look?.showPet !== false ? prof.pet : null, comp = prof.look?.comp || null;
+    const petSlot = pet ? h('button', {type: 'button', class: 'ae-doll-slot ae-doll-pet-slot' + (picked === 'pet' ? ' is-on' : ''), 'data-ae-rarity': pet.rarity, title: `${pet.name} · ур. ${pet.level}`, onclick: () => onPick('pet')},
+        h('img', {src: `/assets/pets/icon-${pet.id}.webp`, alt: '', onerror: e => { e.target.replaceWith('🐾'); }}), h('i', {class: 'ae-doll-up'}, pet.level), h('small', {class: 'ae-doll-tag'}, 'Питомец'))
+      : h('span', {class: 'ae-doll-slot is-empty', title: 'Питомец: нет'}, h('small', {}, 'Питомец'));
+    const compSlot = comp ? h('button', {type: 'button', class: 'ae-doll-slot ae-doll-pet-slot is-comp' + (picked === 'comp' ? ' is-on' : ''), title: `Соратник: ${comp.name} · ${comp.lvl} ур.`, onclick: () => onPick('comp')},
+        h('img', {src: comp.img || heroPortrait(comp.classId), alt: ''}), h('i', {class: 'ae-doll-up'}, comp.lvl), h('small', {class: 'ae-doll-tag'}, 'Соратник'))
+      : h('span', {class: 'ae-doll-slot is-empty', title: 'Соратник: нет'}, h('small', {}, 'Соратник'));
+    const COMP_RU = {tank: 'Танк', heal: 'Лекарь', dps: 'Боец'};
+    const info = picked === 'pet' && pet ? h('div', {class: 'ae-card ae-doll-info', 'data-ae-rarity': pet.rarity}, h('b', {}, `🐾 ${pet.name}`), h('small', {class: 'ae-sub'}, `${RARITY_RU[pet.rarity] ? RARITY_RU[pet.rarity][0].toUpperCase() + RARITY_RU[pet.rarity].slice(1) + ' · ' : ''}ур. ${pet.level}${pet.hungry ? ' · голоден' : ' · сыт'}`))
+      : picked === 'comp' && comp ? h('div', {class: 'ae-card ae-doll-info'}, h('b', {}, `🛡 ${comp.name}`), h('small', {class: 'ae-sub'}, `Соратник · ${COMP_RU[comp.role] || ''}${COMP_RU[comp.role] ? ' · ' : ''}${comp.lvl} ур.`)) : null;
     return h('div', {class: 'ae-doll-wrap'},
-      h('div', {class: 'ae-doll'}, h('div', {class: 'ae-doll-col'}, DOLL_L.map(slot)),
+      h('div', {class: 'ae-doll'}, h('div', {class: 'ae-doll-col'}, DOLL_L.map(slot), petSlot),
         h('div', {class: `ae-doll-hero ae-aura-${prof.look?.aura || 'none'} ae-theme-${prof.look?.theme || 'night'}`, style: prof.banner ? `--ae-banner:url("${prof.banner.src}")` : ''}, h('img', {class: 'ae-doll-body', src: heroBody(prof.classId), alt: ''}), h('small', {}, `Сила снаряжения ${fmt(power)}`),
-          prof.pet && prof.look?.showPet !== false ? h('img', {class: 'ae-doll-pet', src: `/assets/pets/icon-${prof.pet.id}.webp`, alt: '', title: `${prof.pet.name} · ур. ${prof.pet.level}`, onerror: e => e.target.remove()}) : '',
-          prof.look?.comp ? h('span', {class: 'ae-doll-comp', title: `Соратник: ${prof.look.comp.name} · ${prof.look.comp.lvl} ур.`}, h('img', {src: prof.look.comp.img || heroPortrait(prof.look.comp.classId), alt: ''}), h('small', {}, prof.look.comp.name)) : ''),
-        h('div', {class: 'ae-doll-col'}, DOLL_R.map(slot))),
-      it ? h('div', {class: 'ae-card ae-doll-info', 'data-ae-rarity': it.rarity}, h('b', {}, `${it.name}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${it.ascension ? ' ★' + it.ascension : ''}`),
+          ''),
+        h('div', {class: 'ae-doll-col'}, DOLL_R.map(slot), compSlot)),
+      info || (it ? h('div', {class: 'ae-card ae-doll-info', 'data-ae-rarity': it.rarity}, h('b', {}, `${it.name}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${it.ascension ? ' ★' + it.ascension : ''}`),
           h('small', {class: 'ae-sub'}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || 'Без характеристик'), gemRow(it.gems))
-        : h('p', {class: 'ae-sub ae-doll-hint'}, Object.keys(g).length ? 'Нажмите на вещь, чтобы посмотреть её характеристики и кристаллы.' : 'Герой пока ничего не надел.'));
+        : h('p', {class: 'ae-sub ae-doll-hint'}, Object.keys(g).length ? 'Нажмите на вещь, чтобы посмотреть её характеристики и кристаллы.' : 'Герой пока ничего не надел.')));
   }
   function openPlayerCard(id, name) {
     let prof = null, picked = null;
@@ -2240,7 +2248,7 @@
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => { closePanel(); openDuel(name); }}, '⚔️ Дуэль'),
         h('button', {class: 'ae-btn', type: 'button', onclick: () => closePanel()}, 'Закрыть')));
     });
-    api('/api/ae-profile/card?id=' + encodeURIComponent(id)).then(r => { prof = r.profile; if (openPanelState === st) st.rerender(); }, () => {});
+    (String(id) === uid() ? syncGear() : Promise.resolve()).then(() => api('/api/ae-profile/card?id=' + encodeURIComponent(id))).then(r => { prof = r.profile; if (openPanelState === st) st.rerender(); }, () => {});
   }
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
@@ -2251,6 +2259,15 @@
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
       pr.asc ? h('div', {class: 'ae-asc-badge', 'data-asc': pr.asc.rank, title: 'Ранг вознесения'}, h('b', {}, pr.asc.rank), h('span', {}, `Вознесение · ${pr.asc.name}`))
         : h('div', {class: 'ae-asc-badge is-none'}, h('b', {}, '—'), h('span', {}, 'Вознесение не пройдено'))));
+  // The bag and gear live in the game's save: report a display-only snapshot so other players see it in the hero card.
+  let gearSig = '';
+  async function syncGear() {
+    const p = me(); if (!p?.equipped) return; const eq = {};
+    for (const [k, it] of Object.entries(p.equipped)) if (it && it.name) eq[k] = {name: it.name, templateId: it.templateId, type: it.type, rarity: it.rarity, level: it.level, upgradeLevel: it.upgradeLevel, ascension: it.ascension, twoHanded: it.twoHanded, icon: typeof it.icon === 'string' && it.icon.length <= 200 ? it.icon : null, stats: it.stats, gems: it.gems};
+    const sig = JSON.stringify(eq); if (sig === gearSig) return;
+    try { await api('/api/ae-profile/gear', 'POST', {equipped: eq}); gearSig = sig; } catch {}
+  }
+  setTimeout(() => syncGear(), 7000); setInterval(() => { if (!document.hidden) syncGear(); }, 45000);
   let myProfile = null;
   async function loadMyProfile() {
     try {
@@ -4620,6 +4637,7 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-doll-pet-slot img{width:44px!important;height:44px!important;border-radius:50%;object-fit:cover}.ae-doll-pet-slot{border-color:#f0cf7a!important}.ae-doll-pet-slot.is-comp{border-color:#93c5fd!important}.ae-doll-tag{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font:700 8.5px/1.2 system-ui;color:#ffe6a8;text-shadow:0 1px 2px #000;background:#0009;border-radius:0 0 8px 8px}
 .ae-theme-night{--ae-theme:url(/assets/profile/theme-night.webp)}.ae-theme-forest{--ae-theme:url(/assets/profile/theme-forest.webp)}.ae-theme-ember{--ae-theme:url(/assets/profile/theme-ember.webp)}.ae-theme-ice{--ae-theme:url(/assets/profile/theme-ice.webp)}.ae-theme-royal{--ae-theme:url(/assets/profile/theme-royal.webp)}.ae-theme-blood{--ae-theme:url(/assets/profile/theme-blood.webp)}.ae-theme-abyss{--ae-theme:url(/assets/profile/theme-abyss.webp)}
 .ae-frame-bronze{--ae-ring:url(/assets/profile/frame-bronze.webp)}.ae-frame-silver{--ae-ring:url(/assets/profile/frame-silver.webp)}.ae-frame-gold{--ae-ring:url(/assets/profile/frame-gold.webp)}.ae-frame-fire{--ae-ring:url(/assets/profile/frame-fire.webp)}.ae-frame-frost{--ae-ring:url(/assets/profile/frame-frost.webp)}.ae-frame-royal{--ae-ring:url(/assets/profile/frame-royal.webp)}.ae-frame-clan{--ae-ring:url(/assets/profile/frame-clan.webp)}.ae-frame-pocket{--ae-ring:url(/assets/profile/frame-pocket.webp)}.ae-frame-void{--ae-ring:url(/assets/profile/frame-void.webp)}
 .ae-prof-head:not(.has-banner)[class*=ae-theme-]{background:linear-gradient(90deg,#0b0f0de8 0%,#0b0f0daa 55%,#0b0f0d40 100%),var(--ae-theme) center/cover no-repeat!important}

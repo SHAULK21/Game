@@ -111,7 +111,11 @@ function petOf(world, id, now) {
 // What the hero wears (from the server-kept save): a light copy for the player card — no bag, only the equipped gear.
 const GEAR_SLOTS = ['helmet', 'weapon', 'gloves', 'pants', 'boots', 'cloak', 'amulet', 'offhand', 'armor', 'ring', 'belt', 'artifact'];
 export function gearOf(world, id) {
-  const p = player(world, id), eq = p?.progress_json?.player?.equipped; if (!eq || typeof eq !== 'object') return null;
+  // Equipped gear lives in owned_items (equipped_slot); the old progress_json copy is only a fallback.
+  const owned = {}; for (const r of rows(world, 'owned_items')) if (r.equipped_slot && same(r.owner_telegram_id, id) && r.item_json) owned[r.equipped_slot] = {...r.item_json, id: r.id};
+  // The bag and gear live in the game's own save; the game reports a display-only snapshot (ae_profiles.gear).
+  const p = player(world, id), old = p?.progress_json?.player?.equipped, snap = profileRow(world, id)?.gear;
+  const eq = {...(old && typeof old === 'object' ? old : {}), ...(snap && typeof snap === 'object' ? snap : {}), ...owned};
   const out = {};
   for (const slot of GEAR_SLOTS) { const it = eq[slot]; if (!it || typeof it !== 'object' || !it.name) continue;
     const stats = Object.fromEntries(Object.entries(it.stats || {}).filter(([, v]) => typeof v === 'number' && v).slice(0, 8));
@@ -186,6 +190,15 @@ export function handleProfileRequest(world, input, user, now) {
     if (body.id == null || body.id === '') { pr.banner = null; return ok({profile: publicProfile(world, me, now)}); }
     if (!BANNERS.some(b => b.id === body.id)) return fail('Такого баннера нет.', 404);
     pr.banner = body.id; return ok({profile: publicProfile(world, me, now)});
+  }
+  if (method === 'POST' && path === '/api/ae-profile/gear') {  // display-only snapshot of what the hero wears (for player cards)
+    const src = body.equipped && typeof body.equipped === 'object' ? body.equipped : {}, gear = {};
+    for (const slot of GEAR_SLOTS) { const it = src[slot]; if (!it || typeof it !== 'object' || !it.name) continue;
+      gear[slot] = {name: String(it.name).slice(0, 60), templateId: typeof it.templateId === 'string' ? it.templateId.slice(0, 60) : null, type: String(it.type || slot).slice(0, 20), rarity: String(it.rarity || 'common').slice(0, 12),
+        level: Math.max(1, Math.min(200, Number(it.level) || 1)), upgradeLevel: Math.max(0, Math.min(30, Number(it.upgradeLevel) || 0)), ascension: Math.max(0, Math.min(10, Number(it.ascension) || 0)), twoHanded: !!it.twoHanded,
+        icon: typeof it.icon === 'string' && it.icon.length <= 200 ? it.icon : null, stats: Object.fromEntries(Object.entries(it.stats || {}).filter(([k, v]) => /^[a-zA-Z]{1,24}$/.test(k) && typeof v === 'number' && Number.isFinite(v)).slice(0, 8).map(([k, v]) => [k, Math.max(-1e6, Math.min(1e6, v))])),
+        gems: Array.isArray(it.gems) ? it.gems.filter(g => typeof g === 'string' && g.length <= 20).slice(0, 3) : []}; }
+    pr.gear = gear; pr.gearAt = new Date(now).toISOString(); return ok({ok: true, slots: Object.keys(gear).length});
   }
   if (method === 'POST' && path === '/api/ae-profile/avatar') {
     if (!AVATARS.some(a => a.id === body.id)) return fail('Такой аватарки нет.', 404);
