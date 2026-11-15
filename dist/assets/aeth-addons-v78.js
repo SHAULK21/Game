@@ -1214,13 +1214,13 @@
   const gemOf = id => GEMS.find(g => g.id === id);
   const gemFx = g => `${g.label} +${g.value}${g.unit}`;
   let gemLastItem = null;
-  document.addEventListener('click', e => { const t = e.target.closest?.('[data-inventory-item], [data-equipment-slot]'); if (t) gemLastItem = t.dataset.inventoryItem ? {id: t.dataset.inventoryItem} : {slot: t.dataset.equipmentSlot}; }, true);
+  document.addEventListener('click', e => { const t = e.target.closest?.('[data-inventory-item], [data-equipment-slot], [data-modern-equipment-slot]'); if (t) gemLastItem = t.dataset.inventoryItem ? {id: t.dataset.inventoryItem} : {slot: t.dataset.equipmentSlot || t.dataset.modernEquipmentSlot}; }, true);
   const findGear = ref => { const p = me(); if (!p || !ref) return null; return ref.id ? (p.inventory || []).find(i => i.id === ref.id) || Object.values(p.equipped || {}).find(i => i?.id === ref.id) : p.equipped?.[ref.slot] || null; };
   const isSocketable = i => i && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(i.type);
   function paintGemSockets() {
     const p = me(); if (!p) return;
-    for (const t of document.querySelectorAll('[data-inventory-item], [data-equipment-slot]')) {
-      const it = t.dataset.inventoryItem ? (p.inventory || []).find(i => i.id === t.dataset.inventoryItem) : p.equipped?.[t.dataset.equipmentSlot];
+    for (const t of document.querySelectorAll('[data-inventory-item], [data-equipment-slot], [data-modern-equipment-slot]')) {
+      const it = t.dataset.inventoryItem ? (p.inventory || []).find(i => i.id === t.dataset.inventoryItem) : p.equipped?.[t.dataset.equipmentSlot || t.dataset.modernEquipmentSlot];
       const old = t.querySelector(':scope > .ae-gem-sockets');
       if (!isSocketable(it)) { old?.remove(); continue; }
       const gems = it.gems || [], max = GEM_SLOTS[it.rarity] || 1, sig = gems.join(',') + '/' + max;
@@ -4591,7 +4591,7 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-rank-ava{width:34px!important;height:34px!important}.ae-rank-ava>:not(.ae-rank-img){display:none!important}.ae-rank-img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid #a58a4f;box-shadow:0 0 6px #0008}.ae-rank-ava+.ae-nick-flexrow .ae-nick-ava{display:none!important}
 .ae-inbox-row.is-link{cursor:pointer}.ae-inbox-go{flex:none;align-self:center;font:700 11.5px system-ui;color:#ffe6a8;padding:4px 8px;border-radius:999px;border:1px solid #6b5631;background:#0f1512;white-space:nowrap}.ae-inbox-row.is-link:active{transform:scale(.98)}
 .ae-gem-sockets{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);display:flex;gap:2px;z-index:3;pointer-events:none}.ae-gem-sockets i{width:13px;height:13px;border-radius:50%;border:1px solid #f0cf7a88;background:#0009;display:grid;place-items:center;font-style:normal;font-size:8px;line-height:1}.ae-gem-sockets i.is-on{background:radial-gradient(circle at 35% 30%,#fff6,#7c3aed 60%,#2e1065);border-color:#e9d5ff;box-shadow:0 0 4px #a78bfa}
-[data-equipment-slot] .ae-gem-sockets{left:auto;right:4px;bottom:4px;transform:none}
+[data-equipment-slot] .ae-gem-sockets{left:auto;right:4px;bottom:4px;transform:none}.modern-gear-slot{position:relative}.modern-gear-slot>.ae-gem-sockets{left:5px!important;right:auto!important;top:5px!important;bottom:auto!important;transform:none!important}.modern-gear-slot>.ae-gem-sockets i{width:12px;height:12px;font-size:7px}
 .ae-gem-sheet{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px;border-radius:12px;background:linear-gradient(135deg,#1c1530,#141a17);border:1px solid #a78bfa88;color:#f1ead8;font:13px/1.3 system-ui,sans-serif}
 .ae-gem-line{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#0006}.ae-gem-line small{display:block;opacity:.75;font-size:11.5px}.ae-gem-ic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#fff5,#6d28d9 65%);font-size:15px;flex:none}
 .ae-gem-line.is-empty .ae-gem-ic{background:#0008;border:1px dashed #a78bfa88;color:#a78bfa}.ae-gem-line.is-empty{opacity:.8}.ae-gem-val{font-weight:800;color:#c4b5fd;white-space:nowrap}
