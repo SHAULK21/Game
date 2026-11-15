@@ -1893,7 +1893,10 @@
     if (!l) { old.forEach(e => e.remove()); return; }
     // the free spot right of the level line: «Ур. 30 +5» (modern) / «Воин · Ур. 30» (fantasy)
     const ownText = e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
-    const lvl = [...document.querySelectorAll('header span, header p, header div')].find(e => e.offsetParent && !e.classList.contains('ae-prem-chip') && /(^|\s)Ур\.\s*\d+$/.test(ownText(e)));
+    let lvl = [...document.querySelectorAll('header span, header p, header div')].find(e => e.offsetParent && !e.classList.contains('ae-prem-chip') && /(^|\s)Ур\.\s*\d+$/.test(ownText(e)));
+    // compact header (phone app, narrow screens): no level line — put it right after the hero's name
+    const nm = String(me()?.name || '').trim();
+    if (!lvl && nm) lvl = [...document.querySelectorAll('header span, header p, header div, header strong, header b, header h1, header h2')].find(e => e.offsetParent && !e.closest('.ae-prem-chip') && ownText(e) === nm);
     if (!lvl) return;
     const host = lvl; let chip = host.querySelector(':scope > .ae-prem-chip');
     if (!chip) { old.forEach(e => e.remove()); chip = h('span', {class: 'ae-prem-chip', title: 'Сколько осталось Premium', onclick: e => { e.stopPropagation(); toast(`👑 Premium: осталось ${premLeft()?.long || '—'} — до ${new Date(premUntil).toLocaleDateString('ru-RU')}`); }}); host.append(chip); }
@@ -4631,7 +4634,21 @@
       img.dataset.aeVein = ore; img.src = `/assets/items/sprites/${ore}-ore.webp`; img.srcset = ''; img.style.objectFit = 'contain';
     }
   }
-  setInterval(() => { if (!document.hidden) try { paintMineVeins(); } catch {} }, 1200);
+  // small «what can drop» chips: ores get their ore art; other materials get their own art once it is in MAT_ART
+  const CHIP_ORE = {'Уголь': 'coal', 'Медная руда': 'copper', 'Железная руда': 'iron', 'Серебряная руда': 'silver', 'Золотая руда': 'gold', 'Кобальтовая руда': 'cobalt', 'Мифриловая руда': 'mithril', 'Адамантит': 'adamantite', 'Кровавый обсидиан': 'obsidian', 'Драконит': 'draconite', 'Эфириум': 'aetherium'};
+  const MAT_ART = new Set([]);  // slugs of /assets/items/materials/<slug>.webp
+  const matSlug = n => n.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '-');
+  function paintMineChips() {
+    for (const img of document.querySelectorAll('main img')) {
+      const chip = img.parentElement?.closest('span, div, li'); if (!chip || chip.childElementCount > 3) continue;
+      const name = (chip.textContent || '').trim(); if (!name || name.length > 40) continue;
+      const ore = CHIP_ORE[name], slug = matSlug(name);
+      const src = ore ? `/assets/items/sprites/${ore}-ore.webp` : MAT_ART.has(slug) ? `/assets/items/materials/${slug}.webp` : '';
+      if (!src || img.dataset.aeChip === src || img.closest('button')) continue;
+      img.dataset.aeChip = src; img.src = src; img.srcset = ''; img.style.objectFit = 'contain';
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintMineVeins(); paintMineChips(); } catch {} }, 1200);
   // monster pictures drawn facing right: turn them to face the hero (who stands on the left)
   const FACE_RIGHT = new Set(['m_blood_hound', 'm_boar', 'm_dragon_boss', 'm_rift_drake', 'v_ri_serpent', 'v_ww_wolf', 'v_cu_lord', 'v_sw_queen', 'v_ww_raider', 'v_ww_shaman']);
   const facesRight = src => FACE_RIGHT.has((/\/monsters\/([\w-]+)\.webp/.exec(src || '') || [])[1]);
@@ -5171,6 +5188,9 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+html[data-interface=fantasy] .codex-paper :is([class*="bg-[#111416]"],[class*="bg-[#101315]"]){background:#efe2c4!important;border-color:#b89a63!important;box-shadow:inset 0 1px 0 #fff6,0 1px 2px #0002}
+html[data-interface=fantasy] .codex-paper [class*="bg-[#111416]"] > :first-child{color:#7a4a12!important}html[data-interface=fantasy] .codex-paper [class*="bg-[#111416]"] p{color:#4a3a26!important}
+html[data-interface=fantasy] .codex-paper [class*="bg-[#101315]"] *{color:#3b2a18!important}html[data-interface=fantasy] .codex-paper [class*="bg-[#101315]"] :is(small,span:first-child,[class*=uppercase]){color:#7a5b33!important}
 .ae-src-pop{position:fixed;z-index:200;padding:7px 9px;border-radius:10px;background:#111827f2;border:1px solid #f0cf7a88;color:#f1ead8;font:12px/1.4 system-ui;box-shadow:0 6px 18px #000a;display:flex;flex-direction:column;gap:2px}.ae-src-pop b{font-size:12.5px;color:#ffe6a8}.ae-src-pop b small{font-weight:500;color:#fca5a5}
 .ae-src-chip{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .ae-src-list{margin:6px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}.ae-src-list li{padding:8px 10px;border-radius:10px;background:#0003;border:1px solid #ffffff1f;font-size:13px;line-height:1.35}

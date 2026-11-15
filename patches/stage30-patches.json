@@ -1,0 +1,8 @@
+[
+ {
+  "name": "arena-gladiators-hero-defense",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29.js",
+  "old": "g=1+t/25,HA=(18+7*t)*g,HH=(160+48*t)*g,DF=2+2.2*t,i={hp:Math.round(4*HA*r.difficulty*r.hp),attack:Math.round(.12*HH*(DF+75)/75*r.difficulty*r.attack),",
+  "new": "g=1+t/25,HA=(18+7*t)*g,HH=(160+48*t)*g,HD=(6+3*t)*g,DF=2+2.2*t,i={hp:Math.round(4*HA*r.difficulty*r.hp),attack:Math.round(.12*HH*(HD+75)/75*r.difficulty*r.attack),"
+ }
+]
