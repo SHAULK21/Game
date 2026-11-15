@@ -8,8 +8,13 @@ import {encodeDocument, decodeDocument} from './storageCodec.js';
 const MAX = 600 * 1024;
 const meta = r => r ? {rev: Number(r.rev) || 0, savedAt: r.saved_at, device: r.device, level: Number(r.level) || 1, heroName: r.hero_name || ''} : {rev: 0};
 
-export async function handleCloudSave(input, userId) {
+export async function handleCloudSave(input, userId, isAdmin = false) {
   const me = String(userId), method = String(input?.method || 'GET').toUpperCase(), path = String(input?.path || '');
+  if (/^\/api\/ae-save\/audit/.test(path)) {  // admin: every hero in the cloud, with the kept previous version
+    if (!isAdmin) return {status: 403, body: {error: 'Недостаточно прав.'}};
+    const rows = await db.all('SELECT user_id, rev, saved_at, device, level, hero_name FROM cloud_saves ORDER BY saved_at DESC');
+    return {status: 200, body: {rows: rows.map(r => ({u: r.user_id, rev: r.rev, at: r.saved_at, dev: r.device, lv: r.level, name: r.hero_name}))}};
+  }
   const row = await db.get('SELECT rev, saved_at, device, level, hero_name, data FROM cloud_saves WHERE user_id=:u', {':u': me});
   if (method === 'GET' && /[?&]bak=1/.test(path)) {
     const b = await db.get('SELECT rev, saved_at, device, level, hero_name, data FROM cloud_saves WHERE user_id=:u', {':u': me + '#bak'});
@@ -30,6 +35,8 @@ export async function handleCloudSave(input, userId) {
   let save; try { save = JSON.parse(data); } catch { return {status: 400, body: {error: 'Повреждённое сохранение.'}}; }
   if (!save?.player || String(save.player.userId) !== me) return {status: 403, body: {error: 'Это сохранение другого игрока.'}};
   const cur = Number(row?.rev) || 0, device = String(b.device || '').slice(0, 40);
+  // a lower hero never replaces a higher one silently (old clients included): the player has to choose
+  if (row && !b.force && (Number(save.player.level) || 1) < (Number(row.level) || 1)) return {status: 409, body: {conflict: true, lower: true, ...meta(row)}};
   // someone else (another device) saved after this device last synced: do not overwrite silently
   if (row && !b.force && Number(b.baseRev) !== cur && row.device !== device) return {status: 409, body: {conflict: true, ...meta(row)}};
   const now = new Date().toISOString(), level = Math.max(1, Math.min(999, Number(save.player.level) || 1)), name = String(save.player.name || '').slice(0, 40);

@@ -23,7 +23,7 @@ async function handle(input, ctx) {
   if (!Number.isSafeInteger(user?.id) || user.id <= 0) return {status: 401, body: {code: 'UNAUTHORIZED', error: 'Откройте игру из Telegram.'}};
   if (JSON.stringify(input || {}).length > 1126400) return {status: 413, body: {error: 'Слишком большой запрос.'}};
   const at = Date.now();
-  if (String(input?.path || '').startsWith('/api/ae-save')) { try { return await handleCloudSave(input, user.id); } catch (error) { console.error('cloud save failed', error?.code || error?.name); return {status: 500, body: {error: 'Облачное сохранение недоступно.'}}; } }
+  if (String(input?.path || '').startsWith('/api/ae-save')) { try { return await handleCloudSave(input, user.id, user.id === ADMIN_TELEGRAM_ID); } catch (error) { console.error('cloud save failed', error?.code || error?.name); return {status: 500, body: {error: 'Облачное сохранение недоступно.'}}; } }
   try {
     const reply = await nativeTransactions.update(PRODUCTION_DOCUMENT, async world => {
       // how old a Telegram login the platform still accepts (the Android app reuses one login for a long time)

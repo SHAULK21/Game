@@ -32,6 +32,7 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
       else if ((input.method || 'GET') === 'GET') res = {status: 200, body: {...meta(row), ...(bak ? {backup: meta(bak)} : {}), ...(row && /full=1/.test(input.path) ? {data: row.data} : {})}};
       else { const b = input.body || {}, sv = JSON.parse(b.data || 'null'), cur = row?.rev || 0;
         if (!sv?.player || String(sv.player.userId) !== String(userId)) res = {status: 403, body: {error: 'чужое'}};
+        else if (row && !b.force && sv.player.level < row.level) res = {status: 409, body: {conflict: true, lower: true, ...meta(row)}};
         else if (row && !b.force && Number(b.baseRev) !== cur && row.device !== b.device) res = {status: 409, body: {conflict: true, ...meta(row)}};
         else { if (row && (sv.player.level < row.level || row.device !== b.device || b.force)) cs[String(userId) + '#bak'] = {...row};
           cs[String(userId)] = {rev: cur + 1, savedAt: new Date().toISOString(), device: b.device, level: sv.player.level, heroName: sv.player.name, data: b.data}; res = {status: 200, body: {rev: cur + 1}}; } }
