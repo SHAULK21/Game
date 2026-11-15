@@ -1,6 +1,7 @@
 import {placeOf} from './clanPlus.js';
 import {COMP_TITLES, compCtx} from './companions.js';
 import {compStats, compImg} from './companions.js';
+import {realStats, baseStats} from './heroStats.js';
 // Titles earned across the whole game + a chosen avatar (game characters only). Others see both on the player card.
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -33,6 +34,10 @@ export const TITLES = [
   T('veteran', '🎖️', 'Ветеран', 'Достичь 20 уровня', c => c.level, 20),
   T('legend', '🏛️', 'Легенда королевства', 'Достичь 50 уровня', c => c.level, 50),
   T('immortal', '♾️', 'Бессмертный', 'Достичь 100 уровня', c => c.level, 100),
+  T('power1', '💪', 'Закалённый боец', 'Сила героя 5 000', c => c.power, 5000),
+  T('power2', '⚔️', 'Грозный воитель', 'Сила героя 15 000', c => c.power, 15000),
+  T('power3', '🌋', 'Гроза земель', 'Сила героя 40 000', c => c.power, 40000),
+  T('power4', '👑', 'Живая легенда', 'Сила героя 100 000', c => c.power, 100000),
   T('horde_hunter', '🗡️', 'Охотник на орду', 'Победить 100 монстров Орды', c => c.s.horde_kill, 100),
   T('horde_slayer', '⚔️', 'Истребитель орды', 'Победить 1000 монстров Орды', c => c.s.horde_kill, 1000),
   T('unstoppable', '🔥', 'Неудержимый', 'Победить 60 монстров за один поход Орды', c => c.hordeBest, 60),
@@ -56,12 +61,32 @@ export const TITLES = [
   T('pocket_hero', '📱', 'Герой в кармане', 'Играть в мобильном приложении Android', c => c.apk ? 1 : 0, 1),
   T('keeper', '🗝️', 'Хранитель Аэтельгарда', 'Администрация игры', c => c.admin ? 1 : 0, 1)];
 
+// ---------- Hero power: one number for the hero's real strength (shown in the profile and the player card) ----------
+// Damage  D = attack × (1 + crit × (critDamage − 1)) × (1 + penetration/200)
+// Toughness S = health × (1 + defence/(100 + 5·level)) ÷ (1 − 0.7·evasion) × (1 + vampirism/200)
+// Battle power B = √(D × S) × 5 — the geometric mean rewards a balanced hero: a glass cannon or a pure wall score less.
+// Total = B × (1 + 4% per ascension rank) + pet (level × rarity × 80) + companions (level × 60 each). Gear, attributes and talents
+// count through the combat stats; the pet and companions are a small extra.
+const PET_W = {common: 1, uncommon: 1.2, rare: 1.5, epic: 2, legendary: 2.6, mythic: 3.2, ancient: 3.6, divine: 4};
+export function powerOf(world, id, now) {
+  const p = player(world, id); if (!p) return null;
+  const L = Math.max(1, Number(p.level) || 1), real = realStats(world, id, p), b = baseStats(p);
+  const r = real || {maxHp: b.maxHp, atk: b.atk, def: b.def, crit: 0.1, critDmg: 1.6, evasion: 0, vamp: 0, pen: 0};
+  const dmg = r.atk * (1 + Math.min(0.6, r.crit || 0) * Math.max(0, (r.critDmg || 1.6) - 1)) * (1 + Math.min(60, r.pen || 0) / 200);
+  const ehp = r.maxHp * (1 + Math.max(0, r.def || 0) / (100 + 5 * L)) / (1 - Math.min(0.5, (r.evasion || 0) / 100) * 0.7) * (1 + Math.min(50, r.vamp || 0) / 200);
+  const battle = Math.sqrt(Math.max(1, dmg) * Math.max(1, ehp)) * 5;
+  const ascStep = Math.max(0, ASC_I(profileRow(world, id)?.asc) + 1), ascPct = ascStep * 4;
+  const pet = petOf(world, id, now), petPts = pet ? Math.round((Number(pet.level) || 1) * (PET_W[pet.rarity] || 1) * 80) : 0;
+  const compPts = rows(world, 'ae_companions').filter(c => same(c.u, id)).reduce((n, c) => n + (Number(c.lvl) || 1) * 60, 0);
+  const asc = Math.round(battle * ascPct / 100);
+  return {total: Math.round(battle) + asc + petPts + compPts, battle: Math.round(battle), dmg: Math.round(dmg), ehp: Math.round(ehp), asc, ascPct, pet: petPts, comp: compPts, real: !!real};
+}
 function ctxOf(world, id, now) {
   const p = player(world, id) || {}, s = rows(world, 'ae_stats').find(x => same(x.u, id))?.c || {};
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
-    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id), apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
+    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id), power: powerOf(world, id, now)?.total || 0, apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
 // ---------- profile look, chosen by the player (frames, nickname colour, motto, showcase, aura, card theme) ----------
 // [id, name, unlock text, unlocked(ctx)] — the server checks the unlock, the client only shows the choice.
@@ -130,7 +155,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, look: styleOf(world, id, pr, now), app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, look: styleOf(world, id, pr, now), app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), power: powerOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 // Reaching ascension SSS: the «Первый вознесённый» achievement, announced once in the 🔔 history.

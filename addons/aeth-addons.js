@@ -2238,7 +2238,7 @@
   function openPlayerCard(id, name) {
     let prof = null, picked = null;
     const st = openPanel('👤 ' + name, body => {
-      if (prof) body.append(profileHeader(prof), h('div', {class: 'ae-prof-stats'},
+      if (prof) body.append(profileHeader(prof), powerBlock(prof), h('div', {class: 'ae-prof-stats'},
         h('span', {}, `⚔️ Рейтинг дуэлей ${prof.stats.duelRating}`), h('span', {}, `🤝 Кооп-побед ${prof.stats.coopWins}`), h('span', {}, `🌕 Рекорд Орды ${prof.stats.hordeBest}`), h('span', {}, `🏅 Титулов ${prof.titlesEarned}`)));
       if (prof?.gear) body.append(h('h3', {class: 'ae-h3'}, '🛡️ Экипировка'), gearDoll(prof, k => { picked = picked === k ? null : k; st.rerender(); }, picked));
       if (String(id) === uid()) { body.append(h('p', {class: 'ae-sub'}, 'Так ваш профиль видят другие игроки.')); return; }
@@ -2252,8 +2252,19 @@
   }
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
+  const powerBlock = pr => { const w = pr.power; if (!w) return '';
+    const row = (ic, name, val, hint) => h('div', {class: 'ae-power-row'}, h('span', {}, ic), h('span', {class: 'ae-grow'}, name, hint ? h('small', {}, hint) : ''), h('b', {}, val));
+    return h('details', {class: 'ae-combos ae-power-box'}, h('summary', {}, `💪 Сила героя: ${fmt(w.total)} — из чего складывается`),
+      row('🗡️', 'Урон', fmt(w.dmg), 'атака × криты × пробивание'),
+      row('🛡️', 'Живучесть', fmt(w.ehp), 'здоровье × защита × уклонение × вампиризм'),
+      row('⚔️', 'Боевая сила', fmt(w.battle), '√(урон × живучесть) × 5'),
+      w.asc ? row('✨', 'Вознесение', '+' + fmt(w.asc), `+${w.ascPct}% к боевой силе`) : '',
+      w.pet ? row('🐾', 'Питомец', '+' + fmt(w.pet), 'уровень × редкость') : '',
+      w.comp ? row('🛡', 'Соратники', '+' + fmt(w.comp), 'по 60 за уровень каждого') : '',
+      h('p', {class: 'ae-sub'}, 'Главное — снаряжение, характеристики и таланты: они дают урон и живучесть. Важен баланс: герой, который и бьёт, и держит удар, сильнее, чем «стеклянная пушка» или глухая стена. Вознесение усиливает всё сразу, питомец и соратники дают небольшую прибавку.'),
+      w.real ? '' : h('p', {class: 'ae-sub'}, 'Пока посчитано по уровню: сыграйте бой, чтобы учлись снаряжение и таланты.')); };
   const profileHeader = pr => h('div', {class: 'ae-prof-head' + (pr.banner ? ' has-banner' : '') + ` ae-theme-${pr.look?.theme || 'night'} ae-frame-${pr.look?.frame || 'none'}`, style: pr.banner ? `--ae-banner:url("${pr.banner.src}")` : ''}, h('span', {class: 'ae-ava-ring'}, h('img', {class: 'ae-avatar is-big ae-ava-frame', src: pr.avatar.src, alt: ''})),
-    h('div', {class: 'ae-grow'}, h('b', {class: `ae-prof-name ae-nc-${pr.look?.color || 'default'}`}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), pr.look?.motto ? h('div', {class: 'ae-motto'}, `«${pr.look.motto}»`) : '', h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`), pr.look?.showcase?.length ? h('div', {class: 'ae-showcase'}, pr.look.showcase.map(t => h('span', {title: t.name}, `${t.icon} ${t.name}`))) : '',
+    h('div', {class: 'ae-grow'}, h('b', {class: `ae-prof-name ae-nc-${pr.look?.color || 'default'}`}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), pr.look?.motto ? h('div', {class: 'ae-motto'}, `«${pr.look.motto}»`) : '', h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`), pr.power ? h('div', {class: 'ae-power-badge', title: 'Общая сила героя'}, h('span', {}, '💪'), h('b', {}, fmt(pr.power.total)), h('small', {}, 'сила героя')) : '', pr.look?.showcase?.length ? h('div', {class: 'ae-showcase'}, pr.look.showcase.map(t => h('span', {title: t.name}, `${t.icon} ${t.name}`))) : '',
       pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.pet ? h('div', {class: 'ae-prof-pet'}, h('img', {src: `/assets/pets/icon-${pr.pet.id}.webp`, alt: '', onerror: e => e.target.remove()}), h('span', {}, `${pr.pet.name} · ур. ${pr.pet.level}`), h('small', {}, `${RARITY_RU[pr.pet.rarity] || ''}${pr.pet.hungry ? ' · голоден' : ''}`)) : h('div', {class: 'ae-sub'}, '🐾 Без питомца'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
@@ -2297,7 +2308,7 @@
     const st = openPanel('👤 Профиль', body => {
       if (!data) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const pr = data.profile;
-      body.append(profileHeader(pr), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Как меня видят другие — персонаж и экипировка'));
+      body.append(profileHeader(pr), powerBlock(pr), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Как меня видят другие — персонаж и экипировка'));
       { const li = me() ? luckInfo(me()) : null; if (li) body.append(h('div', {class: 'ae-pill'}, `🍀 Удача ${li.luck}: шанс улучшить редкость найденной вещи ${Math.round(li.bump * 100)}% · легендарные находки ×${li.legMul.toFixed(2)}`)); }
       { const r = me() ? respecInfo(me()) : null; if (r) body.append(h('div', {class: 'ae-row ae-card'}, h('div', {class: 'ae-grow'}, h('b', {}, '♻️ Характеристики'), h('div', {class: 'ae-sub'}, r.spent ? `Вложено очков: ${r.spent}. Сброс ${r.cost ? `— ${fmt(r.cost)} серебра` : '— первый бесплатно'}.` : 'Вложенных очков нет.')), h('button', {class: 'ae-btn' + (r.spent ? ' ae-primary' : ''), type: 'button', disabled: !r.spent, onclick: () => { closePanel(); doRespec(); }}, 'Сбросить'))); }
       body.append(h('div', {class: 'ae-tabs'}, [['look', '🎨 Оформление'], ['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка'], ['banners', '🏞️ Баннер']].map(([k, l]) =>
@@ -4637,6 +4648,8 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-power-badge{display:inline-flex;align-items:center;gap:5px;margin:3px 0;padding:3px 10px 3px 7px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44}.ae-power-badge b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-badge small{font-size:10.5px;color:#e9dcc0;opacity:.85}
+.ae-power-box summary{font-weight:700}.ae-power-row{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #6b563133}.ae-power-row small{display:block;font-size:10.5px;opacity:.7}.ae-power-row b{color:#ffe6a8}
 .ae-doll-pet-slot img{width:44px!important;height:44px!important;border-radius:50%;object-fit:cover}.ae-doll-pet-slot{border-color:#f0cf7a!important}.ae-doll-pet-slot.is-comp{border-color:#93c5fd!important}.ae-doll-tag{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font:700 8.5px/1.2 system-ui;color:#ffe6a8;text-shadow:0 1px 2px #000;background:#0009;border-radius:0 0 8px 8px}
 .ae-theme-night{--ae-theme:url(/assets/profile/theme-night.webp)}.ae-theme-forest{--ae-theme:url(/assets/profile/theme-forest.webp)}.ae-theme-ember{--ae-theme:url(/assets/profile/theme-ember.webp)}.ae-theme-ice{--ae-theme:url(/assets/profile/theme-ice.webp)}.ae-theme-royal{--ae-theme:url(/assets/profile/theme-royal.webp)}.ae-theme-blood{--ae-theme:url(/assets/profile/theme-blood.webp)}.ae-theme-abyss{--ae-theme:url(/assets/profile/theme-abyss.webp)}
 .ae-frame-bronze{--ae-ring:url(/assets/profile/frame-bronze.webp)}.ae-frame-silver{--ae-ring:url(/assets/profile/frame-silver.webp)}.ae-frame-gold{--ae-ring:url(/assets/profile/frame-gold.webp)}.ae-frame-fire{--ae-ring:url(/assets/profile/frame-fire.webp)}.ae-frame-frost{--ae-ring:url(/assets/profile/frame-frost.webp)}.ae-frame-royal{--ae-ring:url(/assets/profile/frame-royal.webp)}.ae-frame-clan{--ae-ring:url(/assets/profile/frame-clan.webp)}.ae-frame-pocket{--ae-ring:url(/assets/profile/frame-pocket.webp)}.ae-frame-void{--ae-ring:url(/assets/profile/frame-void.webp)}
