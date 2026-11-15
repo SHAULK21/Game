@@ -1946,7 +1946,24 @@
     let fab = document.querySelector('.ae-chat-fab');
     const hide = !uid() || document.documentElement.hasAttribute('data-in-combat') || !!document.querySelector('.ae-panel, [role=dialog], .ae-story, .ae-relink, .ae-pot-pick, #startup-splash') || !document.querySelector('nav');
     if (!fab) { fab = h('button', {type: 'button', class: 'ae-chat-fab', title: 'Общий чат таверны', 'aria-label': 'Общий чат таверны', onclick: () => openTavernChat()}, h('span', {}, '💬')); document.body.append(fab); }
-    fab.hidden = hide;
+    fab.hidden = hide || fabInTheWay(fab);
+  }
+  // Not where you type (the chat itself, messages, search) and not over a pinned button such as «Отправить».
+  const TYPING = 'textarea, input[type=text], input[type=search], input:not([type]), [contenteditable=true]';
+  function fabInTheWay(fab) {
+    const a = document.activeElement; if (a?.matches?.(TYPING)) return true;
+    if ([...document.querySelectorAll('main textarea, main input[type=text], main input[type=search], main input:not([type])')].some(e => e.offsetParent && e.getBoundingClientRect().height > 0 && e.getBoundingClientRect().bottom > 0 && e.getBoundingClientRect().top < innerHeight)) return true;
+    // where the button sits (works while it is hidden too): right 12px, above the bottom bar
+    const size = 50, cs = getComputedStyle(fab), bottom = parseFloat(cs.bottom) || 84, x2 = innerWidth - (parseFloat(cs.right) || 12), y2 = innerHeight - bottom, x1 = x2 - size, y1 = y2 - size;
+    for (const [x, y] of [[(x1 + x2) / 2, (y1 + y2) / 2], [x1 + 6, y1 + 6], [x2 - 6, y1 + 6], [x1 + 6, y2 - 6], [x2 - 6, y2 - 6]]) {
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el === fab || fab.contains(el) || el.closest('nav')) continue;
+        const ctl = el.closest('button, a, input, textarea, select, [role=button]'); if (!ctl) continue;
+        for (let n = ctl; n && n !== document.body; n = n.parentElement) { const pos = getComputedStyle(n).position; if (pos === 'fixed' || pos === 'sticky') return true; }
+        break;
+      }
+    }
+    return false;
   }
   // Ascension: the «Вознестись» button stays off until a passive is chosen — make that obvious.
   function paintAscensionHint() {
