@@ -23,4 +23,5 @@ await p.evaluate(() => window.__aethOpen.duel('Борис')); await p.waitForTim
 await p.evaluate(() => [...document.querySelectorAll('.ae-panel button')].find(x => /Бросить вызов/.test(x.textContent))?.click()); await p.waitForTimeout(1500);
 console.log('DUEL', (await p.locator('.ae-panel [data-ae-scene]').innerText().catch(() => 'NONE')).replace(/\n+/g, ' | '));
 await p.evaluate(() => document.querySelector('.ae-panel [data-ae-scene]')?.scrollIntoView({block: 'start'})); await p.screenshot({path: `dscene-${style}.png`});
+console.log('INTENTCHK', JSON.stringify(await p.evaluate(() => [...document.querySelectorAll('main span, main b, main summary, .ae-bv span, .ae-bv b, .ae-bv summary')].filter(e => /^(Возможный приём|Следом бегут|Тень соперника)/.test(e.textContent.trim())).map(e => e.textContent.trim().slice(0, 30) + (e.offsetParent ? ' VISIBLE' : ' hidden')))));
 await s.close();

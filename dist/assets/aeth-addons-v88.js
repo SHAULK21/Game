@@ -4415,7 +4415,18 @@
   setInterval(() => { if (!document.hidden) try { nativeScene(); paintActionIcons(); } catch (e) { console.warn('ae scene', e); } }, 160);
   // Action buttons: the same drawn icons in every fight.
   const ACT_RE = [[/^(атака|attack)/i, 'attack'], [/^навыки/i, 'skill'], [/^(🛡️\s*)?защита(?![а-яё])/i, 'defend'], [/^(🧪\s*)?зелья?(?![а-яё])/i, 'potion'], [/^(скрыться|покинуть бой|уйти|сдаться|отступить)/i, 'flee'], [/^автобой/i, 'auto']];
+  // The enemy's next move is shown on the scene now: hide the separate forecast cards (and the Horde queue / duel shadow cards).
+  const INTENT_RE = /^(Возможный приём|Следом бегут|Тень соперника готовит)/;
+  function hideIntentCards() {
+    if (!document.querySelector('[data-ae-scene]')) return;
+    for (const el of document.querySelectorAll('main span, main b, main summary, .ae-bv span, .ae-bv b, .ae-bv summary')) {
+      if (el.childElementCount > 1 || !INTENT_RE.test((el.textContent || '').trim())) continue;
+      let c = el; for (let i = 0; i < 6 && c.parentElement; i++) { if (c.tagName === 'DETAILS' || c.classList.contains('bestiary-panel') || (/rounded-(xl|2xl)/.test(c.className) && /border/.test(c.className))) break; c = c.parentElement; }
+      if (c && !c.closest('[data-ae-scene]') && !c.classList.contains('ae-nat-hide') && c.textContent.length < 400) c.classList.add('ae-nat-hide');
+    }
+  }
   function paintActionIcons() {
+    hideIntentCards();
     if (!document.documentElement.hasAttribute('data-in-combat') && !document.querySelector('.ae-bv')) return;
     for (const b of document.querySelectorAll('main button:not([data-ae-ai]), .ae-panel .ae-bv button:not([data-ae-ai])')) {
       if (b.closest('.ae-assist-row, .ae-pot-pick, .combat-skill-ledger, [data-ae-scene]')) { b.dataset.aeAi = '-'; continue; }
