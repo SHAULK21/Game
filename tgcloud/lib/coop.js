@@ -4,7 +4,7 @@
 import {clanCredit} from './clanPlus.js';
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
-import {companionOf, compStats, giveCompanionXp, COMP_ROLES, UNLOCK, isPaid} from './companions.js';
+import {companionOf, compStats, giveCompanionXp, COMP_ROLES, UNLOCK, isPaid, compImg} from './companions.js';
 import {castSkill, crossPreview, outMult, inMult, CROSS, setupOf, gemProcs} from './skills.js';
 
 const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
@@ -142,7 +142,7 @@ function view(room, me, world) {
     waiting: room.foe ? waitingFor(room).map(m => ({id: String(m.id), name: m.name})) : [],
     options: room.phase === 'choose' ? room.options.map(o => ({id: o.id, name: o.name, icon: o.icon, hint: o.hint, votes: Object.values(room.votes || {}).filter(v => v === o.id).length})) : [],
     myVote: room.votes?.[String(me)] || null, bonus: room.bonus || 0, log: room.log.slice(-18), isHost: same(room.hostId, me),
-    members: present(room).map(m => ({id: m.id, bot: !!m.bot, comp: !!m.compId, owner: m.owner || null, role: m.role || null, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
+    members: present(room).map(m => ({id: m.id, img: m.img || null, bot: !!m.bot, comp: !!m.compId, owner: m.owner || null, role: m.role || null, name: m.name, level: m.level, classId: m.classId, healer: m.healer, hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def, guard: !!m.guard, barrier: m.barrier || 0, fury: m.fury || 0,
       mp: m.mp ?? m.maxMp ?? 100, maxMp: m.maxMp || 100, acted: !!m.acted, potions: same(m.id, me) ? (m.potions ?? POTIONS) : undefined})),
     reward: room.rewards?.[String(me)] || null};
 }
@@ -222,7 +222,7 @@ function makeBot(room, host, role) {
   const lvl = Math.max(1, Number(host?.level) || 1), base = memberStats({level: lvl, class_id: R.cls}), hostS = host ? memberStats(host, null) : base;
   // as strong as an average hero of the host's level (a bit behind a well-geared player)
   const maxHp = Math.round(base.maxHp * 0.85), atk = Math.round(Math.max(base.atk, hostS.atk * 0.8) * 0.75), maxMp = 100 + lvl * 4;
-  return {id: 'bot:' + crypto.randomUUID().slice(0, 8), bot: true, role, name: name + ' 🤖', ...base, maxHp, hp: maxHp, atk, def: Math.round(base.def * 0.95), maxMp, mp: maxMp, potions: 2, talents: {}};
+  return {id: 'bot:' + crypto.randomUUID().slice(0, 8), img: `/assets/companions/comp-${role}-${['Сестра Мирра', 'Травница Ив', 'Элайна', 'Ровена'].includes(name) ? 'f' : 'm'}.webp`, bot: true, role, name: name + ' 🤖', ...base, maxHp, hp: maxHp, atk, def: Math.round(base.def * 0.95), maxMp, mp: maxMp, potions: 2, talents: {}};
 }
 function botAct(world, room, d, b, now) {
   const foe = room.foe, team = present(room), ally = team.filter(m => m !== b);
@@ -244,7 +244,7 @@ function botAct(world, room, d, b, now) {
 // A player's own companion (leveled and geared on the Companions screen) joins as a bot that acts like a hireling of its role.
 function companionBot(world, me, c) {
   const st = compStats(c);
-  return {id: 'comp:' + c.id, bot: true, compId: c.id, owner: String(me), role: c.role, name: c.name + ' 🛡', level: st.level, classId: st.classId, healer: c.role === 'heal',
+  return {id: 'comp:' + c.id, img: compImg(c), bot: true, compId: c.id, owner: String(me), role: c.role, name: c.name + ' 🛡', level: st.level, classId: st.classId, healer: c.role === 'heal',
     maxHp: st.maxHp, hp: st.maxHp, atk: st.atk, def: st.def, crit: st.crit, maxMp: st.maxMp, mp: st.maxMp, potions: 2, talents: {}};
 }
 // When a run ends (won or lost) companions get experience: full on a win, a share of the halls passed otherwise.

@@ -1,5 +1,6 @@
 import {placeOf} from './clanPlus.js';
 import {COMP_TITLES, compCtx} from './companions.js';
+import {compStats, compImg} from './companions.js';
 // Titles earned across the whole game + a chosen avatar (game characters only). Others see both on the player card.
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -62,6 +63,32 @@ function ctxOf(world, id, now) {
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
     friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id), apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
+// ---------- profile look, chosen by the player (frames, nickname colour, motto, showcase, aura, card theme) ----------
+// [id, name, unlock text, unlocked(ctx)] — the server checks the unlock, the client only shows the choice.
+const ASC_I = r => ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS'].indexOf(r);
+export const STYLE = {
+  frame: [['none', 'Без рамки', '', () => true], ['bronze', 'Бронзовая', 'с 10 уровня', c => c.level >= 10], ['silver', 'Серебряная', 'с 30 уровня', c => c.level >= 30], ['gold', 'Золотая', 'с 50 уровня', c => c.level >= 50],
+    ['fire', 'Огненная', 'вознесение A', c => ASC_I(c.asc) >= 3], ['frost', 'Ледяная', '50 побед в дуэлях', c => c.s.duel_win >= 50], ['royal', 'Королевская', 'Premium', c => c.premium], ['clan', 'Клановая', 'состоять в клане', c => c.clan],
+    ['pocket', 'Мобильная', 'игра в приложении', c => c.apk], ['void', 'Бездна', 'вознесение SSS', c => c.asc === 'SSS']],
+  color: [['default', 'Обычный', '', () => true], ['gold', 'Золотой', 'с 40 уровня', c => c.level >= 40], ['crimson', 'Багровый', '100 побед в Орде', c => c.s.horde_kill >= 100], ['emerald', 'Изумрудный', '10 кооп-побед', c => c.s.coop_win >= 10],
+    ['azure', 'Лазурный', 'рейтинг дуэлей 1200', c => c.duelRating >= 1200], ['violet', 'Фиолетовый', 'Premium', c => c.premium], ['rainbow', 'Радужный', 'вознесение S', c => ASC_I(c.asc) >= 4]],
+  aura: [['none', 'Без ауры', '', () => true], ['ember', 'Тлеющие угли', 'с 20 уровня', c => c.level >= 20], ['frost', 'Морозная дымка', 'с 40 уровня', c => c.level >= 40], ['shadow', 'Тень', 'вознесение B', c => ASC_I(c.asc) >= 2],
+    ['holy', 'Сияние', 'вознесение S', c => ASC_I(c.asc) >= 4], ['void', 'Бездна', 'вознесение SSS', c => c.asc === 'SSS'], ['royal', 'Королевская', 'Premium', c => c.premium]],
+  theme: [['night', 'Ночь', '', () => true], ['forest', 'Лес', '', () => true], ['ember', 'Пламя', '', () => true], ['ice', 'Лёд', '', () => true], ['royal', 'Королевская', 'с 25 уровня', c => c.level >= 25],
+    ['blood', 'Кровавая луна', '40 монстров за одну Кровавую луну', c => c.bloodBest >= 40], ['abyss', 'Бездна', 'вознесение A', c => ASC_I(c.asc) >= 3]],
+};
+export function styleOptions(world, id, now) {
+  const c = ctxOf(world, id, now); return Object.fromEntries(Object.entries(STYLE).map(([k, list]) => [k, list.map(([oid, name, need, f]) => ({id: oid, name, need, open: !!f(c)}))]));
+}
+const MOTTO_BAD = /(https?:|t\.me|@[a-z0-9_]{4,}|\bwww\.)/i;
+function styleOf(world, id, pr, now) {
+  const L = pr?.look || {}, opts = styleOptions(world, id, now), pick = (k, v) => opts[k].find(o => o.id === v && o.open)?.id || STYLE[k][0][0];
+  const earned = new Map(titlesOf(world, id, now).filter(t => t.earned).map(t => [t.id, t]));
+  const comp = L.comp ? rows(world, 'ae_companions').find(c => same(c.u, id) && c.id === L.comp) : null;
+  return {frame: pick('frame', L.frame), color: pick('color', L.color), aura: pick('aura', L.aura), theme: pick('theme', L.theme), motto: L.motto || '', showPet: L.showPet !== false,
+    showcase: (L.showcase || []).map(t => earned.get(t)).filter(Boolean).slice(0, 3).map(t => ({id: t.id, icon: t.icon, name: t.name})),
+    comp: comp ? {name: comp.name, role: comp.role, lvl: comp.lvl, classId: compStats(comp).classId, img: compImg(comp)} : null};
+}
 export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);
   return TITLES.filter(t => t.id !== 'keeper' || c.admin).map(t => { const v = Math.max(0, Number(t.value(c)) || 0); return {id: t.id, icon: t.icon, name: t.name, desc: t.desc, earned: v >= t.need, progress: Math.min(v, t.need), need: t.need}; });
@@ -81,6 +108,17 @@ function petOf(world, id, now) {
   return {id: pid, name: (reported?.id === pid && reported.name) || cat?.[0] || 'Питомец', rarity: (reported?.id === pid && reported.rarity) || cat?.[1] || 'common',
     level: food?.pets?.[pid]?.lvl || (reported?.id === pid ? reported.level : 1) || 1, hungry: sat != null ? sat < 25 : !!reported?.hungry};
 }
+// What the hero wears (from the server-kept save): a light copy for the player card — no bag, only the equipped gear.
+const GEAR_SLOTS = ['helmet', 'weapon', 'gloves', 'pants', 'boots', 'cloak', 'amulet', 'offhand', 'armor', 'ring', 'belt', 'artifact'];
+export function gearOf(world, id) {
+  const p = player(world, id), eq = p?.progress_json?.player?.equipped; if (!eq || typeof eq !== 'object') return null;
+  const out = {};
+  for (const slot of GEAR_SLOTS) { const it = eq[slot]; if (!it || typeof it !== 'object' || !it.name) continue;
+    const stats = Object.fromEntries(Object.entries(it.stats || {}).filter(([, v]) => typeof v === 'number' && v).slice(0, 8));
+    out[slot] = {name: String(it.name).slice(0, 60), templateId: it.templateId || null, type: it.type || slot, rarity: it.rarity || 'common', level: Number(it.level) || 1, upgradeLevel: Number(it.upgradeLevel) || 0,
+      ascension: Number(it.ascension) || 0, twoHanded: !!it.twoHanded, icon: typeof it.icon === 'string' ? it.icon.slice(0, 200) : null, stats, gems: Array.isArray(it.gems) ? it.gems.slice(0, 3) : []}; }
+  return out;
+}
 export function publicProfile(world, id, now) {
   const p = player(world, id); if (!p) return null;
   const pr = profileRow(world, id) || {}, earned = new Set(titlesOf(world, id, now).filter(t => t.earned).map(t => t.id));
@@ -88,7 +126,7 @@ export function publicProfile(world, id, now) {
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
   return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
-    avatar: av, app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
+    avatar: av, look: styleOf(world, id, pr, now), app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
 // Reaching ascension SSS: the «Первый вознесённый» achievement, announced once in the 🔔 history.
@@ -102,14 +140,14 @@ export function handleProfileRequest(world, input, user, now) {
   if (!path.startsWith('/api/ae-profile')) return null;
   const method = String(input?.method || 'GET').toUpperCase(), body = input?.body || {}, me = String(user.id);
   if (!player(world, me)) return fail('Сначала создайте персонажа.', 404);
-  if (method === 'GET' && path === '/api/ae-profile') { awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS, banners: BANNERS}); }
+  if (method === 'GET' && path === '/api/ae-profile') { awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now), titles: titlesOf(world, me, now), avatars: AVATARS, banners: BANNERS, look: styleOptions(world, me, now)}); }
   if (method === 'GET' && path === '/api/ae-profile/card') {
     const id = String(input.path.split('?')[1]?.match(/id=(\d+)/)?.[1] || body.id || '');
-    const prof = publicProfile(world, id, now); return prof ? ok({profile: prof}) : fail('Игрок не найден.', 404);
+    const prof = publicProfile(world, id, now); return prof ? ok({profile: {...prof, gear: gearOf(world, id)}}) : fail('Игрок не найден.', 404);
   }
   if (method === 'POST' && path === '/api/ae-profile/batch') {
     const ids = (Array.isArray(body.ids) ? body.ids : []).slice(0, 40).map(String);
-    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, app: p.app, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
+    return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, app: p.app, color: p.look?.color !== 'default' ? p.look?.color : undefined, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
   if (method === 'POST' && path === '/api/ae-profile/title') {
@@ -132,6 +170,16 @@ export function handleProfileRequest(world, input, user, now) {
     p.premium_until = new Date(Math.max(now, Date.parse(p.premium_until || 0) || 0) + APK_GIFT.premiumDays * 864e5).toISOString(); p.updated_at = pr.apkAt;
     rows(world, 'ae_events').push({id: crypto.randomUUID(), to: me, icon: '📱', text: 'Подарок за мобильное приложение: Premium на 7 дней и награды! Титул «Герой в кармане» можно надеть в профиле.', kind: 'achievement', at: pr.apkAt, acked: false});
     return ok({gifts: APK_GIFT, premiumUntil: p.premium_until, profile: publicProfile(world, me, now)});
+  }
+  if (method === 'POST' && path === '/api/ae-profile/look') {
+    if (body.apk !== true) return fail('Оформление профиля меняется только в мобильном приложении.');
+    const opts = styleOptions(world, me, now), L = (pr.look ||= {});
+    for (const k of ['frame', 'color', 'aura', 'theme']) if (body[k] != null) { const o = opts[k].find(x => x.id === body[k]); if (!o) return fail('Нет такого варианта.'); if (!o.open) return fail(`«${o.name}» откроется: ${o.need}.`); L[k] = o.id; }
+    if (body.motto != null) { const m = String(body.motto).replace(/[\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 48); if (MOTTO_BAD.test(m)) return fail('В девизе нельзя ссылки и упоминания.'); L.motto = m; }
+    if (body.showcase != null) { const earned = new Set(titlesOf(world, me, now).filter(t => t.earned).map(t => t.id)); L.showcase = (Array.isArray(body.showcase) ? body.showcase : []).map(String).filter(t => earned.has(t)).slice(0, 3); }
+    if (body.showPet != null) L.showPet = !!body.showPet;
+    if (body.comp !== undefined) { if (!body.comp) L.comp = null; else { if (!rows(world, 'ae_companions').some(c => same(c.u, me) && c.id === body.comp)) return fail('Соратник не найден.'); L.comp = String(body.comp); } }
+    return ok({profile: publicProfile(world, me, now), options: styleOptions(world, me, now)});
   }
   if (method === 'POST' && path === '/api/ae-profile/banner') {
     if (body.apk !== true) return fail('Баннеры профиля выбираются только в мобильном приложении.');

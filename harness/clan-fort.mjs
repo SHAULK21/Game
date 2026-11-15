@@ -33,7 +33,7 @@ await p.locator('.ae-fort-b', {hasText: 'Стены'}).locator('button', {hasTex
 console.log('after walls build busy:', await p.locator('.ae-fort-b.is-busy').count(), '| walls row:', (await p.locator('.ae-fort-b', {hasText: 'Стены'}).innerText()).replace(/\n/g, ' '));
 await p.locator('.ae-fort-b', {hasText: 'Стены'}).locator('button', {hasText: 'Помочь'}).click({force: true}); await p.waitForTimeout(800);
 console.log('helped:', (await p.locator('.ae-fort-b', {hasText: 'Стены'}).innerText()).replace(/\n/g, ' '));
-for (const t of ['Защита', 'Охота', 'Набеги', 'Журнал']) { await p.locator('.ae-fort-tabs .ae-tab', {hasText: t}).click({force: true}); await p.waitForTimeout(1200); await p.screenshot({path: `fort-${t}-${style}.png`}); console.log(t, '→', await panel(600)); }
+for (const t of ['Охота']) { await p.locator('.ae-fort-tabs .ae-tab', {hasText: t}).click({force: true}); await p.waitForTimeout(1200); await p.locator('.ae-fort-boss').first().scrollIntoViewIfNeeded().catch(() => {}); await p.waitForTimeout(400); await p.screenshot({path: `fort-${t}-${style}.png`}); console.log(t, '→', await panel(600)); }
 await p.locator('.ae-fort-tabs .ae-tab', {hasText: 'Защита'}).click({force: true}); await p.waitForTimeout(500);
 await p.locator('.ae-card', {hasText: 'Ополченец'}).locator('button', {hasText: 'Нанять'}).click({force: true}); await p.waitForTimeout(900);
 console.log('guards now:', (await p.locator('.ae-card', {hasText: 'Ополченец'}).innerText()).replace(/\n/g, ' '));

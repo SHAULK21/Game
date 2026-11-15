@@ -463,7 +463,7 @@
     if (old && old.dataset.sig === sig && !force && old.nextElementSibling === an.el) return;
     const act = (mode, icon, label, hot) => h('button', {type: 'button', class: 'ae-as-b' + (hot && ready ? ' is-hot' : ''), disabled: !ready, onclick: () => asStrike(mode)}, h('i', {}, icon), h('span', {}, label));
     const row = h('div', {class: 'ae-assist-row' + (ready ? ' is-ready' : '') + (threat && ready ? ' is-threat' : ''), 'data-ae-assist': '1', 'data-sig': sig},
-      h('img', {src: heroPortrait(comp.stats.classId), alt: ''}),
+      h('img', {src: comp.img || heroPortrait(comp.stats.classId), alt: ''}),
       h('div', {class: 'ae-as-who'}, h('b', {}, comp.name), h('small', {}, f.left <= 0 ? 'помощь закончилась' : wait ? `готов через ${wait} ход.` : threat ? '⚠️ враг готовит приём!' : `помощь ${f.left}/2`)),
       act('guard', '🛡️', 'Защита', threat), act('strike', comp.role === 'heal' ? '💚' : '⚔️', comp.role === 'heal' ? 'Лечение' : 'Удар'), act('combo', '🔗', 'Связка'));
     if (old) old.replaceWith(row); else an.el.before(row);
@@ -504,11 +504,12 @@
       if (openPanelState === st) st.rerender();
     };
     const sk = 'aeth_barracks_story_' + uid();
-    if (!localStorage.getItem(sk)) { localStorage.setItem(sk, '1'); setTimeout(() => showStory('/assets/story/royal-preparation.webp', 'Казарма', 'Плечом к плечу',
+    if (!localStorage.getItem(sk)) { localStorage.setItem(sk, '1'); setTimeout(() => showStory('/assets/story/companions.webp', 'Казарма', 'Плечом к плечу',
       'Старый сержант распахивает ворота казармы: «Одному в эти земли больше не пройти — твари с каждым днём злее. Здесь собираются те, кто готов идти с тобой: щитоносцы, лекари и боевые маги. Нанимай, учи, одевай в своё снаряжение — и они прикроют тебя в самый тяжёлый момент». Казарма будет открываться постепенно: чем опытнее вы, тем больше она даёт.', 'Войти в казарму'), 200); }
     const st = openPanel('🛡 Казарма · Соратники', body => {
       if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const HL = d.heroLevel, U = d.unlock || {};
+      body.append(h('div', {class: 'ae-barracks-hero'}, h('img', {src: '/assets/story/barracks.webp', alt: ''})));
       const road = [[U.barracks, '🛡 Казарма и первый соратник · слоты оружия и доспеха'], [U.train, '🏋️ Тренировки соратников'], [U.assist, '⚔️ Соратник помогает в обычных боях · шлем, сапоги, перчатки'],
         [U.coop, '🤝 Соратники в кооп-подземельях'], [U.second, '👥 Второй соратник · поножи, пояс, плащ'], [U.autoAssist, '⚡ Страховка: соратник сам спасает при низком здоровье'], [18, '💍 Щит, амулет, кольцо и артефакт'], [U.third, '🏆 Третий соратник — казарма открыта полностью']];
       const next = road.find(([l]) => HL < l);
@@ -535,7 +536,7 @@
       for (const c of d.companions) {
         const s = c.stats, gear = Object.entries(c.gear);
         body.append(h('div', {class: 'ae-card ae-comp'},
-          h('div', {class: 'ae-row'}, h('img', {class: 'ae-avatar', src: heroPortrait(s.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${c.icon} ${c.name}`, h('span', {class: 'ae-fort-lvl'}, `${c.lvl} ур.`)), h('div', {class: 'ae-sub'}, `${c.roleLabel} · ${c.roleText}`))),
+          h('div', {class: 'ae-row'}, h('img', {class: 'ae-avatar ae-comp-ava', src: c.img || heroPortrait(s.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${c.icon} ${c.name}`, h('span', {class: 'ae-fort-lvl'}, `${c.lvl} ур.`)), h('div', {class: 'ae-sub'}, `${c.roleLabel} · ${c.roleText}`))),
           pbar(c.xp, c.need, c.lvl >= d.heroLevel ? `Не выше вашего уровня (${d.heroLevel})` : `Опыт: ${fmt(c.xp)} / ${fmt(c.need)}`, 'is-mp'),
           h('div', {class: 'ae-hq-pills'}, h('span', {}, `❤️ ${fmt(s.maxHp)}`), h('span', {}, `⚔️ ${fmt(s.atk)}`), h('span', {}, `🛡️ ${fmt(s.def)}`), h('span', {}, `💥 ${Math.round(s.crit * 100)}%`), h('span', {}, `🔷 ${fmt(s.maxMp)}`)),
           h('div', {class: 'ae-comp-gear'}, d.slots.map(sl => { const it = c.gear[sl];
@@ -549,9 +550,10 @@
           h('div', {class: 'ae-row ae-wrap'},
             h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = c.id; st.rerender(); }}, '👕 Надеть вещь'),
             (() => { const xp = Math.round(c.need * 0.35), cost = Math.round(xp * 0.5);
-              return HL < U.train ? h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: true}, `🔒 Тренировки с ${U.train} ур.`) : h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`))}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
+              return HL < U.train ? h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: true}, `🔒 Тренировки с ${U.train} ур.`) : h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => { firstStory('training'); call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`); })}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
           h('div', {class: 'ae-row'},
             h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { const n = prompt('Новое имя соратника:', c.name); if (n) call('/api/ae-comp/rename', {id: c.id, name: n}); }}, '✏️ Имя'),
+            h('button', {class: 'ae-btn ae-grow', type: 'button', title: 'Сменить облик', onclick: () => call('/api/ae-comp/sex', {id: c.id, sex: c.sex === 'f' ? 'm' : 'f'}, 'Облик изменён')}, c.sex === 'f' ? '👤 Облик ♀ → ♂' : '👤 Облик ♂ → ♀'),
             h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => confirm(`Отпустить ${c.name}? Вся его экипировка вернётся в сумку, уровень пропадёт.`) && call('/api/ae-comp/dismiss', {id: c.id}, 'Соратник ушёл, вещи в сумке')}, 'Отпустить'))));
       }
       body.append(h('p', {class: 'ae-sub'}, `🏋️ Тренировок сегодня: ${d.train.left} из ${d.train.per}. Ещё опыт соратники получают в кооп-подземельях — за победу полный, за поражение часть.`));
@@ -559,7 +561,7 @@
       if (d.hire != null) {
         body.append(h('h3', {class: 'ae-h3'}, `Нанять соратника · ${fmt(d.hire)} 🪙`));
         if (d.heroLevel < 5) body.append(h('p', {class: 'ae-sub'}, 'Соратники доступны с 5 уровня героя.'));
-        else for (const [k, r] of Object.entries(d.roles)) body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-hq-ic'}, r.icon), h('div', {class: 'ae-grow'}, h('b', {}, r.label), h('div', {class: 'ae-sub'}, r.text)),
+        else for (const [k, r] of Object.entries(d.roles)) body.append(h('div', {class: 'ae-card ae-row'}, h('img', {class: 'ae-guard-img', src: `/assets/companions/comp-${k}-m.webp`, alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${r.icon} ${r.label}`), h('div', {class: 'ae-sub'}, r.text)),
           h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => pay(d.hire, () => call('/api/ae-comp/hire', {role: k, pay: d.hire}, '🛡 Новый соратник в отряде!'))}, 'Нанять')));
         body.append(h('p', {class: 'ae-sub'}, `Новый соратник приходит на ${Math.max(1, d.heroLevel - 5)} уровне. Всего — до ${d.max}.`));
       }
@@ -679,7 +681,7 @@
           room.setup && String(room.setup.byId) === uid() && room.setup.combo ? h('div', {class: 'ae-chain'}, h('b', {}, `⚡ Вы подготовили связку «${room.setup.combo}»`), h('div', {}, 'Союзник может завершить её своим атакующим навыком.')) : '',
           chips.length ? h('div', {class: 'ae-chips'}, chips.map(c => h('span', {class: 'ae-chip'}, c))) : '',
           h('div', {class: 'ae-bv-members'}, room.members.filter(m => String(m.id) !== uid()).map(m => h('div', {class: 'ae-bv-member' + ((hitUntil[m.id] || 0) > Date.now() ? ' ae-hit' : ''), 'data-ae-member': String(m.id)},
-            h('img', {class: 'ae-avatar', src: heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
+            h('img', {class: 'ae-avatar', src: m.img || heroPortrait(m.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${m.name}${String(m.id) === String(room.hostId) ? ' ⭐' : ''}`), bar(m.hp, m.maxHp, m.hp ? '' : 'is-down'),
               h('small', {}, `${m.hp ? (m.bot ? '🤖 ходит после вас' : m.acted ? '✅ походил(а)' : '⏳ выбирает ход') : '💀 без сил'} · мана ${fmt(m.mp)}/${fmt(m.maxMp)}`)),
             !m.hp && (meFight.potions || 0) > 0 && !acted ? h('button', {class: 'ae-btn', type: 'button', onclick: act('potion', {targetId: m.id})}, '🧪 Поднять') : ''))),
           acted && waiting.length ? h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => confirm(`Не ждать ${waiting.map(w => w.name).join(', ')}? Их ход будет пропущен.`) && post('/api/coop/act', {action: 'hurry'})}, `⏩ Не ждать (${waiting.map(w => w.name).join(', ')})`) : '',
@@ -870,6 +872,17 @@
     const [img, title, text] = STORY[region];
     showStory(img, 'Новая земля', title, text, 'Продолжить путь');
   }
+  // A story window the first time a section is opened (once per hero).
+  const STORIES = {
+    fortress: ['/assets/story/fortress.webp', 'Крепость клана', 'Камень к камню', 'Клан выбирает холм и закладывает первый камень. Здесь вырастут стены, кузница и сокровищница, а над воротами поднимется ваше знамя. Стройка идёт часами — каждый соклановец может помочь, и стены поднимутся быстрее.', 'Строить крепость'],
+    siege: ['/assets/story/siege.webp', 'Набеги', 'Ночь факелов', 'Соседние кланы богатеют, а их стены не так уж высоки. Соберите отряд, пока трубят рога, — у врага будет полчаса, чтобы встать на стены. Победители уносят часть казны, побеждённые получают щит и жажду мести.', 'Готовить набег'],
+    hunt: ['/assets/story/hunt.webp', 'Охота клана', 'Карта с драконом', 'У костра охотники раскладывают старую карту: Гидра в болотах, Дракон в каньоне костей, Лич в забытом склепе. Офицеры выбирают цель, а каждый боец раз в сутки идёт в бой. Здоровье чудовища общее — добейте его всем кланом.', 'На охоту'],
+    companions: ['/assets/story/companions.webp', 'Казарма', 'Плечом к плечу', 'Старый сержант распахивает ворота казармы: «Одному в эти земли больше не пройти — твари с каждым днём злее. Здесь те, кто готов идти с тобой: щитоносцы, лекари и боевые маги. Нанимай, учи, одевай в своё снаряжение — и они прикроют тебя в самый тяжёлый момент». Казарма открывается постепенно: чем опытнее вы, тем больше она даёт.', 'Войти в казарму'],
+    training: ['/assets/story/training.webp', 'Тренировка', 'Пыль учебного двора', 'Деревянные мечи стучат до самого заката. Каждая тренировка приближает соратника к новому уровню — но он никогда не станет сильнее вас самих.', 'Продолжить'],
+    crystals: ['/assets/story/crystals.webp', 'Кристаллы', 'Камень, что поёт в стали', 'Мастер вправляет в рукоять кристалл, и клинок отзывается тихим звоном. Каждый кристалл даёт вещи свою силу: вампиризм, крит, кровотечение. Сколько гнёзд — зависит от редкости вещи. Вставленный кристалл навсегда остаётся в ней.', 'К кристаллам'],
+    auction: ['/assets/story/auction.webp', 'Аукцион', 'Удар молотка', 'Под сводами зала торгуются за клинки, доспехи и редкие трофеи. Выставьте вещь — пока идут торги, она хранится у рынка, и покупатель получит её, даже если вы не в игре.', 'К торгам'],
+    mail: ['/assets/story/mail.webp', 'Колокольчик', 'Вести на чёрных крыльях', 'Королевский ворон приносит всё, что случилось, пока вас не было: продажи, ставки, дуэли, клановые вести и подарки от администрации. Нажмите на событие — и окажетесь там, где нужно.', 'Читать вести']};
+  function firstStory(key) { const k = `aeth_story_${key}_${uid()}`, S = STORIES[key]; if (!S || !uid() || localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); setTimeout(() => showStory(...S), 250); return true; }
   function showStory(img, kicker, title, text, button) {
     sfx.play('bell');
     const root = h('div', {class: 'ae-story', role: 'dialog', 'aria-label': title},
@@ -1256,6 +1269,7 @@
   const GEM_TITLE = {apply: '💎 Вставить кристалл', craft: '⚒️ Создать кристалл', buy: '🪙 Кристаллы в продаже'};
   const GEM_WHERE = 'Создать кристалл можно в Мастерской, купить — на Рынке во вкладке «Базовый магазин», вставить — в Кузнице или в Сумке.';
   function openGems(tab = 'apply') {
+    firstStory('crystals');
     let pick = null; syncGems(true).then(() => { if (openPanelState === st) st.rerender(); });
     const st = openPanel(GEM_TITLE[tab] || GEM_TITLE.apply, body => {
       const p = me(); if (!p) return;
@@ -1630,6 +1644,7 @@
     const st = openPanel('⚔️ Дуэли', body => {
       if (!info) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       if (!duel || (duel.status !== 'active' && !duel.log)) {
+        body.append(h('div', {class: 'ae-horde-hero ae-duel-hero'}, h('b', {}, 'Арена дуэлей'), h('span', {}, 'Один на один, при ревущей толпе. Победы поднимают рейтинг дуэлей.')));
         body.append(h('p', {class: 'ae-note'}, 'Вызовите любого героя по нику. Он не обязан быть в сети — с вами сразится его тень с силой по уровню и классу. Победа: рейтинг дуэлей, золото и опыт (награда до 10 побед в день). Соперник получит сообщение о вашем вызове.'));
         body.append(h('div', {class: 'ae-pill'}, `Рейтинг дуэлей: ${info.rating} · Победы ${info.wins} · Поражения ${info.losses}`));
         const input = h('input', {class: 'ae-input', placeholder: 'Ник героя или @username', value: name, maxlength: 40});
@@ -1792,6 +1807,7 @@
     if (pend?.id && !mailDone().has(pend.id)) claimMail({id: pend.id}, pend.op).then(() => loadInbox(true));
   }
   function openInbox(tab) {
+    firstStory('mail');
     let d = inboxData; tab ||= (d?.mail || []).some(m => !m.read || (Object.keys(m.gifts || {}).length && !m.claimed)) ? 'mail' : 'events';
     const markSeen = () => { const ids = (d?.mail || []).filter(m => !m.read).map(m => m.id); if (!d) return;
       if (tab === 'events' || ids.length) api('/api/ae-inbox/seen', 'POST', {mail: tab === 'mail' ? ids : []}).then(() => { if (tab === 'mail') ids.forEach(id => { const m = d.mail.find(x => x.id === id); if (m) m.read = true; }); else d.events.forEach(e => { e.isNew = false; });
@@ -1913,7 +1929,7 @@
     openPanel('📱 Приложение Android', body => {
       if (!isApk) {
         body.append(h('p', {class: 'ae-note'}, 'Играйте тем же героем без Telegram: отдельное приложение для Android. Прогресс общий — можно чередовать Telegram и приложение.'),
-          h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '🎁 Подарок за вход через приложение'), h('div', {class: 'ae-sub'}, 'Premium на 7 дней, 5 000 🪙, 1 000 🥈, 100 ⚡, 3 ✦ осколка и 3 🎟️ билета арены, титул «📱 Герой в кармане» и баннеры профиля. Получить можно только в приложении — и новым, и тем, кто уже им пользуется.')),
+          h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '🎁 Подарок за вход через приложение'), h('div', {class: 'ae-sub'}, 'Premium на 7 дней, 5 000 🪙, 1 000 🥈, 100 ⚡, 3 ✦ осколка и 3 🎟️ билета арены, титул «📱 Герой в кармане». Только в приложении: баннеры и оформление профиля (рамки, цвет ника, аура, фон, девиз). Подарок получат и новые, и те, кто уже пользуется приложением.')),
           h('div', {class: 'ae-card'}, h('b', {}, 'Что есть только в приложении'), h('ul', {class: 'ae-apk-list'},
             h('li', {}, '🔔 Напоминания на телефон: энергия восполнилась, питомец проголодался, начались выходные Кровавой луны'),
             h('li', {}, '📳 Вибрация на ударах и победах'), h('li', {}, '🖥️ Полный экран без панелей Telegram'),
@@ -2154,7 +2170,7 @@
     if (clanTagsBusy) return; const want = ids.filter(id => !clanTags.has(id)).slice(0, 40);
     if (!want.length && Date.now() - clanTagsAt < 120000) return;
     clanTagsBusy = true; clanTagsAt = Date.now();
-    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null, avatar: p.avatar || null, app: !!p.app}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
+    try { const r = await api('/api/ae-profile/batch', 'POST', {ids: want.length ? want : ids.slice(0, 40)}); for (const p of r.profiles || []) { clanTags.set(String(p.id), p.clan || ''); clanMeta.set(String(p.id), {place: p.clanPlace || null, emblem: p.emblem || null, avatar: p.avatar || null, app: !!p.app, color: p.color || null}); } for (const id of want) if (!clanTags.has(id)) clanTags.set(id, ''); }
     catch {} finally { clanTagsBusy = false; }
   }
   function paintClanTags() {
@@ -2162,6 +2178,7 @@
     loadClanTags([...new Set(els.map(e => e.dataset.aeUid))]);
     for (const el of els) {
       const tag = clanTags.get(el.dataset.aeUid), cm = clanMeta.get(el.dataset.aeUid) || {};
+      { const want = cm.color ? 'ae-nc-' + cm.color : ''; if ((el.dataset.aeNc || '') !== want) { if (el.dataset.aeNc) el.classList.remove(el.dataset.aeNc); if (want) el.classList.add(want); el.dataset.aeNc = want; } }
       { const nx = el.nextElementSibling?.classList.contains('ae-app-ico') ? el.nextElementSibling : null; // 📱 the player uses the Android app
         if (cm.app && !nx) el.after(h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱')); else if (!cm.app && nx) nx.remove(); }
       // rating cards: the player's avatar instead of the rank helmet (places 2+; the 1st keeps its crown)
@@ -2189,11 +2206,34 @@
     }
   }
   setInterval(() => { if (document.hidden) return; try { paintClanTags(); } catch {} }, 1500);
+  // The hero as others see them: full-body art in the middle, the 12 worn slots around (no bag). Tap a slot for details.
+  const DOLL_L = [['helmet', 'Шлем'], ['weapon', 'Оружие'], ['gloves', 'Перчатки'], ['pants', 'Штаны'], ['boots', 'Сапоги'], ['cloak', 'Плащ']];
+  const DOLL_R = [['amulet', 'Амулет'], ['offhand', 'Левая рука'], ['armor', 'Доспех'], ['ring', 'Кольцо'], ['belt', 'Пояс'], ['artifact', 'Артефакт']];
+  function gearDoll(prof, onPick, picked) {
+    const g = prof.gear || {}, power = Object.values(g).reduce((n, it) => n + Object.values(it.stats || {}).reduce((a, v) => a + Math.max(0, v), 0), 0);
+    const slot = ([k, ru]) => { const it = g[k];
+      return it ? h('button', {type: 'button', class: 'ae-doll-slot' + (picked === k ? ' is-on' : ''), 'data-ae-rarity': it.rarity, title: it.name, onclick: () => onPick(k)},
+          h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}), it.upgradeLevel ? h('i', {class: 'ae-doll-up'}, '+' + it.upgradeLevel) : '',
+          (it.gems || []).length ? h('span', {class: 'ae-doll-gems'}, (it.gems || []).map(id => h('b', {}, GEMS.find(x => x.id === id)?.icon || '💎'))) : '')
+        : h('span', {class: 'ae-doll-slot is-empty', title: ru + ': пусто'}, h('small', {}, ru)); };
+    const it = picked && g[picked];
+    return h('div', {class: 'ae-doll-wrap'},
+      h('div', {class: 'ae-doll'}, h('div', {class: 'ae-doll-col'}, DOLL_L.map(slot)),
+        h('div', {class: `ae-doll-hero ae-aura-${prof.look?.aura || 'none'} ae-theme-${prof.look?.theme || 'night'}`, style: prof.banner ? `--ae-banner:url("${prof.banner.src}")` : ''}, h('img', {class: 'ae-doll-body', src: heroBody(prof.classId), alt: ''}), h('small', {}, `Сила снаряжения ${fmt(power)}`),
+          prof.pet && prof.look?.showPet !== false ? h('img', {class: 'ae-doll-pet', src: `/assets/pets/icon-${prof.pet.id}.webp`, alt: '', title: `${prof.pet.name} · ур. ${prof.pet.level}`, onerror: e => e.target.remove()}) : '',
+          prof.look?.comp ? h('span', {class: 'ae-doll-comp', title: `Соратник: ${prof.look.comp.name} · ${prof.look.comp.lvl} ур.`}, h('img', {src: prof.look.comp.img || heroPortrait(prof.look.comp.classId), alt: ''}), h('small', {}, prof.look.comp.name)) : ''),
+        h('div', {class: 'ae-doll-col'}, DOLL_R.map(slot))),
+      it ? h('div', {class: 'ae-card ae-doll-info', 'data-ae-rarity': it.rarity}, h('b', {}, `${it.name}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${it.ascension ? ' ★' + it.ascension : ''}`),
+          h('small', {class: 'ae-sub'}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || 'Без характеристик'), gemRow(it.gems))
+        : h('p', {class: 'ae-sub ae-doll-hint'}, Object.keys(g).length ? 'Нажмите на вещь, чтобы посмотреть её характеристики и кристаллы.' : 'Герой пока ничего не надел.'));
+  }
   function openPlayerCard(id, name) {
-    let prof = null;
+    let prof = null, picked = null;
     const st = openPanel('👤 ' + name, body => {
       if (prof) body.append(profileHeader(prof), h('div', {class: 'ae-prof-stats'},
         h('span', {}, `⚔️ Рейтинг дуэлей ${prof.stats.duelRating}`), h('span', {}, `🤝 Кооп-побед ${prof.stats.coopWins}`), h('span', {}, `🌕 Рекорд Орды ${prof.stats.hordeBest}`), h('span', {}, `🏅 Титулов ${prof.titlesEarned}`)));
+      if (prof?.gear) body.append(h('h3', {class: 'ae-h3'}, '🛡️ Экипировка'), gearDoll(prof, k => { picked = picked === k ? null : k; st.rerender(); }, picked));
+      if (String(id) === uid()) { body.append(h('p', {class: 'ae-sub'}, 'Так ваш профиль видят другие игроки.')); return; }
       body.append(h('div', {class: 'ae-grid2'},
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => { try { await api('/api/friends/request', 'POST', {targetId: id}); toast('Заявка в друзья отправлена'); } catch (e) { toast(cleanError(e)); } }}, '👥 В друзья'),
         h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => openChat({id, name})}, '💬 Написать'),
@@ -2204,8 +2244,8 @@
   }
   // ---------- profile: titles + avatar (game characters only, round) ----------
   const CLASS_NAME = {warrior: 'Воин', knight: 'Рыцарь', paladin: 'Паладин', berserker: 'Берсерк', rogue: 'Разбойник', assassin: 'Ассасин', hunter: 'Охотник', archer: 'Лучник', mage: 'Маг', necromancer: 'Некромант', druid: 'Друид'};
-  const profileHeader = pr => h('div', {class: 'ae-prof-head' + (pr.banner ? ' has-banner' : ''), style: pr.banner ? `--ae-banner:url("${pr.banner.src}")` : ''}, h('img', {class: 'ae-avatar is-big', src: pr.avatar.src, alt: ''}),
-    h('div', {class: 'ae-grow'}, h('b', {class: 'ae-prof-name'}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`),
+  const profileHeader = pr => h('div', {class: 'ae-prof-head' + (pr.banner ? ' has-banner' : '') + ` ae-theme-${pr.look?.theme || 'night'} ae-frame-${pr.look?.frame || 'none'}`, style: pr.banner ? `--ae-banner:url("${pr.banner.src}")` : ''}, h('span', {class: 'ae-ava-ring'}, h('img', {class: 'ae-avatar is-big ae-ava-frame', src: pr.avatar.src, alt: ''})),
+    h('div', {class: 'ae-grow'}, h('b', {class: `ae-prof-name ae-nc-${pr.look?.color || 'default'}`}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), pr.look?.motto ? h('div', {class: 'ae-motto'}, `«${pr.look.motto}»`) : '', h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`), pr.look?.showcase?.length ? h('div', {class: 'ae-showcase'}, pr.look.showcase.map(t => h('span', {title: t.name}, `${t.icon} ${t.name}`))) : '',
       pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.pet ? h('div', {class: 'ae-prof-pet'}, h('img', {src: `/assets/pets/icon-${pr.pet.id}.webp`, alt: '', onerror: e => e.target.remove()}), h('span', {}, `${pr.pet.name} · ур. ${pr.pet.level}`), h('small', {}, `${RARITY_RU[pr.pet.rarity] || ''}${pr.pet.hungry ? ' · голоден' : ''}`)) : h('div', {class: 'ae-sub'}, '🐾 Без питомца'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
@@ -2235,16 +2275,39 @@
     }
   }
   setTimeout(() => { if (uid()) loadMyProfile(); }, 5000);
-  function openProfile(tab = 'titles') {
+  function openProfile(tab = 'look') {
     let data = myProfile;
     const st = openPanel('👤 Профиль', body => {
       if (!data) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const pr = data.profile;
-      body.append(profileHeader(pr));
+      body.append(profileHeader(pr), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Как меня видят другие — персонаж и экипировка'));
       { const li = me() ? luckInfo(me()) : null; if (li) body.append(h('div', {class: 'ae-pill'}, `🍀 Удача ${li.luck}: шанс улучшить редкость найденной вещи ${Math.round(li.bump * 100)}% · легендарные находки ×${li.legMul.toFixed(2)}`)); }
       { const r = me() ? respecInfo(me()) : null; if (r) body.append(h('div', {class: 'ae-row ae-card'}, h('div', {class: 'ae-grow'}, h('b', {}, '♻️ Характеристики'), h('div', {class: 'ae-sub'}, r.spent ? `Вложено очков: ${r.spent}. Сброс ${r.cost ? `— ${fmt(r.cost)} серебра` : '— первый бесплатно'}.` : 'Вложенных очков нет.')), h('button', {class: 'ae-btn' + (r.spent ? ' ae-primary' : ''), type: 'button', disabled: !r.spent, onclick: () => { closePanel(); doRespec(); }}, 'Сбросить'))); }
-      body.append(h('div', {class: 'ae-tabs'}, [['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка'], ['banners', '🏞️ Баннер']].map(([k, l]) =>
+      body.append(h('div', {class: 'ae-tabs'}, [['look', '🎨 Оформление'], ['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка'], ['banners', '🏞️ Баннер']].map(([k, l]) =>
         h('button', {type: 'button', class: 'ae-pill-btn' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      if (tab === 'look') {
+        const L = pr.look || {}, O = data.look || {};
+        const save = async patch => { if (!isApk) return toast('📱 Оформление профиля меняется только в приложении Android'); try { const r = await api('/api/ae-profile/look', 'POST', {...patch, apk: true}); data.profile = r.profile; data.look = r.options; myProfile = data; sfx.play('page'); st.rerender(); } catch (e) { toast(cleanError(e)); } };
+        const chips = (key, title, cls) => [h('h3', {class: 'ae-h3'}, title), h('div', {class: 'ae-look-grid'}, (O[key] || []).map(o => h('button', {type: 'button', class: `ae-look-opt ${cls}-${o.id}` + (L[key] === o.id ? ' is-on' : '') + (o.open ? '' : ' is-locked'),
+          onclick: () => o.open ? save({[key]: o.id}) : toast(`🔒 «${o.name}» откроется: ${o.need}`)}, h('i', {class: 'ae-look-sw'}), h('b', {}, (o.open ? '' : '🔒 ') + o.name), o.open ? '' : h('small', {}, o.need))))];
+        if (!isApk) body.append(h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '📱 Оформление профиля — только в мобильном приложении'), h('div', {class: 'ae-sub'}, 'Рамки, цвет ника, ауру, фон, девиз, витрину и спутников в карточке можно менять только в приложении Android. Видят ваше оформление все игроки — и в Telegram тоже. В приложении ждёт подарок: Premium на 7 дней.'),
+          h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); openApkInfo(); }}, '📱 Приложение Android')));
+        body.append(h('p', {class: 'ae-note'}, 'Соберите свой профиль: так вас увидят все, кто откроет вашу карточку — в чате, рейтинге и клане. Часть вариантов открывается за уровень, вознесение и подвиги.'),
+          h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Посмотреть, как видят другие'));
+        const motto = h('input', {class: 'ae-input', maxlength: 48, placeholder: 'Девиз под ником, например: «Иду за драконом»', value: L.motto || '', disabled: !isApk});
+        body.append(h('h3', {class: 'ae-h3'}, '✍️ Девиз'), h('div', {class: 'ae-row'}, motto, h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => save({motto: motto.value})}, 'Сохранить')));
+        body.append(...chips('frame', '🖼️ Рамка', 'ae-frame'), ...chips('color', '🎨 Цвет ника', 'ae-nc'), ...chips('aura', '✨ Аура героя', 'ae-aura'), ...chips('theme', '🌌 Фон карточки', 'ae-theme'));
+        const earned = data.titles.filter(t => t.earned), sc = (L.showcase || []).map(t => t.id);
+        body.append(h('h3', {class: 'ae-h3'}, `🏆 Витрина достижений · ${sc.length}/3`), h('p', {class: 'ae-sub'}, 'Выберите до трёх достижений — они будут под вашим ником.'),
+          h('div', {class: 'ae-look-grid'}, earned.map(t => h('button', {type: 'button', class: 'ae-look-opt' + (sc.includes(t.id) ? ' is-on' : ''), onclick: () => save({showcase: sc.includes(t.id) ? sc.filter(x => x !== t.id) : [...sc, t.id].slice(-3)})}, h('b', {}, `${t.icon} ${t.name}`)))));
+        body.append(h('h3', {class: 'ae-h3'}, '🐾 Спутники в карточке'),
+          h('label', {class: 'ae-row ae-card'}, h('input', {type: 'checkbox', checked: L.showPet !== false, onchange: e => save({showPet: e.target.checked})}), h('span', {class: 'ae-grow'}, 'Показывать питомца рядом с героем')));
+        const compBox = h('div', {class: 'ae-look-grid'}, h('small', {class: 'ae-sub'}, 'Загрузка соратников…'));
+        body.append(h('b', {}, '🛡 Соратник рядом с героем'), compBox);
+        api('/api/ae-comp').then(r => { const list = r.companions || []; compBox.replaceChildren(h('button', {type: 'button', class: 'ae-look-opt' + (!L.comp ? ' is-on' : ''), onclick: () => save({comp: null})}, h('b', {}, 'Никого')),
+          ...list.map(c => h('button', {type: 'button', class: 'ae-look-opt' + (L.comp?.name === c.name ? ' is-on' : ''), onclick: () => save({comp: c.id})}, h('b', {}, `${c.icon} ${c.name} · ${c.lvl} ур.`)))); if (!list.length) compBox.append(h('small', {class: 'ae-sub'}, 'Соратников пока нет — наймите их в Казарме.')); }, () => compBox.replaceChildren());
+        return;
+      }
       if (tab === 'banners') {
         if (!isApk) body.append(h('div', {class: 'ae-card ae-apk-gift'}, h('b', {}, '📱 Баннеры профиля — только в мобильном приложении'), h('div', {class: 'ae-sub'}, 'Выбранный баннер увидят все игроки в вашем профиле. Установите приложение и подключите героя — там же ждёт подарок: Premium на 7 дней.'),
           h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); openApkInfo(); }}, '📱 Приложение Android')));
@@ -2373,6 +2436,7 @@
   const MEDAL = {1: '🥇', 2: '🥈', 3: '🥉'};
   const pbar = (cur, max, label, cls = '') => h('div', {class: 'ae-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
   function openClanHQ(startTab = 'main') {
+    if (startTab === 'fort') firstStory('fortress');
     let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '', fort = null, fortTab = 'build', tgts = null;
     const fortCall = async (path, body) => { try { fort = await api('/api/ae-clanx/fort' + path, 'POST', body); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } rer(); };
     const load = async () => { try { d = await api('/api/ae-clanx'); clanX = d; clanXAt = Date.now(); err = ''; } catch (e) { err = cleanError(e); } rer(); };
@@ -2381,7 +2445,7 @@
       try { if (t === 'fort') { fort = await api('/api/ae-clanx/fort'); if (fortTab === 'raid') tgts = (await api('/api/ae-clanx/fort/targets')).targets; } if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
       rer();
     };
-    const go = t => { tab = t; rer(); loadTab(t); };
+    const go = t => { tab = t; rer(); loadTab(t); if (t === 'fort') firstStory('fortress'); };
     const claimGoal = async g => { try { const r = await api('/api/ae-clanx/goal/claim', 'POST', {key: g.key}); applyReward(r.reward); sfx.play('coins'); bigBanner(`🎯 Награда клана: ${rewardText(r.reward)}`, false); await load(); } catch (e) { toast(cleanError(e)); } };
     const openChest = async () => { try { const r = await api('/api/ae-clanx/chest', 'POST', {}); applyReward(r.reward); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} bigBanner(`🎁 Клановый сундук: ${rewardText(r.reward)}`, !!r.reward.fragments); await load(); } catch (e) { toast(cleanError(e)); } };
     const res = (c, t) => { const lack = k => (t?.[k] ?? 0) < (c[k] || 0); return h('span', {class: 'ae-fort-cost'}, h('span', {class: lack('gold') ? 'ae-bad' : ''}, `${fmt(c.gold)} 🪙`), c.silver ? h('span', {class: lack('silver') ? 'ae-bad' : ''}, ` · ${fmt(c.silver)} 🥈`) : '', c.ore ? h('span', {class: lack('ore') ? 'ae-bad' : ''}, ` · ${fmt(c.ore)} руды`) : ''); };
@@ -2399,13 +2463,13 @@
         h('div', {class: 'ae-sub'}, `Штурм через ${untilText(a.ends)} · в строю: ${a.side === 'att' ? a.att : a.def} (сила ${fmt(a.pw)})${a.names.length ? ' — ' + a.names.join(', ') : ''}`),
         a.joined ? h('div', {class: 'ae-sub ae-good'}, a.side === 'att' ? '✅ Вы в отряде' : '✅ Вы на стенах') : h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => fortCall('/join', {id: a.id})}, a.side === 'att' ? `⚔️ Вступить в отряд (+${fmt(F.myPw)})` : `🛡️ Встать на стены (+${fmt(F.myPw)})`)));
       const sub = [['build', '🏗️ Здания'], ['guard', '🛡️ Защита'], ['hunt', '🐾 Охота'], ['raid', '⚔️ Набеги'], ['log', '📜 Журнал']];
-      body.append(h('div', {class: 'ae-tabs ae-fort-tabs'}, sub.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (fortTab === k ? ' is-on' : ''), onclick: () => { fortTab = k; rer(); if (k === 'raid') api('/api/ae-clanx/fort/targets').then(r => { tgts = r.targets; rer(); }, e => toast(cleanError(e))); }}, l))));
+      body.append(h('div', {class: 'ae-tabs ae-fort-tabs'}, sub.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (fortTab === k ? ' is-on' : ''), onclick: () => { fortTab = k; rer(); if (k === 'raid') firstStory('siege'); if (k === 'hunt') firstStory('hunt'); if (k === 'raid') api('/api/ae-clanx/fort/targets').then(r => { tgts = r.targets; rer(); }, e => toast(cleanError(e))); }}, l))));
       if (fortTab === 'build') {
         body.append(h('p', {class: 'ae-sub'}, `Стройка идёт по часам (1–20 ч) и оплачивается из казны. Одновременно: ${F.slots} ${F.slots > 1 ? 'стройки' : 'стройка'} (сейчас ${F.busy}). Каждый соклановец может один раз помочь стройке — минус 3% времени.${F.spend ? '' : ' Начинать стройку могут глава, офицеры и казначей.'}`));
         for (const b of F.buildings) {
           const bl = b.building, pct = bl ? Math.min(100, 100 * (Date.now() - Date.parse(bl.since)) / Math.max(1, Date.parse(bl.until) - Date.parse(bl.since))) : 0;
           body.append(h('div', {class: 'ae-card ae-fort-b' + (bl ? ' is-busy' : '')},
-            h('div', {class: 'ae-row'}, h('span', {class: 'ae-hq-ic'}, b.icon), h('div', {class: 'ae-grow'}, h('b', {}, b.name, ' ', h('span', {class: 'ae-fort-lvl'}, `${b.lvl}/10`)), h('div', {class: 'ae-sub'}, b.desc))),
+            h('div', {class: 'ae-row'}, h('span', {class: 'ae-fort-bpic' + (b.lvl ? '' : ' is-none')}, h('img', {src: `/assets/fort/fort-${b.k}.webp`, alt: '', loading: 'lazy', onerror: e => e.target.replaceWith(b.icon)})), h('div', {class: 'ae-grow'}, h('b', {}, b.name, ' ', h('span', {class: 'ae-fort-lvl'}, `${b.lvl}/10`)), h('div', {class: 'ae-sub'}, b.desc))),
             h('div', {class: 'ae-fort-pips'}, Array.from({length: 10}, (_, i) => h('i', {class: i < b.lvl ? 'is-on' : bl && i === b.lvl ? 'is-next' : ''}))),
             bl ? [pbar(pct, 100, `🏗️ ${bl.to} ур. · готово через ${untilText(bl.until)} · помощь ${bl.helps}/15`, 'is-mp'),
               h('div', {class: 'ae-row'}, bl.helped ? h('span', {class: 'ae-sub ae-good ae-grow'}, '✅ Вы помогли') : h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', disabled: bl.helps >= 15, onclick: () => fortCall('/help', {key: b.k})}, '🔨 Помочь (−3%)'),
@@ -2418,7 +2482,7 @@
       if (fortTab === 'guard') {
         body.append(h('p', {class: 'ae-sub'}, `Защитники стоят на стенах днём и ночью и получают жалование из казны каждый час (${fmt(F.upkeep)} 🪙 в сутки). Пустая казна — и они уходят. Мест: ${F.count}/${F.cap} (+3 за уровень Казарм).`));
         body.append(h('div', {class: 'ae-pill'}, `🛡️ Оборона ${fmt(F.defense)} = (200 + защитники + 300 × Стены) × (1 + 10% × Стены + 6% × Башня) + 15% силы активных участников. Во время штурма — плюс полная сила тех, кто встал на стены.`));
-        for (const g of F.guards) body.append(h('div', {class: 'ae-card ae-row' + (g.open ? '' : ' is-locked')}, h('span', {class: 'ae-hq-ic'}, g.icon),
+        for (const g of F.guards) body.append(h('div', {class: 'ae-card ae-row ae-guard-card' + (g.open ? '' : ' is-locked')}, h('img', {class: 'ae-guard-img', src: `/assets/fort/guard-${g.k}.webp`, alt: g.name, onerror: e => e.target.replaceWith(h('span', {class: 'ae-hq-ic'}, g.icon))}),
           h('div', {class: 'ae-grow'}, h('b', {}, `${g.name} ×${g.n}`), h('div', {class: 'ae-sub'}, `сила ${fmt(g.pw)} · найм ${fmt(g.hire)} 🪙 · жалование ${fmt(g.upkeep)} 🪙/сутки${g.open ? '' : ` · нужны Казармы ${g.need} ур.`}`)),
           F.spend && g.open ? h('div', {class: 'ae-fort-hire'}, h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: F.count >= F.cap, onclick: () => { const n = Math.floor(Number(prompt(`Сколько нанять? Свободно мест: ${F.cap - F.count}. Один стоит ${fmt(g.hire)} 🪙 + ${fmt(g.upkeep)} 🪙 в сутки.`, '1')) || 0); if (n > 0) fortCall('/hire', {kind: g.k, n}); }}, 'Нанять'),
             g.n ? h('button', {class: 'ae-btn', type: 'button', onclick: () => { const n = Math.floor(Number(prompt(`Сколько распустить? (${g.n})`, '1')) || 0); if (n > 0) fortCall('/dismiss', {kind: g.k, n}); }}, 'Распустить') : '') : ''));
@@ -2428,7 +2492,7 @@
         body.append(h('p', {class: 'ae-sub'}, `Глава и офицеры ведут клан на одного из боссов. Каждый участник бьётся с ним раз в сутки (отдельно от Стража врат). Здоровье босса общее — добейте его всем кланом. Кузница +${(F.bonus.forge || 0) * 3}% к атаке, Святилище −${(F.bonus.shrine || 0) * 3}% к урону по вам.`));
         if (H.run || can) body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', disabled: !H.run && H.doneToday, onclick: () => { closePanel(); openClanRaid(true); }},
           H.run ? (H.run.status === 'active' ? '⚔️ Продолжить охоту' : '🎁 Итоги охоты') : H.doneToday ? 'Охота уже была сегодня' : `${cur.icon} В бой: ${cur.name}`));
-        for (const b of H.bosses) body.append(h('div', {class: 'ae-card ae-fort-boss' + (b.k === H.target ? ' is-target' : '') + (b.open ? '' : ' is-locked')},
+        for (const b of H.bosses) body.append(h('div', {class: 'ae-card ae-fort-boss' + (b.k === H.target ? ' is-target' : '') + (b.open ? '' : ' is-locked'), style: `--ae-lair:url("/assets/fort/hunt-${b.k}.webp")`},
           h('div', {class: 'ae-row'}, h('img', {class: 'ae-fort-bimg', src: b.img, alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${b.icon} ${b.name}`, b.k === H.target ? ' 🎯' : ''), h('div', {class: 'ae-sub'}, b.text),
             h('div', {class: 'ae-sub'}, `Победа: +${fmt(b.reward.gold)} 🪙 · +${fmt(b.reward.silver)} 🥈 · +${b.reward.ore} руды · +${b.reward.xp} опыта клана${b.kills ? ` · повержен ${b.kills} раз` : ''}`))),
           b.open ? pbar(b.hp, b.max, b.respawn ? `Повержен · возродится через ${untilText(b.respawn)}` : `${fmt(b.hp)} / ${fmt(b.max)} HP`, 'is-foe') : h('div', {class: 'ae-sub ae-bad'}, `🔒 Нужно Логово охотников ${b.den} ур.`),
@@ -2560,7 +2624,7 @@
       battleMode(body, run.status === 'active');
       if (run.status === 'active') {
         const cls = me()?.classId || 'warrior', ph = run.phase;
-        body.append(battleView({location: hunt ? 'Клановая охота' : 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: '/assets/catacombs-DeUOVUij.webp',
+        body.append(battleView({location: hunt ? 'Клановая охота' : 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: hunt && run.boss ? `/assets/fort/hunt-${run.boss}.webp` : '/assets/catacombs-DeUOVUij.webp',
           turn: 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
           hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
           foe: {name: bossName(), level: hunt ? 'Клановый босс' : 'Рейдовый босс', hp: run.foe.hp, maxHp: run.foe.maxHp, atk: run.foe.atk, img: hunt ? run.img : '/assets/sprites/generated/monsters/v_cr_colossus.webp'},
@@ -2983,6 +3047,7 @@
     catch (e) { toast(cleanError(e)); return false; }
   }
   function openAuction(tab = 'all') {
+    firstStory('auction');
     let d = null, mine = null, pick = null, reqs = [];
     const load = async () => { try { [d, mine, reqs] = await Promise.all([api('/api/ae-market/lots'), api('/api/ae-market/lots?mine=1'), api('/api/ae-market/requests').then(r => r.requests)]); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const bid = async l => { const min = l.bid ? l.bid.amount + l.step : l.start, v = prompt(`Ваша ставка на «${baseName(l.item)}» (минимум ${min} 🪙):`, String(min)); if (v == null) return;
@@ -4003,7 +4068,7 @@
     t.querySelector(':scope > .ae-place-badge')?.remove();
     const title = t.querySelector('strong, h3, b'); if (title) title.textContent = 'Казарма';
     const sub = [...t.querySelectorAll('span, p, small, div')].find(e => !e.childElementCount && /Спутники/.test(e.textContent || '')); if (sub) sub.textContent = 'Соратники: найм, прокачка, снаряжение';
-    const img = t.querySelector('img'); if (img) { img.src = heroPortrait('knight'); img.style.objectFit = 'cover'; img.style.borderRadius = '10px'; }
+    const img = t.querySelector('img'); if (img) { img.src = '/assets/story/barracks.webp'; img.style.objectFit = 'cover'; img.style.objectPosition = '60% center'; img.style.borderRadius = '10px'; }
     t.addEventListener('click', e => { e.preventDefault(); e.stopImmediatePropagation(); logVisit('Поселение: Казарма'); openCompanions(); }, true);
     pets.after(t);
   }
@@ -4532,6 +4597,48 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-gem-line.is-empty .ae-gem-ic{background:#0008;border:1px dashed #a78bfa88;color:#a78bfa}.ae-gem-line.is-empty{opacity:.8}.ae-gem-val{font-weight:800;color:#c4b5fd;white-space:nowrap}
 .ae-gem-mark{font-size:.85em;filter:drop-shadow(0 0 3px #a78bfa)}
 .ae-gem-note{display:block;color:#c4b5fd;font-size:11px;font-weight:600}
+.ae-doll-wrap{display:flex;flex-direction:column;gap:8px}.ae-doll{display:grid;grid-template-columns:52px 1fr 52px;gap:6px;align-items:stretch}
+.ae-doll-col{display:flex;flex-direction:column;gap:5px}.ae-doll-slot{position:relative;width:52px;height:52px;padding:3px;border-radius:10px;border:2px solid #6b5631;background:#0f1512;display:grid;place-items:center}
+.ae-doll-slot img{width:40px;height:40px;object-fit:contain}.ae-doll-slot.is-empty{border-style:dashed;opacity:.55}.ae-doll-slot.is-empty small{font-size:9px;color:#cbd5e1;text-align:center;line-height:1.1}
+.ae-doll-slot[data-ae-rarity=uncommon]{border-color:#22c55e}.ae-doll-slot[data-ae-rarity=rare]{border-color:#3b82f6}.ae-doll-slot[data-ae-rarity=epic]{border-color:#a855f7}.ae-doll-slot[data-ae-rarity=legendary]{border-color:#f59e0b;box-shadow:0 0 8px #f59e0b66}.ae-doll-slot[data-ae-rarity=mythic],.ae-doll-slot[data-ae-rarity=ancient],.ae-doll-slot[data-ae-rarity=divine]{border-color:#ef4444;box-shadow:0 0 8px #ef444466}
+.ae-doll-slot.is-on{outline:2px solid #ffe6a8;outline-offset:1px}.ae-doll-up{position:absolute;top:-4px;left:-4px;font-style:normal;font:800 10px/1 system-ui;padding:2px 3px;border-radius:5px;background:#000c;color:#ffe6a8}
+.ae-doll-gems{position:absolute;right:-3px;bottom:-3px;display:flex;gap:1px}.ae-doll-gems b{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;font-size:8px;background:radial-gradient(circle at 35% 30%,#fff6,#7c3aed 65%);border:1px solid #e9d5ff}
+.ae-doll-hero{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#0b0f0d55,#0b0f0dcc),var(--ae-banner,radial-gradient(circle at 50% 30%,#2a1d10,#0b0f0d)) center/cover;border:1px solid #6b5631;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:300px}
+.ae-doll-hero img{width:100%;max-height:340px;object-fit:contain;object-position:bottom}.ae-doll-hero small{position:absolute;top:6px;left:0;right:0;text-align:center;font:700 11px system-ui;color:#ffe6a8;text-shadow:0 1px 3px #000}
+.ae-doll-info{display:flex;flex-direction:column;gap:3px}.ae-doll-hint{text-align:center}
+.ae-prof-head{position:relative;border-radius:14px;padding:10px}.ae-prof-head:not(.has-banner).ae-theme-night{background:linear-gradient(135deg,#141a21,#0b0f0d)}.ae-prof-head:not(.has-banner).ae-theme-forest{background:linear-gradient(135deg,#0f2a1a,#0b130e)}.ae-prof-head:not(.has-banner).ae-theme-ember{background:linear-gradient(135deg,#3a1508,#140a06)}.ae-prof-head:not(.has-banner).ae-theme-ice{background:linear-gradient(135deg,#0e2a3a,#0a1218)}.ae-prof-head:not(.has-banner).ae-theme-royal{background:linear-gradient(135deg,#2a1f08,#160f22)}.ae-prof-head:not(.has-banner).ae-theme-blood{background:linear-gradient(135deg,#3a0a12,#120406)}.ae-prof-head:not(.has-banner).ae-theme-abyss{background:radial-gradient(circle at 30% 20%,#2e1065,#05030c)}
+.ae-frame-bronze{border:2px solid #b07a45!important}.ae-frame-silver{border:2px solid #cbd5e1!important;box-shadow:0 0 8px #cbd5e155}.ae-frame-gold{border:2px solid #f0cf7a!important;box-shadow:0 0 12px #f0cf7a66}.ae-frame-fire{border:2px solid #f97316!important;box-shadow:0 0 14px #ef4444aa}.ae-frame-frost{border:2px solid #7dd3fc!important;box-shadow:0 0 14px #38bdf8aa}.ae-frame-royal{border:2px solid #c084fc!important;box-shadow:0 0 14px #a855f799}.ae-frame-clan{border:2px solid #22c55e!important}.ae-frame-pocket{border:2px dashed #4ade80!important}.ae-frame-void{border:2px solid #000!important;box-shadow:0 0 0 2px #7c3aed,0 0 18px #7c3aedcc}
+.ae-prof-head[class*=ae-frame-] .ae-ava-frame{border-width:3px;border-style:solid;border-color:inherit}
+.ae-nc-gold{color:#facc15!important}.ae-nc-crimson{color:#f87171!important}.ae-nc-emerald{color:#4ade80!important}.ae-nc-azure{color:#60a5fa!important}.ae-nc-violet{color:#c084fc!important}.ae-nc-rainbow{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.ae-motto{font:italic 12.5px Georgia,serif;color:#ffe6a8;opacity:.9}.ae-showcase{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}.ae-showcase span{font-size:11px;padding:2px 7px;border-radius:999px;background:#0008;border:1px solid #f0cf7a66;color:#ffe6a8}
+.ae-doll-hero .ae-doll-body{transition:filter .3s}.ae-aura-ember .ae-doll-body{filter:drop-shadow(0 0 10px #f97316) drop-shadow(0 0 22px #ef444477)}.ae-aura-frost .ae-doll-body{filter:drop-shadow(0 0 10px #7dd3fc) drop-shadow(0 0 22px #38bdf877)}.ae-aura-shadow .ae-doll-body{filter:drop-shadow(0 0 12px #000) drop-shadow(0 0 24px #4c1d95)}.ae-aura-holy .ae-doll-body{filter:drop-shadow(0 0 12px #fde68a) drop-shadow(0 0 26px #fbbf24aa)}.ae-aura-void .ae-doll-body{filter:drop-shadow(0 0 14px #7c3aed) drop-shadow(0 0 30px #000)}.ae-aura-royal .ae-doll-body{filter:drop-shadow(0 0 12px #c084fc) drop-shadow(0 0 24px #f0cf7a88)}
+html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:ae-aura-pulse 2.6s ease-in-out infinite}@keyframes ae-aura-pulse{50%{filter:brightness(1.12)}}
+.ae-doll-hero:not([style*=--ae-banner]).ae-theme-forest{background:linear-gradient(#0f2a1a,#0b130e)}.ae-doll-hero:not([style*=--ae-banner]).ae-theme-ember{background:linear-gradient(#3a1508,#140a06)}.ae-doll-hero:not([style*=--ae-banner]).ae-theme-ice{background:linear-gradient(#0e2a3a,#0a1218)}.ae-doll-hero:not([style*=--ae-banner]).ae-theme-royal{background:linear-gradient(#2a1f08,#160f22)}.ae-doll-hero:not([style*=--ae-banner]).ae-theme-blood{background:linear-gradient(#3a0a12,#120406)}.ae-doll-hero:not([style*=--ae-banner]).ae-theme-abyss{background:radial-gradient(circle at 50% 30%,#2e1065,#05030c)}
+.ae-doll-pet{position:absolute;left:6px;bottom:6px;width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #f0cf7a;background:#0008}.ae-doll-comp{position:absolute;right:6px;bottom:6px;display:flex;flex-direction:column;align-items:center;gap:1px}.ae-doll-comp img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #93c5fd}.ae-doll-comp small{font:600 10px system-ui;color:#e0f2fe;text-shadow:0 1px 2px #000}
+.ae-look-grid{display:flex;flex-wrap:wrap;gap:6px}.ae-look-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 10px;border-radius:10px;border:1px solid #6b563199;background:#141a17;color:#f1ead8;font:12.5px system-ui;text-align:left}.ae-look-opt small{font-size:10.5px;opacity:.7}.ae-look-opt.is-on{border-color:#f0cf7a;box-shadow:0 0 0 1px #f0cf7a inset}.ae-look-opt.is-locked{opacity:.55}
+.ae-look-opt .ae-look-sw{display:none}.ae-look-opt[class*=ae-frame-]{border-radius:10px}.ae-look-opt[class*=ae-theme-]:not(.ae-theme-night){color:#fff}.ae-look-opt.ae-theme-forest{background:linear-gradient(135deg,#0f2a1a,#0b130e)}.ae-look-opt.ae-theme-ember{background:linear-gradient(135deg,#3a1508,#140a06)}.ae-look-opt.ae-theme-ice{background:linear-gradient(135deg,#0e2a3a,#0a1218)}.ae-look-opt.ae-theme-royal{background:linear-gradient(135deg,#2a1f08,#160f22)}.ae-look-opt.ae-theme-blood{background:linear-gradient(135deg,#3a0a12,#120406)}.ae-look-opt.ae-theme-abyss{background:radial-gradient(circle at 30% 20%,#2e1065,#05030c)}
+.ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
+.ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-theme-night{--ae-theme:url(/assets/profile/theme-night.webp)}.ae-theme-forest{--ae-theme:url(/assets/profile/theme-forest.webp)}.ae-theme-ember{--ae-theme:url(/assets/profile/theme-ember.webp)}.ae-theme-ice{--ae-theme:url(/assets/profile/theme-ice.webp)}.ae-theme-royal{--ae-theme:url(/assets/profile/theme-royal.webp)}.ae-theme-blood{--ae-theme:url(/assets/profile/theme-blood.webp)}.ae-theme-abyss{--ae-theme:url(/assets/profile/theme-abyss.webp)}
+.ae-frame-bronze{--ae-ring:url(/assets/profile/frame-bronze.webp)}.ae-frame-silver{--ae-ring:url(/assets/profile/frame-silver.webp)}.ae-frame-gold{--ae-ring:url(/assets/profile/frame-gold.webp)}.ae-frame-fire{--ae-ring:url(/assets/profile/frame-fire.webp)}.ae-frame-frost{--ae-ring:url(/assets/profile/frame-frost.webp)}.ae-frame-royal{--ae-ring:url(/assets/profile/frame-royal.webp)}.ae-frame-clan{--ae-ring:url(/assets/profile/frame-clan.webp)}.ae-frame-pocket{--ae-ring:url(/assets/profile/frame-pocket.webp)}.ae-frame-void{--ae-ring:url(/assets/profile/frame-void.webp)}
+.ae-prof-head:not(.has-banner)[class*=ae-theme-]{background:linear-gradient(90deg,#0b0f0de8 0%,#0b0f0daa 55%,#0b0f0d40 100%),var(--ae-theme) center/cover no-repeat!important}
+.ae-doll-hero:not([style*=--ae-banner])[class*=ae-theme-]{background:linear-gradient(#0b0f0d22,#0b0f0dcc),var(--ae-theme) center/cover no-repeat!important}
+.ae-look-opt[class*=ae-theme-]{min-width:104px;min-height:48px;justify-content:flex-end;background:linear-gradient(#0003,#000b),var(--ae-theme) center/cover no-repeat!important;color:#fff;text-shadow:0 1px 3px #000}
+.ae-ava-ring{position:relative;flex:0 0 auto;display:grid;place-items:center}
+.ae-prof-head:not(.ae-frame-none) .ae-ava-ring{width:112px;height:112px;margin:-10px -6px}
+.ae-prof-head:not(.ae-frame-none) .ae-ava-ring::after{content:'';position:absolute;inset:0;pointer-events:none;background:var(--ae-ring) center/contain no-repeat;filter:drop-shadow(0 2px 4px #000a)}
+.ae-prof-head:not(.ae-frame-none) .ae-ava-ring .ae-avatar{width:64px;height:64px;flex-basis:64px;border:0!important;box-shadow:none}
+.ae-look-opt[class*=ae-frame-]:not(.ae-frame-none) .ae-look-sw{display:block;width:40px;height:40px;align-self:center;background:var(--ae-ring) center/contain no-repeat}
+.ae-look-opt[class*=ae-frame-]{align-items:center;text-align:center;min-width:78px}
+.ae-fort-bpic{flex:0 0 64px;width:64px;height:64px;display:grid;place-items:center;font-size:30px;border-radius:12px;background:radial-gradient(circle at 50% 60%,#3a2c1688,#0000 70%)}.ae-fort-bpic img{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 3px 4px #000c)}.ae-fort-bpic.is-none img{filter:grayscale(.85) brightness(.6)}
+.ae-barracks-hero{margin:-4px 0 10px;border-radius:14px;overflow:hidden;border:1px solid #c9a35a55;aspect-ratio:12/5}.ae-barracks-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.ae-horde-hero{background:linear-gradient(#0007,#000c),url(/assets/banners/banner-horde.webp) center/cover!important;min-height:120px;justify-content:flex-end}
+.ae-horde-hero.ae-duel-hero{background:linear-gradient(#0006,#000c),url(/assets/banners/banner-arena.webp) center 35%/cover!important}
+.ae-weekend{background:linear-gradient(90deg,#1a0505ee,#2a0d0d99),url(/assets/banners/banner-bloodmoon.webp) center 30%/cover!important}.ae-weekend.is-on{background:linear-gradient(90deg,#450a0add,#1f070799),url(/assets/banners/banner-bloodmoon.webp) center 30%/cover!important;min-height:84px;justify-content:flex-end}
+.ae-guard-img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;border:1px solid #6b5631;box-shadow:0 2px 8px #0009}.ae-guard-card.is-locked .ae-guard-img{filter:grayscale(.8) brightness(.6)}
+.ae-fort-boss{background:linear-gradient(90deg,#0b0f0df2 0%,#0b0f0dcc 55%,#0b0f0d66 100%),var(--ae-lair) center/cover no-repeat!important}.ae-fort-boss.is-locked{background:linear-gradient(#0b0f0dee,#0b0f0dee),var(--ae-lair) center/cover no-repeat!important}
+.ae-comp-ava{width:64px!important;height:64px!important;border-radius:12px!important;object-fit:cover}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4869,5 +4976,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

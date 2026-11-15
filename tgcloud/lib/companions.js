@@ -36,7 +36,10 @@ export function compStats(c) {
 // Daily wage: a little gold per day, paid ahead (up to 7 days). An unpaid companion rests: no fights, no co-op.
 export const wageOf = c => Math.round(40 + (c.lvl || 1) * 6);
 export const isPaid = (c, now = Date.now()) => !c.paidUntil || Date.parse(c.paidUntil) > now;
-const view = (c, now = Date.now()) => ({paid: isPaid(c, now), paidUntil: c.paidUntil || null, wage: wageOf(c), id: c.id, name: c.name, role: c.role, roleLabel: COMP_ROLES[c.role].label, icon: COMP_ROLES[c.role].icon, roleText: COMP_ROLES[c.role].text, lvl: c.lvl, xp: c.xp, need: xpNeed(c.lvl),
+const FEM = new Set(['Тора Стойкая', 'Лиара Светлая', 'Мирена', 'Ирвена Буря', 'Сестра Мирра', 'Травница Ив', 'Элайна', 'Ровена']);
+export const sexOf = c => c.sex === 'f' || c.sex === 'm' ? c.sex : FEM.has(c.name) ? 'f' : 'm';
+export const compImg = c => `/assets/companions/comp-${COMP_ROLES[c.role] ? c.role : 'tank'}-${sexOf(c)}.webp`;
+const view = (c, now = Date.now()) => ({sex: sexOf(c), img: compImg(c),paid: isPaid(c, now), paidUntil: c.paidUntil || null, wage: wageOf(c), id: c.id, name: c.name, role: c.role, roleLabel: COMP_ROLES[c.role].label, icon: COMP_ROLES[c.role].icon, roleText: COMP_ROLES[c.role].text, lvl: c.lvl, xp: c.xp, need: xpNeed(c.lvl),
   stats: compStats(c), gear: c.gear || {}, runs: c.runs || 0, wins: c.wins || 0});
 const mine = (world, me) => rows(world, 'ae_companions').filter(c => same(c.u, me));
 export const companionOf = (world, me, id) => rows(world, 'ae_companions').find(c => same(c.u, me) && c.id === id) || null;
@@ -125,6 +128,7 @@ function companionsRoute(world, path, method, body, me, now) {
     c.paidUntil = iso(from + days * DAY);
     return ok({...list().body, paid: cost});
   }
+  if (path === '/api/ae-comp/sex') { c.sex = body.sex === 'f' ? 'f' : 'm'; return list(); }
   if (path === '/api/ae-comp/rename') { const name = String(body.name || '').replace(/\s+/g, ' ').trim().slice(0, 24); if (name.length < 2) return fail('Имя слишком короткое.'); c.name = name; return list(); }
   if (path === '/api/ae-comp/train') {
     if (L < UNLOCK.train) return fail(`Тренировки откроются на ${UNLOCK.train} уровне.`);
