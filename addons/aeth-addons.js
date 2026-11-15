@@ -300,6 +300,9 @@
     } catch (e) { toast(cleanError(e)); sfx.play('fail'); }
     finally { release(); merging = false; setTimeout(() => openPanelState?.rerender(), 200); }
   }
+  // «💎 🩸 Вампиризм +3% · ⚡ Шанс крита +4%» — what crystals sit in an item (shown wherever an item is sold or shown)
+  function gemNote(gems) { const list = (gems || []).map(id => GEMS.find(g => g.id === id)).filter(Boolean); return list.length ? '💎 ' + list.map(g => `${g.icon} ${g.label} +${g.value}${g.unit}`).join(' · ') : ''; }
+  const gemRow = gems => { const t = gemNote(gems); return t ? h('small', {class: 'ae-gem-note'}, t) : ''; };
   function statLine(stats) {
     const names = {attack: 'Атака', magicAttack: 'Маг. атака', defense: 'Защита', magicDefense: 'Маг. защита', maxHp: 'HP', maxMp: 'MP', critChance: 'Крит %', speed: 'Скорость', dodge: 'Уклонение', armorPenetration: 'Пробитие'};
     return Object.entries(stats || {}).filter(([, v]) => typeof v === 'number' && v).slice(0, 4).map(([k, v]) => `${names[k] || k} ${Math.round(v * 10) / 10}`).join(' · ');
@@ -524,7 +527,7 @@
         for (const it of list) { const heavy = (it.level || 1) > c.lvl + 3, cur = c.gear[it.type];
           body.append(h('button', {type: 'button', class: 'ae-chat-item ae-equip-row', 'data-ae-rarity': it.rarity || 'common', disabled: heavy, onclick: () => equip(c, it)},
             h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}),
-            h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${d.slotRu[it.type] || it.type} · ур. ${it.level || 1}${heavy ? ' · слишком тяжёлая' : ''}${cur ? ` · заменит «${cur.name}»` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')),
+            h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${d.slotRu[it.type] || it.type} · ур. ${it.level || 1}${heavy ? ' · слишком тяжёлая' : ''}${cur ? ` · заменит «${cur.name}»` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)),
             h('span', {class: 'ae-equip-go'}, 'Надеть'))); }
         return;
       }
@@ -1194,6 +1197,46 @@
     if (i >= 0) { const c = inv.slice(); c[i] = {...c[i], stackCount: (c[i].stackCount || 1) + n}; return c; }
     return [...inv, {...gemItem(g), stackCount: n}];
   }
+  // ---------- crystals made visible: sockets on item tiles + a «💎 Кристаллы» block in the item sheet ----------
+  const gemOf = id => GEMS.find(g => g.id === id);
+  const gemFx = g => `${g.label} +${g.value}${g.unit}`;
+  let gemLastItem = null;
+  document.addEventListener('click', e => { const t = e.target.closest?.('[data-inventory-item], [data-equipment-slot]'); if (t) gemLastItem = t.dataset.inventoryItem ? {id: t.dataset.inventoryItem} : {slot: t.dataset.equipmentSlot}; }, true);
+  const findGear = ref => { const p = me(); if (!p || !ref) return null; return ref.id ? (p.inventory || []).find(i => i.id === ref.id) || Object.values(p.equipped || {}).find(i => i?.id === ref.id) : p.equipped?.[ref.slot] || null; };
+  const isSocketable = i => i && ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'amulet', 'ring', 'belt', 'cloak', 'artifact'].includes(i.type);
+  function paintGemSockets() {
+    const p = me(); if (!p) return;
+    for (const t of document.querySelectorAll('[data-inventory-item], [data-equipment-slot]')) {
+      const it = t.dataset.inventoryItem ? (p.inventory || []).find(i => i.id === t.dataset.inventoryItem) : p.equipped?.[t.dataset.equipmentSlot];
+      const old = t.querySelector(':scope > .ae-gem-sockets');
+      if (!isSocketable(it)) { old?.remove(); continue; }
+      const gems = it.gems || [], max = GEM_SLOTS[it.rarity] || 1, sig = gems.join(',') + '/' + max;
+      if (old && old.dataset.sig === sig) continue;
+      const el = h('span', {class: 'ae-gem-sockets', 'data-sig': sig, title: gems.length ? 'Кристаллы: ' + gems.map(id => { const g = gemOf(id); return g ? `${g.name} (${gemFx(g)})` : id; }).join(', ') : `Пустых гнёзд: ${max}`},
+        ...Array.from({length: max}, (_, k) => { const g = gemOf(gems[k]); return h('i', {class: g ? 'is-on' : ''}, g ? g.icon : ''); }));
+      if (old) old.replaceWith(el); else t.append(el);
+    }
+  }
+  function paintGemSheet() {
+    const sheet = document.querySelector('.inventory-item-sheet'); if (!sheet) return;
+    const it = findGear(gemLastItem); const old = sheet.querySelector('[data-ae-gem-sheet]');
+    if (!isSocketable(it)) { old?.remove(); return; }
+    const gems = it.gems || [], max = GEM_SLOTS[it.rarity] || 1, sig = it.id + ':' + gems.join(',') + '/' + max;
+    if (old && old.dataset.sig === sig) return;
+    const box = h('div', {class: 'ae-gem-sheet', 'data-ae-gem-sheet': '1', 'data-sig': sig},
+      h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `💎 Кристаллы · ${gems.length}/${max}`), h('small', {class: 'ae-sub'}, `${RARITY_RU[it.rarity] ? RARITY_RU[it.rarity][0].toUpperCase() + RARITY_RU[it.rarity].slice(1) + ' · ' : ''}гнёзд: ${max}`)),
+      ...Array.from({length: max}, (_, k) => { const g = gemOf(gems[k]);
+        return g ? h('div', {class: 'ae-gem-line'}, h('span', {class: 'ae-gem-ic'}, g.icon), h('span', {class: 'ae-grow'}, h('b', {}, g.name), h('small', {}, `Гнездо ${k + 1} · даёт: ${gemFx(g)}`)), h('span', {class: 'ae-gem-val'}, `+${g.value}${g.unit}`))
+          : h('div', {class: 'ae-gem-line is-empty'}, h('span', {class: 'ae-gem-ic'}, '◯'), h('span', {class: 'ae-grow'}, h('b', {}, 'Пустое гнездо'), h('small', {}, `Гнездо ${k + 1} · сюда можно вставить кристалл`))); }),
+      gems.length ? h('small', {class: 'ae-sub'}, 'Прибавки кристаллов уже входят в характеристики вещи — в сравнении ниже они отмечены 💎. Кристалл нельзя вынуть.') : '',
+      gems.length < max ? h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { document.querySelector('.inventory-item-sheet')?.closest('[role=dialog], .game-dialog-backdrop')?.querySelector('button[aria-label="Закрыть"]')?.click(); setTimeout(() => openGems('apply'), 200); }}, '💎 Вставить кристалл') : '');
+    if (old) old.replaceWith(box); else { const anchor = [...sheet.querySelectorAll('*')].find(e => !e.childElementCount && /^СРАВНЕНИЕ С ТЕКУЩИМ$/i.test((e.textContent || '').trim()))?.parentElement; if (anchor) anchor.before(box); else sheet.append(box); }
+    // mark the comparison rows that come from crystals
+    const labels = new Map(gems.map(id => gemOf(id)).filter(Boolean).map(g => [g.label.toLowerCase(), g]));
+    for (const e of sheet.querySelectorAll('span, div, td, dt')) { if (e.childElementCount || e.closest('[data-ae-gem-sheet]') || e.dataset.aeGemMark) continue;
+      const g = labels.get((e.textContent || '').trim().toLowerCase()); if (g) { e.dataset.aeGemMark = '1'; e.append(h('span', {class: 'ae-gem-mark', title: `от кристалла: ${g.name}`}, ' 💎')); } }
+  }
+  setInterval(() => { if (document.hidden) return; try { paintGemSockets(); paintGemSheet(); } catch (e) { console.warn('ae gems view', e); } }, 700);
   // The server keeps the count of each player's crystals; the bag is trimmed to it (crystals never appear from nowhere).
   let gemBusy = false, gemSyncAt = 0;
   async function syncGems(lower) {
@@ -2239,7 +2282,7 @@
   const dec = s => { try { return JSON.parse(decodeURIComponent(escape(atob(s)))); } catch { return null; } };
   const RAR_RU = RARITY_RU;
   function shareItem(item) {
-    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6)), w: uid(), i: item.id};
+    const compact = {n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, a: ascOf(item), t: item.type, ...(item.gems?.length ? {g: item.gems} : {}), ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6)), w: uid(), i: item.id};
     const text = `Продаю: ${baseName(item)}${compact.u ? ' +' + compact.u : ''}${compact.a ? ' ★' + compact.a : ''} ⟦ae:i:${enc(compact)}⟧`;
     if (text.length > 500) return toast('Слишком много характеристик для чата.');
     api('/api/chat/global', 'POST', {text}).then(() => { toast('Предмет отправлен в общий чат'); sfx.play('page'); }, e => toast(cleanError(e)));
@@ -2249,7 +2292,7 @@
     const icon = iconFor(fake) || '/assets/items/sprites/sword.webp';
     const card = h('button', {type: 'button', class: 'ae-chat-item', 'data-ae-rarity': o.r || 'common', onclick: e => { e.stopPropagation(); card.classList.toggle('is-open'); }},
       h('img', {src: icon, alt: '', style: iconStyle(fake)}), h('span', {class: 'ae-grow'}, h('b', {}, `${o.n}${o.u ? ' +' + o.u : ''}${o.a ? ' ★' + o.a : ''}`), h('small', {}, `${RAR_RU[o.r] || o.r || ''} · ур. ${o.l}${o.th ? ' · 🗡️ двуручное' : ''}`),
-        h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик')));
+        h('small', {class: 'ae-chat-item-stats'}, statLine(o.s) || 'Без характеристик'), gemRow(o.g)));
     if (String(o.w || '') !== String(uid())) { const asked = myAsk(o);
       card.dataset.aeShown = JSON.stringify(o);
       card.append(h('span', {class: 'ae-lot-btns'}, h('span', {role: 'button', tabindex: '0', class: 'ae-btn ae-buy-shown' + (asked ? '' : ' ae-primary'), onclick: e => { e.stopPropagation(); askToBuy(o, card); }}, asked ? `⏳ Ваша цена: ${fmt(asked)}` : '💰 Купить'))); }
@@ -2615,7 +2658,7 @@
           toast(`«${baseName(it)}» в хранилище клана`); closePanel(); setTimeout(reopenClan, 300);
         } catch (e) { toast(cleanError(e)); ev.currentTarget.disabled = false; }
       }}, h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}),
-        h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}${(it.stackCount || 1) > 1 ? ` · ×${it.stackCount}` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')),
+        h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}${(it.stackCount || 1) > 1 ? ` · ×${it.stackCount}` : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)),
         h('span', {class: 'ae-equip-go'}, 'Внести')));
     });
     return st;
@@ -2859,7 +2902,7 @@
     return true; };
   const leftShort = at => { const ms = Date.parse(at) - Date.now(); if (ms <= 0) return 'завершается'; const m = Math.ceil(ms / 60e3), hh = Math.floor(m / 60); return hh >= 24 ? `${Math.floor(hh / 24)} д ${hh % 24} ч` : hh ? `${hh} ч ${m % 60} мин` : `${m} мин`; };
   const lotItemRow = (it, extra) => { const fake = {...it}; return h('div', {class: 'ae-row ae-lot-item', 'data-ae-rarity': it.rarity || 'common'}, h('img', {src: iconFor(fake) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(fake)}),
-    h('div', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')), extra || ''); };
+    h('div', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)), extra || ''); };
   // Turn a bag item into a server-held one (needed to put it on sale), returns the server item id.
   async function serverIdOf(item) {
     if (item.serverOwned) return item.id;
@@ -2916,7 +2959,7 @@
     const v = prompt(prev ? `Вы уже предложили ${fmt(prev)} 🪙 за «${o.n}». Новая цена (разница зарезервируется):` : `Сколько золота предложить за «${o.n}»? Золото зарезервируется и вернётся, если продавец откажет или не ответит за 2 дня.`, prev ? String(prev) : '');
     if (v == null) return; const price = Math.floor(Number(v)); if (!(price > 0)) return toast('Укажите цену.');
     if (prev === price) return;
-    if (await marketPost('request', {seller, price, item: {n: o.n, r: o.r, l: o.l, u: o.u, t: o.t, s: o.s, i: o.i}}, '📨 Запрос отправлен продавцу')) {
+    if (await marketPost('request', {seller, price, item: {n: o.n, r: o.r, l: o.l, u: o.u, t: o.t, s: o.s, i: o.i, ...(o.g ? {g: o.g} : {})}}, '📨 Запрос отправлен продавцу')) {
       myReqs.set(reqKey(seller, o.n, o.l), price); myReqsAt = Date.now();
       if (o.w) redrawShown(); else card.querySelector('.ae-buy-shown')?.replaceWith(h('small', {class: 'ae-lot-price'}, `⏳ Ваша цена: ${fmt(price)} 🪙`));
     }
@@ -2973,7 +3016,7 @@
         const list = reqs || [];
         body.append(h('p', {class: 'ae-sub'}, 'Запросы на покупку вещей, которые показывали в общем чате. Золото покупателя уже зарезервировано: нажмите «Продать» — вещь уйдёт ему, золото придёт вам.'));
         if (!list.length) body.append(h('p', {class: 'ae-empty'}, 'Запросов нет.'));
-        for (const r of list) { const it = {name: r.item.n, rarity: r.item.r, level: r.item.l, upgradeLevel: r.item.u, type: r.item.t, stats: r.item.s};
+        for (const r of list) { const it = {name: r.item.n, rarity: r.item.r, level: r.item.l, upgradeLevel: r.item.u, type: r.item.t, stats: r.item.s, gems: r.item.g};
           body.append(h('div', {class: 'ae-card ae-lot'}, lotItemRow(it),
             h('div', {class: 'ae-lot-info'}, h('span', {}, r.incoming ? `💰 ${r.buyer} предлагает ${fmt(r.price)} 🪙` : `Вы предложили ${fmt(r.price)} 🪙 · продавец ${r.seller}`),
               h('span', {}, r.status === 'pending' ? `⏳ ждёт ответа, до ${new Date(r.expires).toLocaleString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}` : r.status === 'done' ? '✅ Сделка состоялась' : r.status === 'declined' ? '✖️ Отказ' : r.status === 'expired' ? '⌛ Истёк' : '✖️ Отменён')),
@@ -3015,7 +3058,7 @@
           const err = canAct(); if (err) return toast(err); ev.currentTarget.disabled = true;
           try { const id = await serverIdOf(item), p = price.value ? Math.floor(Number(price.value)) : null;
             const r = await api('/api/ae-market/lot', 'POST', {kind: 'chat', itemId: id, price: p}); dropFromBag(id); rememberGone([id]);
-            const compact = {id: r.lot.id, p, n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, t: item.type, ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
+            const compact = {id: r.lot.id, p, n: baseName(item), r: item.rarity, l: item.level || 1, u: item.upgradeLevel || 0, t: item.type, ...(item.gems?.length ? {g: item.gems} : {}), ...(item.twoHanded ? {th: 1} : {}), s: Object.fromEntries(Object.entries(item.stats || {}).filter(([, v]) => typeof v === 'number').slice(0, 6))};
             await api('/api/chat/global', 'POST', {text: `💰 Продаю: ${compact.n}${p ? ` — ${p} 🪙` : ' — жду предложений'} ⟦ae:l:${enc(compact)}⟧`});
             closePanel(); toast('Вещь выставлена в общем чате'); sfx.play('coins'); }
           catch (e) { toast(cleanError(e)); ev.currentTarget.disabled = false; } }}, sellable(item) ? '💰 Выставить на продажу' : 'Эту вещь нельзя продать'));
@@ -3321,7 +3364,7 @@
       body.append(h('div', {class: 'ae-tabs'}, h('button', {class: 'ae-tab', type: 'button', onclick: () => openFriends('friends')}, '← Друзья')));
       if (!r.incoming.length && !r.outgoing.length) body.append(h('p', {class: 'ae-empty'}, 'Сделок нет. Продать вещь другу: Сумка → предмет → «🤝 Продать другу».'));
       if (r.incoming.length) body.append(h('h3', {class: 'ae-h3'}, 'Вам предлагают'));
-      for (const t of r.incoming) body.append(h('div', {class: 'ae-card ae-path'}, itemCard({n: baseName(t.item), r: t.item.rarity, l: t.item.level, u: t.item.upgradeLevel, a: ascOf(t.item), t: t.item.type, s: t.item.stats}),
+      for (const t of r.incoming) body.append(h('div', {class: 'ae-card ae-path'}, itemCard({n: baseName(t.item), r: t.item.rarity, l: t.item.level, u: t.item.upgradeLevel, a: ascOf(t.item), t: t.item.type, s: t.item.stats, g: t.item.gems}),
         h('div', {class: 'ae-sub'}, `${t.seller.name} · ${fmt(t.price)} 🪙`), h('div', {class: 'ae-grid2'},
           h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: async () => {
             const p = me(); if ((p?.gold || 0) < t.price) return toast(`Нужно ${fmt(t.price)} золота.`);
@@ -3332,7 +3375,7 @@
           }}, `Купить · ${fmt(t.price)} 🪙`),
           h('button', {class: 'ae-btn', type: 'button', onclick: async () => { try { await api('/api/trade/decline', 'POST', {offerId: t.id}); toast('Вы отказались'); openFriends('trades'); } catch (e) { toast(cleanError(e)); } }}, 'Отказаться'))));
       if (r.outgoing.length) body.append(h('h3', {class: 'ae-h3'}, 'Ваши предложения'));
-      for (const t of r.outgoing) body.append(h('div', {class: 'ae-card ae-path'}, itemCard({n: baseName(t.item), r: t.item.rarity, l: t.item.level, u: t.item.upgradeLevel, a: ascOf(t.item), t: t.item.type, s: t.item.stats}),
+      for (const t of r.outgoing) body.append(h('div', {class: 'ae-card ae-path'}, itemCard({n: baseName(t.item), r: t.item.rarity, l: t.item.level, u: t.item.upgradeLevel, a: ascOf(t.item), t: t.item.type, s: t.item.stats, g: t.item.gems}),
         h('div', {class: 'ae-sub'}, `→ ${t.buyer.name} · ${fmt(t.price)} 🪙 · ждёт ответа`),
         h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: async () => { try { await api('/api/trade/cancel', 'POST', {offerId: t.id}); toast('Сделка отменена, предмет вернётся в сумку'); setTimeout(socialPulse, 400); openFriends('trades'); } catch (e) { toast(cleanError(e)); } }}, 'Отменить')));
     }, e => { body.replaceChildren(h('p', {class: 'ae-empty'}, cleanError(e))); });
@@ -3412,7 +3455,7 @@
         }},
           h('img', {src: iconFor(item) || '/assets/sprites/generated/ui/gear/' + slot + '.webp', alt: '', style: iconStyle(item)}),
           h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(item)}${item.upgradeLevel ? ' +' + item.upgradeLevel : ''}${ascOf(item) ? ' ★' + ascOf(item) : ''}`),
-            h('small', {}, `${RARITY_RU[item.rarity] || ''} · ур. ${item.level || 1}${item.twoHanded ? ' · 🗡️ двуручное' : ''}${need ? ' · нужен ' + item.level + ' ур.' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(item.stats) || '')),
+            h('small', {}, `${RARITY_RU[item.rarity] || ''} · ур. ${item.level || 1}${item.twoHanded ? ' · 🗡️ двуручное' : ''}${need ? ' · нужен ' + item.level + ' ур.' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(item.stats) || ''), gemRow(item.gems)),
           h('span', {class: 'ae-equip-go'}, need ? '🔒' : 'Надеть')));
       }
     });
@@ -3795,7 +3838,7 @@
         try { await depositItem(it); toast(`«${baseName(it)}» готова к продаже`); closePanel(); setTimeout(() => [...document.querySelectorAll('main button')].find(x => /Продать вещь/.test(x.textContent) && !x.disabled)?.click(), 500); }
         catch (e) { toast(cleanError(e)); }
       }}, h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}),
-        h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${ascOf(it) ? ' ★' + ascOf(it) : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || '')),
+        h('span', {class: 'ae-grow'}, h('b', {}, `${baseName(it)}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${ascOf(it) ? ' ★' + ascOf(it) : ''}`), h('small', {}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level || 1}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || ''), gemRow(it.gems)),
         h('span', {class: 'ae-equip-go'}, 'На рынок')));
     });
     return st;
@@ -4482,6 +4525,13 @@ html[data-in-combat][data-interface=modern] .modern-reference-nav .reference-ico
 .ae-nick-flexrow{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;column-gap:6px;row-gap:2px}.ae-nick-flexrow>*{flex-basis:100%}.ae-nick-flexrow>:is(.ae-nick-ava,.ae-clan-tag,.ae-app-ico,[data-ae-uid],.ae-nick-inline){flex-basis:auto;margin-top:0!important;margin-bottom:0!important}.ae-nick-flexrow>.ae-app-ico{margin-left:0}
 .ae-rank-ava{width:34px!important;height:34px!important}.ae-rank-ava>:not(.ae-rank-img){display:none!important}.ae-rank-img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid #a58a4f;box-shadow:0 0 6px #0008}.ae-rank-ava+.ae-nick-flexrow .ae-nick-ava{display:none!important}
 .ae-inbox-row.is-link{cursor:pointer}.ae-inbox-go{flex:none;align-self:center;font:700 11.5px system-ui;color:#ffe6a8;padding:4px 8px;border-radius:999px;border:1px solid #6b5631;background:#0f1512;white-space:nowrap}.ae-inbox-row.is-link:active{transform:scale(.98)}
+.ae-gem-sockets{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);display:flex;gap:2px;z-index:3;pointer-events:none}.ae-gem-sockets i{width:13px;height:13px;border-radius:50%;border:1px solid #f0cf7a88;background:#0009;display:grid;place-items:center;font-style:normal;font-size:8px;line-height:1}.ae-gem-sockets i.is-on{background:radial-gradient(circle at 35% 30%,#fff6,#7c3aed 60%,#2e1065);border-color:#e9d5ff;box-shadow:0 0 4px #a78bfa}
+[data-equipment-slot] .ae-gem-sockets{left:auto;right:4px;bottom:4px;transform:none}
+.ae-gem-sheet{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px;border-radius:12px;background:linear-gradient(135deg,#1c1530,#141a17);border:1px solid #a78bfa88;color:#f1ead8;font:13px/1.3 system-ui,sans-serif}
+.ae-gem-line{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#0006}.ae-gem-line small{display:block;opacity:.75;font-size:11.5px}.ae-gem-ic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#fff5,#6d28d9 65%);font-size:15px;flex:none}
+.ae-gem-line.is-empty .ae-gem-ic{background:#0008;border:1px dashed #a78bfa88;color:#a78bfa}.ae-gem-line.is-empty{opacity:.8}.ae-gem-val{font-weight:800;color:#c4b5fd;white-space:nowrap}
+.ae-gem-mark{font-size:.85em;filter:drop-shadow(0 0 3px #a78bfa)}
+.ae-gem-note{display:block;color:#c4b5fd;font-size:11px;font-weight:600}
 .ae-hq-goal{display:flex;flex-direction:column;gap:6px}.ae-hq-goal.is-done{border-color:#22c55e88}.ae-hq-raid,.ae-hq-war{display:flex;flex-direction:column;gap:6px}
 .ae-hq-vs{display:flex;justify-content:space-between;align-items:center;font-size:14px}.ae-hq-vs b{font-size:20px;color:#facc15}
 .ae-hq-rank{width:26px;text-align:center;font-weight:800;flex:none}.ae-hq-pts{text-align:right;display:flex;flex-direction:column;flex:none}.ae-hq-pts b{font-size:16px;color:#facc15}.ae-hq-pts small{opacity:.7;font-size:11px}
@@ -4819,5 +4869,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

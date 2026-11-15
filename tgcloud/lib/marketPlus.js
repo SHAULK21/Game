@@ -175,7 +175,7 @@ function requests(world, path, method, body, me, now, notify) {
   if (path === '/api/ae-market/request') {
     const seller = player(world, body.seller); if (!seller) return fail('Продавец не найден.', 404);
     if (same(body.seller, me)) return fail('Это ваша вещь.');
-    const it = body.item || {}, item = {n: String(it.n || '').slice(0, 60), r: String(it.r || 'common').slice(0, 12), l: Math.max(1, Math.min(200, Number(it.l) || 1)), u: Math.max(0, Math.min(25, Number(it.u) || 0)), t: String(it.t || '').slice(0, 20), i: it.i ? String(it.i).slice(0, 80) : null, s: it.s && typeof it.s === 'object' ? it.s : {}};
+    const it = body.item || {}, item = {n: String(it.n || '').slice(0, 60), r: String(it.r || 'common').slice(0, 12), l: Math.max(1, Math.min(200, Number(it.l) || 1)), u: Math.max(0, Math.min(25, Number(it.u) || 0)), t: String(it.t || '').slice(0, 20), i: it.i ? String(it.i).slice(0, 80) : null, s: it.s && typeof it.s === 'object' ? it.s : {}, g: Array.isArray(it.g) ? it.g.filter(x => /^[a-z]{2,10}$/.test(String(x))).slice(0, 3) : undefined};
     if (!item.n) return fail('Неизвестная вещь.');
     const price = Math.floor(Number(body.price)); if (!(price >= 1 && price <= 1e8)) return fail('Укажите цену.');
     const mine = rows(world, 'ae_buy_requests').filter(r => same(r.buyer, me) && r.status === 'pending');
