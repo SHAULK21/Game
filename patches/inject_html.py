@@ -19,7 +19,7 @@ script = MARK + '''<script>
 </script><!-- /aeth-runtime -->'''
 import re
 s = re.sub(r'<script type="module" src="/assets/aeth-addons-v\d+\.js"></script>', '', s)
-script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v81.js"></script><!-- /aeth-runtime -->')
+script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v82.js"></script><!-- /aeth-runtime -->')
 s = s.replace('</body>', script + '\n</body>', 1)
 
 # Startup splash art (head, so it paints before the bundle loads).

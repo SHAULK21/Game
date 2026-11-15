@@ -4101,6 +4101,18 @@
     pets.after(t);
   }
   setInterval(() => { if (document.hidden) return; try { paintPlaceBadges(); } catch {} }, 4000);
+  // Hero power on the game's own screens: the bag heading (fantasy), the hero card and the bag (modern).
+  function paintPowerNative() {
+    const w = myProfile?.profile?.power; if (!w) return;
+    const badge = () => h('button', {type: 'button', class: 'ae-power-native', title: 'Общая сила героя — нажмите, чтобы посмотреть, из чего она складывается', onclick: e => { e.stopPropagation(); openPlayerCard(uid(), myProfile.profile.name); }}, h('span', {}, '💪'), h('b', {}, fmt(w.total)), h('small', {}, 'сила героя'));
+    const put = (host, mode) => { if (!host) return; const old = mode === 'before' ? host.previousElementSibling : host.querySelector(':scope > .ae-power-native');
+      if (old?.classList?.contains('ae-power-native')) { const b = old.querySelector('b'); if (b && b.textContent !== fmt(w.total)) b.textContent = fmt(w.total); return; }
+      if (mode === 'before') host.before(badge()); else host.append(badge()); };
+    put(document.querySelector('main .inventory-page-heading'));
+    for (const n of document.querySelectorAll('main h2[data-player-name]')) put(n.parentElement);
+    if (!document.querySelector('main .inventory-page-heading')) { const d = [...document.querySelectorAll('main details')].find(x => /^\s*Снаряжение/.test(x.querySelector('summary')?.textContent || '')); if (d) put(d, 'before'); }
+  }
+  setInterval(() => { if (document.hidden) return; try { paintPowerNative(); } catch {} }, 1500);
   setInterval(() => { if (!document.hidden) try { injectBarracks(); } catch (e) { console.warn('ae barracks', e); } }, 1200);
 
   // ---------- «Что нового»: update posts (same as in the channel) ----------
@@ -4648,6 +4660,7 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-power-native{display:inline-flex;align-items:center;gap:5px;margin:6px 0 2px;padding:4px 12px 4px 8px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44;color:#ffe6a8;cursor:pointer;font:inherit}.ae-power-native b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-native small{font-size:11px;color:#e9dcc0;opacity:.85}.inventory-page-heading{flex-wrap:wrap}.inventory-page-heading>.ae-power-native{order:3;flex-basis:auto}
 .ae-power-badge{display:inline-flex;align-items:center;gap:5px;margin:3px 0;padding:3px 10px 3px 7px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44}.ae-power-badge b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-badge small{font-size:10.5px;color:#e9dcc0;opacity:.85}
 .ae-power-box summary{font-weight:700}.ae-power-row{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #6b563133}.ae-power-row small{display:block;font-size:10.5px;opacity:.7}.ae-power-row b{color:#ffe6a8}
 .ae-doll-pet-slot img{width:44px!important;height:44px!important;border-radius:50%;object-fit:cover}.ae-doll-pet-slot{border-color:#f0cf7a!important}.ae-doll-pet-slot.is-comp{border-color:#93c5fd!important}.ae-doll-tag{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font:700 8.5px/1.2 system-ui;color:#ffe6a8;text-shadow:0 1px 2px #000;background:#0009;border-radius:0 0 8px 8px}
