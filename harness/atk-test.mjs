@@ -14,11 +14,12 @@ const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w,
 const p = s.page; const ERR = []; p.on('pageerror', e => ERR.push(e.message)); p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') ERR.push(m.text().slice(0, 200)); }); p.setDefaultTimeout(5000); await p.setViewportSize({width: 390, height: 844});
 await p.waitForTimeout(6000); await p.evaluate(() => [...document.querySelectorAll('button')].find(x => /^Позже$/.test(x.textContent.trim()))?.click());
 await p.evaluate(() => window.__aethOpen.horde()); await p.waitForTimeout(1500); await p.locator('.ae-horde-go').first().click(); await p.waitForTimeout(1500);
+await p.evaluate(() => { window.__fx = []; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.classList?.contains('ae-fx')) window.__fx.push(n.className.replace('ae-fx ', '') + (n.textContent ? ':' + n.textContent : '')); }).observe(document.body, {childList: true, subtree: true}); });
 const R = () => { const r = s.world.tables.horde_runs.at(-1); return r.queue[0]?.hp + '/' + r.log.length; };
 for (let i = 0; i < 3; i++) {
   const b0 = R(); const btn = p.locator('.ae-panel button.ae-ai-attack').first(); console.log('btn', await btn.count(), (await btn.textContent().catch(() => '')).trim());
   await btn.click({timeout: 3000}).catch(e => console.log('CLICKFAIL', e.message.split('\n')[0]));
-  await p.waitForTimeout(1200); console.log('HORDE attack', i, b0, '→', R());
+  await p.waitForTimeout(1200); console.log('HORDE attack', i, b0, '→', R(), 'FX', JSON.stringify(await p.evaluate(() => window.__fx.splice(0))));
 }
 console.log('ERR', ERR.join(' ## ').slice(0, 800));
 await s.close();

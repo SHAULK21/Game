@@ -4384,8 +4384,35 @@
       d.queue?.length ? h('div', {class: 'ae-sc-queue', title: 'Следующие враги'}, d.queue.slice(0, 3).map(q => h('img', {src: q, alt: ''}))) : '');
   }
   const sceneFloat = (root, sel, text, cls) => { const el = root?.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.3)}px;top:${r.top + r.height * 0.2}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); };
+  // ---------- attack effects on the scene: a sword swing, an arrow or a spell — by class; hit flash or «Промах» ----------
+  const ATTACK_STYLE = {warrior: ['slash', '#e5e7eb'], knight: ['slash', '#cbd5e1'], berserker: ['slash', '#f87171'], paladin: ['slash', '#fde68a'], rogue: ['double', '#c4b5fd'], assassin: ['double', '#a78bfa'],
+    hunter: ['arrow', '#d6b98a'], archer: ['arrow', '#e7d3a8'], mage: ['orb', '#60a5fa'], necromancer: ['orb', '#4ade80'], druid: ['orb', '#a3e635']};
+  let pendingAct = 0;  // when the player last pressed an attack / skill button
+  document.addEventListener('click', e => { if (e.target.closest?.('.ae-ai-attack, .ae-ai-skill, .combat-skill-ledger button, .combat-skill-entry')) pendingAct = Date.now(); else if (e.target.closest?.('main button, .ae-bv button') && /MP/.test(e.target.closest('button').textContent || '') && !/Защита/.test(e.target.closest('button').textContent || '')) pendingAct = Date.now(); }, true);
+  const fxOff = () => document.documentElement.classList.contains('ae-anim-off');
+  function sceneFx(scene, who, opts = {}) {  // who: 'hero' attacks the foe, 'foe' attacks the hero
+    if (!scene?.isConnected || fxOff()) return;
+    const src = scene.querySelector(who === 'hero' ? '.ae-sc-fig.is-hero' : '.ae-sc-fig.is-foe'), dst = scene.querySelector(who === 'hero' ? '.ae-sc-fig.is-foe' : '.ae-sc-fig.is-hero'); if (!src || !dst) return;
+    const box = scene.getBoundingClientRect(), a = src.getBoundingClientRect(), b = dst.getBoundingClientRect();
+    const ax = a.left - box.left + a.width * 0.55, ay = a.top - box.top + a.height * 0.45, bx = b.left - box.left + b.width * 0.5, by = b.top - box.top + b.height * 0.42;
+    const [kind, color] = who === 'foe' ? ['claw', '#ef4444'] : ATTACK_STYLE[opts.cls] || ATTACK_STYLE.warrior;
+    const add = (cls, style, life = 700) => { const n = h('div', {class: 'ae-fx ' + cls, style: `--c:${color};` + style}); scene.append(n); setTimeout(() => n.remove(), life); return n; };
+    let delay = 120;
+    if (kind === 'arrow' || kind === 'orb') {
+      const dx = (opts.hit ? bx : bx + (who === 'hero' ? 90 : -90)) - ax, dy = (opts.hit ? by : by - 40) - ay, ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      add(kind === 'arrow' ? 'ae-fx-arrow' : 'ae-fx-orb', `left:${ax}px;top:${ay}px;--dx:${dx}px;--dy:${dy}px;--ang:${ang}deg`, 600);
+      delay = kind === 'arrow' ? 280 : 420;
+    } else if (kind === 'double') { add('ae-fx-slash', `left:${bx}px;top:${by}px;--rot:-35deg`, 500); setTimeout(() => add('ae-fx-slash', `left:${bx}px;top:${by}px;--rot:145deg`, 500), 120); delay = 240; }
+    else add(kind === 'claw' ? 'ae-fx-claw' : 'ae-fx-slash', `left:${bx}px;top:${by}px;--rot:${kind === 'claw' ? 20 : -30}deg`, 520);
+    setTimeout(() => {
+      if (!scene.isConnected) return;
+      if (opts.hit) { add(kind === 'orb' ? 'ae-fx-burst' : 'ae-fx-hit', `left:${bx}px;top:${by}px`, 520); dst.classList.remove('is-hit'); void dst.offsetWidth; dst.classList.add('is-hit'); setTimeout(() => dst.classList.remove('is-hit'), 420); }
+      else add('ae-fx-miss', `left:${bx}px;top:${by - 30}px`, 1000).textContent = opts.missText || (who === 'hero' ? 'Промах!' : 'Уклонение!');
+    }, delay);
+  }
+  const recentLog = () => [...document.querySelectorAll('main .combat-ink, main [class*=font-mono] span, .ae-panel .ae-bv details span')].slice(-4).map(e => e.textContent || '').join(' ');
   // The game's own fights: our scene replaces the stock one (data from the combat bridge).
-  let natPrev = null;
+  let natPrev = null, bvPrev = null;
   function nativeScene() {
     const c = window.__aethBridge?.combat, page = document.querySelector('.fantasy-combat-page');
     // modern fight: the stock scene card = the nearest block around the background that holds «VS»; never one with the action buttons
@@ -4413,11 +4440,15 @@
     if (old) old.replaceWith(node); else host.before(node);
     if (node.nextElementSibling !== host) host.before(node);
     if (natPrev && natPrev.foe === m.name) {
-      if (m.hp < natPrev.mhp) sceneFloat(node, '[data-bv-foe]', '−' + fmt(natPrev.mhp - m.hp), 'is-dmg');
-      if (c.hp < natPrev.hp) sceneFloat(node, '[data-bv-hero]', '−' + fmt(natPrev.hp - c.hp), 'is-hurt');
+      const cls = p.classId, fresh = Date.now() - pendingAct < 2500;
+      if (m.hp < natPrev.mhp) { sceneFx(node, 'hero', {cls, hit: true}); setTimeout(() => sceneFloat(node, '[data-bv-foe]', '−' + fmt(natPrev2 - m.hp), 'is-dmg'), 300); pendingAct = 0; }
+      else if (fresh && (c.turn !== natPrev.turn || c.phase !== natPrev.phase)) { sceneFx(node, 'hero', {cls, hit: false, missText: /блок/i.test(recentLog()) ? 'Блок!' : 'Промах!'}); pendingAct = 0; }
+      if (c.hp < natPrev.hp) { const was = natPrev.hp; setTimeout(() => { sceneFx(node, 'foe', {hit: true}); setTimeout(() => sceneFloat(node, '[data-bv-hero]', '−' + fmt(was - c.hp), 'is-hurt'), 200); }, m.hp < natPrev.mhp ? 650 : 0); }
       else if (c.hp > natPrev.hp) sceneFloat(node, '[data-bv-hero]', '+' + fmt(c.hp - natPrev.hp), 'is-heal');
-    }
-    natPrev = {foe: m.name, mhp: m.hp, hp: c.hp};
+      else if (natPrev.phase === 'monster' && c.phase === 'player' && /уклон|мимо|промах/i.test(recentLog())) sceneFx(node, 'foe', {hit: false, missText: 'Уклонение!'});
+    } else if (natPrev && Date.now() - pendingAct < 2500) { sceneFx(node, 'hero', {cls: p.classId, hit: true}); pendingAct = 0; }  // the killing blow: the next foe is already on the scene
+    var natPrev2 = natPrev?.mhp;
+    natPrev = {foe: m.name, mhp: m.hp, hp: c.hp, turn: c.turn, phase: c.phase};
   }
   setInterval(() => { if (!document.hidden) try { nativeScene(); paintActionIcons(); } catch (e) { console.warn('ae scene', e); } }, 160);
   // Action buttons: the same drawn icons in every fight.
@@ -4521,7 +4552,16 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[#090e1a] border border-cyan-500/20 text-[10px] font-mono flex items-center justify-between text-slate-300"><span>🩸 Вампиризм: <strong class="text-rose-400">+${fmt(st.vampirism || 0)}%</strong></span><span>⚔️ Пробитие: <strong class="text-amber-300">${fmt(st.armorPenetration || 0)}</strong></span><span>🛡️ Броня: <strong class="text-slate-200">${fmt(st.defense || 0)}</strong></span><span>💨 Уклон: <strong class="text-indigo-300">${fmt(st.evasion || 0)}%</strong></span><span>🎯 Крит: <strong class="text-cyan-300">${fmt(st.critChance || 0)}%</strong></span></div>` : ''; })()}</div>`;
     }
     { const stock = root.querySelector('.combat-scene') || root.querySelector('[data-bv-hero]')?.closest('.rounded-2xl');
-      if (stock) { root.querySelector('.combat-hero-plaque')?.remove(); stock.replaceWith(sceneNode(sceneData())); } }
+      if (stock) { root.querySelector('.combat-hero-plaque')?.remove(); const sd = sceneData(), node = sceneNode(sd); stock.replaceWith(node);
+        const prev = bvPrev, fresh = Date.now() - pendingAct < 3000, cls = me()?.classId;
+        bvPrev = {foe: sd.foe?.name, fhp: sd.foe?.hp, hhp: sd.hero.hp, at: Date.now()};
+        if (prev && Date.now() - prev.at < 60000) setTimeout(() => {
+          if (!node.isConnected) return;
+          const hitFoe = sd.foe && (prev.foe !== sd.foe.name ? fresh : sd.foe.hp < prev.fhp), hurt = sd.hero.hp < prev.hhp;
+          if (hitFoe) { sceneFx(node, 'hero', {cls, hit: true}); pendingAct = 0; }
+          else if (fresh && sd.foe && prev.foe === sd.foe.name) { sceneFx(node, 'hero', {cls, hit: false, missText: /уклон|блок/i.test(recentLog()) ? 'Уклонение!' : 'Промах!'}); pendingAct = 0; }
+          if (hurt) setTimeout(() => sceneFx(node, 'foe', {hit: true}), hitFoe ? 650 : 0);
+        }, 40); } }
     root.querySelectorAll('[data-bv]').forEach(b => { const fn = handlers[Number(b.getAttribute('data-bv'))]; if (fn) b.addEventListener('click', e => { e.preventDefault(); if (!b.disabled) fn(e); }); });
     if (o.menu) root.querySelector('.space-y-2.transition-all')?.append(o.menu);
     if (o.extra) root.querySelector('[data-bv-extra]')?.append(o.extra);
@@ -4863,6 +4903,24 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-fx{position:absolute;z-index:6;pointer-events:none}
+.ae-fx-slash{width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;border-top:7px solid var(--c);border-right:3px solid transparent;filter:drop-shadow(0 0 8px var(--c)) drop-shadow(0 0 2px #fff);transform:rotate(var(--rot)) scale(.5);opacity:0;animation:ae-slash .42s ease-out forwards}
+@keyframes ae-slash{0%{opacity:0;transform:rotate(calc(var(--rot) - 70deg)) scale(.55)}25%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--rot) + 60deg)) scale(1.05)}}
+.ae-fx-claw{width:110px;height:110px;margin:-55px 0 0 -55px;background:repeating-linear-gradient(115deg,transparent 0 22px,var(--c) 22px 27px,transparent 27px 40px);filter:drop-shadow(0 0 6px var(--c));clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);opacity:0;animation:ae-claw .45s ease-out forwards}
+@keyframes ae-claw{0%{opacity:0;transform:translate(-30px,-30px) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translate(18px,18px) scale(1.1)}}
+.ae-fx-arrow{width:54px;height:4px;margin:-2px 0 0 -27px;border-radius:2px;background:linear-gradient(90deg,transparent,#8b6b3e 25%,var(--c));transform:rotate(var(--ang));animation:ae-fly .3s linear forwards}
+.ae-fx-arrow::after{content:'';position:absolute;right:-9px;top:-5px;border:7px solid transparent;border-left:11px solid #e5e7eb;border-right:0}.ae-fx-arrow::before{content:'';position:absolute;left:0;top:-4px;width:12px;height:12px;background:linear-gradient(#f87171,#7f1d1d);clip-path:polygon(0 0,100% 50%,0 100%,30% 50%)}
+.ae-fx-orb{width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#fff,var(--c) 45%,transparent 72%);box-shadow:0 0 18px 6px var(--c);animation:ae-fly .44s ease-in forwards}
+@keyframes ae-fly{from{transform:translate(0,0) rotate(var(--ang,0deg))}to{transform:translate(var(--dx),var(--dy)) rotate(var(--ang,0deg))}}
+.ae-fx-hit{width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:radial-gradient(circle,#fff 0,#fff8 22%,transparent 62%);animation:ae-pop .4s ease-out forwards}
+.ae-fx-burst{width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;border:4px solid var(--c);box-shadow:0 0 22px var(--c),inset 0 0 22px var(--c);animation:ae-pop .5s ease-out forwards}
+@keyframes ae-pop{from{transform:scale(.25);opacity:1}to{transform:scale(1.15);opacity:0}}
+.ae-fx-miss{transform:translateX(-50%);font:900 20px Georgia,serif;color:#e5e7eb;text-shadow:0 2px 0 #000,0 0 10px #000;white-space:nowrap;animation:ae-miss 1s ease-out forwards}
+@keyframes ae-miss{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}20%{opacity:1;transform:translate(-50%,0) scale(1.05)}100%{opacity:0;transform:translate(-50%,-26px)}}
+.ae-sc-fig.is-hit .ae-sc-body{animation:ae-hit .38s ease-out!important}
+@keyframes ae-hit{0%,100%{transform:translateX(0);filter:drop-shadow(0 8px 10px #000d)}20%{transform:translateX(-7px);filter:brightness(2.2) drop-shadow(0 0 10px #fff)}45%{transform:translateX(6px)}70%{transform:translateX(-3px)}}
+.ae-sc-fig.is-mirror.is-hit .ae-sc-body{animation:ae-hit-m .38s ease-out!important}
+@keyframes ae-hit-m{0%,100%{transform:scaleX(-1)}20%{transform:scaleX(-1) translateX(-7px);filter:brightness(2.2)}45%{transform:scaleX(-1) translateX(6px)}}
 .ae-nat-hide{display:none!important}
 .ae-scene{position:relative;height:330px;border-radius:16px;overflow:hidden;border:1px solid #6b5631;margin-bottom:8px;isolation:isolate;color:#f1ead8;box-shadow:0 6px 18px #0008}
 .ae-sc-bg{position:absolute;inset:0;background:center 62%/cover no-repeat;z-index:-2}
