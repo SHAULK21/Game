@@ -4425,8 +4425,25 @@
       if (c && !c.closest('[data-ae-scene]') && !c.classList.contains('ae-nat-hide') && c.textContent.length < 400) c.classList.add('ae-nat-hide');
     }
   }
+  // The skills list opens under the action buttons: bring it into view (the taller scene pushed it below the fold).
+  function revealSkillList() {
+    for (const el of document.querySelectorAll('.ae-panel .ae-bv *:not([data-ae-shown])')) {
+      if (el.childElementCount || !/^Выберите заклинание или навык/.test((el.textContent || '').trim())) continue;
+      el.dataset.aeShown = '1'; const box = el.parentElement?.parentElement || el;
+      requestAnimationFrame(() => box.scrollIntoView({block: 'center', behavior: 'smooth'}));
+    }
+    // modern fight: the skills list has no class — find it by the hero's skill names
+    const names = (me()?.skills || []).map(k => k.name).filter(Boolean);
+    if (names.length && document.documentElement.hasAttribute('data-in-combat')) {
+      const b = [...document.querySelectorAll('main button')].find(x => names.some(n => (x.textContent || '').includes(n)) && /MP/.test(x.textContent || '') && !x.closest('[data-ae-shown]'));
+      const box = b?.parentElement; if (box && !box.dataset.aeShown) { box.dataset.aeShown = '1'; const r = box.getBoundingClientRect(); if (r.bottom > innerHeight - 70) requestAnimationFrame(() => box.scrollIntoView({block: 'center', behavior: 'smooth'})); }
+    }
+    for (const box of document.querySelectorAll('main .combat-skill-ledger:not([data-ae-shown]), main #combat-potions:not([data-ae-shown])')) {
+      box.dataset.aeShown = '1'; const r = box.getBoundingClientRect(); if (r.top > innerHeight * 0.55 || r.bottom > innerHeight - 70) requestAnimationFrame(() => box.scrollIntoView({block: 'center', behavior: 'smooth'}));
+    }
+  }
   function paintActionIcons() {
-    hideIntentCards();
+    hideIntentCards(); revealSkillList();
     if (!document.documentElement.hasAttribute('data-in-combat') && !document.querySelector('.ae-bv')) return;
     for (const b of document.querySelectorAll('main button:not([data-ae-ai]), .ae-panel .ae-bv button:not([data-ae-ai])')) {
       if (b.closest('.ae-assist-row, .ae-pot-pick, .combat-skill-ledger, [data-ae-scene]')) { b.dataset.aeAi = '-'; continue; }
