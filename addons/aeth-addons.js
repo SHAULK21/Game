@@ -73,7 +73,7 @@
     const skills = p.skills.filter(k => (k.levelReq || 1) <= (p.level || 1)).map(k => {
       const r = String(k.id).startsWith('asc_') ? 1 : rank, inf = k.inflicts;
       return {id: k.id, name: k.name, icon: k.icon, desc: k.description || '', levelReq: k.levelReq || 1, type: k.damageType,
-        mana: Math.max(0, Math.ceil((k.manaCost || 0) * (1 - (t.manaCostReduction || 0) / 100))),
+        mana: Math.max(0, Math.ceil((k.manaCost || 0) * 2.5 * (1 - (t.manaCostReduction || 0) / 100))),  // skills cost ×2.5 mana everywhere (same as the main fight)
         mult: (k.damageMultiplier || 0) * RM[r - 1] * (1 + (t.skillDamage || 0) / 100), heal: (k.healMultiplier || 0),
         comboFrom: k.comboFrom || null, comboAlt: k.comboAlt || [], comboMult: k.comboMultiplier || 1.25, armorBreak: (k.armorBreak || 0) / 100, execT: k.executeThreshold || 0, execM: k.executeMultiplier || 1.5,
         inflicts: inf ? {type: inf.type, chance: Math.min(1, (inf.chance ?? 1) * (1 + (t.effectChance || 0) / 100)), duration: (inf.duration || 1) + (t.effectDuration || 0) + (['shield', 'fury', 'fortify', 'haste'].includes(inf.type) ? (t.buffDuration || 0) : 0),
@@ -487,6 +487,30 @@
       const nav = [...document.querySelectorAll('nav button, nav a')].find(n => /Создание|Мастерская/.test(n.textContent || '')); if (id === 'crafting' && nav) return nav.click();
       toast('Мастерская и кузница — в поселении.'); }, 250);
   }
+  // ---------- bag potions in the server-run fights (Horde, co-op, duels, clan raid / hunt): pick one, it does not spend the turn ----------
+  const potLabel = i => { const t = i.stats || {}, p = [];
+    if (t.fireDamage || t.poisonDamage || t.iceDamage) return `Бросок: ${t.fireDamage || t.poisonDamage || t.iceDamage} урона${t.poisonDamage ? ' + отравление' : ''}`;
+    if (t.healFull) p.push('всё HP'); else if (t.heal) p.push(`+${t.heal} HP`); if (t.manaRestore) p.push(`+${t.manaRestore} MP`);
+    if (t.attackPercent) p.push(`+${t.attackPercent}% атаки`); if (t.defensePercent) p.push(`+${t.defensePercent}% защиты`); if (t.critChance) p.push(`+${t.critChance}% крита`); if (t.invulnerable) p.push('неуязвимость');
+    if (t.buffDuration && (t.attackPercent || t.defensePercent || t.critChance)) p.push(`${t.buffDuration} хода`);
+    return p.join(' · ') || (/ман/i.test(i.name) ? 'восстанавливает ману' : 'восстанавливает здоровье'); };
+  const bagPotions = () => (me()?.inventory || []).filter(i => i && i.type === 'potion' && !i.isLocked && !i.serverOwned && (i.stackCount || 1) > 0);
+  function pickPotion({free = 0, freeText = '+40% HP', onFree, use}) {
+    document.querySelector('.ae-pot-pick')?.remove();
+    const list = bagPotions(), close = () => box.remove();
+    const pick = async i => { close(); sfx.play('potion');
+      const done = await use({templateId: i.templateId || '', name: i.name || 'Зелье'});
+      if (done) B()?.setPlayer(x => x && {...x, inventory: x.inventory.map(e => e.id === i.id ? {...e, stackCount: (e.stackCount || 1) - 1} : e).filter(e => e.id !== i.id || (e.stackCount || 0) > 0)}); };
+    const box = h('div', {class: 'ae-pot-pick', onclick: e => { if (e.target === box) close(); }}, h('div', {class: 'ae-pot-card'},
+      h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, '🧪 Выберите зелье'), h('button', {type: 'button', class: 'ae-x', onclick: close}, '×')),
+      h('p', {class: 'ae-sub'}, 'Зелья из сумки не тратят ход — одно за ход. Склянки с ядом и огнём бросаются во врага.'),
+      free > 0 ? h('button', {type: 'button', class: 'ae-pot-row is-free', onclick: () => { close(); onFree(); }}, h('span', {class: 'ae-pot-ic'}, '🧪'), h('span', {class: 'ae-grow'}, h('b', {}, `Боевое зелье ×${free}`), h('small', {}, `${freeText} · тратит ход`))) : '',
+      ...list.map(i => h('button', {type: 'button', class: 'ae-pot-row', onclick: () => pick(i)}, h('img', {src: iconFor(i) || '/assets/items/sprites/potion.webp', alt: '', style: iconStyle(i)}),
+        h('span', {class: 'ae-grow'}, h('b', {}, i.name), h('small', {}, `${potLabel(i)} · не тратит ход`)), h('span', {class: 'ae-pot-n'}, `×${i.stackCount || 1}`))),
+      !list.length ? h('p', {class: 'ae-empty'}, 'В сумке нет зелий. Сварите их в Алхимии или купите в лавке.') : ''));
+    document.body.append(box);
+  }
+  const potCount = (free = 0) => free + bagPotions().reduce((n, i) => n + (i.stackCount || 1), 0);
   function openCompanions() {
     let d = null, pick = null;
     const load = async () => { try { d = await api('/api/ae-comp'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
@@ -724,7 +748,7 @@
           actions: [{kind: 'attack', label: 'Атака', disabled: dead || acted, onClick: act('attack')},
             {kind: 'skill', label: 'Навыки', disabled: dead || acted, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { skillsOpen = !skillsOpen; st.rerender(); }},
             {kind: 'defend', label: 'Защита (+25% MP)', disabled: dead || acted, onClick: act('guard')},
-            {kind: 'potion', label: `Зелье (${meFight.potions ?? 0})`, disabled: dead || acted || !(meFight.potions > 0), onClick: act('potion')}],
+            {kind: 'potion', label: `Зелье (${potCount(acted ? 0 : meFight.potions || 0)})`, disabled: dead, onClick: () => pickPotion({free: acted ? 0 : meFight.potions || 0, freeText: '+40% HP', onFree: act('potion'), use: async it => !!(await post('/api/coop/act', {action: 'item', item: it}))})}],
           secondary: [{label: 'Покинуть поход', kind: 'leave', onClick: () => confirm('Покинуть отряд?') && post('/api/coop/leave', {}, 'Вы покинули отряд').then(load)}],
           log: room.log.map(l => l.text), menu, extra: party}));
         if (shakeUntil > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
@@ -1698,7 +1722,8 @@
           actions: [{kind: 'attack', label: 'Атака', disabled: busy, onClick: doAct('attack')},
             {kind: 'skill', label: 'Навыки', disabled: busy, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { skillsOpen = !skillsOpen; rerender(); }},
             {kind: 'defend', label: 'Защита (+25% MP)', disabled: busy, onClick: doAct('guard')},
-            {kind: 'potion', label: `Зелье (${mm.potions ?? 0})`, disabled: busy || !(mm.potions > 0), onClick: doAct('potion')}],
+            {kind: 'potion', label: `Зелье (${potCount(mm.potions || 0)})`, disabled: busy, onClick: () => pickPotion({free: mm.potions || 0, freeText: '+35% HP', onFree: doAct('potion'),
+              use: async it => { try { const r = await api('/api/duel/act', 'POST', {action: 'item', item: it}); duel = r.duel; feel(duel); if (duel && duel.status !== 'active') { sfx.play(duel.status === 'won' ? 'bell' : 'fail'); info = await api('/api/duel'); } st.rerender(); return true; } catch (e) { toast(cleanError(e)); return false; } }})}],
           secondary: [{label: 'Сдаться', kind: 'leave', onClick: () => confirm('Сдаться?') && act('/api/duel/act', {action: 'flee'})}],
           log: (D.log || []).map(l => l.text),
           menu: skillsOpen ? skillMenu({mp: mm.mp, disabled: busy, onClose: () => { skillsOpen = false; rerender(); }, onUse: k => { skillsOpen = false; doAct('skill', {skillId: k.id})(); }}) : null}));
@@ -2711,7 +2736,8 @@
           actions: [{kind: 'attack', label: 'Атака', onClick: () => act('attack')},
             {kind: 'skill', label: 'Навыки', attr: {'aria-expanded': String(skillsOpen)}, onClick: () => { skillsOpen = !skillsOpen; rer(); }},
             {kind: 'defend', label: 'Защита (+12% MP)', onClick: () => act('defend')},
-            {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => act('potion')}],
+            {kind: 'potion', label: `Зелье (${potCount(run.potions || 0)})`, disabled: busy, onClick: () => pickPotion({free: run.potions || 0, freeText: '+40% HP', onFree: () => act('potion'),
+              use: async it => { try { const before = run.foe.hp; run = (await api(base + '/act', 'POST', {action: 'item', item: it})).run; if (run.foe.hp < before) floatAt('[data-bv-foe]', '−' + fmt(before - run.foe.hp), 'is-dmg'); if (run.status === 'ended') loadClanX(true); rer(); return true; } catch (e) { toast(cleanError(e)); return false; } }})}],
           secondary: [{label: 'Отступить', onClick: async () => { if (!confirm('Отступить? Нанесённый урон засчитается, но новый бой — только завтра.')) return; try { run = (await api(base + '/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } rer(); }}],
           log: run.log, menu: skillsOpen ? skillMenu({mp: run.mp, onClose: () => { skillsOpen = false; rer(); }, onUse: k => { skillsOpen = false; act('skill', k.id); }}) : null}));
         return;
@@ -4150,6 +4176,31 @@
     pets.after(t);
   }
   setInterval(() => { if (document.hidden) return; try { paintPlaceBadges(); } catch {} }, 4000);
+  // Alchemy lab: recipes grouped by kind (healing, mana, buffs, throwing flasks) with a filter row.
+  const ALCH_CATS = [['heal', '❤️ Лечение'], ['mana', '💧 Мана'], ['buff', '✨ Усиление'], ['throw', '☠️ Метательные']];
+  let alchCat = 'all';
+  const alchCatOf = card => { const t = (card.textContent || '').toLowerCase();
+    if (/бросок|склянк|гадюк/.test(t)) return 'throw';
+    if (/атак|защит|крит|неуязвим|ярост|стойкост/.test(t)) return 'buff';
+    if (/ман/.test(t) && !/здоров|hp|исцел/.test(t)) return 'mana';
+    return 'heal'; };
+  function paintAlchemyGroups() {
+    const rows = [...document.querySelectorAll('main .alchemy-recipe-row')]; if (!rows.length) return;
+    const cards = rows.map(r => r.parentElement), box = cards[0]?.parentElement; if (!box) return;
+    if (!box.classList.contains('ae-alch-box')) box.classList.add('ae-alch-box');
+    let bar = box.previousElementSibling?.classList?.contains('ae-alch-cats') ? box.previousElementSibling : null;
+    const counts = {}; for (const c of cards) { const k = c.dataset.aeCat || (c.dataset.aeCat = alchCatOf(c)); counts[k] = (counts[k] || 0) + 1; }
+    const sig = alchCat + JSON.stringify(counts);
+    if (!bar || bar.dataset.sig !== sig) {
+      const nb = h('div', {class: 'ae-alch-cats', 'data-sig': sig}, h('button', {type: 'button', class: 'ae-pill-btn' + (alchCat === 'all' ? ' is-on' : ''), onclick: () => { alchCat = 'all'; paintAlchemyGroups(); }}, `Все · ${cards.length}`),
+        ...ALCH_CATS.filter(([k]) => counts[k]).map(([k, l]) => h('button', {type: 'button', class: 'ae-pill-btn' + (alchCat === k ? ' is-on' : ''), onclick: () => { alchCat = k; paintAlchemyGroups(); }}, `${l} · ${counts[k]}`)));
+      if (bar) bar.replaceWith(nb); else box.before(nb); }
+    const order = Object.fromEntries(ALCH_CATS.map(([k], i) => [k, i])), seen = new Set();
+    for (const c of cards) { const k = c.dataset.aeCat, show = alchCat === 'all' || alchCat === k;
+      c.style.display = show ? '' : 'none'; c.style.order = String((order[k] ?? 9) * 1000 + cards.indexOf(c));
+      if (show && alchCat === 'all' && !seen.has(k)) { seen.add(k); c.dataset.aeCatTitle = ALCH_CATS.find(x => x[0] === k)?.[1] || ''; } else delete c.dataset.aeCatTitle; }
+  }
+  setInterval(() => { if (document.hidden) return; try { paintAlchemyGroups(); } catch {} }, 1200);
   // Hero power on the game's own screens: the bag heading (fantasy), the hero card and the bag (modern).
   function paintPowerNative() {
     const w = myProfile?.profile?.power; if (!w) return;
@@ -4509,7 +4560,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
           actions: [{kind: 'attack', label: 'Атака', onClick: () => { if (!auto) act('attack'); }},
             {kind: 'skill', label: 'Навыки', disabled: auto, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { if (!auto) { skillsOpen = !skillsOpen; st.rerender(); } }},
             {kind: 'defend', label: 'Защита (+12% MP)', disabled: auto, onClick: () => { if (!auto) act('defend'); }},
-            {kind: 'potion', label: `Зелье (${run.potions})`, disabled: !run.potions, onClick: () => { if (!auto) act('potion'); }}],
+            {kind: 'potion', label: `Зелье (${potCount(run.potions || 0)})`, onClick: () => { if (!auto) pickPotion({free: run.potions || 0, freeText: '+40% HP', onFree: () => act('potion'), use: async it => { try { const r = await api('/api/horde/act', 'POST', {action: 'item', item: it}); run = r.run; feel(r.events); if (openPanelState === st) st.rerender(); return true; } catch (e) { toast(cleanError(e)); return false; } }}); }}],
           secondary: [{auto: true, on: auto, label: auto ? '⏸ Автобой: вкл' : 'Автобой', onClick: () => { auto = !auto; st.rerender(); if (auto) autoLoop(); }},
             {label: 'Уйти с добычей', onClick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}],
           log: run.log || [],
@@ -4538,7 +4589,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
         body.append(h('div', {class: 'ae-grid2 ae-acts ae-horde-acts'},
           h('button', {class: 'ae-btn ae-act ae-horde-attack', type: 'button', onpointerdown: e => { e.preventDefault(); if (!auto) act('attack'); }}, h('b', {}, '⚔️ Атака'), h('small', {}, 'мгновенный удар')),
           h('button', {class: 'ae-btn ae-act', type: 'button', disabled: run.powerCd > 0, onpointerdown: e => { e.preventDefault(); if (!auto) act('power'); }}, h('b', {}, '💥 Мощный'), h('small', {}, run.powerCd > 0 ? `через ${run.powerCd} уд.` : '×2.5 урона')),
-          h('button', {class: 'ae-btn ae-act', type: 'button', disabled: !run.potions, onpointerdown: e => { e.preventDefault(); if (!auto) act('potion'); }}, h('b', {}, `🧪 Зелье ×${run.potions}`), h('small', {}, '+40% HP')),
+          h('button', {class: 'ae-btn ae-act', type: 'button', onpointerdown: e => { e.preventDefault(); if (!auto) pickPotion({free: run.potions || 0, freeText: '+40% HP', onFree: () => act('potion'), use: async it => { try { const r = await api('/api/horde/act', 'POST', {action: 'item', item: it}); run = r.run; feel(r.events); if (openPanelState === st) st.rerender(); return true; } catch (e) { toast(cleanError(e)); return false; } }}); }}, h('b', {}, `🧪 Зелья ×${potCount(run.potions || 0)}`), h('small', {}, 'выбрать')),
           h('button', {class: 'ae-btn ae-act ae-horde-auto' + (auto ? ' is-on' : ''), type: 'button', onclick: () => { auto = !auto; st.rerender(); if (auto) autoLoop(); }}, h('b', {}, auto ? '⏸ Стоп' : '▶️ Автобой'), h('small', {}, auto ? 'бьёт без пауз' : 'сам бьёт и пьёт зелья'))));
         body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}, '🏃 Уйти с добычей'));
       } else {
@@ -4709,6 +4760,8 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-alch-cats{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}.ae-alch-cats .ae-pill-btn{flex:0 0 auto;padding:6px 10px;font-size:12px}.ae-pill-btn.is-on{background:#e5ce96;color:#1a1306;border-color:#e5ce96}.ae-alch-box{display:flex!important;flex-direction:column;gap:10px}.ae-alch-box>*{margin-top:0!important}.ae-alch-box>[data-ae-cat-title]{position:relative;margin-top:26px!important}.ae-alch-box>[data-ae-cat-title]:first-child,.ae-alch-box>[data-ae-cat-title][style*='order: 0']{margin-top:22px!important}.ae-alch-box>[data-ae-cat-title]::before{content:attr(data-ae-cat-title);position:absolute;top:-22px;left:2px;font:700 12px Georgia,serif;letter-spacing:.06em;color:#e5ce96;text-transform:uppercase}
+.ae-pot-pick{position:fixed;inset:0;z-index:9500;background:#0009;display:flex;align-items:flex-end;justify-content:center}.ae-pot-card{width:min(440px,100%);max-height:70vh;overflow:auto;background:#141a17;border:1px solid #6b5631;border-radius:16px 16px 0 0;padding:12px 12px max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;color:#f1ead8}.ae-pot-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid #6b563188;background:#0f1512;color:inherit;font:inherit;text-align:left;cursor:pointer}.ae-pot-row img{width:36px;height:36px;object-fit:contain}.ae-pot-row small{display:block;font-size:11.5px;color:#a7f3d0}.ae-pot-row.is-free{border-color:#22c55e88}.ae-pot-row.is-free small{color:#fde68a}.ae-pot-ic{width:36px;text-align:center;font-size:24px}.ae-pot-n{font-weight:700;color:#ffe6a8}
 .ae-comp-filter{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 8px}.ae-comp-filter .ae-pill-btn{flex:0 0 auto;padding:5px 9px;font-size:11.5px}.ae-comp-filter .is-locked{opacity:.5}.ae-comp-why{border-color:#b9474788!important}.ae-comp-cur{width:42px;height:42px;object-fit:contain}.ae-equip-row.is-heavy{opacity:.55}button.ae-comp-slot{cursor:pointer;font:inherit;color:inherit}
 .ae-power-native{display:inline-flex;align-items:center;gap:5px;margin:6px 0 2px;padding:4px 12px 4px 8px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44;color:#ffe6a8;cursor:pointer;font:inherit}.ae-power-native b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-native small{font-size:11px;color:#e9dcc0;opacity:.85}.inventory-page-heading{flex-wrap:wrap}.inventory-page-heading>.ae-power-native{order:3;flex-basis:auto}
 .ae-power-badge{display:inline-flex;align-items:center;gap:5px;margin:3px 0;padding:3px 10px 3px 7px;border-radius:999px;background:linear-gradient(90deg,#3a2508ee,#1a1206cc);border:1px solid #f0cf7a;box-shadow:0 0 10px #f0cf7a44}.ae-power-badge b{font:800 15px Georgia,serif;color:#ffe6a8}.ae-power-badge small{font-size:10.5px;color:#e9dcc0;opacity:.85}

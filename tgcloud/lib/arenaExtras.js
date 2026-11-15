@@ -6,6 +6,7 @@ const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_i
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
 import {creditDuel} from './clanPlus.js';
+import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
 import {realStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, outMult, inMult, gemProcs} from './skills.js';
 const DAY = 864e5;
@@ -171,8 +172,8 @@ function aiMove(d, now) {
   d.intent = aiPick(d);
 }
 function strike(d, actor, target, mult, {crit = null, ignoreDef = 0, label} = {}) {
-  const isCrit = crit ?? Math.random() < actor.crit, dodge = crit ? false : Math.random() < 0.06;
-  const raw = actor.atk * rand(0.9, 1.1) * mult * (isCrit ? 1.6 : 1) * outMult(actor) * inMult(target);
+  const isCrit = crit ?? Math.random() < actor.crit + pbCrit(actor), dodge = crit ? false : Math.random() < 0.06;
+  const raw = actor.atk * rand(0.9, 1.1) * mult * (isCrit ? 1.6 : 1) * outMult(actor) * pbAtk(actor) * inMult(target) * pbIn(target);
   let dmg = dodge ? 0 : Math.round(mitig(raw, target.def * (1 - ignoreDef)) * (target.guard ? 0.45 : 1) * (target.kit?.talents?.defensiveStance ? 0.85 : 1));
   if (target.barrier > 0 && dmg) { const ab = Math.min(target.barrier, dmg); target.barrier -= ab; dmg -= ab; }
   target.hp = Math.max(0, target.hp - dmg);
@@ -203,7 +204,7 @@ function endRound(d) {
     if (f.hp <= 0) continue;
     for (const dot of f.dots || []) { f.hp = Math.max(0, f.hp - dot.per); dot.left--; d.log.push({text: `${dot.icon} ${dot.name}: ${f.name} −${dot.per}`, dmg: dot.per, to: f.id}); }
     f.dots = (f.dots || []).filter(x => x.left > 0);
-    if (f.fury > 0) f.fury--; if (f.vuln > 0) f.vuln--;
+    if (f.fury > 0) f.fury--; if (f.vuln > 0) f.vuln--; pbTick(f);
     f.mp = Math.min(f.maxMp, f.mp + Math.round(f.maxMp * 0.05));
     if (f.hp <= 0) d.log.push({text: `${f.name} повержен(а) в дуэли!`});
   }
@@ -257,9 +258,16 @@ export async function handleDuel(world, path, method, body, me, now, notify) {
   if (path === '/api/duel/act') {
     if (!mine) return fail('Активной дуэли нет.', 404);
     let action = String(body.action || ''); if (action === 'heal') action = 'potion';
-    if (!['attack', 'skill', 'guard', 'potion', 'flee'].includes(action)) return fail('Неизвестное действие.');
+    if (!['attack', 'skill', 'guard', 'potion', 'flee', 'item'].includes(action)) return fail('Неизвестное действие.');
     for (const f of [mine.a, mine.b]) { f.kit ||= {skills: [], talents: {}}; f.potions ??= 2; }
-    if (action === 'flee') { mine.a.hp = 0; mine.log.push({text: `${mine.a.name} сдаётся.`}); }
+    if (action === 'item') {  // a bag potion: does not spend the turn
+      const A = mine.a, B = mine.b, r = usePotion(A, body.item, mine.turn, (pw, fx) => { const dmg = throwDmg(fx, A.classId, B.def || 0); B.hp = Math.max(0, B.hp - dmg); const dot = poisonDot(fx, A.classId); if (dot) (B.dots ||= []).push(dot); return dmg; });
+      if (r.error) return fail(r.error);
+      mine.log.push({who: A.id, text: r.text}); mine.updated_at = new Date(now).toISOString();
+      if (B.hp > 0) return ok({duel: duelView(mine)});
+      mine.log.push({text: `${B.name} повержен(а) в дуэли!`});
+    }
+    else if (action === 'flee') { mine.a.hp = 0; mine.log.push({text: `${mine.a.name} сдаётся.`}); }
     else {
       if (action === 'potion' && mine.a.potions <= 0) return fail('Зелья закончились.');
       if (action === 'skill') { const sk = kitSkills(mine.a).find(s => s.id === body.skillId); if (!sk) return fail('Навык не найден.'); if (mine.a.mp < sk.mana) return fail(`Нужно ${sk.mana} маны.`); }

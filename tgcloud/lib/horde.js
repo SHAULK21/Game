@@ -4,6 +4,7 @@
 import {logQuest} from './arenaExtras.js';
 import {blendedStats, baseStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, outMult, inMult, gemProcs} from './skills.js';
+import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -74,7 +75,19 @@ function milestone(run, events, now, world, me) {
   events.push({t: 'milestone', n: run.kills, gold, frag});
   run.log.push(`🏆 Веха ${run.kills} монстров! Сундук: +${gold} 🪙${frag ? ' и ✦ осколок' : ''}`);
 }
+function killFront(world, me, run, events, now, kit) {
+  const front = run.queue[0], h = run.hero; if (!front || front.hp > 0) return;
+    run.kills++; if (run.blood) run.bloodKills++;
+    reward(run, front.kind); events.push({t: 'kill', name: front.name, kind: front.kind});
+    run.log.push(`☠️ ${front.name} повержен${front.kind === 'leader' ? '! Вожак пал' : ''}`);
+    logQuest(world, me, 'horde_kill', now); if (run.blood) logQuest(world, me, 'horde_blood_kill', now);
+    const regen = Math.round(h.maxHp * ((run.blood ? TUNE.regen * 0.85 : TUNE.regen) + (kit.talents?.killRecovery || 0) / 200)); run.hp = Math.min(h.maxHp, run.hp + regen);
+    run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.08));
+    run.queue.shift(); milestone(run, events, now, world, me); fillQueue(run);
+    if (run.blood && Math.random() < 0.3) { run.queue.push(spawn(run)); events.push({t: 'join'}); run.log.push('🩸 На запах крови прибежал ещё один монстр!'); }
+}
 function exchange(world, me, run, action, now, events, skillId) {
+  run.tn = (run.tn || 0) + 1;
   const front = run.queue[0], h = run.hero, kit = kitOf(world, me);
   run.maxMp ||= h.maxMp || 100; run.mp ??= run.maxMp;
   if (action === 'potion') {
@@ -90,7 +103,7 @@ function exchange(world, me, run, action, now, events, skillId) {
       run.mp -= sk.mana;
       const self = {hp: run.hp, maxHp: h.maxHp, mp: run.mp, maxMp: run.maxMp, atk: h.atk, crit: h.crit, barrier: run.barrier || 0, fury: run.fury || 0, name: 'Вы'};
       let dealt = 0;
-      const r = castSkill({self, foe: front, kit, sk, ownLast: run.lastSkill, hit: (mult, ignoreDef) => { const dmg = Math.round(h.atk * rand(0.9, 1.1) * mult * outMult(self) * inMult(front) * (1 - (ignoreDef || 0) * 0)); front.hp = Math.max(0, front.hp - dmg); dealt += dmg; return dmg; }});
+      const r = castSkill({self, foe: front, kit, sk, ownLast: run.lastSkill, hit: (mult, ignoreDef) => { const dmg = Math.round(h.atk * rand(0.9, 1.1) * mult * outMult(self) * pbAtk(run) * inMult(front) * (1 - (ignoreDef || 0) * 0)); front.hp = Math.max(0, front.hp - dmg); dealt += dmg; return dmg; }});
       Object.assign(run, {hp: self.hp, mp: self.mp, barrier: self.barrier, fury: self.fury}); run.lastSkill = {id: sk.id};
       if (dealt) events.push({t: 'hit', v: dealt, power: sk.mult >= 1.5});
       if (self.hp > run.hp) events.push({t: 'heal', v: 0});
@@ -101,29 +114,20 @@ function exchange(world, me, run, action, now, events, skillId) {
   if (action === 'attack' || action === 'power') {
     const power = action === 'power' && run.powerCd <= 0;
     if (power) run.powerCd = POWER_CD;
-    const crit = Math.random() < h.crit, dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1) * outMult(run) * inMult(front));
+    const crit = Math.random() < h.crit + pbCrit(run), dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1) * outMult(run) * pbAtk(run) * inMult(front));
     front.hp = Math.max(0, front.hp - dmg); events.push({t: 'hit', v: dmg, crit, power});
     for (const g of gemProcs({atk: h.atk}, front, kit)) run.log.push(g);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.05));
   }
   if (front.hp > 0 && front.dots?.length) { for (const d of front.dots) { front.hp = Math.max(0, front.hp - d.per); d.left--; } front.dots = front.dots.filter(d => d.left > 0); }
-  if (front.hp <= 0) {
-    run.kills++; if (run.blood) run.bloodKills++;
-    reward(run, front.kind); events.push({t: 'kill', name: front.name, kind: front.kind});
-    run.log.push(`☠️ ${front.name} повержен${front.kind === 'leader' ? '! Вожак пал' : ''}`);
-    logQuest(world, me, 'horde_kill', now); if (run.blood) logQuest(world, me, 'horde_blood_kill', now);
-    const regen = Math.round(h.maxHp * ((run.blood ? TUNE.regen * 0.85 : TUNE.regen) + (kit.talents?.killRecovery || 0) / 200)); run.hp = Math.min(h.maxHp, run.hp + regen);
-    run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.08));
-    run.queue.shift(); milestone(run, events, now, world, me); fillQueue(run);
-    if (run.blood && Math.random() < 0.3) { run.queue.push(spawn(run)); events.push({t: 'join'}); run.log.push('🩸 На запах крови прибежал ещё один монстр!'); }
-  }
+  killFront(world, me, run, events, now, kit);
   if (run.powerCd > 0) run.powerCd--;
   // monsters strike back
   if (run.fury > 0) run.fury--; if (run.queue[0]?.vuln > 0) run.queue[0].vuln--;
   const stunnedFront = run.queue[0]?.stunned > 0 ? (run.queue[0].stunned--, true) : false;
   const strikers = [stunnedFront ? null : run.queue[0], ...(run.blood ? run.queue.slice(1).filter(() => Math.random() < 0.3) : [])].filter(Boolean);
   for (const [i, m] of strikers.entries()) {
-    const dmg = Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1) * (guard ? 0.5 : 1)));
+    const pin = pbIn(run), dmg = pin === 0 ? 0 : Math.max(1, Math.round(m.atk * rand(0.85, 1.15) * (i ? 0.6 : 1) * (run.hero.guardMul || 1) * (guard ? 0.5 : 1) * pin));
     let left = dmg; if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
     run.hp = Math.max(0, run.hp - left); events.push({t: 'hurt', v: left, from: m.name});
     if (run.hp <= 0) break;
@@ -133,6 +137,7 @@ function exchange(world, me, run, action, now, events, skillId) {
   if (run.blood && run.hp > 0 && f && f.hp < f.maxHp * 0.35 && f.kind === 'normal' && Math.random() < 0.22) {
     run.queue.shift(); events.push({t: 'flee', name: f.name}); run.log.push(`💨 ${f.name} убегает в темноту!`); fillQueue(run);
   }
+  pbTick(run);
   if (run.hp <= 0) { run.status = 'ended'; run.died = true; run.log.push('💀 Вы пали. Орда отступает — награды сохранены.'); events.push({t: 'dead'}); }
   run.log = run.log.slice(-14);
 }
@@ -168,6 +173,14 @@ export function handleHordeRequest(world, input, user, now) {
   run.updated_at = new Date(now).toISOString();
   if (path === '/api/horde/act') {
     if (run.status !== 'active') return fail('Поход окончен.');
+    if (body.action === 'item') {  // a bag potion: does not spend the turn
+      const f = {hp: run.hp, maxHp: run.hero.maxHp, mp: run.mp, maxMp: run.maxMp, pb: run.pb, potTurn: run.potTurn}, events = [], front = run.queue[0];
+      const r = usePotion(f, body.item, run.tn || 0, (pw, fx) => { const dmg = throwDmg(fx, run.hero.classId, 0); front.hp = Math.max(0, front.hp - dmg); const dot = poisonDot(fx, run.hero.classId); if (dot) (front.dots ||= []).push(dot); events.push({t: 'hit', v: dmg}); return dmg; });
+      if (r.error) return fail(r.error);
+      Object.assign(run, {hp: f.hp, mp: f.mp, pb: f.pb, potTurn: f.potTurn}); run.log.push(r.text); if (!r.fx.throw && (r.fx.heal || r.fx.healFull)) events.push({t: 'heal', v: 0});
+      killFront(world, me, run, events, now, kitOf(world, me)); run.log = run.log.slice(-14);
+      return ok({run: view(run), events});
+    }
     const action = ['attack', 'power', 'potion', 'skill', 'defend'].includes(body.action) ? body.action : 'attack';
     const steps = Math.max(1, Math.min(MAX_STEPS, Number(body.steps) || 1)), events = [];
     for (let i = 0; i < steps && run.status === 'active'; i++) exchange(world, me, run, i === 0 ? action : 'attack', now, events, body.skillId);

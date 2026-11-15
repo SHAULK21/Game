@@ -2,6 +2,7 @@
 // Between halls the leader picks a path (allies can vote): fights, elites, traps/falls, treasure, shrines.
 // Combat is resolved on the server; hero stats blend the level formula with the hero's reported gear stats (clamped).
 import {clanCredit} from './clanPlus.js';
+import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
 import {pushEvent, logQuest} from './arenaExtras.js';
 import {blendedStats, saveStats, kitOf} from './heroStats.js';
 import {companionOf, compStats, giveCompanionXp, COMP_ROLES, UNLOCK, isPaid, compImg} from './companions.js';
@@ -11,7 +12,7 @@ const MAX_MEMBERS = 3, ROOMS = 7, IDLE_MS = 30 * 60 * 1000;
 // Turn-based like the caves: every hero acts once per round (attack, any of their skills for mana, guard, potion),
 // then the enemy acts. No timers at all. Skills come from the hero's own skill list and talent tree (see skills.js);
 // a skill used right after an ally's setup skill triggers a cross-hero combo.
-const ACTIONS = new Set(['attack', 'skill', 'guard', 'potion', 'hurry']);
+const ACTIONS = new Set(['attack', 'skill', 'guard', 'potion', 'hurry', 'item']);
 const POTIONS = 3, GUARD_MP = 0.25;
 // Tuned by simulation: a full run takes ~1.5–4 min; careless duos at the minimum level often fall to the boss.
 const HP_TUNE = {goblin_cave: 1.4, spider_den: 1.3, crypt_depths: 0.75, rift_gate: 0.35};
@@ -112,7 +113,7 @@ function foeDown(world, room, d, now) {
 }
 function hitFoe(room, self, mult, now, {ignoreDef = 0} = {}) {
   const def = room.foe.def * (1 - ignoreDef);
-  const dmg = Math.max(1, Math.round(self.atk * rand(0.9, 1.1) * mult * outMult(self) * inMult(room.foe) * (1 - def / (def + 75))));
+  const dmg = Math.max(1, Math.round(self.atk * rand(0.9, 1.1) * mult * outMult(self) * pbAtk(self) * inMult(room.foe) * (1 - def / (def + 75))));
   room.foe.hp = Math.max(0, room.foe.hp - dmg); return dmg;
 }
 function intentText(room) {
@@ -186,12 +187,12 @@ function enemyTurn(room, now) {
   const targets = aoe ? team : [guard || aimed];
   for (const t of targets) {
     const raw = room.foe.atk * rand(0.85, 1.15) * (aoe ? 0.7 : heavy ? 1.7 : 1) * (kitOf0(t).defensiveStance ? 0.85 : 1), mit = t.def / (t.def + 75), shield = t.guard ? 0.5 : 1;
-    let dmg = Math.max(1, Math.round(raw * (1 - mit) * shield));
+    const pin = pbIn(t); let dmg = pin === 0 ? 0 : Math.max(1, Math.round(raw * (1 - mit) * shield * pin));
     if (t.barrier > 0) { const ab = Math.min(t.barrier, dmg); t.barrier -= ab; dmg -= ab; }
     t.hp = Math.max(0, t.hp - dmg);
     log(room, `${aoe ? '🌀' : heavy ? '💢' : '🗡️'} ${room.foe.name} ${aoe ? 'бьёт по всему отряду: ' : heavy ? 'сокрушает ' : 'бьёт '}${t.name} на ${dmg}${shield < 1 ? ' (щит)' : ''}${t.hp === 0 ? ' — герой без сил!' : ''}`, now);
   }
-  for (const m of team) m.guard = false;
+  for (const m of team) { m.guard = false; pbTick(m); }
   rollIntent(room, room.foe);
   if (!alive(room).length) { room.status = 'failed'; room.phase = 'end'; log(room, 'Отряд пал. Подземелье не пройдено.', now); }
 }
@@ -383,6 +384,13 @@ export async function handleCoopRequest(world, input, user, now, notify) {
       for (const m of w) m.acted = true; advance(world, room, d, now); settleCompanions(world, room); return ok({room: view(room, me, world)});
     }
     if (self.hp <= 0) return fail('Вы без сил. Союзник может поднять вас лечением, или дождитесь святилища.');
+    if (action === 'item') {  // a bag potion: does not spend the turn
+      const r = usePotion(self, body.item, `${room.stage}:${room.foe.hits || 0}`, (pw, fx) => { const dmg = throwDmg(fx, self.classId, room.foe.def || 0); room.foe.hp = Math.max(0, room.foe.hp - dmg); const dot = poisonDot(fx, self.classId); if (dot) (room.foe.dots ||= []).push(dot); return dmg; });
+      if (r.error) return fail(r.error);
+      log(room, `${self.name}: ${r.text}`, now);
+      if (room.foe.hp <= 0) { foeDown(world, room, d, now); settleCompanions(world, room); }
+      return ok({room: view(room, me, world)});
+    }
     if (self.acted) return fail(`Вы уже походили. Ждём: ${waitingFor(room).map(m => m.name).join(', ')}.`);
     const t = kit.talents || {};
     if (action === 'skill') {
@@ -398,7 +406,7 @@ export async function handleCoopRequest(world, input, user, now, notify) {
       self.lastSkill = {id: sk.id};
       room.lastSkill = r.combo ? null : {by: String(me), name: self.name, sk};
     } else if (action === 'attack') {
-      const crit = Math.random() < (self.crit || 0.12), dmg = hitFoe(room, self, crit ? 1.6 : 1, now);
+      const crit = Math.random() < (self.crit || 0.12) + pbCrit(self), dmg = hitFoe(room, self, crit ? 1.6 : 1, now);
       if (crit && t.critMana) self.mp = Math.min(self.maxMp, self.mp + Math.round(self.maxMp * t.critMana / 100));
       const gp = gemProcs(self, room.foe, kit);
       log(room, `${self.name} атакует: ${dmg}${crit ? ' (крит!)' : ''}${gp.length ? ', ' + gp.join(', ') : ''}`, now);

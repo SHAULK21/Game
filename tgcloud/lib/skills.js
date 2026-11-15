@@ -13,7 +13,7 @@ export function cleanKit(raw, level = 1) {
     if (!s || !/^[a-z0-9_]{2,40}$/i.test(String(s.id || '')) || n(s.levelReq, 1, 200, 1) > level) return null;
     const f = s.inflicts && FX.has(s.inflicts.type) ? {type: s.inflicts.type, chance: n(s.inflicts.chance, 0, 1, 1), duration: Math.round(n(s.inflicts.duration, 1, 5, 2)), power: n(s.inflicts.power, 0, 300, 30)} : null;
     return {id: String(s.id), name: String(s.name || 'Навык').slice(0, 40), icon: String(s.icon || '✨').slice(0, 4), desc: String(s.desc || '').slice(0, 160),
-      mana: Math.round(n(s.mana, 0, 400, 20)), mult: n(s.mult, 0, 5, 0), heal: n(s.heal, 0, 5, 0), type: /^[a-z]{3,12}$/.test(s.type || '') ? s.type : 'physical',
+      mana: Math.round(n(s.mana, 0, 1200, 50)), mult: n(s.mult, 0, 5, 0), heal: n(s.heal, 0, 5, 0), type: /^[a-z]{3,12}$/.test(s.type || '') ? s.type : 'physical',
       comboFrom: /^[a-z0-9_]{2,40}$/i.test(String(s.comboFrom || '')) ? String(s.comboFrom) : null, comboMult: n(s.comboMult, 1, 2, 1.25),
       comboAlt: (Array.isArray(s.comboAlt) ? s.comboAlt : []).filter(x => /^[a-z0-9_]{2,40}$/i.test(String(x))).slice(0, 4).map(String),
       armorBreak: n(s.armorBreak, 0, 0.5, 0), execT: n(s.execT, 0, 0.5, 0), execM: n(s.execM, 1, 3, 1.5), inf: f};

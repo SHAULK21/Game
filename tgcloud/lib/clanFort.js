@@ -189,7 +189,7 @@ function handleHunt(world, path, body, me, clan, m, f, now, notify) {
   if (!run) return fail('Боя нет.', 404);
   if (path === '/api/ae-clanx/fort/hunt/act') {
     if (run.status !== 'active') return ok({run: huntView(run)});
-    raidTurn(world, me, run, ['attack', 'skill', 'defend', 'potion'].includes(body.action) ? body.action : 'attack', body.skillId); run.at = iso(now);
+    const tr = raidTurn(world, me, run, ['attack', 'skill', 'defend', 'potion', 'item'].includes(body.action) ? body.action : 'attack', body.skillId, body.item); if (tr?.error) return fail(tr.error); run.at = iso(now);
     if (run.status === 'ended') huntFinish(world, me, run, now, notify);
     return ok({run: huntView(run)});
   }

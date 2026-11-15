@@ -2,6 +2,7 @@
 // the weekly clan rating (top-3 rewards), clan wars, join requests, welcome message + emblem, and the raid
 // as a real turn-based fight against the Gate Guardian (with combos from clanmates' skills).
 import {castSkill, outMult, inMult, gemProcs, setupOf} from './skills.js';
+import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
 import {blendedStats, realStats, baseStats, kitOf, saveStats} from './heroStats.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
@@ -177,11 +178,19 @@ export function raidView(run) {
     foe: {hp: foeHp, maxHp: run.bossMax, atk: Math.round(run.maxHp * 0.06 * ph.atk * (run.mod?.atk || 1) * (run.hero?.guardMul || 1))}, phase: ph, heavyNext: (run.turn + 1) % (run.mod?.every || 3) === 0, boss: run.boss || null, ally: run.allyLast ? {name: run.allyName, setup: setupOf(run.allyLast)} : null,
     log: run.log.slice(-14), result: run.result || null};
 }
-export function raidTurn(world, me, run, action, skillId) {
+export function raidTurn(world, me, run, action, skillId, item) {
   const h = run.hero, kit = kitOf(world, me), foe = run.foe, before = run.dealt, BN = run.bossName || 'Страж', md = run.mod || {}, AR = md.armor ?? ARMOR;
   const foeHp = () => Math.max(0, run.bossHp0 - run.dealt), ph = phaseOf(foeHp(), run.bossMax);
-  const hitFoe = mult => { const dmg = Math.max(1, Math.round(h.atk * rand(0.9, 1.1) * mult * AR * (1 + (h.pen || 0)) * ph.taken * outMult(run) * inMult(foe))); run.dealt = Math.min(run.bossHp0, run.dealt + dmg);
+  const hitFoe = mult => { const dmg = Math.max(1, Math.round(h.atk * rand(0.9, 1.1) * mult * AR * (1 + (h.pen || 0)) * ph.taken * outMult(run) * pbAtk(run) * inMult(foe))); run.dealt = Math.min(run.bossHp0, run.dealt + dmg);
     if (h.vamp) { const v = Math.round(dmg * h.vamp); if (v) { run.hp = Math.min(h.maxHp, run.hp + v); run.vampTurn = (run.vampTurn || 0) + v; } } return dmg; };
+  if (action === 'item') {  // a bag potion: does not spend the turn
+    const f = {hp: run.hp, maxHp: h.maxHp, mp: run.mp, maxMp: run.maxMp, pb: run.pb, potTurn: run.potTurn};
+    const r = usePotion(f, item, run.turn, (pw, fx) => { const dmg = Math.round(throwDmg(fx, h.classId, 0) * AR * ph.taken); run.dealt = Math.min(run.bossHp0, run.dealt + dmg); const dot = poisonDot(fx, h.classId); if (dot) (foe.dots ||= []).push(dot); return dmg; });
+    if (r.error) return {error: r.error};
+    Object.assign(run, {hp: f.hp, mp: f.mp, pb: f.pb, potTurn: f.potTurn}); run.log.push(r.text);
+    if (foeHp() <= 0) { run.status = 'ended'; run.killed = true; run.log.push(`🏆 ${run.bossFull || 'Страж клановых врат'} повержен!`); }
+    run.log = run.log.slice(-30); return run.dealt - before;
+  }
   let guard = false;
   run.vampTurn = 0;
   if (action === 'potion') { if (run.potions > 0) { run.potions--; const v = Math.round(h.maxHp * 0.4); run.hp = Math.min(h.maxHp, run.hp + v); run.log.push(`🧪 Зелье: +${v} HP`); } else action = 'attack'; }
@@ -204,7 +213,7 @@ export function raidTurn(world, me, run, action, skillId) {
     }
   }
   if (action === 'attack') {
-    const crit = Math.random() < (h.crit || 0.12), dmg = hitFoe(crit ? (h.critDmg || 1.6) : 1);
+    const crit = Math.random() < (h.crit || 0.12) + pbCrit(run), dmg = hitFoe(crit ? (h.critDmg || 1.6) : 1);
     run.log.push(`⚔️ Удар: −${dmg}${crit ? ' (крит!)' : ''}`);
     for (const g of gemProcs({atk: h.atk}, foe, kit)) run.log.push(g);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.06));
@@ -219,12 +228,13 @@ export function raidTurn(world, me, run, action, skillId) {
   else if (h.evasion && Math.random() < h.evasion) run.log.push(`💨 Вы уклонились от ${run.turn % (md.every || 3) === 0 ? 'сокрушающего удара' : 'удара: ' + BN}!`);
   else {
     const heavy = run.turn % (md.every || 3) === 0, raw = h.maxHp * 0.06 * ph.atk * (md.atk || 1) * (heavy ? (md.heavy || 2) : 1) * rand(0.9, 1.1) * (h.guardMul || 1) * (guard ? 0.5 : 1);
-    let left = Math.max(1, Math.round(raw)); if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
+    const pin = pbIn(run); let left = pin === 0 ? 0 : Math.max(1, Math.round(raw * pin)); if (run.barrier > 0) { const ab = Math.min(run.barrier, left); run.barrier -= ab; left -= ab; }
     run.hp = Math.max(0, run.hp - left); run.log.push(`${heavy ? (md.heavyName || '💢 Сокрушающий удар') : (md.hitName || '🗿 ' + BN + ' бьёт')}: −${left}${guard ? ' (защита)' : ''}`);
     if (md.leech) { const v = Math.round(left * md.leech); if (v) { run.dealt = Math.max(0, run.dealt - v); run.log.push(`🩸 ${BN} пьёт жизнь: +${v} HP себе`); } }
   }
   if (md.regen && foeHp() > 0) { const v = Math.min(run.dealt, Math.round(Math.max(0, run.dealt - before) * md.regen)); if (v) { run.dealt -= v; run.log.push(`🌿 ${BN} регенерирует: +${v} HP`); } }
   if (md.drain && run.mp > 0) { const v = Math.min(run.mp, Math.round(run.maxMp * md.drain)); run.mp -= v; run.log.push(`🌀 ${BN} вытягивает ману: −${v} MP`); }
+  pbTick(run);
   if (run.hp > 0 && (h.hpRegen || h.mpRegen)) { run.hp = Math.min(h.maxHp, run.hp + Math.round(h.hpRegen || 0)); run.mp = Math.min(run.maxMp, run.mp + Math.round(h.mpRegen || 0)); }
   if (run.hp <= 0) { run.status = 'ended'; run.log.push('💀 Вы без сил — бой окончен, урон засчитан.'); }
   else if (run.turn >= TURNS) { run.status = 'ended'; run.log.push(`⏳ ${run.bossFull ? 'Время вышло' : 'Страж отбросил вас за врата'} — бой окончен, урон засчитан.`); }
@@ -295,8 +305,8 @@ async function handleRaid(world, path, body, me, now, native, notify) {
   if (!run) return fail('Боя нет.', 404);
   if (path === '/api/ae-clanx/raid/act') {
     if (run.status !== 'active') return ok({run: raidView(run)});
-    const action = ['attack', 'skill', 'defend', 'potion'].includes(body.action) ? body.action : 'attack';
-    raidTurn(world, me, run, action, body.skillId); run.at = iso(now);
+    const action = ['attack', 'skill', 'defend', 'potion', 'item'].includes(body.action) ? body.action : 'attack';
+    const tr = raidTurn(world, me, run, action, body.skillId, body.item); if (tr?.error) return fail(tr.error); run.at = iso(now);
     if (run.status === 'ended') run = await raidFinish(world, me, run, now, native, notify);
     return ok({run: raidView(run)});
   }

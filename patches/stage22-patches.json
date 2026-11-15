@@ -1,0 +1,39 @@
+[
+ {
+  "name": "potion-buffs-free",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "function St(e){let t=e.stats;return e.type===`potion`&&!xt(e)&&!!(t.heal||t.healFull||t.manaRestore)}",
+  "new": "function St(e){let t=e.stats;return e.type===`potion`&&!xt(e)&&!!(t.heal||t.healFull||t.manaRestore||t.attackPercent||t.defensePercent||t.critChance||t.invulnerable)}"
+ },
+ {
+  "name": "potion-throw-label",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "return n?`Бросок вместо атаки: ${",
+  "new": "return n?`Бросок · не расходует ход: ${"
+ },
+ {
+  "name": "throw-desc",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "Бросок вместо обычной атаки:",
+  "new": "Бросок, не расходует ход:",
+  "count": 3
+ },
+ {
+  "name": "potion-throw-free",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "let u=e===`potion`?n.inventory.find(e=>e.type===`potion`&&(!t||e.id===t)):void 0;if(u&&Dt(u,v.current))return;if(u&&St(u)){",
+  "new": "let u=e===`potion`?n.inventory.find(e=>e.type===`potion`&&(!t||e.id===t)):void 0;if(u&&Dt(u,v.current))return;if(u&&xt(u)){T(u);let{power:t,damageType:a}=xt(u),s=Vi({power:t*(n.classId===`rogue`?1.25:1),multiplier:1,damageType:a,targetDefense:o.defense,targetMagicDefense:o.magicDefense,armorPenetration:0,targetResistances:o.resistances,extraDamageMultiplier:I(et).damageTakenMultiplier});i(e=>e&&{...e,inventory:e.inventory.map(e=>e.id===u.id?{...e,stackCount:(e.stackCount||1)-1}:e).filter(e=>e.id!==u.id||(e.stackCount||0)>0)}),U.playMagic();let f=`Вы бросили «${u.name}»: ${s} урона. Ход сохранён.`;c.push({id:`throw_`+Date.now(),turn:r,text:f,type:`player-attack`,impact:{target:`monster`,amount:s}});if(a===`poison`){let e=Math.max(1,Math.round(t*(n.classId===`rogue`?1.25:1)*.15));P(t=>Xt(t,{type:`poison`,name:`Отравление`,duration:3,value:e})),c.push({id:`throw_poison_`+Date.now(),turn:r,text:`Ядовитая склянка: отравление на 3 хода.`,type:`status`})}rt([f]);let d=Math.max(0,o.hp-s);l(e=>e&&{...e,hp:d}),d<=0?(b.current=!1,pe(!0),he(`victory`),Ze(`ended`),Yi(o,r,c)):p(e=>[...e,...c]);return}if(u&&St(u)){"
+ },
+ {
+  "name": "mana-cost-x2.5",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "function pt(e,t){return Math.max(0,Math.ceil(e*(1-",
+  "new": "function pt(e,t){return Math.max(0,Math.ceil(e*2.5*(1-"
+ },
+ {
+  "name": "new-recipes",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21.js",
+  "old": "Zn.push(...F),Zn.push(...wt);",
+  "new": "Zn.push(...F),Zn.push(...wt),Zn.push({id:`alc_mp_mid`,resultItem:`Большое зелье маны`,resultCount:2,name:`Большое зелье маны`,description:`Восстанавливает 260 MP. Не расходует ход.`,levelReq:12,heroLevelReq:12,craftTimeSeconds:2,icon:`💧`,ingredients:[{name:`Медная руда`,count:4},{name:`Магическая эссенция`,count:1}],resultStats:{manaRestore:260}},{id:`alc_iron`,resultItem:`Отвар железной стойкости`,resultCount:1,name:`Отвар железной стойкости`,description:`Восстанавливает 200 HP и даёт +30% защиты на 3 хода. Не расходует ход.`,levelReq:14,heroLevelReq:14,craftTimeSeconds:2,icon:`🛡️`,ingredients:[{name:`Железная руда`,count:3},{name:`Лечебная трава`,count:2}],resultStats:{heal:200,defensePercent:30,buffDuration:3}},{id:`alc_clarity`,resultItem:`Эликсир ясности`,resultCount:1,name:`Эликсир ясности`,description:`Восстанавливает 150 MP и даёт +10% к шансу крита на 3 хода. Не расходует ход.`,levelReq:22,heroLevelReq:22,craftTimeSeconds:2,icon:`🔮`,ingredients:[{name:`Магическая эссенция`,count:2},{name:`Лечебная трава`,count:3}],resultStats:{manaRestore:150,critChance:10,buffDuration:3}},{id:`alc_rage`,resultItem:`Зелье ярости`,resultCount:1,name:`Зелье ярости`,description:`+30% к атаке на 3 хода. Не расходует ход.`,levelReq:28,heroLevelReq:28,craftTimeSeconds:2,icon:`😡`,ingredients:[{name:`Острый клык`,count:3},{name:`Огненный цветок`,count:1}],resultStats:{attackPercent:30,buffDuration:3}},{id:`alc_mp_great`,resultItem:`Великое зелье маны`,resultCount:1,name:`Великое зелье маны`,description:`Восстанавливает 650 MP. Не расходует ход.`,levelReq:35,heroLevelReq:35,craftTimeSeconds:3,icon:`🌊`,ingredients:[{name:`Магическая эссенция`,count:3},{name:`Медная руда`,count:4}],resultStats:{manaRestore:650}},{id:`alc_viper`,resultItem:`Яд чёрной гадюки`,resultCount:2,name:`Яд чёрной гадюки`,description:`Бросок, не расходует ход: 650 урона ядом до сопротивлений и сильное отравление на 3 хода. Разбойник: +25% урона.`,levelReq:40,heroLevelReq:40,craftTimeSeconds:3,icon:`🐍`,ingredients:[{name:`Ядовитая железа`,count:4},{name:`Магическая эссенция`,count:2}],resultStats:{poisonDamage:650}},{id:`alc_hawk`,resultItem:`Эликсир ястребиного глаза`,resultCount:1,name:`Эликсир ястребиного глаза`,description:`+20% к шансу крита на 4 хода. Не расходует ход.`,levelReq:45,heroLevelReq:45,craftTimeSeconds:3,icon:`🦅`,ingredients:[{name:`Острый клык`,count:2},{name:`Магическая эссенция`,count:3}],resultStats:{critChance:20,buffDuration:4}},{id:`alc_titan`,resultItem:`Эликсир титана`,resultCount:1,name:`Эликсир титана`,description:`+25% к атаке и +25% к защите на 4 хода. Не расходует ход.`,levelReq:55,heroLevelReq:55,craftTimeSeconds:4,icon:`🗿`,ingredients:[{name:`Драконит`,count:1},{name:`Горный корень`,count:3},{name:`Огненный цветок`,count:2}],resultStats:{attackPercent:25,defensePercent:25,buffDuration:4}});"
+ }
+]
