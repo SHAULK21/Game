@@ -739,7 +739,7 @@
         const menu = skillsOpen ? skillMenu({mp, disabled: dead || acted, combos: comboIds.map(c => c.id), onClose: () => { skillsOpen = false; st.rerender(); }, onUse: k => { skillsOpen = false; act('skill', {skillId: k.id})(); }}) : null;
         body.append(battleView({
           location: room.dungeon.name, mode: `Зал ${room.stage}/${room.rooms}`, round: `Раунд ${room.round || 1}`,
-          scene: COOP_SCENES[room.dungeon.id] || '/assets/catacombs-DeUOVUij.webp', turn: turnText, turnShort: acted ? 'Ожидание' : 'Ваш ход',
+          scene: room.foe?.boss ? '/assets/battle/arena-boss.webp' : COOP_SCENES[room.dungeon.id] || '/assets/battle/arena-coop.webp', turn: turnText, turnShort: acted ? 'Ожидание' : 'Ваш ход',
           hero: {name: meFight.name, cls: CLASS_RU2[meFight.classId] || meFight.classId, level: meFight.level, hp: meFight.hp, maxHp: meFight.maxHp, mp, maxMp: meFight.maxMp || 100, mpLabel: 'MANA', portrait: heroPortrait(meFight.classId), body: heroBody(meFight.classId)},
           foe: {name: f.name, level: f.boss ? 'Босс' : f.elite ? 'Элита' : 'Враг', hp: f.hp, maxHp: f.maxHp, atk: f.atk, def: f.def, img: coopFoeImg(f.name)},
           note: (room.log || []).at(-1)?.text || room.scene || f.desc,
@@ -1712,7 +1712,7 @@
         const fxText = f => { const c = []; if (f.guard) c.push('🛡️ защита'); if (f.barrier) c.push(`🛡️ щит ${f.barrier}`); if (f.fury) c.push('📯 ярость'); if (f.vuln) c.push('🎯 уязвим'); if (f.stunned) c.push('💫 оглушён'); for (const d0 of f.dots || []) c.push(`${d0.icon} ${d0.name}`); return c.join(' · '); };
         const doAct = (a, extra) => () => act('/api/duel/act', {action: a, ...(extra || {})});
         body.append(battleView({
-          location: 'Арена дуэлей', mode: 'PvP-дуэль', round: `Ход ${D.turn}`, scene: '/assets/arena-D132A-sN.webp',
+          location: 'Арена дуэлей', mode: 'PvP-дуэль', round: `Ход ${D.turn}`, scene: '/assets/battle/arena-duel.webp',
           turn: mm.stunned ? 'Вы оглушены — ход будет пропущен' : 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
           hero: {name: mm.name, cls: mm.className, level: mm.level, hp: mm.hp, maxHp: mm.maxHp, mp: mm.mp, maxMp: mm.maxMp, mpLabel: 'MANA', portrait: heroPortrait(mm.classId), body: heroBody(mm.classId)},
           foe: {name: ff.name, level: `${ff.className} · Ур. ${ff.level}`, hp: ff.hp, maxHp: ff.maxHp, atk: ff.atk, def: ff.def, img: isModern() ? heroPortrait(ff.classId) : heroBody(ff.classId), mirror: true},
@@ -2726,7 +2726,7 @@
       battleMode(body, run.status === 'active');
       if (run.status === 'active') {
         const cls = me()?.classId || 'warrior', ph = run.phase;
-        body.append(battleView({location: hunt ? 'Клановая охота' : 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: hunt && run.boss ? `/assets/fort/hunt-${run.boss}.webp` : '/assets/catacombs-DeUOVUij.webp',
+        body.append(battleView({location: hunt ? 'Клановая охота' : 'Клановые врата', mode: `Фаза ${ph.n}/3`, round: `Ход ${run.turn + 1}/${run.turns}`, scene: hunt && run.boss ? `/assets/fort/hunt-${run.boss}.webp` : '/assets/battle/arena-guardian.webp',
           turn: 'Ваш ход — выберите действие', turnShort: 'Ваш ход',
           hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp, maxMp: run.maxMp, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
           foe: {name: bossName(), level: hunt ? 'Клановый босс' : 'Рейдовый босс', hp: run.foe.hp, maxHp: run.foe.maxHp, atk: run.foe.atk, img: hunt ? run.img : '/assets/sprites/generated/monsters/v_cr_colossus.webp'},
@@ -4361,6 +4361,68 @@
   const isModern = () => document.documentElement.getAttribute('data-interface') === 'modern';
   const pctOf = (a, b) => Math.max(0, Math.min(100, 100 * (Number(a) || 0) / Math.max(1, Number(b) || 1)));
   const ICON = k => `<span class="inline-flex items-center justify-center shrink-0 text-[#a48b60]" aria-hidden="true"><img alt="" aria-hidden="true" width="20" height="20" draggable="false" class="block shrink-0 object-contain" src="/assets/sprites/generated/ui/icons/${k}.webp"></span>`;
+  // ---------- the battle scene: one look for every fight (fields, dungeons, arena, Horde, co-op, duels, clan fights) ----------
+  // Fighters stand full-height on the arena ground; names, HP/MP, the enemy's next move and the effects (with turns left) above them.
+  const FX_ICON = {poison: 'poison', burn: 'burn', bleed: 'bleed', stun: 'stun', shield: 'shield', fortify: 'shield', barrier: 'shield', invulnerable: 'shield', fury: 'fury', focus: 'focus', regen: 'regen', heal: 'regen', hot: 'regen'};
+  const FX_EMOJI = {freeze: '❄️', frozen: '❄️', slow: '🐢', weaken: '🔻', vuln: '🎯', vulnerable: '🎯', silence: '🤐', curse: '💀', blind: '🌫️'};
+  const fxChips = list => (list || []).filter(e => e && (e.duration ?? e.turns ?? e.left ?? 1) > 0).slice(0, 6).map(e => { const k = FX_ICON[e.type], n = e.duration ?? e.turns ?? e.left;
+    return h('span', {class: 'ae-sc-fx', title: `${e.name || e.type}${n ? ` · ещё ${n} х.` : ''}`}, k ? h('img', {src: `/assets/battle/fx-${k}.webp`, alt: ''}) : h('i', {}, e.icon || FX_EMOJI[e.type] || '✨'), n ? h('b', {}, n) : ''); });
+  const scBar = (cls, v, max) => h('div', {class: 'ae-sc-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * (v || 0) / Math.max(1, max || 1)))}%`}), h('span', {}, `${fmt(Math.max(0, Math.round(v || 0)))} / ${fmt(max || 0)}`));
+  const heroFig = cls => `/assets/sprites/generated/heroes/combat/${cls || 'warrior'}.webp`;
+  function sceneNode(d) {
+    const H = d.hero, F = d.foe;
+    return h('div', {class: 'ae-scene' + (d.turn ? (d.turn.mine ? ' is-mine' : ' is-foe-turn') : ''), 'data-ae-scene': '1'},
+      h('div', {class: 'ae-sc-bg', style: `background-image:url("${d.bg}")`}),
+      h('div', {class: 'ae-sc-top'}, h('span', {class: 'ae-sc-place'}, d.place || ''), d.mode ? h('span', {class: 'ae-sc-mode'}, d.mode) : '', h('span', {class: 'ae-grow'}), d.round ? h('span', {class: 'ae-sc-round'}, d.round) : ''),
+      d.turn ? h('div', {class: 'ae-sc-turn'}, d.turn.text) : '',
+      h('div', {class: 'ae-sc-info is-hero'}, h('b', {}, H.name || 'Герой', H.level ? h('small', {}, ` · ${H.level} ур.`) : ''), scBar('is-hp', H.hp, H.maxHp), H.maxMp ? scBar('is-mp', H.mp, H.maxMp) : '', h('div', {class: 'ae-sc-fxs'}, fxChips(H.effects))),
+      F ? h('div', {class: 'ae-sc-info is-foe'}, h('b', {}, F.name, F.level ? h('small', {}, ` · ${F.level}`) : ''), F.tag ? h('em', {}, F.tag) : '', scBar('is-hp is-foe', F.hp, F.maxHp), F.intent ? h('div', {class: 'ae-sc-intent', title: 'Что враг готовит на свой ход'}, F.intent) : '', h('div', {class: 'ae-sc-fxs'}, fxChips(F.effects))) : '',
+      h('div', {class: 'ae-sc-fig is-hero', 'data-bv-hero': ''}, h('img', {class: 'ae-sc-body', src: H.img, alt: '', onerror: e => { if (H.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = H.img2; } }}), H.pet ? h('img', {class: 'ae-sc-pet', src: H.pet, alt: '', onerror: e => e.target.remove()}) : ''),
+      F ? h('div', {class: 'ae-sc-fig is-foe' + (F.mirror ? ' is-mirror' : ''), 'data-bv-foe': ''}, h('img', {class: 'ae-sc-body', src: F.img, alt: '', onerror: e => { if (F.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = F.img2; } }})) : '',
+      d.queue?.length ? h('div', {class: 'ae-sc-queue', title: 'Следующие враги'}, d.queue.slice(0, 3).map(q => h('img', {src: q, alt: ''}))) : '');
+  }
+  const sceneFloat = (root, sel, text, cls) => { const el = root?.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.3)}px;top:${r.top + r.height * 0.2}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); };
+  // The game's own fights: our scene replaces the stock one (data from the combat bridge).
+  let natPrev = null;
+  function nativeScene() {
+    const c = window.__aethBridge?.combat, page = document.querySelector('.fantasy-combat-page'), modern = page ? null : document.querySelector('main [data-battle-scene]')?.closest('.rounded-2xl');
+    const old = document.querySelector('[data-ae-scene][data-ae-native]');
+    if (!c?.inCombat || !c.monster || !(page || modern)) { natPrev = null; return; }
+    const host = page ? page.querySelector('.combat-hero-plaque') || page.querySelector('.combat-scene') : modern; if (!host) return;
+    const nat = page ? page.querySelector('.combat-scene') : modern;
+    const p = me() || {}, m = c.monster, fc = c.forecast;
+    const texts = [...(nat?.querySelectorAll('span') || [])].map(e => (e.childElementCount ? '' : e.textContent || '').trim()).filter(Boolean);
+    const place = texts.find(t => /:/.test(t) && t.length > 6) || texts.find(t => t.length > 8 && !/Раунд|Ваш ход|Ур\.|VS|Вы$/.test(t) && t !== m.name) || '';
+    const mode = (texts.find(t => /^\[.*\]$/.test(t)) || '').replace(/^\[|\]$/g, '');
+    const intent = fc && fc.monsterId === m.id && fc.skill ? `${fc.skill.icon || '💥'} ${fc.skill.name}${fc.skill.damageMultiplier ? ' ×' + Math.round(fc.skill.damageMultiplier * 100) + '%' : ''}` : '';
+    const d = {bg: m.regionId === 'arena' ? '/assets/battle/arena-pvp.webp' : nat?.querySelector('img')?.getAttribute('src') || '/assets/battle/arena-field.webp', place, mode, round: `Раунд ${c.turn || 1}`,
+      turn: c.ended ? null : {text: c.phase === 'player' ? '⚔️ Ваш ход' : '⏳ Ход противника', mine: c.phase === 'player'},
+      hero: {name: p.name, level: p.level, hp: c.hp, maxHp: c.maxHp || c.hp, mp: c.mp, maxMp: c.maxMp || 0, img: heroFig(p.classId), effects: c.effects, pet: p.activePet ? `/assets/sprites/generated/pets/combat/${p.activePet.id}.webp` : ''},
+      foe: {name: m.name, level: `${m.level} ур.`, tag: m.isBoss ? '👑 Босс' : m.isElite ? '⭐ Элита' : '', hp: m.hp, maxHp: m.maxHp, img: `/assets/sprites/generated/monsters/${m.id}.webp`, img2: m.avatar, effects: c.foeEffects, intent}};
+    const sig = JSON.stringify([d.hero.hp, d.hero.mp, d.hero.maxHp, d.foe.hp, d.foe.name, d.turn?.text, d.round, d.place, intent, (c.effects || []).map(e => e.type + e.duration), (c.foeEffects || []).map(e => e.type + e.duration)]);
+    page?.classList.add('ae-has-scene'); nat?.classList.add('ae-nat-hide'); if (page) page.querySelector('.combat-hero-plaque')?.classList.add('ae-nat-hide');
+    if (old && old.dataset.sig === sig && old.isConnected && old.nextElementSibling === host) return;
+    const node = sceneNode(d); node.dataset.aeNative = '1'; node.dataset.sig = sig;
+    if (old) old.replaceWith(node); else host.before(node);
+    if (node.nextElementSibling !== host) host.before(node);
+    if (natPrev && natPrev.foe === m.name) {
+      if (m.hp < natPrev.mhp) sceneFloat(node, '[data-bv-foe]', '−' + fmt(natPrev.mhp - m.hp), 'is-dmg');
+      if (c.hp < natPrev.hp) sceneFloat(node, '[data-bv-hero]', '−' + fmt(natPrev.hp - c.hp), 'is-hurt');
+      else if (c.hp > natPrev.hp) sceneFloat(node, '[data-bv-hero]', '+' + fmt(c.hp - natPrev.hp), 'is-heal');
+    }
+    natPrev = {foe: m.name, mhp: m.hp, hp: c.hp};
+  }
+  setInterval(() => { if (!document.hidden) try { nativeScene(); paintActionIcons(); } catch (e) { console.warn('ae scene', e); } }, 160);
+  // Action buttons: the same drawn icons in every fight.
+  const ACT_RE = [[/^(атака|attack)/i, 'attack'], [/^навыки/i, 'skill'], [/^(🛡️\s*)?защита(?![а-яё])/i, 'defend'], [/^(🧪\s*)?зелья?(?![а-яё])/i, 'potion'], [/^(скрыться|покинуть бой|уйти|сдаться|отступить)/i, 'flee'], [/^автобой/i, 'auto']];
+  function paintActionIcons() {
+    if (!document.documentElement.hasAttribute('data-in-combat') && !document.querySelector('.ae-bv')) return;
+    for (const b of document.querySelectorAll('main button:not([data-ae-ai]), .ae-panel .ae-bv button:not([data-ae-ai])')) {
+      if (b.closest('.ae-assist-row, .ae-pot-pick, .combat-skill-ledger, [data-ae-scene]')) { b.dataset.aeAi = '-'; continue; }
+      const t = (b.textContent || '').trim(), hit = ACT_RE.find(([re]) => re.test(t));
+      b.dataset.aeAi = hit ? hit[1] : '-'; if (hit) b.classList.add('ae-ai', 'ae-ai-' + hit[1]);
+    }
+  }
   const KIND_ICON = {attack: 'attack', skill: 'skill', defend: 'defend', potion: 'potion'};
   const LUCIDE = {attack: '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" x2="19" y1="19" y2="13"></line><line x1="16" x2="20" y1="16" y2="20"></line><line x1="19" x2="21" y1="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" x2="9" y1="14" y2="18"></line><line x1="7" x2="4" y1="17" y2="20"></line><line x1="3" x2="5" y1="19" y2="21"></line>',
     skill: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>',
@@ -4380,6 +4442,9 @@
     const on = fn => { handlers.push(fn); return `data-bv="${handlers.length - 1}"`; };
     const attrs = a => a ? Object.entries(a).map(([k, v]) => `${k}="${E(v)}"`).join(' ') : '';
     const logRows = (o.log || []).slice(-12).reverse();
+    const sceneData = () => ({bg: o.scene, place: o.location, mode: o.mode, round: o.round, turn: o.turnShort || o.turn ? {text: o.turnShort || o.turn, mine: !/враг|против|ждём|ожида|ход .*(тени|босс)/i.test(o.turnShort || o.turn)} : null,
+      hero: {name: hero.name, level: hero.level, hp: hero.hp, maxHp: hero.maxHp, mp: hero.mp, maxMp: hero.maxMp, img: hero.body || heroFig(me()?.classId), img2: hero.portrait, effects: hero.effects, pet: me()?.activePet ? `/assets/sprites/generated/pets/combat/${me().activePet.id}.webp` : ''},
+      foe: foe ? {name: foe.name, level: foe.level, tag: foe.tag, hp: foe.hp, maxHp: foe.maxHp, img: /\/heroes\/(?!combat\/)/.test(foe.img || '') ? foe.img.replace('/heroes/', '/heroes/combat/') : foe.img, img2: foe.img, mirror: foe.mirror, effects: foe.effects, intent: o.intent && !/Следом/.test(o.intent.label || '') ? `${o.intent.name || ''}${o.intent.value ? ' ' + o.intent.value : ''}`.trim() : ''} : null, queue: o.queue});
     if (!isModern()) {
       root.innerHTML = `<div class="folio-page fantasy-combat-page classic-fantasy-surface space-y-3 pt-3">
 <section class="bestiary-panel combat-hero-plaque grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2.5 p-2"><div class="relative h-[58px] w-[52px] overflow-hidden rounded-md border bg-[#0d1012] border-[#a98951]"><img alt="" class="h-full w-full object-cover object-top" src="${E(hero.portrait)}"></div><div class="min-w-0"><div class="mb-1.5 flex items-center justify-between gap-2"><span class="truncate text-xs font-semibold text-[#e1d5c0]">${E(hero.name)} · ${E(hero.cls)}</span><span class="shrink-0 font-mono text-[11px] text-[#d2b676]">Ур. ${E(hero.level)}</span></div><span role="status" class="combat-turn-label mb-1 block text-[11px] font-semibold text-[#d5ba89]">${E(o.turn || 'Ваш ход — выберите действие')}</span><div class="mb-1.5"><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">HP</span><span class="text-[#d8d1c4]">${fmt(hero.hp)}/${fmt(hero.maxHp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-hp" style="width:${pctOf(hero.hp, hero.maxHp)}%"></div></div></div>${hero.maxMp ? `<div><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">${E(hero.mpLabel || 'MANA')}</span><span class="text-[#d8d1c4]">${fmt(hero.mp)}/${fmt(hero.maxMp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-mana" style="width:${pctOf(hero.mp, hero.maxMp)}%"></div></div></div>` : ''}</div></section>
@@ -4419,6 +4484,8 @@ ${o.series ? `<div class="mb-2.5 rounded-xl border border-amber-500/30 bg-amber-
 <div class="rounded-xl border border-slate-800 bg-[#070a12] p-2.5 h-36 flex flex-col"><div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between border-b border-slate-800/80 pb-1"><span>Журнал пошагового сражения</span><span>${(o.log || []).length} записей</span></div><div class="flex-1 overflow-y-auto space-y-1 text-xs pr-1">${logRows.map(l => `<div class="leading-snug flex items-start gap-1.5 font-mono text-[11px]"><span class="text-slate-300">${E(l)}</span></div>`).join('')}</div></div>
 ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[#090e1a] border border-cyan-500/20 text-[10px] font-mono flex items-center justify-between text-slate-300"><span>🩸 Вампиризм: <strong class="text-rose-400">+${fmt(st.vampirism || 0)}%</strong></span><span>⚔️ Пробитие: <strong class="text-amber-300">${fmt(st.armorPenetration || 0)}</strong></span><span>🛡️ Броня: <strong class="text-slate-200">${fmt(st.defense || 0)}</strong></span><span>💨 Уклон: <strong class="text-indigo-300">${fmt(st.evasion || 0)}%</strong></span><span>🎯 Крит: <strong class="text-cyan-300">${fmt(st.critChance || 0)}%</strong></span></div>` : ''; })()}</div>`;
     }
+    { const stock = root.querySelector('.combat-scene') || root.querySelector('[data-bv-hero]')?.closest('.rounded-2xl');
+      if (stock) { root.querySelector('.combat-hero-plaque')?.remove(); stock.replaceWith(sceneNode(sceneData())); } }
     root.querySelectorAll('[data-bv]').forEach(b => { const fn = handlers[Number(b.getAttribute('data-bv'))]; if (fn) b.addEventListener('click', e => { e.preventDefault(); if (!b.disabled) fn(e); }); });
     if (o.menu) root.querySelector('.space-y-2.transition-all')?.append(o.menu);
     if (o.extra) root.querySelector('[data-bv-extra]')?.append(o.extra);
@@ -4551,11 +4618,11 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
         const cls = me()?.classId || 'warrior', q = run.queue.slice(1);
         body.append(battleView({
           location: run.blood ? 'Орда · Кровавая луна' : 'Орда монстров', mode: run.weekend ? 'Выходные луны ×3.5' : run.blood ? 'Кровавая луна ×1.75' : 'Быстрый бой', round: `☠️ ${run.kills}`,
-          scene: run.blood ? '/assets/rift-DTdreQra.webp' : '/assets/arena-D132A-sN.webp', turn: auto ? 'Автобой — бой идёт сам' : 'Ваш ход — выберите действие', turnShort: auto ? 'Автобой' : 'Ваш ход',
+          scene: run.blood ? '/assets/battle/arena-bloodmoon.webp' : '/assets/battle/arena-horde.webp', turn: auto ? 'Автобой — бой идёт сам' : 'Ваш ход — выберите действие', turnShort: auto ? 'Автобой' : 'Ваш ход',
           hero: {name: me()?.name || 'Герой', cls: CLASS_RU2[cls] || cls, level: me()?.level || 1, hp: run.hp, maxHp: run.maxHp, mp: run.mp ?? 0, maxMp: run.maxMp || 100, mpLabel: 'MANA', portrait: heroPortrait(cls), body: heroBody(cls)},
           foe: {name: front.name, level: front.kind === 'leader' ? 'Вожак' : front.kind === 'elite' ? 'Элита' : 'Монстр орды', hp: front.hp, maxHp: front.maxHp, atk: front.atk, img: sprite(front.sprite)},
           note: (run.log || []).at(-1),
-          intent: q.length ? {label: 'Следом бегут:', name: q.map(m => m.name).join(', '), text: run.blood ? 'Кровавая луна: монстры бьют сильнее, раненые могут сбежать, на их место прибегают новые.' : '', value: `+${q.length}`} : null,
+          queue: q.map(m => sprite(m.sprite)), intent: q.length ? {label: 'Следом бегут:', name: q.map(m => m.name).join(', '), text: run.blood ? 'Кровавая луна: монстры бьют сильнее, раненые могут сбежать, на их место прибегают новые.' : '', value: `+${q.length}`} : null,
           series: {label: 'Орда', value: next ? `${run.kills} / ${next}` : `${run.kills} · все вехи`, sub: `Добыча: ${rewardText(run.loot) || '—'}`},
           actions: [{kind: 'attack', label: 'Атака', onClick: () => { if (!auto) act('attack'); }},
             {kind: 'skill', label: 'Навыки', disabled: auto, attr: {'aria-expanded': String(skillsOpen), 'aria-controls': 'combat-skills'}, onClick: () => { if (!auto) { skillsOpen = !skillsOpen; st.rerender(); } }},
@@ -4760,6 +4827,43 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-nat-hide{display:none!important}
+.ae-scene{position:relative;height:330px;border-radius:16px;overflow:hidden;border:1px solid #6b5631;margin-bottom:8px;isolation:isolate;color:#f1ead8;box-shadow:0 6px 18px #0008}
+.ae-sc-bg{position:absolute;inset:0;background:center 62%/cover no-repeat;z-index:-2}
+.ae-scene::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(#000c 0%,#0006 26%,#0000 45%,#0000 78%,#000a 100%)}
+.ae-sc-top{display:flex;align-items:center;gap:6px;padding:7px 10px 0;font:600 11px system-ui;color:#e9dcc0;text-shadow:0 1px 2px #000}
+.ae-sc-place{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.ae-sc-mode{flex:0 0 auto;padding:1px 7px;border-radius:999px;background:#0009;border:1px solid #f0cf7a66;color:#ffe6a8;white-space:nowrap}
+.ae-sc-round{flex:0 0 auto;color:#ffe6a8;font-weight:700}
+.ae-sc-turn{position:absolute;left:50%;top:30px;transform:translateX(-50%);padding:3px 12px;border-radius:999px;font:800 11px system-ui;background:#0b0f0dd9;border:1px solid #f0cf7a99;color:#ffe6a8;white-space:nowrap;z-index:4;box-shadow:0 0 12px #f0cf7a33}
+.ae-scene.is-foe-turn .ae-sc-turn{border-color:#ef4444aa;color:#fecaca;box-shadow:0 0 12px #ef444444}
+.ae-sc-info{position:absolute;top:58px;width:45%;display:flex;flex-direction:column;gap:3px;z-index:3}
+.ae-sc-info.is-hero{left:8px}.ae-sc-info.is-foe{right:8px;align-items:flex-end;text-align:right}
+.ae-sc-info b{font:700 13.5px Georgia,serif;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ae-sc-info b small{font:600 10.5px system-ui;color:#e9dcc0}
+.ae-sc-info em{font:800 10px system-ui;font-style:normal;color:#fcd34d;text-shadow:0 1px 2px #000}
+.ae-sc-bar{position:relative;width:100%;height:13px;border-radius:7px;background:#000b;border:1px solid #ffffff38;overflow:hidden}
+.ae-sc-bar i{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(#4ade80,#15803d);transition:width .35s ease}
+.ae-sc-bar.is-foe i{background:linear-gradient(#f87171,#991b1b)}
+.ae-sc-bar.is-mp{height:9px}.ae-sc-bar.is-mp i{background:linear-gradient(#60a5fa,#1e40af)}
+.ae-sc-bar span{position:relative;display:block;text-align:center;font:800 9.5px/13px system-ui;color:#fff;text-shadow:0 1px 2px #000}
+.ae-sc-bar.is-mp span{font-size:7.5px;line-height:9px}
+.ae-sc-intent{font:700 10.5px system-ui;padding:2px 8px;border-radius:9px;background:#450a0ad9;border:1px solid #ef444499;color:#fecaca;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ae-sc-fxs{display:flex;gap:3px;flex-wrap:wrap;min-height:2px}.ae-sc-info.is-foe .ae-sc-fxs{justify-content:flex-end}
+.ae-sc-fx{position:relative;width:26px;height:26px;display:grid;place-items:center}.ae-sc-fx img{width:26px;height:26px;filter:drop-shadow(0 1px 2px #000)}.ae-sc-fx i{font-style:normal;font-size:18px}
+.ae-sc-fx b{position:absolute;right:-4px;bottom:-3px;font:800 9px/1 system-ui;padding:1px 3px;border-radius:5px;background:#000d;color:#fff;border:1px solid #ffffff44}
+.ae-sc-fig{position:absolute;bottom:4px;height:58%;display:flex;align-items:flex-end;justify-content:center;z-index:2;pointer-events:none}
+.ae-sc-fig.is-hero{left:1%;width:47%}.ae-sc-fig.is-foe{right:0;width:52%}
+.ae-sc-fig .ae-sc-body{max-height:100%;max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 10px #000d);transform-origin:50% 100%}
+.ae-sc-fig.is-mirror .ae-sc-body{transform:scaleX(-1)}
+.ae-sc-pet{position:absolute;left:0;bottom:0;height:36%;width:auto;filter:drop-shadow(0 4px 6px #000c)}
+html:not(.ae-anim-off) .ae-sc-fig.is-hero .ae-sc-body{animation:ae-breathe 3.4s ease-in-out infinite}html:not(.ae-anim-off) .ae-sc-fig.is-foe:not(.is-mirror) .ae-sc-body{animation:ae-breathe 3s ease-in-out infinite .6s}
+@keyframes ae-breathe{50%{transform:scale(1.012,1.022)}}
+.ae-sc-queue{position:absolute;right:8px;bottom:8px;display:flex;gap:4px;z-index:3}.ae-sc-queue img{width:30px;height:30px;border-radius:8px;border:1px solid #ef444488;background:#000a;object-fit:cover}
+.ae-ai svg,.ae-ai>span[aria-hidden],.ae-ai>img{display:none!important}.ae-ai::before{content:'';display:block;flex:0 0 auto;width:30px;height:30px;background:center/contain no-repeat;filter:drop-shadow(0 2px 3px #000a)}
+.ae-ai-attack::before{background-image:url(/assets/battle/act-attack.webp)}.ae-ai-skill::before{background-image:url(/assets/battle/act-skill.webp)}.ae-ai-defend::before{background-image:url(/assets/battle/act-defend.webp)}
+.ae-ai-potion::before{background-image:url(/assets/battle/act-potion.webp)}.ae-ai-flee::before{background-image:url(/assets/battle/act-flee.webp)}.ae-ai-auto::before{background-image:url(/assets/battle/act-auto.webp)}
+.ae-ai-flee::before,.ae-ai-auto::before{width:20px;height:20px}
 .ae-alch-cats{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}.ae-alch-cats .ae-pill-btn{flex:0 0 auto;padding:6px 10px;font-size:12px}.ae-pill-btn.is-on{background:#e5ce96;color:#1a1306;border-color:#e5ce96}.ae-alch-box{display:flex!important;flex-direction:column;gap:10px}.ae-alch-box>*{margin-top:0!important}.ae-alch-box>[data-ae-cat-title]{position:relative;margin-top:26px!important}.ae-alch-box>[data-ae-cat-title]:first-child,.ae-alch-box>[data-ae-cat-title][style*='order: 0']{margin-top:22px!important}.ae-alch-box>[data-ae-cat-title]::before{content:attr(data-ae-cat-title);position:absolute;top:-22px;left:2px;font:700 12px Georgia,serif;letter-spacing:.06em;color:#e5ce96;text-transform:uppercase}
 .ae-pot-pick{position:fixed;inset:0;z-index:9500;background:#0009;display:flex;align-items:flex-end;justify-content:center}.ae-pot-card{width:min(440px,100%);max-height:70vh;overflow:auto;background:#141a17;border:1px solid #6b5631;border-radius:16px 16px 0 0;padding:12px 12px max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;color:#f1ead8}.ae-pot-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid #6b563188;background:#0f1512;color:inherit;font:inherit;text-align:left;cursor:pointer}.ae-pot-row img{width:36px;height:36px;object-fit:contain}.ae-pot-row small{display:block;font-size:11.5px;color:#a7f3d0}.ae-pot-row.is-free{border-color:#22c55e88}.ae-pot-row.is-free small{color:#fde68a}.ae-pot-ic{width:36px;text-align:center;font-size:24px}.ae-pot-n{font-weight:700;color:#ffe6a8}
 .ae-comp-filter{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 8px}.ae-comp-filter .ae-pill-btn{flex:0 0 auto;padding:5px 9px;font-size:11.5px}.ae-comp-filter .is-locked{opacity:.5}.ae-comp-why{border-color:#b9474788!important}.ae-comp-cur{width:42px;height:42px;object-fit:contain}.ae-equip-row.is-heavy{opacity:.55}button.ae-comp-slot{cursor:pointer;font:inherit;color:inherit}
