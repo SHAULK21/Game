@@ -1556,7 +1556,7 @@
   const ITEM_ICONS = [[/меч|клинок|сабл|шпаг|рапир/i, 'sword'], [/секир|топор/i, 'axe'], [/кинжал|нож|стилет/i, 'dagger'], [/\bлук\b|лук |арбалет/i, 'bow'], [/посох|жезл|скипетр|гримуар|том /i, 'staff'],
     [/молот|булав|кистен/i, 'hammer'], [/щит|баклер|тотем|эгида/i, 'shield'], [/шлем|капюшон|корона|маска|шапк|венец/i, 'helmet'], [/нагрудник|доспех|куртк|одеяни|мантия|роба|кольчуг|латы|броня/i, 'armor'],
     [/перчат|рукавиц|наруч/i, 'gloves'], [/сапог|ботин|обувь/i, 'boots'], [/плащ|накидк/i, 'cloak'], [/пояс|кушак/i, 'belt'], [/кольц|перстень/i, 'ring'], [/амулет|кулон|ожерель|медальон|реликви|талисман/i, 'amulet'],
-    [/штан|поножи/i, 'pants'], [/кирк/i, 'pickaxe'], [/реторт/i, 'retort'], [/медн.*руд/i, 'copper-ore'], [/золот.*руд/i, 'gold-ore'], [/серебр.*руд/i, 'silver-ore'], [/руд|уголь|адамантит|драконит|эфириум|мифрил|слиток/i, 'iron-ore'],
+    [/штан|поножи/i, 'pants'], [/кирк/i, 'pickaxe'], [/реторт/i, 'retort'], [/медн.*руд/i, 'copper-ore'], [/золот.*руд/i, 'gold-ore'], [/серебр.*руд/i, 'silver-ore'], [/уголь/i, 'coal-ore'], [/кобальт.*руд/i, 'cobalt-ore'], [/мифрил.*руд/i, 'mithril-ore'], [/адамантит(?!ов)/i, 'adamantite-ore'], [/обсидиан/i, 'obsidian-ore'], [/драконит(?!ов)/i, 'draconite-ore'], [/эфириум(?!н)/i, 'aetherium-ore'], [/руд|слиток/i, 'iron-ore'],
     [/зелье ман|маны/i, 'mana-potion'], [/зелье|склянк|эликсир|настой/i, 'health-potion'], [/трав|лист/i, 'herb'], [/шкур|кож/i, 'hide'], [/клык|зуб|коготь|рог/i, 'fang'], [/мяс|филе|туш/i, 'meat'], [/нить|ткан|шёлк|шелк/i, 'thread'],
     [/кристал|самоцвет|камень|алмаз|рубин/i, 'crystal'], [/печать|знак|жетон|эмблем/i, 'seal'], [/монет/i, 'coin']];
   const RES_ICONS = [[/осколок вознес/i, 'spark'], [/пыль|пыльц/i, 'dust'], [/цвет|лепест/i, 'flower'], [/корень|корн/i, 'root'], [/чешу/i, 'scale'], [/искр/i, 'spark'], [/крыл|перо/i, 'wing'], [/ядро/i, 'core'], [/механизм|шестер/i, 'gear'],
@@ -4620,6 +4620,18 @@
     setTimeout(() => { document.addEventListener('pointerdown', off, true); addEventListener('scroll', off2, true); }, 0);
   }, true);
   setInterval(() => { if (!document.hidden) try { markSourceChips(); } catch {} }, 1500);
+  // ---------- mine: every vein shows its own ore ----------
+  const VEIN_ORE = [[/угольн/i, 'coal'], [/медн/i, 'copper'], [/железн/i, 'iron'], [/серебрян/i, 'silver'], [/золот/i, 'gold'], [/кобальт/i, 'cobalt'], [/мифрил/i, 'mithril'], [/адамантит/i, 'adamantite'], [/обсидиан/i, 'obsidian'], [/драконит/i, 'draconite'], [/эфириум/i, 'aetherium']];
+  function paintMineVeins() {
+    for (const t of document.querySelectorAll('main h2, main h3, main h4, main strong, main b, main span, main p, main div')) {
+      if (t.childElementCount) continue; const name = (t.textContent || '').trim(); if (!/^[А-Яа-яЁё ]*(жила|Жила [а-яё ]+)$/.test(name) || name.length > 40) continue;
+      const ore = (VEIN_ORE.find(([re]) => re.test(name)) || [])[1]; if (!ore) continue;
+      let row = t.parentElement; for (let i = 0; i < 5 && row && !(row.querySelector('img') && row.querySelector('button')); i++) row = row.parentElement;
+      const img = row?.querySelector('img'); if (!img || img.closest('button') || img.dataset.aeVein === ore || !/×\s*\d/.test(row.textContent || '') || (row.textContent.match(/жила/gi) || []).length > 1) continue;
+      img.dataset.aeVein = ore; img.src = `/assets/items/sprites/${ore}-ore.webp`; img.srcset = ''; img.style.objectFit = 'contain';
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintMineVeins(); } catch {} }, 1200);
   // monster pictures drawn facing right: turn them to face the hero (who stands on the left)
   const FACE_RIGHT = new Set(['m_blood_hound', 'm_boar', 'm_dragon_boss', 'm_rift_drake', 'v_ri_serpent', 'v_ww_wolf', 'v_cu_lord', 'v_sw_queen', 'v_ww_raider', 'v_ww_shaman']);
   const facesRight = src => FACE_RIGHT.has((/\/monsters\/([\w-]+)\.webp/.exec(src || '') || [])[1]);
