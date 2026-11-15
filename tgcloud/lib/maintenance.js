@@ -5,7 +5,27 @@ const DAY = 864e5;
 const at = row => Date.parse(row?.created_at || row?.updated_at || '') || 0;
 const keepRecent = (rows, cutoff) => (rows || []).filter(row => { const t = at(row); return !t || t >= cutoff; });
 
+// Premium is about to run out: a reminder 3 days and 1 day before (in the bot chat and in the 🔔 history), once per stage.
+const APP = 'https://app8958621621.tgcloud.ai/';
+export function premiumNotices(world, now = Date.now()) {
+  const t = world.tables || {}, marks = (t.ae_prem_notice ||= []), out = (t.telegram_outbox ||= []), ev = (t.ae_events ||= []);
+  for (const p of t.players || []) {
+    const until = Date.parse(p.premium_until || 0); if (!until || until <= now) continue;
+    const left = until - now, stage = left <= DAY ? 1 : left <= 3 * DAY ? 3 : 0; if (!stage) continue;
+    const id = String(p.telegram_id), mk = marks.find(m => m.u === id && m.until === p.premium_until);
+    if (mk && mk.stage <= stage) continue;
+    if (mk) mk.stage = stage; else marks.push({u: id, until: p.premium_until, stage});
+    const days = Math.max(1, Math.ceil(left / DAY)), date = new Date(until).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'});
+    const text = stage === 1 ? `👑 Ваш Premium заканчивается завтра (${date}). Продлите его, чтобы не потерять автобой, офлайн-добычу и другие возможности: Меню → Premium.`
+      : `👑 Ваш Premium закончится через ${days} дн. (${date}). Продлить можно в игре: Меню → Premium.`;
+    ev.push({id: crypto.randomUUID(), to: id, icon: '👑', text, kind: 'premium', data: null, at: new Date(now).toISOString(), acked: false});
+    if (p.bot_started && p.notification_settings?.enabled !== false) out.push({id: crypto.randomUUID(), method: 'sendMessage', created_at: new Date(now).toISOString(), attempts: 0, completed_at: null, delivery_lease_owner: null, delivery_lease_until: null,
+      payload: {chat_id: Number(id), text, reply_markup: {inline_keyboard: [[{text: '🎮 Открыть игру', web_app: {url: APP}}]]}}});
+  }
+  t.ae_prem_notice = marks.filter(m => Date.parse(m.until) > now - 7 * DAY);
+}
 export function pruneWorld(world, now = Date.now()) {
+  try { premiumNotices(world, now); } catch {}
   const t = world.tables || {}, before = JSON.stringify(t).length;
   // Idempotency receipts only matter for client retries within minutes.
   if (t.game_operations) t.game_operations = keepRecent(t.game_operations, now - 7 * DAY);

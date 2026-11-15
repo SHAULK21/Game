@@ -34,6 +34,7 @@ export const TITLES = [
   T('veteran', '🎖️', 'Ветеран', 'Достичь 20 уровня', c => c.level, 20),
   T('legend', '🏛️', 'Легенда королевства', 'Достичь 50 уровня', c => c.level, 50),
   T('immortal', '♾️', 'Бессмертный', 'Достичь 100 уровня', c => c.level, 100),
+  {...T('tavern_regular', '🍺', 'Завсегдатай таверны', 'Тайное достижение: найдите его сами', c => c.secrets.tavern ? 1 : 0, 1), hidden: true},
   T('power1', '💪', 'Закалённый боец', 'Сила героя 5 000', c => c.power, 5000),
   T('power2', '⚔️', 'Грозный воитель', 'Сила героя 15 000', c => c.power, 15000),
   T('power3', '🌋', 'Гроза земель', 'Сила героя 40 000', c => c.power, 40000),
@@ -86,7 +87,7 @@ function ctxOf(world, id, now) {
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
-    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), comp: compCtx(world, id), power: powerOf(world, id, now)?.total || 0, apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
+    friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), secrets: rows(world, 'ae_profiles').find(x => same(x.u, id))?.secrets || {}, comp: compCtx(world, id), power: powerOf(world, id, now)?.total || 0, apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
 // ---------- profile look, chosen by the player (frames, nickname colour, motto, showcase, aura, card theme) ----------
 // [id, name, unlock text, unlocked(ctx)] — the server checks the unlock, the client only shows the choice.
@@ -116,7 +117,7 @@ function styleOf(world, id, pr, now) {
 }
 export function titlesOf(world, id, now) {
   const c = ctxOf(world, id, now);
-  return TITLES.filter(t => t.id !== 'keeper' || c.admin).map(t => { const v = Math.max(0, Number(t.value(c)) || 0); return {id: t.id, icon: t.icon, name: t.name, desc: t.desc, earned: v >= t.need, progress: Math.min(v, t.need), need: t.need}; });
+  return TITLES.filter(t => t.id !== 'keeper' || c.admin).map(t => { const v = Math.max(0, Number(t.value(c)) || 0); const earned = v >= t.need; return t.hidden && !earned ? {id: t.id, icon: '❓', name: 'Тайное достижение', desc: 'Найдите его сами — и получите подарок', earned: false, progress: 0, need: 1, hidden: true} : {id: t.id, icon: t.icon, name: t.name, desc: t.desc, earned, progress: Math.min(v, t.need), need: t.need, hidden: !!t.hidden}; });
 }
 // Ascension rank: kept in the hero's save; the client reports it so other players can see it (trials have no hard level gate).
 const ASC = [['D', 'Страж порога', 1], ['C', 'Рыцарь зеркального щита', 15], ['B', 'Хранитель живого пламени', 30], ['A', 'Судья трёх стихий', 45],
@@ -215,6 +216,14 @@ export function handleProfileRequest(world, input, user, now) {
     if (body.id == null || body.id === '') { pr.banner = null; return ok({profile: publicProfile(world, me, now)}); }
     if (!BANNERS.some(b => b.id === body.id)) return fail('Такого баннера нет.', 404);
     pr.banner = body.id; return ok({profile: publicProfile(world, me, now)});
+  }
+  if (method === 'POST' && path === '/api/ae-profile/secret') {  // the hidden «Завсегдатай таверны»: drank far too much beer
+    if (body.id !== 'tavern' || !(Number(body.mugs) >= 8)) return fail('Не похоже на завсегдатая.');
+    pr.secrets ||= {}; if (pr.secrets.tavern) return ok({already: true});
+    pr.secrets.tavern = new Date(now).toISOString();
+    const gift = {gold: 1500, silver: 300, energy: 30};
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: me, icon: '🍺', text: 'Тайное достижение «Завсегдатай таверны»! Трактирщик угощает: 1 500 🪙, 300 🥈 и 30 ⚡. Титул можно надеть в профиле.', kind: 'achievement', data: null, at: pr.secrets.tavern, acked: false});
+    return ok({gift, title: {id: 'tavern_regular', icon: '🍺', name: 'Завсегдатай таверны'}});
   }
   if (method === 'POST' && path === '/api/ae-profile/gear') {  // display-only snapshot of what the hero wears (for player cards)
     const src = body.equipped && typeof body.equipped === 'object' ? body.equipped : {}, gear = {};

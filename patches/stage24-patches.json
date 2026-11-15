@@ -1,0 +1,8 @@
+[
+ {
+  "name": "ascension-guardians-scale",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23.js",
+  "old": "if(e.regionId===`ascension`)return window.__aeThreatOn=!1,{...e,superCooldown:0,skills:Ye(e)};",
+  "new": "if(e.regionId===`ascension`){window.__aeThreatOn=!1;let H=window.__aeHero;if(H&&H.atk>0){let k=String(e.id).startsWith(`ascension_echo`)?.85:1,Q=Math.max(e.maxHp,Math.round(Math.max(H.hp*2,H.atk*11)*k)),W=Math.round(Math.max(H.atk*1.1,H.hp*.16)*k);return{...e,maxHp:Q,hp:Q,attack:e.magicAttack>0?Math.max(e.attack,Math.round(W*.6)):Math.max(e.attack,W),magicAttack:e.magicAttack>0?Math.max(e.magicAttack,W):0,defense:Math.max(e.defense||0,Math.round((H.def||0)*.35)),superCooldown:0,skills:Ye(e)}}return{...e,superCooldown:0,skills:Ye(e)}}"
+ }
+]

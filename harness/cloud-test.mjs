@@ -1,0 +1,21 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const scen = process.argv[2] || 'upload';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 30, royalBriefingStep: 99, worldPlace: 'settlement', name: 'Артур'}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+const mainSave = JSON.stringify(save);
+const other = JSON.parse(mainSave); Object.assign(other.player, {level: 3, name: 'Новичок'}); other.player.inventory = other.player.inventory.slice(0, 2);
+ls.aethelgard_interface_style = 'modern';
+if (scen === 'upload') ls[key] = mainSave;
+if (scen === 'restore') delete ls[key];
+if (scen === 'choose') ls[key] = JSON.stringify(other);
+const s = await launch({localState: ls, setupWorld: w => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); if (scen !== 'upload') w.__cloud = {'437290420': {rev: 3, savedAt: new Date().toISOString(), device: 'tg-other', level: 30, heroName: 'Артур', data: mainSave}}; }});
+const p = s.page; const ERR = []; p.on('pageerror', e => ERR.push(e.message)); await p.setViewportSize({width: 390, height: 844});
+const hero = () => p.evaluate(k => { try { const pl = JSON.parse(localStorage.getItem(k)).player; return pl.name + ' ' + pl.level + 'ур, inv ' + pl.inventory.length; } catch { return 'НЕТ ГЕРОЯ'; } }, key);
+console.log('start:', await hero());
+await p.waitForTimeout(scen === 'restore' ? 12000 : 9000);
+console.log('after:', await hero(), '| cloud rev', s.world.__cloud?.['437290420']?.rev, s.world.__cloud?.['437290420']?.heroName);
+console.log('screen:', (await p.evaluate(() => (document.querySelector('.ae-cloud') || document.querySelector('main') || document.body).innerText.slice(0, 260))).replace(/\n+/g, ' | '));
+if (scen === 'choose') { await p.evaluate(() => [...document.querySelectorAll('.ae-cloud button')].find(b => /другого устройства/.test(b.textContent))?.click()); await p.waitForTimeout(6000); console.log('after choose cloud:', await hero()); }
+console.log('calls', JSON.stringify(s.calls.filter(c => /ae-save/.test(c.path)).map(c => c.method + ' ' + c.path + ' ' + c.status)));
+console.log('ERR', ERR.join(' | ').slice(0, 400));
+await s.close();

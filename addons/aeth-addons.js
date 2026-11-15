@@ -935,11 +935,11 @@
     auction: ['/assets/story/auction.webp', 'Аукцион', 'Удар молотка', 'Под сводами зала торгуются за клинки, доспехи и редкие трофеи. Выставьте вещь — пока идут торги, она хранится у рынка, и покупатель получит её, даже если вы не в игре.', 'К торгам'],
     mail: ['/assets/story/mail.webp', 'Колокольчик', 'Вести на чёрных крыльях', 'Королевский ворон приносит всё, что случилось, пока вас не было: продажи, ставки, дуэли, клановые вести и подарки от администрации. Нажмите на событие — и окажетесь там, где нужно.', 'Читать вести']};
   function firstStory(key) { const k = `aeth_story_${key}_${uid()}`, S = STORIES[key]; if (!S || !uid() || localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); setTimeout(() => showStory(...S), 250); return true; }
-  function showStory(img, kicker, title, text, button) {
+  function showStory(img, kicker, title, text, button, after) {
     sfx.play('bell');
     const root = h('div', {class: 'ae-story', role: 'dialog', 'aria-label': title},
       h('div', {class: 'ae-story-card'}, h('img', {src: img, alt: ''}), h('div', {class: 'ae-story-text'}, h('small', {}, kicker), h('h2', {}, title), h('p', {}, text),
-        h('button', {class: 'ae-btn ae-primary ae-wide', onclick: () => { root.classList.add('is-out'); setTimeout(() => root.remove(), 300); sfx.play('page'); }}, button))));
+        h('button', {class: 'ae-btn ae-primary ae-wide', onclick: () => { root.classList.add('is-out'); setTimeout(() => { root.remove(); try { after?.(); } catch {} }, 300); sfx.play('page'); }}, button))));
     document.body.append(root);
   }
 
@@ -1790,6 +1790,164 @@
     const n = bellCount();
     for (const b of document.querySelectorAll('[data-ae-bell]')) { const badge = b.querySelector('.ae-bell-n'); badge.textContent = n > 99 ? '99+' : String(n); badge.hidden = !n; b.classList.toggle('has-new', !!n); }
   }
+  // ---------- cloud save: one hero in Telegram (any device) and in the Android app ----------
+  // The game keeps the hero in this device's memory. We keep a copy on the server: pull it when it is newer
+  // (or this device has no hero), push local progress every 30 s; two different heroes → the player chooses.
+  const tgUid = () => uid() || String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+  const SAVE_KEY = () => 'aethelgard_save_v1_data_' + tgUid();
+  const cKey = k => `aeth_cloud_${k}_${tgUid()}`;
+  const deviceId = (() => { let d = localStorage.getItem('aeth_device_id'); if (!d) { d = (window.AethApk ? 'apk-' : 'tg-') + Math.random().toString(36).slice(2, 10); localStorage.setItem('aeth_device_id', d); } return d; })();
+  // what counts as progress (not energy ticks or timestamps)
+  const progressSig = raw => { try { const s = JSON.parse(raw), pl = s.player || {}; const inv = (pl.inventory || []).map(i => (i.templateId || i.name) + 'x' + (i.stackCount || 1) + '+' + (i.upgradeLevel || 0)).sort().join(',');
+    const eq = Object.values(pl.equipped || {}).filter(Boolean).map(i => i.id).sort().join(','); let h = 0; const t = [pl.name, pl.classId, pl.level, pl.exp, pl.gold, pl.silver, inv, eq, pl.statsSummary?.monstersKilled, pl.statsSummary?.battlesWon, JSON.stringify(pl.ascension || {}), (s.quests || []).length].join('|');
+    for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); } catch { return ''; } };
+  const heroOf = raw => { try { const pl = JSON.parse(raw).player || {}; return {name: pl.name || 'Герой', level: pl.level || 1, cls: CLASS_NAME?.[pl.classId] || pl.classId || ''}; } catch { return {name: 'Герой', level: 1}; } };
+  let cloudReady = false, cloudBusy = false;
+  // works before the game screen exists (hero creation on a new device), unlike api()
+  const cloudApi = (path, method = 'GET', body) => new Promise((res, rej) => {
+    const S = window.Telegram?.WebApp?.Serverless; if (!S) return rej(new Error('Нет связи с сервером.'));
+    try { S.call('gameApi', {path, method, headers: {}, ...(body ? {body} : {})}, (err, r) => {
+      if (err) { const e = new Error(err.message || err.description || 'Ошибка сервера'); e.status = err.status || err.parameters?.status; return rej(e); }
+      if (!r || r.status >= 400) { const e = new Error(r?.body?.error || 'HTTP ' + r?.status); e.status = r?.status; e.body = r?.body; return rej(e); }
+      res(r.body); }); } catch (e) { rej(e); } });
+  const markSynced = (rev, raw) => { localStorage.setItem(cKey('rev'), String(rev)); localStorage.setItem(cKey('sig'), progressSig(raw)); };
+  function cloudOverlay(text) { document.querySelector('.ae-cloud')?.remove(); const o = h('div', {class: 'ae-cloud'}, h('div', {class: 'ae-cloud-card'}, h('div', {class: 'ae-cloud-spin'}), h('b', {}, text))); document.body.append(o); return o; }
+  async function cloudRestore(m) {
+    const full = await cloudApi('/api/ae-save?full=1'); if (!full?.data) return;
+    cloudOverlay(`⬇️ Загружаем героя «${full.heroName || 'Герой'}» (${full.level} ур.) с другого устройства…`);
+    localStorage.setItem(SAVE_KEY(), full.data); markSynced(full.rev, full.data); sessionStorage.setItem('aeth_cloud_expect', String(full.rev));
+    setTimeout(() => location.reload(), 400);
+  }
+  function cloudChoose(m, raw) {
+    cloudReady = false; document.querySelector('.ae-cloud')?.remove();
+    const here = heroOf(raw), when = m.savedAt ? new Date(m.savedAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
+    const keepHere = async () => { box.remove(); try { const r = await cloudApi('/api/ae-save', 'POST', {baseRev: m.rev, device: deviceId, data: localStorage.getItem(SAVE_KEY()) || raw, force: true}); markSynced(r.rev, localStorage.getItem(SAVE_KEY()) || raw); cloudReady = true; toast('☁️ Этот герой сохранён — теперь он будет на всех устройствах.'); } catch (e) { toast(cleanError(e)); } };
+    const box = h('div', {class: 'ae-cloud'}, h('div', {class: 'ae-cloud-card ae-cloud-pick'},
+      h('h2', {}, '☁️ Найдено два героя'), h('p', {}, 'На этом устройстве и на сервере разные сохранения. Выберите, каким героем играть на всех устройствах. Второе сохранение будет заменено.'),
+      h('button', {type: 'button', class: 'ae-btn ae-wide' + (here.level >= m.level ? ' ae-primary' : ''), onclick: keepHere}, h('b', {}, `📱 С этого устройства: ${here.name}, ${here.level} ур.`)),
+      h('button', {type: 'button', class: 'ae-btn ae-wide' + (m.level > here.level ? ' ae-primary' : ''), onclick: () => { box.remove(); cloudRestore(m); }}, h('b', {}, `☁️ С другого устройства: ${m.heroName || 'Герой'}, ${m.level} ур.`), when ? h('small', {}, ` · сохранён ${when}`) : '')));
+    document.body.append(box);
+  }
+  async function cloudInit() {
+    if (!tgUid()) return setTimeout(cloudInit, 1500);
+    let m; try { m = await cloudApi('/api/ae-save'); } catch { return setTimeout(cloudInit, 20000); }
+    const raw = localStorage.getItem(SAVE_KEY()), localRev = Number(localStorage.getItem(cKey('rev'))) || 0, expect = Number(sessionStorage.getItem('aeth_cloud_expect')) || 0;
+    if (expect) { sessionStorage.removeItem('aeth_cloud_expect'); if (m.rev === expect && raw && progressSig(raw) !== localStorage.getItem(cKey('sig'))) { const full = await cloudApi('/api/ae-save?full=1'); if (full?.data) { localStorage.setItem(SAVE_KEY(), full.data); markSynced(full.rev, full.data); return location.reload(); } } }
+    const hasHero = !!(raw && heroOf(raw) && JSON.parse(raw)?.player);
+    if (!m.rev) { cloudReady = true; return cloudPush(); }                    // first device: upload
+    const dirty = hasHero && progressSig(raw) !== localStorage.getItem(cKey('sig'));
+    if (!hasHero || (m.rev > localRev && !dirty)) return cloudRestore(m);   // newer hero on the server
+    if (m.rev > localRev && dirty) { if (progressSig(raw) && localStorage.getItem(cKey('sig')) === null && m.level === heroOf(raw).level && m.heroName === heroOf(raw).name) { markSynced(m.rev, raw); cloudReady = true; return cloudPush(); } return cloudChoose(m, raw); }
+    cloudReady = true; cloudPush();
+  }
+  async function cloudPush() {
+    if (!cloudReady || cloudBusy || !tgUid()) return;
+    const raw = localStorage.getItem(SAVE_KEY()); if (!raw) return;
+    const sig = progressSig(raw); if (sig && sig === localStorage.getItem(cKey('sig'))) return;
+    cloudBusy = true;
+    try { const r = await cloudApi('/api/ae-save', 'POST', {baseRev: Number(localStorage.getItem(cKey('rev'))) || 0, device: deviceId, data: raw}); markSynced(r.rev, raw); }
+    catch (e) { if (/409|другого|conflict/i.test(String(e?.message || e)) || e?.status === 409) { try { const m = await cloudApi('/api/ae-save'); cloudChoose(m, raw); } catch {} } }
+    finally { cloudBusy = false; }
+  }
+  setTimeout(cloudInit, 3500);
+  setInterval(() => { if (!document.hidden) cloudPush(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cloudPush(); });
+  // another device saved while this one sits idle: pick it up when the game comes back to the screen
+  document.addEventListener('visibilitychange', async () => { if (document.hidden || !cloudReady || !tgUid()) return; try { const m = await cloudApi('/api/ae-save'); const raw = localStorage.getItem(SAVE_KEY()), localRev = Number(localStorage.getItem(cKey('rev'))) || 0;
+    if (m.rev > localRev && m.device !== deviceId) { if (raw && progressSig(raw) !== localStorage.getItem(cKey('sig'))) cloudChoose(m, raw); else cloudRestore(m); } } catch {} });
+  // ---------- Premium: days left (header chip, profile line) ----------
+  let premUntil = 0, premAt = 0;
+  async function loadPremUntil(force) {
+    if (!uid() || (!force && Date.now() - premAt < 5 * 60e3)) return; premAt = Date.now();
+    try { const st = await api('/api/premium/status'); premUntil = st?.active ? Date.parse(st.premiumUntil || 0) || 0 : 0; } catch {}
+  }
+  const premLeft = () => { const ms = premUntil - Date.now(); if (ms <= 0) return null; const d = Math.floor(ms / 864e5); return d >= 1 ? {short: d + 'д', long: `${d} ${d % 10 === 1 && d % 100 !== 11 ? 'день' : [2, 3, 4].includes(d % 10) && ![12, 13, 14].includes(d % 100) ? 'дня' : 'дней'}`} : {short: Math.max(1, Math.ceil(ms / 3600e3)) + 'ч', long: `${Math.max(1, Math.ceil(ms / 3600e3))} ч`}; };
+  const premiumLine = () => { const l = premLeft(); return l ? h('div', {class: 'ae-card ae-prem-line'}, h('b', {}, `👑 Premium: осталось ${l.long}`), h('small', {class: 'ae-sub'}, `до ${new Date(premUntil).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}`)) : ''; };
+  function paintPremChip() {
+    const l = premLeft(), old = document.querySelectorAll('.ae-prem-chip');
+    if (!l) { old.forEach(e => e.remove()); return; }
+    // the free spot right of the level line: «Ур. 30 +5» (modern) / «Воин · Ур. 30» (fantasy)
+    const ownText = e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+    const lvl = [...document.querySelectorAll('header span, header p, header div')].find(e => e.offsetParent && !e.classList.contains('ae-prem-chip') && /(^|\s)Ур\.\s*\d+$/.test(ownText(e)));
+    if (!lvl) return;
+    const host = lvl; let chip = host.querySelector(':scope > .ae-prem-chip');
+    if (!chip) { old.forEach(e => e.remove()); chip = h('span', {class: 'ae-prem-chip', title: 'Сколько осталось Premium', onclick: e => { e.stopPropagation(); toast(`👑 Premium: осталось ${premLeft()?.long || '—'} — до ${new Date(premUntil).toLocaleDateString('ru-RU')}`); }}); host.append(chip); }
+    const txt = '👑' + l.short; if (chip.textContent !== txt) chip.textContent = txt; chip.classList.toggle('is-low', premUntil - Date.now() < 3 * 864e5);
+  }
+  window.__aeTestPrem = ms => { premUntil = Date.now() + ms; premAt = Date.now(); paintPremChip(); };  // harness only
+  setTimeout(() => loadPremUntil(true), 4000); setInterval(() => { if (!document.hidden) { loadPremUntil(); try { paintPremChip(); } catch {} } }, 2000);
+  // ---------- the tavern: drink as much beer as you like… but the head starts spinning (and a secret achievement) ----------
+  let dizzyShown = 0;
+  function paintTavernDizzy() {
+    const mugs = Number(me()?.intoxication?.mugs) || 0, html = document.documentElement;
+    html.classList.toggle('ae-dizzy', mugs >= 6 && !html.hasAttribute('data-in-combat'));
+    if (mugs >= 6 && mugs > dizzyShown) { dizzyShown = mugs; toast(mugs >= 8 ? '🍺🍺 Мир качается… Трактирщик посмеивается: «Ещё по одной?»' : '🍺 Голова кружится… Может, хватит?'); try { Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {} }
+    if (mugs < 6) dizzyShown = 0;
+    if (mugs >= 8 && uid() && !localStorage.getItem('aeth_secret_tavern_' + uid())) {
+      localStorage.setItem('aeth_secret_tavern_' + uid(), '1');
+      api('/api/ae-profile/secret', 'POST', {id: 'tavern', mugs}).then(r => { if (r?.gift) { applyReward(r.gift); bigBanner('🍺 Тайное достижение: «Завсегдатай таверны»!', true); toast('Трактирщик угощает: 1 500 🪙, 300 🥈 и 30 ⚡'); sfx.play('bell'); loadMyProfile();
+        setTimeout(() => showStory('/assets/story/tavern-beer.webp', 'Тайное достижение', 'Завсегдатай таверны',
+          'Трактирщик ловит вас у самой двери: «В бой в таком состоянии? Да ты меч от удочки не отличишь! Ступай-ка на причал, посиди с удочкой, проветрись». Трактирщик угощает за счёт заведения: 1 500 🪙, 300 🥈 и 30 ⚡.',
+          '🎣 На рыбалку', () => openFishing()), 1800); } }, () => localStorage.removeItem('aeth_secret_tavern_' + uid()));
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintTavernDizzy(); } catch {} }, 1000);
+  // the fishing pier (a settlement place): from the tavern back to the square, then the pier
+  async function openFishing() {
+    const place = () => document.querySelector('[data-settlement-place="fishing"]') || [...document.querySelectorAll('[data-settlement-place]')].find(e => /Рыбацкий|причал/i.test(e.textContent || ''));
+    const wait = async (n = 14) => { for (let i = 0; i < n && !place(); i++) await new Promise(r => setTimeout(r, 150)); };
+    if (!place()) { [...document.querySelectorAll('main button')].find(b => /^Назад$/.test((b.textContent || '').trim()))?.click(); await wait(); }
+    if (!place()) { [...document.querySelectorAll('nav button, nav a')].find(b => /Поселение/.test(b.textContent || ''))?.click(); await wait(); }
+    if (place()) place().click(); else toast('🎣 Рыбацкий причал — в поселении, у воды.');
+  }
+  // «Стиль интерфейса» is in the settings now: hide the switch from the header
+  function hideHeaderStyle() {
+    for (const el of document.querySelectorAll('header summary, header button, header a, header span')) {
+      if (el.dataset.aeNoStyle || !/^[►▸▶\s]*Стиль интерфейса$/.test((el.textContent || '').trim())) continue;
+      el.dataset.aeNoStyle = '1'; (el.closest('details') || el).classList.add('ae-nat-hide');
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { hideHeaderStyle(); } catch {} }, 1000);
+  // ---------- quick access to the tavern chat: a round 💬 button on every screen (not in fights / open windows) ----------
+  async function openTavernChat() {
+    sfx.play('page');
+    const place = () => document.querySelector('[data-settlement-place="chat"]');
+    const wait = async (n = 14) => { for (let i = 0; i < n && !place(); i++) await new Promise(r => setTimeout(r, 150)); };
+    if (!place()) { const nav = [...document.querySelectorAll('nav button, nav a')].find(b => /Поселение/.test(b.textContent || '')); if (nav) { nav.click(); await wait(); } }
+    if (!place()) {  // in a hunting area: the same as «Мир → Поселение» (a short road), then the tavern
+      try { B()?.returnToSettlement?.(); toast('🍺 Возвращаемся в таверну…'); } catch {}
+      for (let i = 0; i < 50 && !place(); i++) { await new Promise(r => setTimeout(r, 300)); if (i % 5 === 4) [...document.querySelectorAll('nav button, nav a')].find(b => /Поселение/.test(b.textContent || ''))?.click(); }
+    }
+    if (place()) place().click(); else toast('Чат таверны — в поселении.');
+  }
+  function paintChatFab() {
+    let fab = document.querySelector('.ae-chat-fab');
+    const hide = !uid() || document.documentElement.hasAttribute('data-in-combat') || !!document.querySelector('.ae-panel, [role=dialog], .ae-story, .ae-relink, .ae-pot-pick, #startup-splash') || !document.querySelector('nav');
+    if (!fab) { fab = h('button', {type: 'button', class: 'ae-chat-fab', title: 'Общий чат таверны', 'aria-label': 'Общий чат таверны', onclick: () => openTavernChat()}, h('span', {}, '💬')); document.body.append(fab); }
+    fab.hidden = hide;
+  }
+  // Ascension: the «Вознестись» button stays off until a passive is chosen — make that obvious.
+  function paintAscensionHint() {
+    const radios = document.querySelectorAll('main input[name="ascension-path"]');
+    if (radios.length) { const none = ![...radios].some(r => r.checked), box = radios[0].closest('label')?.parentElement;
+      box?.classList.toggle('ae-asc-pick', none);
+      for (const st of document.querySelectorAll('main [role=status]')) st.classList.toggle('ae-asc-need', /Выберите пассивку/.test(st.textContent || '')); }
+    // the recommended level: the guardian's real strength against this hero (it scales with the hero now)
+    const H = window.__aeHero;
+    for (const el of document.querySelectorAll('main p, main div, main span')) {
+      if (el.childElementCount || el.dataset.aeAscLv) continue;
+      const t = el.textContent || '';
+      if (/Сила хранителя фиксирована для ранга\./.test(t)) { el.textContent = t.replace('Сила хранителя фиксирована для ранга.', 'Это минимум: в бою страж подстраивается под вашего героя.'); el.dataset.aeAscLv = '1'; continue; }
+      if (!/Подготовка: герой примерно/.test(t)) continue;
+      const card = el.parentElement?.textContent || '', bm = /HP\s*([\d\s]+)\s*·\s*атака\s*([\d\s]+)\s*·\s*защита\s*([\d\s]+)/.exec(card), n = x => Number(String(x || '0').replace(/\s/g, '')) || 0;
+      const base = {hp: n(bm?.[1]), atk: n(bm?.[2]), def: n(bm?.[3])};
+      const g = H && H.atk > 0 ? {maxHp: Math.max(base.hp, H.hp * 2, H.atk * 11), attack: Math.max(base.atk, H.atk * 1.1, H.hp * 0.16), defense: Math.max(base.def, (H.def || 0) * 0.35)} : {maxHp: base.hp, attack: base.atk, defense: base.def};
+      const lv = realLevel(g, 'guardian'), rest = t.replace(/^.*?Подготовка: герой примерно.*?(комплект \+\d+\.|ур\.)\s*/, '');
+      el.textContent = `Реальная сила стража для вашего героя ≈ ${lv} ур.: здоровья у него вдвое больше вашего, удар — около 16% вашего здоровья. Готовьтесь к долгому бою и берите зелья. ${rest}`.trim();
+      el.dataset.aeAscLv = '1';
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintChatFab(); paintAscensionHint(); } catch {} }, 700);
   function injectBell() {
     const modernSound = document.querySelector('header .modern-header-inner button[aria-label="Переключить звук"]');
     const fantasyRow = document.querySelector('header .shell-brand-row');
@@ -2384,7 +2542,7 @@
     const st = openPanel('👤 Профиль', body => {
       if (!data) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const pr = data.profile;
-      body.append(profileHeader(pr), powerBlock(pr), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Как меня видят другие — персонаж и экипировка'));
+      body.append(profileHeader(pr), powerBlock(pr), premiumLine(), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); setTimeout(() => openPlayerCard(uid(), pr.name), 200); }}, '👁️ Как меня видят другие — персонаж и экипировка'));
       { const li = me() ? luckInfo(me()) : null; if (li) body.append(h('div', {class: 'ae-pill'}, `🍀 Удача ${li.luck}: шанс улучшить редкость найденной вещи ${Math.round(li.bump * 100)}% · легендарные находки ×${li.legMul.toFixed(2)}`)); }
       { const r = me() ? respecInfo(me()) : null; if (r) body.append(h('div', {class: 'ae-row ae-card'}, h('div', {class: 'ae-grow'}, h('b', {}, '♻️ Характеристики'), h('div', {class: 'ae-sub'}, r.spent ? `Вложено очков: ${r.spent}. Сброс ${r.cost ? `— ${fmt(r.cost)} серебра` : '— первый бесплатно'}.` : 'Вложенных очков нет.')), h('button', {class: 'ae-btn' + (r.spent ? ' ae-primary' : ''), type: 'button', disabled: !r.spent, onclick: () => { closePanel(); doRespec(); }}, 'Сбросить'))); }
       body.append(h('div', {class: 'ae-tabs'}, [['look', '🎨 Оформление'], ['titles', `🏅 Титулы ${data.titles.filter(t => t.earned).length}/${data.titles.length}`], ['avatars', '🖼️ Аватарка'], ['banners', '🏞️ Баннер']].map(([k, l]) =>
@@ -2432,7 +2590,7 @@
       const list = data.titles.slice().sort((a, b) => (b.earned - a.earned) || (b.progress / b.need - a.progress / a.need));
       for (const t of list) {
         const on = pr.title?.id === t.id;
-        body.append(h('div', {class: 'ae-card ae-title-row' + (t.earned ? '' : ' is-locked') + (on ? ' is-on' : '')},
+        body.append(h('div', {class: 'ae-card ae-title-row' + (t.earned ? '' : ' is-locked') + (on ? ' is-on' : '') + (t.hidden ? ' is-secret' : '')},
           h('span', {class: 'ae-title-icon'}, t.earned ? t.icon : '🔒'),
           h('div', {class: 'ae-grow'}, h('b', {}, t.name), h('div', {class: 'ae-sub'}, t.desc), !t.earned && t.need > 1 ? h('div', {class: 'ae-bar'}, h('i', {style: `width:${100 * t.progress / t.need}%`}), h('span', {}, `${fmt(t.progress)} / ${fmt(t.need)}`)) : ''),
           t.earned ? h('button', {type: 'button', class: 'ae-btn' + (on ? '' : ' ae-primary'), onclick: async () => {
@@ -4363,13 +4521,29 @@
   const isModern = () => document.documentElement.getAttribute('data-interface') === 'modern';
   const pctOf = (a, b) => Math.max(0, Math.min(100, 100 * (Number(a) || 0) / Math.max(1, Number(b) || 1)));
   const ICON = k => `<span class="inline-flex items-center justify-center shrink-0 text-[#a48b60]" aria-hidden="true"><img alt="" aria-hidden="true" width="20" height="20" draggable="false" class="block shrink-0 object-contain" src="/assets/sprites/generated/ui/icons/${k}.webp"></span>`;
+  // ---------- the real level of an enemy, from its final combat stats (docs/enemy-levels.md) ----------
+  // Reference hero of level L with level gear (g = 1 + L/25): HP (160+48L)·g, attack (18+7L)·g, defence (6+3L)·g.
+  // Reference monster of level L: survives 4 hits of that hero and takes 12 % of its HP per hit (after its defence).
+  // Power = √(HP · (1 + defence/75) · attack). Real level = the L whose reference power × tier equals the enemy's power.
+  const LV_TIER = {weak: 0.85, normal: 1, elite: 1.25, boss: 1.6, guardian: 1.6};
+  const lvPower = (hp, atk, def) => Math.sqrt(Math.max(1, hp) * (1 + Math.max(0, def) / 75) * Math.max(1, atk));
+  const lvStd = L => { const g = 1 + L / 25, hp = (160 + 48 * L) * g, atk = (18 + 7 * L) * g, def = (6 + 3 * L) * g;
+    return lvPower(4 * atk, 0.12 * hp * (def + 75) / 75, 2 + 2.2 * L); };
+  function realLevel(m, tier = 'normal') {
+    if (!m) return 1;
+    const p = lvPower(m.maxHp || m.hp, Math.max(Number(m.attack) || 0, Number(m.magicAttack) || 0), Number(m.defense) || 0) / (LV_TIER[tier] || 1);
+    let lo = 1, hi = 400; for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (lvStd(mid) < p) lo = mid; else hi = mid; }
+    return Math.max(1, Math.round(lo));
+  }
+  const tierOf = m => m?.regionId === 'ascension' ? 'guardian' : m?.isBoss ? 'boss' : m?.isElite ? 'elite' : (Number(m?.level) || 1) < 3 ? 'weak' : 'normal';
+  window.__aeRealLevel = (m, t) => realLevel(m, t || tierOf(m));
   // ---------- the battle scene: one look for every fight (fields, dungeons, arena, Horde, co-op, duels, clan fights) ----------
   // Fighters stand full-height on the arena ground; names, HP/MP, the enemy's next move and the effects (with turns left) above them.
   const FX_ICON = {poison: 'poison', burn: 'burn', bleed: 'bleed', stun: 'stun', shield: 'shield', fortify: 'shield', barrier: 'shield', invulnerable: 'shield', fury: 'fury', focus: 'focus', regen: 'regen', heal: 'regen', hot: 'regen'};
   const FX_EMOJI = {freeze: '❄️', frozen: '❄️', slow: '🐢', weaken: '🔻', vuln: '🎯', vulnerable: '🎯', silence: '🤐', curse: '💀', blind: '🌫️'};
   const fxChips = list => (list || []).filter(e => e && (e.duration ?? e.turns ?? e.left ?? 1) > 0).slice(0, 6).map(e => { const k = FX_ICON[e.type], n = e.duration ?? e.turns ?? e.left;
     return h('span', {class: 'ae-sc-fx', title: `${e.name || e.type}${n ? ` · ещё ${n} х.` : ''}`}, k ? h('img', {src: `/assets/battle/fx-${k}.webp`, alt: ''}) : h('i', {}, e.icon || FX_EMOJI[e.type] || '✨'), n ? h('b', {}, n) : ''); });
-  const scBar = (cls, v, max) => h('div', {class: 'ae-sc-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * (v || 0) / Math.max(1, max || 1)))}%`}), h('span', {}, `${fmt(Math.max(0, Math.round(v || 0)))} / ${fmt(max || 0)}`));
+  const scBar = (cls, v, max) => h('div', {class: 'ae-sc-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * (v || 0) / Math.max(1, max || 1)))}%`}), h('span', {}, `${/is-mp/.test(cls) ? 'MP ' : ''}${fmt(Math.max(0, Math.round(v || 0)))} / ${fmt(max || 0)}`));
   const heroFig = cls => `/assets/sprites/generated/heroes/combat/${cls || 'warrior'}.webp`;
   function sceneNode(d) {
     const H = d.hero, F = d.foe;
@@ -4380,7 +4554,7 @@
       h('div', {class: 'ae-sc-info is-hero'}, h('b', {}, H.name || 'Герой', H.level ? h('small', {}, ` · ${H.level} ур.`) : ''), scBar('is-hp', H.hp, H.maxHp), H.maxMp ? scBar('is-mp', H.mp, H.maxMp) : '', h('div', {class: 'ae-sc-fxs'}, fxChips(H.effects))),
       F ? h('div', {class: 'ae-sc-info is-foe'}, h('b', {}, F.name, F.level ? h('small', {}, ` · ${F.level}`) : ''), F.tag ? h('em', {}, F.tag) : '', scBar('is-hp is-foe', F.hp, F.maxHp), F.intent ? h('div', {class: 'ae-sc-intent', title: 'Что враг готовит на свой ход'}, F.intent) : '', h('div', {class: 'ae-sc-fxs'}, fxChips(F.effects))) : '',
       h('div', {class: 'ae-sc-fig is-hero', 'data-bv-hero': ''}, h('img', {class: 'ae-sc-body', src: H.img, alt: '', onerror: e => { if (H.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = H.img2; } }}), H.pet ? h('img', {class: 'ae-sc-pet', src: H.pet, alt: '', onerror: e => e.target.remove()}) : ''),
-      F ? h('div', {class: 'ae-sc-fig is-foe' + (F.mirror ? ' is-mirror' : ''), 'data-bv-foe': ''}, h('img', {class: 'ae-sc-body', src: F.img, alt: '', onerror: e => { if (F.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = F.img2; } }})) : '',
+      F ? h('div', {class: 'ae-sc-fig is-foe' + (F.mirror ? ' is-mirror' : '') + (F.glow ? ' glow-' + F.glow : ''), 'data-bv-foe': ''}, h('img', {class: 'ae-sc-body', src: F.img, alt: '', onerror: e => { if (F.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = F.img2; } }})) : '',
       d.queue?.length ? h('div', {class: 'ae-sc-queue', title: 'Следующие враги'}, d.queue.slice(0, 3).map(q => h('img', {src: q, alt: ''}))) : '');
   }
   const sceneFloat = (root, sel, text, cls) => { const el = root?.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.3)}px;top:${r.top + r.height * 0.2}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); };
@@ -4412,6 +4586,8 @@
   }
   const recentLog = () => [...document.querySelectorAll('main .combat-ink, main [class*=font-mono] span, .ae-panel .ae-bv details span')].slice(-4).map(e => e.textContent || '').join(' ');
   // The game's own fights: our scene replaces the stock one (data from the combat bridge).
+  // Ascension guardians (the game has no art for them): a figure each; [sprite, glow]
+  const ASC_FIG = {D: ['m_peak_guard', ''], C: ['v_de_knight', ''], B: ['v_dr_priest', 'fire'], A: ['v_ww_shaman', ''], S: ['m_rift_drake', ''], SS: ['v_cu_lord', 'void'], SSS: ['m_death_knight_boss', 'gold']};
   let natPrev = null, bvPrev = null;
   function nativeScene() {
     const c = window.__aethBridge?.combat, page = document.querySelector('.fantasy-combat-page');
@@ -4421,7 +4597,7 @@
     if (modern && [...modern.querySelectorAll('button')].some(b => /^(атака|навыки|защита)/i.test((b.textContent || '').trim()))) modern = null;
     if (page && [...(page.querySelector('.combat-scene')?.querySelectorAll('button') || [])].some(b => /^(атака|навыки)/i.test((b.textContent || '').trim()))) return;
     const old = document.querySelector('[data-ae-scene][data-ae-native]');
-    if (!c?.inCombat || !c.monster || !(page || modern)) { natPrev = null; return; }
+    if (!c?.inCombat || !c.monster || !(page || modern)) { natPrev = null; if (old) { old.remove(); document.querySelectorAll('.ae-nat-hide').forEach(e => { if (!e.closest('.ae-panel')) e.classList.remove('ae-nat-hide'); }); } return; }
     const host = page ? page.querySelector('.combat-hero-plaque') || page.querySelector('.combat-scene') : modern; if (!host) return;
     const nat = page ? page.querySelector('.combat-scene') : modern;
     const p = me() || {}, m = c.monster, fc = c.forecast;
@@ -4429,10 +4605,12 @@
     const place = texts.find(t => /:/.test(t) && t.length > 6) || texts.find(t => t.length > 8 && !/Раунд|Ваш ход|Ур\.|VS|Вы$/.test(t) && t !== m.name) || '';
     const mode = (texts.find(t => /^\[.*\]$/.test(t)) || '').replace(/^\[|\]$/g, '');
     const intent = fc && fc.monsterId === m.id && fc.skill ? `${fc.skill.icon || '💥'} ${fc.skill.name}${fc.skill.damageMultiplier ? ' ×' + Math.round(fc.skill.damageMultiplier * 100) + '%' : ''}` : '';
-    const d = {bg: m.regionId === 'arena' ? '/assets/battle/arena-pvp.webp' : nat?.querySelector('img')?.getAttribute('src') || '/assets/battle/arena-field.webp', place, mode, round: `Раунд ${c.turn || 1}`,
+    const asc = m.regionId === 'ascension', echo = asc && String(m.id).startsWith('ascension_echo'), ascFig = ASC_FIG[String(m.id).replace('ascension_', '')];
+    const d = {bg: asc ? '/assets/battle/arena-boss.webp' : m.regionId === 'arena' ? '/assets/battle/arena-pvp.webp' : nat?.querySelector('img')?.getAttribute('src') || '/assets/battle/arena-field.webp', place: asc ? 'Арена вознесения' : place, mode: asc ? '' : mode, round: `Раунд ${c.turn || 1}`,
       turn: c.ended ? null : {text: c.phase === 'player' ? '⚔️ Ваш ход' : '⏳ Ход противника', mine: c.phase === 'player'},
       hero: {name: p.name, level: p.level, hp: c.hp, maxHp: c.maxHp || c.hp, mp: c.mp, maxMp: c.maxMp || 0, img: heroFig(p.classId), effects: c.effects, pet: p.activePet ? `/assets/sprites/generated/pets/combat/${p.activePet.id}.webp` : ''},
-      foe: {name: m.name, level: `${m.level} ур.`, tag: m.isBoss ? '👑 Босс' : m.isElite ? '⭐ Элита' : '', hp: m.hp, maxHp: m.maxHp, img: `/assets/sprites/generated/monsters/${m.id}.webp`, img2: m.avatar, effects: c.foeEffects, intent}};
+      foe: {name: m.name, level: asc ? (echo ? 'эхо' : 'ранг ' + String(m.id).replace('ascension_', '')) + ` · ≈${realLevel(m, tierOf(m))} ур.` : `${realLevel(m, tierOf(m))} ур.`, tag: asc ? '✨ Испытание вознесения' : m.isBoss ? '👑 Босс' : m.isElite ? '⭐ Элита' : '', hp: m.hp, maxHp: m.maxHp,
+        img: echo ? heroFig(p.classId) : ascFig ? `/assets/sprites/generated/monsters/${ascFig[0]}.webp` : `/assets/sprites/generated/monsters/${m.id}.webp`, img2: /^\//.test(m.avatar || '') ? m.avatar : '/assets/sprites/generated/monsters/m_dragon_boss.webp', mirror: echo, glow: echo ? 'echo' : ascFig?.[1] || '', effects: c.foeEffects, intent}};
     const sig = JSON.stringify([d.hero.hp, d.hero.mp, d.hero.maxHp, d.foe.hp, d.foe.name, d.turn?.text, d.round, d.place, intent, (c.effects || []).map(e => e.type + e.duration), (c.foeEffects || []).map(e => e.type + e.duration)]);
     page?.classList.add('ae-has-scene'); nat?.classList.add('ae-nat-hide'); if (page) page.querySelector('.combat-hero-plaque')?.classList.add('ae-nat-hide');
     if (old && old.dataset.sig === sig && old.isConnected && old.nextElementSibling === host) return;
@@ -4903,6 +5081,13 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+html[data-interface="fantasy"] .inventory-book .rpg-button-primary.inventory-ink,html[data-interface="fantasy"] .inventory-book .rpg-button-primary .inventory-ink{color:#f6e7c4!important;text-shadow:0 1px 2px #000a}
+.ae-prem-chip{display:inline-flex;align-items:center;margin-left:6px;padding:0 6px;height:16px;border-radius:999px;font:800 10px/16px system-ui;color:#fde68a;background:#3a2a0acc;border:1px solid #f0cf7a88;white-space:nowrap;vertical-align:middle;cursor:pointer}.ae-prem-chip.is-low{color:#fecaca;border-color:#ef4444aa;background:#450a0acc}.ae-prem-line{display:flex;flex-direction:column;gap:2px;border-color:#f0cf7a88!important}.ae-title-row.is-secret{border-color:#a78bfa88!important;background:linear-gradient(90deg,#2e106533,transparent)}
+html.ae-dizzy main{animation:ae-dizzy 4.5s ease-in-out infinite;transform-origin:50% 40%}@keyframes ae-dizzy{0%,100%{transform:rotate(0) translateX(0);filter:blur(0)}25%{transform:rotate(.8deg) translateX(3px);filter:blur(.6px)}50%{transform:rotate(-.6deg) translateX(-3px);filter:blur(1.1px) hue-rotate(8deg)}75%{transform:rotate(.5deg) translateX(2px);filter:blur(.4px)}}html.ae-anim-off.ae-dizzy main{animation:none;filter:blur(.6px)}
+.ae-cloud{position:fixed;inset:0;z-index:100000;background:#000c;display:flex;align-items:center;justify-content:center;padding:18px}.ae-cloud-card{width:min(420px,100%);background:#141a17;border:1px solid #f0cf7a88;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;color:#f1ead8}.ae-cloud-card h2{margin:0;font:800 19px Georgia,serif;color:#ffe6a8}.ae-cloud-card p{margin:0;font-size:13px;opacity:.85}.ae-cloud-pick .ae-btn{display:flex;flex-direction:column;gap:2px;padding:12px}.ae-cloud-pick small{font-size:11px;opacity:.75}.ae-cloud-spin{width:34px;height:34px;border-radius:50%;border:3px solid #f0cf7a44;border-top-color:#f0cf7a;animation:ae-spin 1s linear infinite}@keyframes ae-spin{to{transform:rotate(360deg)}}
+.ae-sc-fig.glow-void .ae-sc-body{filter:drop-shadow(0 0 14px #7c3aed) drop-shadow(0 0 30px #4c1d95) hue-rotate(20deg)}.ae-sc-fig.glow-gold .ae-sc-body{filter:drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 28px #f59e0b88)}.ae-sc-fig.glow-fire .ae-sc-body{filter:drop-shadow(0 0 12px #f97316) drop-shadow(0 0 26px #ef444488)}.ae-sc-fig.glow-echo .ae-sc-body{filter:drop-shadow(0 0 12px #93c5fd) grayscale(.5) brightness(1.15);opacity:.82}
+.ae-asc-pick{outline:2px solid #f0cf7a;outline-offset:3px;border-radius:12px;animation:ae-asc-pulse 1.4s ease-in-out infinite}@keyframes ae-asc-pulse{50%{outline-color:#f0cf7a33}}.ae-asc-need{font-size:14px!important;font-weight:800;color:#fde68a!important}.ae-asc-need::before{content:'👆 '}
+.ae-chat-fab{position:fixed;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;width:50px;height:50px;border-radius:50%;border:2px solid #f0cf7a;background:radial-gradient(circle at 35% 30%,#3a2c16,#141a17);box-shadow:0 4px 14px #000a,0 0 12px #f0cf7a44;display:grid;place-items:center;font-size:23px;cursor:pointer}.ae-chat-fab[hidden]{display:none}.ae-chat-fab:active{transform:scale(.92)}
 .ae-fx{position:absolute;z-index:6;pointer-events:none}
 .ae-fx-slash{width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;border-top:7px solid var(--c);border-right:3px solid transparent;filter:drop-shadow(0 0 8px var(--c)) drop-shadow(0 0 2px #fff);transform:rotate(var(--rot)) scale(.5);opacity:0;animation:ae-slash .42s ease-out forwards}
 @keyframes ae-slash{0%{opacity:0;transform:rotate(calc(var(--rot) - 70deg)) scale(.55)}25%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--rot) + 60deg)) scale(1.05)}}
@@ -4931,7 +5116,7 @@ html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
 .ae-sc-round{flex:0 0 auto;color:#ffe6a8;font-weight:700}
 .ae-sc-turn{position:absolute;left:50%;top:30px;transform:translateX(-50%);padding:3px 12px;border-radius:999px;font:800 11px system-ui;background:#0b0f0dd9;border:1px solid #f0cf7a99;color:#ffe6a8;white-space:nowrap;z-index:4;box-shadow:0 0 12px #f0cf7a33}
 .ae-scene.is-foe-turn .ae-sc-turn{border-color:#ef4444aa;color:#fecaca;box-shadow:0 0 12px #ef444444}
-.ae-sc-info{position:absolute;top:58px;width:45%;display:flex;flex-direction:column;gap:3px;z-index:3}
+.ae-sc-info{position:absolute;top:58px;width:45%;display:flex;flex-direction:column;gap:3px;z-index:5}
 .ae-sc-info.is-hero{left:8px}.ae-sc-info.is-foe{right:8px;align-items:flex-end;text-align:right}
 .ae-sc-info b{font:700 13.5px Georgia,serif;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .ae-sc-info b small{font:600 10.5px system-ui;color:#e9dcc0}
@@ -4939,9 +5124,9 @@ html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
 .ae-sc-bar{position:relative;width:100%;height:13px;border-radius:7px;background:#000b;border:1px solid #ffffff38;overflow:hidden}
 .ae-sc-bar i{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(#4ade80,#15803d);transition:width .35s ease}
 .ae-sc-bar.is-foe i{background:linear-gradient(#f87171,#991b1b)}
-.ae-sc-bar.is-mp{height:9px}.ae-sc-bar.is-mp i{background:linear-gradient(#60a5fa,#1e40af)}
+.ae-sc-bar.is-mp{height:13px;margin-top:1px}.ae-sc-bar.is-mp i{background:linear-gradient(#60a5fa,#1d4ed8)}
 .ae-sc-bar span{position:relative;display:block;text-align:center;font:800 9.5px/13px system-ui;color:#fff;text-shadow:0 1px 2px #000}
-.ae-sc-bar.is-mp span{font-size:7.5px;line-height:9px}
+.ae-sc-bar.is-mp span{font-size:9.5px;line-height:13px}
 .ae-sc-intent{font:700 10.5px system-ui;padding:2px 8px;border-radius:9px;background:#450a0ad9;border:1px solid #ef444499;color:#fecaca;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ae-sc-fxs{display:flex;gap:3px;flex-wrap:wrap;min-height:2px}.ae-sc-info.is-foe .ae-sc-fxs{justify-content:flex-end}
 .ae-sc-fx{position:relative;width:26px;height:26px;display:grid;place-items:center}.ae-sc-fx img{width:26px;height:26px;filter:drop-shadow(0 1px 2px #000)}.ae-sc-fx i{font-style:normal;font-size:18px}
