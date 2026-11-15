@@ -1849,6 +1849,28 @@
     catch (e) { if (/409|другого|conflict/i.test(String(e?.message || e)) || e?.status === 409) { try { const m = await cloudApi('/api/ae-save'); cloudChoose(m, raw); } catch {} } }
     finally { cloudBusy = false; }
   }
+  // Menu → «Перенос героя»: see both heroes and move one by hand, in either direction
+  function openCloudPanel() {
+    openPanel('☁️ Перенос героя', async body => {
+      const raw = localStorage.getItem(SAVE_KEY()), here = raw ? heroOf(raw) : null;
+      const where = window.AethApk ? 'в приложении' : 'в Telegram';
+      body.append(h('p', {class: 'ae-note'}, 'Один герой в Telegram и в приложении для Android. Откройте игру там, где ваш нужный герой, и нажмите «Сохранить в облако». Потом на другом устройстве нажмите «Загрузить из облака».'));
+      const info = h('div', {class: 'ae-note'}, 'Проверяем облако…'); body.append(info);
+      let m; try { m = await cloudApi('/api/ae-save'); } catch (e) { info.textContent = cleanError(e); return; }
+      const when = m.savedAt ? new Date(m.savedAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
+      const from = /^apk-/.test(m.device || '') ? 'из приложения' : m.device ? 'из Telegram' : '';
+      info.replaceChildren(
+        h('div', {}, h('b', {}, `📱 Здесь (${where}): `), here ? `${here.name}, ${here.level} ур.` : 'героя нет'),
+        h('div', {}, h('b', {}, '☁️ В облаке: '), m.rev ? `${m.heroName || 'Герой'}, ${m.level} ур.${from ? ' · ' + from : ''}${when ? ' · ' + when : ''}` : 'пусто'));
+      if (here) body.append(h('button', {type: 'button', class: 'ae-btn ae-wide ae-primary', onclick: async () => {
+        if (m.rev && !confirm(`Заменить героя в облаке (${m.heroName || 'Герой'}, ${m.level} ур.) героем с этого устройства (${here.name}, ${here.level} ур.)?`)) return;
+        try { const cur = localStorage.getItem(SAVE_KEY()) || raw; const r = await cloudApi('/api/ae-save', 'POST', {baseRev: m.rev, device: deviceId, data: cur, force: true}); markSynced(r.rev, cur); cloudReady = true; toast('☁️ Герой сохранён. На другом устройстве откройте «Перенос героя» → «Загрузить из облака».'); openCloudPanel(); } catch (e) { toast(cleanError(e)); } }},
+        h('b', {}, `⬆️ Сохранить в облако: ${here.name}, ${here.level} ур.`)));
+      if (m.rev) body.append(h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => {
+        if (here && !confirm(`Загрузить ${m.heroName || 'героя'} (${m.level} ур.) из облака? Герой на этом устройстве (${here.name}, ${here.level} ур.) будет заменён.`)) return;
+        cloudRestore(m); }}, h('b', {}, `⬇️ Загрузить из облака: ${m.heroName || 'Герой'}, ${m.level} ур.`)));
+    });
+  }
   setTimeout(cloudInit, 3500);
   setInterval(() => { if (!document.hidden) cloudPush(); }, 30000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudPush(); });
@@ -2138,6 +2160,7 @@
       item('📰', 'Что нового', 'Все обновления игры', go(() => openNews())),
       item('🔔', 'Уведомления и почта', 'История событий и подарки', go(() => openInbox())),
       item('🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', go(() => openUiScale())),
+      item('☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', go(() => openCloudPanel())),
       item('📱', 'Приложение Android', 'Подарок: Premium на 7 дней', go(() => openApkInfo())),
       item('🎟️', 'Промокод', 'Активировать код из канала', go(() => openPromo())),
       item('👤', 'Профиль', 'Титулы, аватарка и баннер', go(() => openProfile()))));
@@ -3718,7 +3741,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', () => openCloudPanel()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['🛡', 'Соратники', 'Свои боты-союзники: качайте и одевайте', openCompanions], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -4201,10 +4224,11 @@
     horde: '<path d="M14 4c-5 0-8.5 3.4-8.5 8 0 2.6 1.2 4.5 3 5.6V21a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3.4c1.8-1.1 3-3 3-5.6 0-4.6-3.5-8-8.5-8z"/><circle cx="10.6" cy="12.6" r="1.8"/><circle cx="17.4" cy="12.6" r="1.8"/><path d="M12 22v-2.4M16 22v-2.4"/>',
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     phone: '<rect x="8" y="3.5" width="12" height="21" rx="2.5"/><path d="M12.5 20.5h3"/>',
-    wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>'};
+    wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>',
+    cloud: '<path d="M8 21.5h12.5a4.5 4.5 0 0 0 .6-9 6.5 6.5 0 0 0-12.6-1.6A5.3 5.3 0 0 0 8 21.5z"/><path d="M14 13v6M11.5 16.5L14 19l2.5-2.5"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
   const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
-    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['phone', 'Приложение Android', () => openApkInfo()]];
+    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
   // Switch the game's interface style (the game's own switch lives in the Telegram settings button / desktop top bar).
   function switchStyle(k, label) {
     if ((isModern() ? 'modern' : 'fantasy') === k) return;
