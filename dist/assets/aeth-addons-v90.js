@@ -512,7 +512,7 @@
   }
   const potCount = (free = 0) => free + bagPotions().reduce((n, i) => n + (i.stackCount || 1), 0);
   function openCompanions() {
-    let d = null, pick = null;
+    let d = null, pick = null, backTo = null, shownPick = null;
     const load = async () => { try { d = await api('/api/ae-comp'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const pay = (n, then) => { const p = me() || {}; if ((p.gold || 0) < n) return toast(`Нужно ${fmt(n)} 🪙.`); const err = canAct?.(); if (err) return toast(err); return then(); };
     const spend = n => B()?.setPlayer(x => x && {...x, gold: Math.max(0, (x.gold || 0) - n)});
@@ -521,7 +521,7 @@
     const equip = async (c, it) => {
       try { const err = canAct?.(); if (err) return toast(err);
         const srv = it.serverOwned ? it : await depositItem(it, 1);
-        const r = await api('/api/ae-comp/equip', 'POST', {id: c.id, itemId: srv.id}); d = r; pick = null;
+        const r = await api('/api/ae-comp/equip', 'POST', {id: c.id, itemId: srv.id}); d = r;  // stay in this companion's picker: put on the next item right away
         B()?.setPlayer(x => x && {...x, inventory: [...x.inventory.filter(i => i.id !== srv.id), ...(r.back ? [r.back] : [])]}); rememberGone([srv.id]);
         sfx.play('equip'); toast(`${c.name} надевает «${baseName(it)}»`);
       } catch (e) { toast(cleanError(e)); }
@@ -541,8 +541,10 @@
         ...road.map(([l, t]) => h('div', {class: 'ae-combo-row' + (HL >= l ? ' ae-good' : '')}, h('span', {}, HL >= l ? '✅' : '🔒'), h('b', {}, `${l} ур.`), h('span', {class: 'ae-sub'}, t)))));
       if (HL < U.barracks) return body.append(h('p', {class: 'ae-empty'}, `Казарма откроется на ${U.barracks} уровне героя.`));
       if (!pick) body.append(h('p', {class: 'ae-note'}, 'Соратники — ваши личные боты-союзники. В отличие от наёмников они растут в уровнях, носят вашу экипировку и не берут долю награды. Берите их в кооп-подземелья: в комнате нажмите имя соратника.'));
+      if (!pick) shownPick = null;
       if (pick) {
         const c = d.companions.find(x => x.id === pick.id); if (!c) { pick = null; return st.rerender(); }
+        if (shownPick !== pick.id) { shownPick = pick.id; requestAnimationFrame(() => { st.body.scrollTop = 0; st.body.closest('.ae-panel')?.scrollTo?.(0, 0); }); }
         const SL = pick.slot, ru = sl => d.slotRu[sl] || sl, maxLvl = c.lvl + 3;
         const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id));
         const bag = (p.inventory || []).filter(i => i && d.slots.includes(i.type) && (!SL || i.type === SL));
@@ -551,7 +553,7 @@
         const list = bag.filter(i => usable(i) && open(i.type));
         const fit = list.filter(i => (i.level || 1) <= maxLvl).sort((a, b) => (b.level || 0) - (a.level || 0) || (b.upgradeLevel || 0) - (a.upgradeLevel || 0));
         const heavy = list.filter(i => (i.level || 1) > maxLvl).sort((a, b) => (a.level || 0) - (b.level || 0));
-        body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 ${SL ? ru(SL) : 'Вещь'} для: ${c.name}`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { pick = null; st.rerender(); }}, '← Назад')));
+        body.append(h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `👕 ${SL ? ru(SL) : 'Вещь'} для: ${c.name}`), h('button', {class: 'ae-btn', type: 'button', onclick: () => { backTo = pick.id; pick = null; st.rerender(); requestAnimationFrame(() => st.body.querySelector(`[data-comp-id="${backTo}"]`)?.scrollIntoView({block: 'start'})); }}, '← Назад')));
         body.append(h('p', {class: 'ae-sub'}, `${c.name} — ${c.lvl} ур.: подходят вещи до ${maxLvl} ур. Сначала показаны самые сильные из подходящих.`));
         // slot filter
         body.append(h('div', {class: 'ae-comp-filter'}, h('button', {type: 'button', class: 'ae-pill-btn' + (!SL ? ' is-on' : ''), onclick: () => { pick = {id: c.id, slot: null}; st.rerender(); }}, 'Все'),
@@ -585,7 +587,7 @@
       if (!d.companions.length) body.append(h('p', {class: 'ae-empty'}, 'Пока ни одного соратника.'));
       for (const c of d.companions) {
         const s = c.stats, gear = Object.entries(c.gear);
-        body.append(h('div', {class: 'ae-card ae-comp'},
+        body.append(h('div', {class: 'ae-card ae-comp', 'data-comp-id': c.id},
           h('div', {class: 'ae-row'}, h('img', {class: 'ae-avatar ae-comp-ava', src: c.img || heroPortrait(s.classId), alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, `${c.icon} ${c.name}`, h('span', {class: 'ae-fort-lvl'}, `${c.lvl} ур.`)), h('div', {class: 'ae-sub'}, `${c.roleLabel} · ${c.roleText}`))),
           pbar(c.xp, c.need, c.lvl >= d.heroLevel ? `Не выше вашего уровня (${d.heroLevel})` : `Опыт: ${fmt(c.xp)} / ${fmt(c.need)}`, 'is-mp'),
           h('div', {class: 'ae-hq-pills'}, h('span', {}, `❤️ ${fmt(s.maxHp)}`), h('span', {}, `⚔️ ${fmt(s.atk)}`), h('span', {}, `🛡️ ${fmt(s.def)}`), h('span', {}, `💥 ${Math.round(s.crit * 100)}%`), h('span', {}, `🔷 ${fmt(s.maxMp)}`)),
@@ -4385,7 +4387,12 @@
   // The game's own fights: our scene replaces the stock one (data from the combat bridge).
   let natPrev = null;
   function nativeScene() {
-    const c = window.__aethBridge?.combat, page = document.querySelector('.fantasy-combat-page'), modern = page ? null : document.querySelector('main [data-battle-scene]')?.closest('.rounded-2xl');
+    const c = window.__aethBridge?.combat, page = document.querySelector('.fantasy-combat-page');
+    // modern fight: the stock scene card = the nearest block around the background that holds «VS»; never one with the action buttons
+    let modern = null; const sc = page ? null : document.querySelector('main [data-battle-scene]');
+    for (let e = sc; e && e.tagName !== 'MAIN'; e = e.parentElement) if (/VS/.test(e.textContent || '')) { modern = e; break; }
+    if (modern && [...modern.querySelectorAll('button')].some(b => /^(атака|навыки|защита)/i.test((b.textContent || '').trim()))) modern = null;
+    if (page && [...(page.querySelector('.combat-scene')?.querySelectorAll('button') || [])].some(b => /^(атака|навыки)/i.test((b.textContent || '').trim()))) return;
     const old = document.querySelector('[data-ae-scene][data-ae-native]');
     if (!c?.inCombat || !c.monster || !(page || modern)) { natPrev = null; return; }
     const host = page ? page.querySelector('.combat-hero-plaque') || page.querySelector('.combat-scene') : modern; if (!host) return;
@@ -4421,8 +4428,9 @@
     if (!document.querySelector('[data-ae-scene]')) return;
     for (const el of document.querySelectorAll('main span, main b, main summary, .ae-bv span, .ae-bv b, .ae-bv summary')) {
       if (el.childElementCount > 1 || !INTENT_RE.test((el.textContent || '').trim())) continue;
-      let c = el; for (let i = 0; i < 6 && c.parentElement; i++) { if (c.tagName === 'DETAILS' || c.classList.contains('bestiary-panel') || (/rounded-(xl|2xl)/.test(c.className) && /border/.test(c.className))) break; c = c.parentElement; }
-      if (c && !c.closest('[data-ae-scene]') && !c.classList.contains('ae-nat-hide') && c.textContent.length < 400) c.classList.add('ae-nat-hide');
+      let c = el, card = null; for (let i = 0; i < 6 && c; i++) { if (c.tagName === 'DETAILS' || c.classList?.contains('bestiary-panel') || (/rounded-(xl|2xl)/.test(c.className || '') && /border/.test(c.className || ''))) { card = c; break; } c = c.parentElement; }
+      // only the forecast card itself: never a block with buttons (actions, potions, skills) or the scene
+      if (card && !card.querySelector('button') && !card.closest('[data-ae-scene]') && !card.classList.contains('ae-nat-hide') && card.textContent.length < 400) card.classList.add('ae-nat-hide');
     }
   }
   // The skills list opens under the action buttons: bring it into view (the taller scene pushed it below the fold).
