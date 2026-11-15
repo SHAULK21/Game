@@ -1870,6 +1870,14 @@
 
   // ---------- 📱 Android app (APK): connect it from Telegram; inside the app — reminders, vibration, screen, sharing, updates ----------
   const APK = window.AethApk || null, isApk = !!APK;
+  // Opened from the bot's «Обновить вход в приложении» button (?apklink=1): hand a fresh Telegram login to the Android app.
+  if (!isApk && /[?&]apklink=1/.test(location.search)) setTimeout(() => {
+    const d = window.Telegram?.WebApp?.initData; if (!d) return;
+    const url = location.origin + '/apk-login#d=' + encodeURIComponent(d);
+    try { Telegram.WebApp.openLink(url); } catch { window.open(url); }
+    try { toast('📱 Возвращаем вас в приложение с новым входом…'); } catch {}
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch {}
+  }, 1200);
   const APK_URL = 'https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk';
   if (isApk) document.documentElement.classList.add('ae-apk');
   // The game's dialogs lock page scrolling (body overflow:hidden) and restore the old value on close; when two of them
@@ -1974,14 +1982,19 @@
     const of = window.fetch; window.fetch = async (...a) => { const r = await of(...a); try { if (r.status === 401 && String(a[0]?.url || a[0]).includes('/api/')) onUnauthorized(); } catch {} return r; };
     const xo = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (m, u, ...rest) { this.__aeUrl = String(u); return xo.call(this, m, u, ...rest); };
     const xs = XMLHttpRequest.prototype.send; XMLHttpRequest.prototype.send = function (...a) { this.addEventListener('loadend', () => { if (this.status === 401 && (this.__aeUrl || '').includes('/api/')) onUnauthorized(); }); return xs.apply(this, a); };
-    function openRelink() {
-      const box = h('div', {class: 'ae-relink'}, h('div', {class: 'ae-relink-card'}, h('h2', {}, '🔑 Нужно переподключиться'),
-        h('p', {}, 'Вход через Telegram устарел. Откройте игру в Telegram → Меню → «📱 Приложение Android» → «🔗 Подключить приложение». Или скопируйте там код входа и вставьте его сюда.'),
-        h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => ext('https://t.me/Aethelgardr_RPG_Bot')}, 'Открыть игру в Telegram'),
+    const RELINK_URL = 'https://t.me/Aethelgardr_RPG_Bot?start=apklink';
+    function openRelink(soon) {
+      const box = h('div', {class: 'ae-relink'}, h('div', {class: 'ae-relink-card'}, h('h2', {}, soon ? '🔑 Обновите вход' : '🔑 Нужно обновить вход'),
+        h('p', {}, (soon ? 'Вход через Telegram скоро устареет (Telegram выдаёт его примерно на сутки). ' : 'Вход через Telegram устарел — Telegram выдаёт его примерно на сутки. ') + 'Нажмите «Обновить вход»: откроется бот, нажмите в нём кнопку «🔄 Обновить вход в приложении» — и вы вернётесь сюда уже с новым входом.'),
+        h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { box.remove(); ext(RELINK_URL); }}, '🔄 Обновить вход'),
         h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => { const v = (APK.paste() || '').trim(); if (v.includes('hash=') && v.includes('user=')) APK.saveLogin(v); else toast('В буфере нет кода входа. Скопируйте его в игре в Telegram.'); }}, '📋 Вставить код входа'),
         h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => box.remove()}, 'Позже')));
       document.querySelector('.ae-relink')?.remove(); document.body.append(box);
     }
+    // The saved Telegram login lives about a day: offer a one-tap refresh a few hours before it expires.
+    const loginAgeH = () => { const t = Number(window.Telegram?.WebApp?.initDataUnsafe?.auth_date) || Number(new URLSearchParams(decodeURIComponent((location.hash.match(/tgWebAppData=([^&]*)/) || [])[1] || '')).get('auth_date')) || 0; return t ? (Date.now() / 1000 - t) / 3600 : 0; };
+    const checkLoginAge = () => { const age = loginAgeH(); if (age > 18 && Date.now() - relinkShown > 3 * 3600e3) { relinkShown = Date.now(); openRelink(age < 24); } };
+    setTimeout(checkLoginAge, 6000); setInterval(() => { if (!document.hidden) checkLoginAge(); }, 15 * 60e3); window.addEventListener('aeth-apk-resume', () => setTimeout(checkLoginAge, 1500));
     // Telegram's haptics do nothing outside Telegram: the phone vibrates instead
     const hookHaptics = () => { const hf = window.Telegram?.WebApp?.HapticFeedback; if (!hf || hf.__ae) return; hf.__ae = true;
       const ms = {light: 12, medium: 25, heavy: 45, rigid: 20, soft: 10, success: 60, warning: 40, error: 90};
