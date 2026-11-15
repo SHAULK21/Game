@@ -1520,14 +1520,17 @@
   function injectBag() {
     const anchor = [...document.querySelectorAll('button')].find(b => /Массовая продажа и разбор/.test(b.textContent || '') && !b.closest('.ae-panel'));
     if (!anchor) return;
+    // own block under the bulk-sale section (inside it they looked like part of the bulk sale)
+    const sec = anchor.closest('section') || anchor.parentElement;
+    for (const old of sec.querySelectorAll(':scope [data-ae-bag-merge], :scope [data-ae-gems], :scope [data-ae-autoequip]')) old.remove();
+    let tools = sec.nextElementSibling?.matches?.('[data-ae-bag-tools]') ? sec.nextElementSibling : null;
+    if (!tools) { tools = h('div', {class: 'ae-bag-tools', 'data-ae-bag-tools': '1'}, h('div', {class: 'ae-bag-tools-h'}, '🎒 Вещи в сумке')); sec.after(tools); }
     const n = mergeCount(me());
-    let btn = anchor.parentElement.querySelector(':scope > [data-ae-bag-merge]');
+    let btn = tools.querySelector('[data-ae-bag-merge]');
     if (!btn) {
       btn = h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-bag-merge': '1', onclick: openMerge}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}), h('small', {})), h('span', {class: 'ae-coop-go'}, '›'));
-      anchor.parentElement.insertBefore(btn, anchor.nextSibling);
+      tools.append(btn, autoEquipToggle(), h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Вставить кристалл'), h('small', {}, 'Вампиризм, крит, кровотечение… в снаряжение')), h('span', {class: 'ae-coop-go'}, '›')));
     }
-    if (!anchor.parentElement.querySelector(':scope > [data-ae-gems]')) btn.after(h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Вставить кристалл'), h('small', {}, 'Вампиризм, крит, кровотечение… в снаряжение')), h('span', {class: 'ae-coop-go'}, '›')));
-    if (!anchor.parentElement.querySelector(':scope > [data-ae-autoequip]')) btn.after(autoEquipToggle());
     const label = n ? `Объединить одинаковые · ${n}` : 'Объединить одинаковые', sub = n ? 'Есть пары для ★ — нажмите, чтобы выбрать' : 'Пар одинаковых вещей пока нет';
     if (btn.querySelector('b').textContent !== label) { btn.querySelector('b').textContent = label; btn.querySelector('small').textContent = sub; btn.classList.toggle('has-pairs', !!n); }
   }
@@ -4586,8 +4589,42 @@
     return h('span', {class: 'ae-sc-fx', title: `${e.name || e.type}${n ? ` · ещё ${n} х.` : ''}`}, k ? h('img', {src: `/assets/battle/fx-${k}.webp`, alt: ''}) : h('i', {}, e.icon || FX_EMOJI[e.type] || '✨'), n ? h('b', {}, n) : ''); });
   const scBar = (cls, v, max) => h('div', {class: 'ae-sc-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * (v || 0) / Math.max(1, max || 1)))}%`}), h('span', {}, `${/is-mp/.test(cls) ? 'MP ' : ''}${fmt(Math.max(0, Math.round(v || 0)))} / ${fmt(max || 0)}`));
   const heroFig = cls => `/assets/sprites/generated/heroes/combat/${cls || 'warrior'}.webp`;
+  // ---------- «Драконит 0/12»: tap a needed resource to see where to get it ----------
+  let srcMap = null, srcLoading = null;
+  const loadSources = () => srcLoading ||= fetch('/assets/item-sources-v2.json').then(r => r.json()).then(j => (srcMap = j)).catch(() => (srcMap = {}));
+  const NEED_RE = /^(.{2,40}?[^\d\s:])[:\s]*(\d[\d\s]*)\s*\/\s*(\d[\d\s]*)$/;
+  function markSourceChips() {
+    if (!srcMap) { loadSources(); return; }
+    for (const el of document.querySelectorAll('main span, main div, main li, main p')) {
+      if (el.dataset.aeSrc !== undefined || el.childElementCount > 3 || el.closest('button, a, .ae-panel')) continue;
+      const t = (el.textContent || '').trim(); if (t.length > 60) continue;
+      const m = NEED_RE.exec(t); if (!m) continue;
+      const name = m[1].replace(/^[^\p{L}]+/u, '').trim(); if (!srcMap[name]) continue;
+      if ([...el.children].some(c => NEED_RE.test((c.textContent || '').trim()))) continue;  // the chip itself, not its row
+      el.dataset.aeSrc = name; el.classList.add('ae-src-chip'); el.title = 'Где взять: ' + name;
+    }
+  }
+  document.addEventListener('click', e => {
+    const chip = e.target.closest?.('[data-ae-src]'); if (!chip || !srcMap) return;
+    e.preventDefault(); e.stopPropagation(); sfx.play('page');
+    const name = chip.dataset.aeSrc, m = NEED_RE.exec((chip.textContent || '').trim());
+    const have = m ? Number(m[2].replace(/\s/g, '')) : null, need = m ? Number(m[3].replace(/\s/g, '')) : null;
+    document.querySelector('.ae-src-pop')?.remove();
+    const pop = h('div', {class: 'ae-src-pop', role: 'tooltip'}, h('b', {}, name, need && have < need ? h('small', {}, ` · нужно ещё ${need - have}`) : need ? h('small', {}, ' · хватает ✅') : ''),
+      ...srcMap[name].map(t => h('div', {}, t)));
+    document.body.append(pop);
+    const r = chip.getBoundingClientRect(), w = Math.min(300, innerWidth - 16); pop.style.width = w + 'px';
+    pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
+    const ph = pop.offsetHeight; pop.style.top = (r.bottom + 6 + ph < innerHeight - 70 ? r.bottom + 6 : Math.max(8, r.top - ph - 6)) + 'px';
+    const off = ev => { if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener('pointerdown', off, true); removeEventListener('scroll', off2, true); } }, off2 = () => off({target: document.body});
+    setTimeout(() => { document.addEventListener('pointerdown', off, true); addEventListener('scroll', off2, true); }, 0);
+  }, true);
+  setInterval(() => { if (!document.hidden) try { markSourceChips(); } catch {} }, 1500);
+  // monster pictures drawn facing right: turn them to face the hero (who stands on the left)
+  const FACE_RIGHT = new Set(['m_blood_hound', 'm_boar', 'm_dragon_boss', 'm_rift_drake', 'v_ri_serpent', 'v_ww_wolf', 'v_cu_lord', 'v_sw_queen', 'v_ww_raider', 'v_ww_shaman']);
+  const facesRight = src => FACE_RIGHT.has((/\/monsters\/([\w-]+)\.webp/.exec(src || '') || [])[1]);
   function sceneNode(d) {
-    const H = d.hero, F = d.foe;
+    const H = d.hero, F = d.foe && {...d.foe, mirror: !!d.foe.mirror !== facesRight(d.foe.img)};
     return h('div', {class: 'ae-scene' + (d.turn ? (d.turn.mine ? ' is-mine' : ' is-foe-turn') : ''), 'data-ae-scene': '1'},
       h('div', {class: 'ae-sc-bg', style: `background-image:url("${d.bg}")`}),
       h('div', {class: 'ae-sc-top'}, h('span', {class: 'ae-sc-place'}, d.place || ''), d.mode ? h('span', {class: 'ae-sc-mode'}, d.mode) : '', h('span', {class: 'ae-grow'}), d.round ? h('span', {class: 'ae-sc-round'}, d.round) : ''),
@@ -4737,7 +4774,7 @@
 <div data-bv-extra-top></div>
 <section class="combat-scene relative isolate flex min-h-[334px] flex-col overflow-hidden rounded-2xl border border-[#756344] bg-[#090b0d] p-3 sm:min-h-[390px]"><div class="absolute inset-0 -z-20"><div aria-hidden="true" class="absolute inset-0 pointer-events-none"><img alt="" class="h-full w-full object-cover object-center" src="${E(o.scene)}"><div class="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-transparent to-slate-950/55"></div></div></div><div class="combat-scene-shade absolute inset-0 -z-10"></div><div class="combat-scene-header relative z-10 flex items-center justify-between gap-2 pb-2 text-[11px]"><span class="truncate font-semibold text-[#e0d2b7]">${E(o.location)}</span><div class="flex shrink-0 items-center gap-2"><span class="truncate text-[#b4aea2]">${E(o.mode || '')}</span><span class="combat-round">${E(o.round || '')}</span></div></div>
 <div class="combat-player-art" data-bv-hero><div><div class="combat-player-breathe"><img alt="" class="h-full w-full object-contain object-bottom" src="${E(hero.body)}"></div></div>${petArt(false)}</div>
-${foe ? `<div class="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]" data-bv-foe><img alt="" class="h-full w-full object-contain object-right-bottom" style="${foe.mirror ? 'transform:scaleX(-1)' : ''}" src="${E(foe.img)}"></div>
+${foe ? `<div class="combat-monster-art pointer-events-none absolute right-0 top-9 z-0 flex h-[240px] w-[55%] items-end justify-end overflow-hidden sm:h-[292px] sm:w-[55%]" data-bv-foe><img alt="" class="h-full w-full object-contain object-right-bottom" style="${(!!foe.mirror !== facesRight(foe.img)) ? 'transform:scaleX(-1)' : ''}" src="${E(foe.img)}"></div>
 <div class="combat-enemy-plaque relative z-10 mt-auto pb-1 ml-[25%] max-w-[75%]"><div class="mb-1 flex items-center gap-2"><span class="text-[11px] uppercase tracking-[.12em] text-[#c2b9a8]">${E(foe.level)}</span></div><h1 class="folio-title break-words text-xl font-bold leading-tight sm:text-2xl">${E(foe.name)}</h1><div class="mt-3 max-w-sm"><div class="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums"><span class="text-[#918c82]">Здоровье противника</span><span class="text-[#d8d1c4]">${fmt(foe.hp)}/${fmt(foe.maxHp)}</span></div><div role="progressbar" class="progress-track h-2"><div class="progress-fill is-hp" style="width:${pctOf(foe.hp, foe.maxHp)}%"></div></div></div>${foe.atk != null ? `<div class="mt-2 flex items-center gap-3 text-[11px] text-[#d0c8b9]"><span class="inline-flex items-center gap-1">${ICON('attack').replace('width="20" height="20"', 'width="14" height="14"')}${fmt(foe.atk)}</span>${foe.def != null ? `<span class="inline-flex items-center gap-1">${ICON('defend').replace('width="20" height="20"', 'width="14" height="14"')}${fmt(foe.def)}</span>` : ''}</div>` : ''}</div>` : ''}
 </section>
 <div class="combat-command-center space-y-2">${o.note ? `<p role="status" class="bestiary-panel px-3 py-2 text-xs leading-relaxed text-[#d8d1c4]">${E(o.note)}</p>` : ''}${o.intent ? `<details class="bestiary-panel overflow-hidden" open><summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs">${ICON('skill').replace('width="20" height="20"', 'width="17" height="17"')}<span class="min-w-0 flex-1"><span class="mr-1 text-[11px] text-[#918c82]">${E(o.intent.label || 'Возможный приём:')}</span><strong class="text-[#d8d1c4]">${E(o.intent.name)}</strong>${o.intent.text ? `<span class="mt-1 block text-[11px] leading-relaxed text-[#aaa49a]">${E(o.intent.text)}</span>` : ''}</span>${o.intent.value ? `<span class="shrink-0 font-mono text-[11px] text-[#d28f89]">${E(o.intent.value)}</span>` : ''}</summary></details>` : ''}${o.series ? `<div class="bestiary-panel flex min-h-8 items-center justify-between gap-3 px-3 py-1 text-[11px]"><span class="flex items-center gap-1.5 font-bold text-[#d1ad67]">${ICON('hunt').replace('width="20" height="20"', 'width="14" height="14"')}${E(o.series.label)}</span><span class="font-mono text-[#c5c0b6]">${E(o.series.value)}</span></div>` : ''}
@@ -5122,6 +5159,10 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-src-pop{position:fixed;z-index:200;padding:7px 9px;border-radius:10px;background:#111827f2;border:1px solid #f0cf7a88;color:#f1ead8;font:12px/1.4 system-ui;box-shadow:0 6px 18px #000a;display:flex;flex-direction:column;gap:2px}.ae-src-pop b{font-size:12.5px;color:#ffe6a8}.ae-src-pop b small{font-weight:500;color:#fca5a5}
+.ae-src-chip{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.ae-src-list{margin:6px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}.ae-src-list li{padding:8px 10px;border-radius:10px;background:#0003;border:1px solid #ffffff1f;font-size:13px;line-height:1.35}
+.ae-bag-tools{display:flex;flex-direction:column;gap:8px;margin:10px 0}.ae-bag-tools-h{font:700 12px system-ui;opacity:.75;padding:0 2px}
 html[data-interface="fantasy"] .inventory-book .rpg-button-primary.inventory-ink,html[data-interface="fantasy"] .inventory-book .rpg-button-primary .inventory-ink{color:#f6e7c4!important;text-shadow:0 1px 2px #000a}
 .ae-prem-chip{display:inline-flex;align-items:center;margin-left:6px;padding:0 6px;height:16px;border-radius:999px;font:800 10px/16px system-ui;color:#fde68a;background:#3a2a0acc;border:1px solid #f0cf7a88;white-space:nowrap;vertical-align:middle;cursor:pointer}.ae-prem-chip.is-low{color:#fecaca;border-color:#ef4444aa;background:#450a0acc}.ae-prem-line{display:flex;flex-direction:column;gap:2px;border-color:#f0cf7a88!important}.ae-title-row.is-secret{border-color:#a78bfa88!important;background:linear-gradient(90deg,#2e106533,transparent)}
 html.ae-dizzy main{animation:ae-dizzy 4.5s ease-in-out infinite;transform-origin:50% 40%}@keyframes ae-dizzy{0%,100%{transform:rotate(0) translateX(0);filter:blur(0)}25%{transform:rotate(.8deg) translateX(3px);filter:blur(.6px)}50%{transform:rotate(-.6deg) translateX(-3px);filter:blur(1.1px) hue-rotate(8deg)}75%{transform:rotate(.5deg) translateX(2px);filter:blur(.4px)}}html.ae-anim-off.ae-dizzy main{animation:none;filter:blur(.6px)}

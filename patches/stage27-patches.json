@@ -1,0 +1,8 @@
+[
+ {
+  "name": "pet-materials-in-expeditions",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26.js",
+  "old": "{id:`aether-dust`,name:`Эфирная пыль`,icon:`🌌`,type:`material`,rarity:`ancient`,minLevel:45,weight:.45}]",
+  "new": "{id:`aether-dust`,name:`Эфирная пыль`,icon:`🌌`,type:`material`,rarity:`ancient`,minLevel:45,weight:.45},{id:`titan-shard`,name:`Осколок титана`,icon:`🪨`,type:`material`,rarity:`epic`,minLevel:25,weight:.75},{id:`dragon-spark`,name:`Драконья искра`,icon:`🔥`,type:`material`,rarity:`ancient`,minLevel:35,weight:.4},{id:`star-core`,name:`Звёздное ядро`,icon:`⭐`,type:`material`,rarity:`ancient`,minLevel:45,weight:.35}]"
+ }
+]

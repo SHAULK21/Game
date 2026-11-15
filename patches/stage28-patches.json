@@ -1,0 +1,74 @@
+[
+ {
+  "name": "vein-silver",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "{name:`Серебряная нить`,icon:`🧵`,rarity:`rare`,chance:.08,minQty:1,maxQty:1}]",
+  "new": "{name:`Серебряная нить`,icon:`🧵`,rarity:`rare`,chance:.08,minQty:1,maxQty:1},{name:`Мифриловая руда`,icon:`🔷`,rarity:`rare`,chance:0.3,minQty:1,maxQty:2},{name:`Арканная пыль`,icon:`✨`,rarity:`rare`,chance:0.24,minQty:1,maxQty:1},{name:`Магическая эссенция`,icon:`🔮`,rarity:`rare`,chance:0.12,minQty:1,maxQty:1}]"
+ },
+ {
+  "name": "vein-silver-list-MiningScreen-DkWP2WT",
+  "file": "MiningScreen-DkWP2WTp-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Серебряная нить`]",
+  "new": "`Серебряная нить`,`Мифриловая руда`,`Арканная пыль`,`Магическая эссенция`]"
+ },
+ {
+  "name": "vein-silver-list-MiningScreen-B9ovIXn",
+  "file": "MiningScreen-B9ovIXnw-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Серебряная нить`]",
+  "new": "`Серебряная нить`,`Мифриловая руда`,`Арканная пыль`,`Магическая эссенция`]"
+ },
+ {
+  "name": "vein-gold",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "{name:`Золотая слюда`,icon:`✨`,rarity:`rare`,chance:.09,minQty:1,maxQty:1}]",
+  "new": "{name:`Золотая слюда`,icon:`✨`,rarity:`rare`,chance:.09,minQty:1,maxQty:1},{name:`Адамантит`,icon:`🟣`,rarity:`epic`,chance:0.3,minQty:1,maxQty:2},{name:`Осколок титана`,icon:`🪨`,rarity:`epic`,chance:0.24,minQty:1,maxQty:1},{name:`Руническое ядро`,icon:`🧿`,rarity:`epic`,chance:0.12,minQty:1,maxQty:1}]"
+ },
+ {
+  "name": "vein-gold-list-MiningScreen-DkWP2WT",
+  "file": "MiningScreen-DkWP2WTp-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Золотая слюда`]",
+  "new": "`Золотая слюда`,`Адамантит`,`Осколок титана`,`Руническое ядро`]"
+ },
+ {
+  "name": "vein-gold-list-MiningScreen-B9ovIXn",
+  "file": "MiningScreen-B9ovIXnw-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Золотая слюда`]",
+  "new": "`Золотая слюда`,`Адамантит`,`Осколок титана`,`Руническое ядро`]"
+ },
+ {
+  "name": "vein-cobalt",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "{name:`Кобальтовая призма`,icon:`🔷`,rarity:`rare`,chance:.09,minQty:1,maxQty:1}]",
+  "new": "{name:`Кобальтовая призма`,icon:`🔷`,rarity:`rare`,chance:.09,minQty:1,maxQty:1},{name:`Драконит`,icon:`🔥`,rarity:`epic`,chance:0.3,minQty:1,maxQty:2},{name:`Осколок драконьей чешуи`,icon:`🐲`,rarity:`epic`,chance:0.24,minQty:1,maxQty:1},{name:`Драконья искра`,icon:`🔥`,rarity:`epic`,chance:0.1,minQty:1,maxQty:1}]"
+ },
+ {
+  "name": "vein-cobalt-list-MiningScreen-DkWP2WT",
+  "file": "MiningScreen-DkWP2WTp-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Кобальтовая призма`]",
+  "new": "`Кобальтовая призма`,`Драконит`,`Осколок драконьей чешуи`,`Драконья искра`]"
+ },
+ {
+  "name": "vein-cobalt-list-MiningScreen-B9ovIXn",
+  "file": "MiningScreen-B9ovIXnw-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Кобальтовая призма`]",
+  "new": "`Кобальтовая призма`,`Драконит`,`Осколок драконьей чешуи`,`Драконья искра`]"
+ },
+ {
+  "name": "vein-mithril",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "{name:`Мифриловый шёлк`,icon:`🧵`,rarity:`epic`,chance:.08,minQty:1,maxQty:1}]",
+  "new": "{name:`Мифриловый шёлк`,icon:`🧵`,rarity:`epic`,chance:.08,minQty:1,maxQty:1},{name:`Эфириум`,icon:`🌌`,rarity:`epic`,chance:0.28,minQty:1,maxQty:2},{name:`Эфирная пыль`,icon:`🌌`,rarity:`epic`,chance:0.24,minQty:1,maxQty:1},{name:`Звёздное ядро`,icon:`⭐`,rarity:`epic`,chance:0.1,minQty:1,maxQty:1}]"
+ },
+ {
+  "name": "vein-mithril-list-MiningScreen-DkWP2WT",
+  "file": "MiningScreen-DkWP2WTp-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Мифриловый шёлк`]",
+  "new": "`Мифриловый шёлк`,`Эфириум`,`Эфирная пыль`,`Звёздное ядро`]"
+ },
+ {
+  "name": "vein-mithril-list-MiningScreen-B9ovIXn",
+  "file": "MiningScreen-B9ovIXnw-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27.js",
+  "old": "`Мифриловый шёлк`]",
+  "new": "`Мифриловый шёлк`,`Эфириум`,`Эфирная пыль`,`Звёздное ядро`]"
+ }
+]
