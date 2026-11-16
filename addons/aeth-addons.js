@@ -3476,7 +3476,7 @@
     const shown = todayOpen ? list : list.slice(0, 4);
     const fresh = h('div', {class: 'ae-clan-today', 'data-ae-clan-today': '1', 'data-sig': sig},
       h('div', {class: 'ae-today-h'}, h('b', {}, '📋 Сегодня в клане'), h('small', {}, list.length ? `дел: ${list.length}` : '')),
-      list.length ? shown.map(row) : h('div', {class: 'ae-today-empty'}, '✅ На сегодня всё сделано. Новые бои — после 02:00 по Киеву.'),
+      list.length ? shown.map(row) : h('div', {class: 'ae-today-empty'}, `✅ На сегодня всё сделано. Новые бои — после ${new Date(Math.ceil((Date.now() + 1) / 864e5) * 864e5).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}.`),
       list.length > 4 ? h('button', {type: 'button', class: 'ae-today-more', onclick: () => { todayOpen = !todayOpen; paintClanToday(); }}, todayOpen ? 'Свернуть' : `Ещё ${list.length - 4}`) : '');
     if (box) box.replaceWith(fresh); else { const hq = tiles.querySelector(':scope > [data-ae-clan-hq]'); if (hq) hq.after(fresh); else tiles.prepend(fresh); }
   }
