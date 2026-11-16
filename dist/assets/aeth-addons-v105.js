@@ -2721,11 +2721,25 @@
       h('button', {type: 'button', class: 'ae-btn ae-primary', disabled: low || full, onclick: e => { e.stopPropagation(); if (confirm(`Вступить в клан «${o.n}»?`)) joinClanByCode(o.c); }}, full ? 'Мест нет' : low ? `с ${o.ml} ур.` : 'Вступить'));
   }
   function openClanInvite() {
-    let friends = null, clan = null;
+    let friends = null, clan = null, q = '', found = null, searching = false;
+    const invite = async (id, name, btn) => { try { await api('/api/ae-clan/invite', 'POST', {targetId: id}); btn.disabled = true; btn.textContent = 'Приглашён ✓'; toast(`Приглашение отправлено: ${name}`); sfx.play('bell', 0.4); } catch (e) { toast(cleanError(e)); } };
+    const search = async () => { q = (st.root.querySelector('.ae-inv-q')?.value || '').trim(); if (q.length < 2) return toast('Введите хотя бы 2 буквы ника.');
+      searching = true; st.rerender(); try { found = (await api('/api/friends/search?q=' + encodeURIComponent(q))).players || []; } catch (e) { found = []; toast(cleanError(e)); } searching = false; st.rerender(); };
     const st = openPanel('🛡️ Позвать в клан', body => {
       if (!friends) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       if (!clan) return body.append(h('p', {class: 'ae-empty'}, 'Вы не состоите в клане.'));
       body.append(h('div', {class: 'ae-pill'}, `[${clan.tag}] «${clan.name}» · ${clan.members}/${clan.max} участников`));
+      // by nick: any hero, not only friends
+      body.append(h('h3', {class: 'ae-h3'}, '🔎 Пригласить по нику'));
+      const inp = h('input', {class: 'ae-input ae-inv-q', type: 'search', placeholder: 'Ник героя', value: q, maxlength: '32', onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); search(); } }});
+      body.append(h('div', {class: 'ae-row ae-inv-search'}, inp, h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: searching, onclick: search}, searching ? '…' : 'Найти')));
+      if (found) {
+        if (!found.length) body.append(h('p', {class: 'ae-empty'}, `Никого не нашли по «${q}».`));
+        for (const f of found.slice(0, 10)) body.append(h('div', {class: 'ae-row ae-card'}, h('span', {class: 'ae-dot' + (f.online ? ' is-on' : '')}), h('img', {class: 'ae-avatar', src: heroPortrait(f.classId), alt: ''}),
+          h('div', {class: 'ae-grow'}, h('b', {}, f.name), h('div', {class: 'ae-sub'}, `${f.level} ур.${f.online ? ' · в игре' : ''}`)),
+          f.inClan ? h('span', {class: 'ae-sub'}, 'уже в клане') : h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: ev => invite(f.id, f.name, ev.currentTarget)}, 'Пригласить')));
+      }
+      body.append(h('p', {class: 'ae-sub'}, 'Игрок получит приглашение в колокольчик и в чат с ботом. Оно действует 7 дней.'));
       body.append(h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', onclick: () => { closePanel(); shareClan(); }}, '📢 Пригласить в общий чат'));
       body.append(h('p', {class: 'ae-sub'}, 'Приглашение в чате действует сутки, по нему могут вступить до 15 героев — даже если набор в клан закрыт. Друзья получают личное приглашение и сообщение от бота.'));
       body.append(h('h3', {class: 'ae-h3'}, 'Друзья'));
@@ -2740,7 +2754,7 @@
     const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
     if (!leave || leave.parentElement.querySelector(':scope > [data-ae-clan-invite]')) return;
     leave.before(h('div', {class: 'ae-row ae-clan-invite', 'data-ae-clan-invite': '1'},
-      h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: openClanInvite}, '👥 Позвать друзей'),
+      h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: openClanInvite}, '👥 Пригласить в клан'),
       h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: shareClan}, '📢 В общий чат')));
   }
   // ---------- Clan HQ: bonuses, daily chest, clan quests, contribution, rating, wars, requests, settings ----------
@@ -2981,7 +2995,7 @@
         body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => openClanDeposit()}, '🎒 Внести вещь в хранилище клана'));
         body.append(treasuryHelp());
         body.append(h('div', {class: 'ae-pill'}, `📊 Ваш вклад за неделю: ${fmt(d.myPts)} · клан: ${fmt(d.weekPts)}`));
-        body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openClanInvite(); }}, '👥 Позвать друзей'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openCoop(); }}, '🤝 Кооп с соклановцами')));
+        body.append(h('div', {class: 'ae-row'}, h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openClanInvite(); }}, '👥 Пригласить в клан'), h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { closePanel(); openCoop(); }}, '🤝 Кооп с соклановцами')));
         body.append(h('p', {class: 'ae-sub'}, '🤝 Если в кооп-подземелье с вами соклановец — награда +20% и выше шанс осколка.'));
       }
       if (tab === 'fort') fortBody(body);
@@ -5352,6 +5366,7 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-inv-search{gap:6px;margin-bottom:8px}.ae-inv-search .ae-inv-q{flex:1;min-width:0}
 .ae-land-nocit{border-color:#f0cf7a88!important;text-align:center;margin-bottom:8px}.ae-land-nocit b{font-size:15px;color:#ffe6a8}
 .ae-land-prot{max-width:120px;text-align:right;font-size:11px;line-height:1.25;opacity:.85}
 .ae-land-entry{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:10px;border-radius:14px;border:1px solid #f0cf7a88;background:linear-gradient(120deg,#3a2a12f0,#14100af0);color:#f3e6c8;text-align:left;box-shadow:0 0 14px #f0cf7a22}

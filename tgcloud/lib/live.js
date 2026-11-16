@@ -126,10 +126,11 @@ function handleClanInvites(world, path, method, body, me, now, notify) {
   if (method === 'GET' && path === '/api/ae-clan') return ok({clan: clanCard(world, clan), role: m?.role || null});
   if (path === '/api/ae-clan/invite') {
     if (!clan) return fail('Сначала вступите в клан.');
-    const friend = String(body.friendId || ''), fp = player(world, friend);
-    const linked = rows(world, 'friendships').some(f => f.status === 'accepted' && ((same(f.a, me) && same(f.b, friend)) || (same(f.b, me) && same(f.a, friend))));
-    if (!fp || !linked) return fail('Приглашать можно только друзей.');
-    if (clanOfPlayer(world, friend).clan) return fail('Друг уже состоит в клане.');
+    // a friend, or anyone found by nick (body.targetId from the search)
+    const friend = String(body.friendId || body.targetId || ''), fp = player(world, friend);
+    if (!fp || same(friend, me)) return fail('Игрок не найден.', 404);
+    if (clanOfPlayer(world, friend).clan) return fail(`${nameOf(fp)} уже состоит в клане.`);
+    if (rows(world, 'ae_clan_invites').some(x => same(x.to, friend) && same(x.clan, clan.id) && x.uses > 0)) return fail(`${nameOf(fp)} уже приглашён(а) — приглашение действует 7 дней.`);
     const sent = rows(world, 'ae_clan_invites').filter(x => same(x.by, me) && Date.parse(x.at) > now - DAY).length; if (sent >= 30) return fail('Сегодня отправлено слишком много приглашений.');
     const inv = {code: newCode(), clan: clan.id, by: String(me), to: friend, uses: 1, at: iso(now), expires: iso(now + 7 * DAY)};
     rows(world, 'ae_clan_invites').push(inv);
