@@ -2561,6 +2561,7 @@
     const slot = ([k, ru]) => { const it = g[k];
       return it ? h('button', {type: 'button', class: 'ae-doll-slot' + (picked === k ? ' is-on' : ''), 'data-ae-rarity': it.rarity, title: it.name, onclick: () => onPick(k)},
           h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}), it.upgradeLevel ? h('i', {class: 'ae-doll-up'}, '+' + it.upgradeLevel) : '',
+          it.ascension ? h('i', {class: 'ae-doll-asc'}, '★' + it.ascension) : '', h('i', {class: 'ae-doll-rar', 'data-ae-rarity': it.rarity}, (RARITY_RU[it.rarity] || '').slice(0, 3)),
           (it.gems || []).length ? h('span', {class: 'ae-doll-gems'}, (it.gems || []).map(id => h('b', {}, GEMS.find(x => x.id === id)?.icon || '💎'))) : '')
         : h('span', {class: 'ae-doll-slot is-empty', title: ru + ': пусто'}, h('small', {}, ru)); };
     const it = picked && g[picked], pet = prof.pet && prof.look?.showPet !== false ? prof.pet : null, comp = prof.look?.comp || null;
@@ -2579,7 +2580,9 @@
           ''),
         h('div', {class: 'ae-doll-col'}, DOLL_R.map(slot), compSlot)),
       info || (it ? h('div', {class: 'ae-card ae-doll-info', 'data-ae-rarity': it.rarity}, h('b', {}, `${it.name}${it.upgradeLevel ? ' +' + it.upgradeLevel : ''}${it.ascension ? ' ★' + it.ascension : ''}`),
-          h('small', {class: 'ae-sub'}, `${RARITY_RU[it.rarity] || ''} · ур. ${it.level}${it.twoHanded ? ' · 🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || 'Без характеристик'), gemRow(it.gems))
+          h('div', {class: 'ae-doll-tags'}, h('span', {class: 'ae-doll-tag-r', 'data-ae-rarity': it.rarity}, RARITY_RU[it.rarity] ? RARITY_RU[it.rarity][0].toUpperCase() + RARITY_RU[it.rarity].slice(1) : '—'),
+            h('span', {}, `⚒️ Заточка +${it.upgradeLevel || 0}`), h('span', {class: it.ascension ? 'is-asc' : ''}, it.ascension ? `★ Вознесение ${it.ascension}` : '★ Без вознесения'), h('span', {}, `ур. ${it.level}`)),
+          h('small', {class: 'ae-sub'}, `${it.twoHanded ? '🗡️ двуручное' : ''}`), h('small', {class: 'ae-chat-item-stats'}, statLine(it.stats) || 'Без характеристик'), gemRow(it.gems))
         : h('p', {class: 'ae-sub ae-doll-hint'}, Object.keys(g).length ? 'Нажмите на вещь, чтобы посмотреть её характеристики и кристаллы.' : 'Герой пока ничего не надел.')));
   }
   function openPlayerCard(id, name) {
@@ -5606,6 +5609,12 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-doll-asc{position:absolute;top:-4px;right:-4px;font:800 9.5px/1 system-ui;font-style:normal;padding:2px 3px;border-radius:5px;background:#3b1a5ae6;color:#f0abfc;border:1px solid #c084fc88}
+.ae-doll-rar{position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);font:800 8px/1 system-ui;font-style:normal;padding:1px 4px;border-radius:4px;background:#000d;color:var(--ae-r,#cbd5e1);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.ae-doll-rar[data-ae-rarity=common]{--ae-r:#cbd5e1}.ae-doll-rar[data-ae-rarity=uncommon],.ae-doll-tag-r[data-ae-rarity=uncommon]{--ae-r:#4ade80}.ae-doll-rar[data-ae-rarity=rare],.ae-doll-tag-r[data-ae-rarity=rare]{--ae-r:#60a5fa}.ae-doll-rar[data-ae-rarity=epic],.ae-doll-tag-r[data-ae-rarity=epic]{--ae-r:#c084fc}
+.ae-doll-rar[data-ae-rarity=legendary],.ae-doll-tag-r[data-ae-rarity=legendary]{--ae-r:#fbbf24}.ae-doll-rar:is([data-ae-rarity=mythic],[data-ae-rarity=ancient],[data-ae-rarity=divine]),.ae-doll-tag-r:is([data-ae-rarity=mythic],[data-ae-rarity=ancient],[data-ae-rarity=divine]){--ae-r:#f87171}
+.ae-doll-tags{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}.ae-doll-tags span{font:700 11px system-ui;padding:2px 7px;border-radius:999px;background:#ffffff12;border:1px solid #ffffff22}
+.ae-doll-tag-r{color:var(--ae-r,#e5e7eb);border-color:var(--ae-r,#ffffff22)!important}.ae-doll-tags .is-asc{color:#f0abfc;border-color:#c084fc88}
 .ae-ui-ico{display:inline-grid;place-items:center}.ae-ui-ico img{width:1.55em;height:1.55em;object-fit:contain;filter:drop-shadow(0 1px 2px #000a)}.ae-entry-icon.ae-ui-ico img{width:30px;height:30px}
 .ae-clan-tile-ic.ae-ui-ico img{width:26px;height:26px}.ae-hq-ic.ae-ui-ico img{width:30px;height:30px}.ae-chat-fab>span.ae-ui-ico img{width:32px;height:32px}
 .ae-wild-regions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0 4px}.ae-wild-reg{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:64px;padding:5px;border-radius:10px;border:1px solid #ffffff2a;color:#fff;text-align:left;background:linear-gradient(transparent 20%,#000d),var(--ae-reg) center/170% no-repeat #111;overflow:hidden}
