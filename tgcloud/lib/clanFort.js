@@ -50,7 +50,7 @@ export const BOSSES = [
 ];
 // Boss health grows with the clan's level and its size (a 3-man clan faces ~30% of a 10-man clan's boss).
 const bossHp = (b, L, n = 10) => Math.round(b.hp * (1 + 0.12 * (Math.max(1, Math.min(15, L)) - 1)) * Math.max(0.3, Math.min(1.5, n / 10)) / 100) * 100;
-const RESPAWN = 18 * HOUR, MUSTER = 30 * 60e3, SHIELD = 8 * HOUR, COOLDOWN = 12 * HOUR;
+const RESPAWN = 18 * HOUR, MUSTER = 30 * 60e3, SHIELD = 2 * HOUR, COOLDOWN = 2 * HOUR;
 
 const lv = (f, k) => Number(f?.b?.[k]?.lvl) || 0;
 function fortRow(world, clan, now) {
@@ -76,6 +76,7 @@ const attackMul = f => 1 + lv(f, 'forge') * 0.03 + lv(f, 'barracks') * 0.05;
 // ---------- lazy settlement ----------
 export function fortTick(world, clan, now, notify) {
   const f = fortOf(world, clan.id); if (!f) return null;
+  if (f.shield && Date.parse(f.shield) > now + SHIELD) f.shield = iso(now + SHIELD);  // shields set under the old 8-hour rule
   for (const [k, v] of building(f)) if (Date.parse(v.until) <= now) {
     v.lvl = v.to; delete v.until; delete v.to; delete v.since; delete v.helps;
     flog(f, now, BUILD[k].icon, `${BUILD[k].name}: построено ${v.lvl} ур.`);
@@ -124,7 +125,7 @@ function resolveAssault(world, a, now, notify) {
   fd.shield = iso(now + SHIELD); a.res = res;
   const loot = [res.gold && fmt(res.gold) + ' 🪙', res.silver && fmt(res.silver) + ' 🥈', res.ore && fmt(res.ore) + ' руды'].filter(Boolean).join(', ') || 'казна пуста';
   const ta = win ? `🏆 Набег на [${D.tag}] удался! Сила ${fmt(att)} против обороны ${fmt(def)}. Добыча в казну: ${loot}.` : `🏳️ Набег на [${D.tag}] отбит: сила ${fmt(att)} против обороны ${fmt(def)}.`;
-  const td = win ? `🔥 [${A.tag}] прорвал нашу оборону (${fmt(def)} против ${fmt(att)}) и унёс ${loot}.${res.lostD ? ` Погибло защитников: ${res.lostD}.` : ''} Щит на 8 ч.` : `🛡️ Мы отбили набег [${A.tag}]: оборона ${fmt(def)} против ${fmt(att)}!${res.lostD ? ` Пало защитников: ${res.lostD}.` : ''} Щит на 8 ч.`;
+  const td = win ? `🔥 [${A.tag}] прорвал нашу оборону (${fmt(def)} против ${fmt(att)}) и унёс ${loot}.${res.lostD ? ` Погибло защитников: ${res.lostD}.` : ''} Щит на 2 ч.` : `🛡️ Мы отбили набег [${A.tag}]: оборона ${fmt(def)} против ${fmt(att)}!${res.lostD ? ` Пало защитников: ${res.lostD}.` : ''} Щит на 2 ч.`;
   flog(fa, now, win ? '🏆' : '🏳️', ta); flog(fd, now, win ? '🔥' : '🛡️', td);
   tellClan(world, A, ta, 'assault-res:' + a.id, now, notify, '⚔️'); tellClan(world, D, td, 'assault-res:' + a.id, now, notify, '🛡️');
   for (const x of [...a.att, ...a.def]) clanCredit(world, x.u, {donate: 500}, now);
@@ -137,7 +138,8 @@ const assaultView = (world, a, clan, me) => {
 function targets(world, clan, f, now) {
   const busy = new Set(rows(world, 'ae_clan_assaults').filter(a => !a.done).map(a => String(a.to)));
   return rows(world, 'clans').filter(c => !same(c.id, clan.id) && membersOf(world, c).length).map(c => {
-    const g = fortOf(world, c.id), hall = lv(g, 'hall'), shield = g?.shield && Date.parse(g.shield) > now ? g.shield : null;
+    const g = fortOf(world, c.id); if (g?.shield && Date.parse(g.shield) > now + SHIELD) g.shield = iso(now + SHIELD);
+    const hall = lv(g, 'hall'), shield = g?.shield && Date.parse(g.shield) > now ? g.shield : null;
     const def = g ? defenseOf(world, c, g, now) : 0, exact = lv(f, 'tower') >= 1;
     return {id: c.id, tag: c.tag, name: c.name, emblem: metaOf(world, c).emblem, level: Number(c.level) || 1, members: membersOf(world, c).length, hall, shield, busy: busy.has(String(c.id)),
       def: exact ? def : null, defRange: exact ? null : [Math.round(def * 0.7 / 100) * 100, Math.round(def * 1.3 / 100) * 100], walls: lv(g, 'walls'), guards: g ? guardCount(g) : 0,
@@ -304,7 +306,7 @@ export function handleFort(world, path, method, body, me, now, notify) {
     if (f.atk_at && Date.parse(f.atk_at) + COOLDOWN > now) return fail(`Войска отдыхают после набега: ещё ${Math.ceil((Date.parse(f.atk_at) + COOLDOWN - now) / HOUR)} ч.`);
     if (rows(world, 'ae_clan_assaults').some(a => !a.done && same(a.from, clan.id))) return fail('Набег уже собирается.');
     const D = rows(world, 'clans').find(c => same(c.id, body.clanId)); if (!D || same(D.id, clan.id)) return fail('Клан не найден.', 404);
-    const fd = fortOf(world, D.id); if (lv(fd, 'hall') < 1) return fail('У этого клана нет Цитадели — он под защитой короны.');
+    const fd = fortOf(world, D.id); if (fd?.shield && Date.parse(fd.shield) > now + SHIELD) fd.shield = iso(now + SHIELD); if (lv(fd, 'hall') < 1) return fail('У этого клана нет Цитадели — он под защитой короны.');
     if (fd.shield && Date.parse(fd.shield) > now) return fail('Клан под щитом после недавнего набега.');
     if (rows(world, 'ae_clan_assaults').some(a => !a.done && same(a.to, D.id))) return fail('На этот клан уже идёт набег.');
     const a = {id: crypto.randomUUID(), from: clan.id, to: D.id, at: iso(now), ends: iso(now + MUSTER), att: [{u: String(me), name: nameOf(p), pw: heroPw(world, me)}], def: [], done: false};
