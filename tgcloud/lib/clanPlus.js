@@ -218,6 +218,8 @@ export function raidTurn(world, me, run, action, skillId, item) {
     for (const g of gemProcs({atk: h.atk}, foe, kit)) run.log.push(g);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.06));
   }
+  // a companion at the hero's side (wandering bosses): strikes every turn
+  if (run.comp && foeHp() > 0) { const cd = hitFoe(Math.max(0.05, (run.comp.atk || 0) * 0.8 / Math.max(1, h.atk))); run.log.push(`🛡️ ${run.comp.name} бьёт: −${cd}`); }
   if (run.vampTurn) run.log.push(`🩸 Вампиризм: +${run.vampTurn} HP`);
   if (foe.dots?.length) { let t = 0; for (const d of foe.dots) { t += Math.round(d.per * AR); d.left--; } foe.dots = foe.dots.filter(d => d.left > 0); if (t) { run.dealt = Math.min(run.bossHp0, run.dealt + t); run.log.push(`🩸 Эффекты: −${t}`); } }
   run.turn++;
