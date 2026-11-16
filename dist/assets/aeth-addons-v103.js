@@ -2755,12 +2755,12 @@
   const pbar = (cur, max, label, cls = '') => h('div', {class: 'ae-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
   function openClanHQ(startTab = 'main') {
     if (startTab === 'fort') firstStory('fortress');
-    let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '', fort = null, fortTab = 'build', tgts = null;
+    let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '', fort = null, fortTab = 'build', tgts = null, lands = null, landTab = 'mine', landSel = null, govPick = false, citadels = null;
     const fortCall = async (path, body) => { try { fort = await api('/api/ae-clanx/fort' + path, 'POST', body); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } rer(); };
     const load = async () => { try { d = await api('/api/ae-clanx'); clanX = d; clanXAt = Date.now(); err = ''; } catch (e) { err = cleanError(e); } rer(); };
     const rer = () => { if (openPanelState === st) st.rerender(); };
     const loadTab = async t => {
-      try { if (t === 'fort') { fort = await api('/api/ae-clanx/fort'); if (fortTab === 'raid') tgts = (await api('/api/ae-clanx/fort/targets')).targets; } if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
+      try { if (t === 'lands') { lands = await api('/api/ae-clanx/lands'); if (landTab === 'mine' && !lands.owned) landTab = 'take'; } if (t === 'fort') { fort = await api('/api/ae-clanx/fort'); if (fortTab === 'raid') tgts = (await api('/api/ae-clanx/fort/targets')).targets; } if (t === 'members') mem = await api('/api/ae-clanx/members'); if (t === 'top') topD = await api('/api/ae-clanx/top'); if (t === 'requests') reqs = (await api('/api/ae-clanx/requests')).requests; } catch (e) { toast(cleanError(e)); }
       rer();
     };
     const go = t => { tab = t; rer(); loadTab(t); if (t === 'fort') firstStory('fortress'); };
@@ -2834,6 +2834,108 @@
         for (const l of F.log) body.append(h('div', {class: 'ae-fort-log'}, h('span', {}, l.icon), h('div', {class: 'ae-grow'}, l.text, h('small', {}, new Date(l.at).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})))));
       }
     }
+    // ---------- lands: capture fortresses, hold them with squads and a governor, build them for income ----------
+    const landCall = async (path, body, okText) => { try { const r = await api('/api/ae-clanx/lands' + path, 'POST', body); lands = r;
+        if (r.hit) { sfx.play(r.hit.captured ? 'coins' : 'hit', 0.5); if (r.hit.captured) bigBanner('🚩 Земля захвачена!', true); else toast(`⚔️ Штурм: −${fmt(r.hit.dmg)} обороны${r.hit.lost ? ` · пало защитников: ${r.hit.lost}` : ''}`); }
+        else { sfx.play('coins', 0.4); if (okText) toast(okText); } } catch (e) { toast(cleanError(e)); } rer(); };
+    const tierRom = ['', 'I', 'II', 'III', 'IV'];
+    const incText = i => [i.gold && `+${fmt(i.gold)} 🪙`, i.silver && `+${fmt(i.silver)} 🥈`, i.ore && `+${fmt(i.ore)} руды`].filter(Boolean).join(' · ') || '—';
+    const SPEC_IMG = {gold: '/assets/fort/fort-vault.webp', mine: '/assets/items/sprites/iron-ore.webp', bastion: '/assets/fort/fort-walls.webp'};
+    const landPic = (x, cls = 'ae-land-pic') => h('span', {class: cls}, h('img', {src: x.img, alt: '', loading: 'lazy'}), h('em', {}, tierRom[x.tier]));
+    const ownerChip = x => x.owner ? h('span', {class: 'ae-land-owner' + (x.mine ? ' is-mine' : ' is-foe')}, `${x.owner.emblem || '🛡️'} [${x.owner.tag}]`) : h('span', {class: 'ae-land-owner is-free'}, '🏳️ Ничья');
+    function attackBtn(x, wide) {
+      const L = lands, why = x.mine ? 'Наша' : x.shield ? `🛡️ ${untilText(x.shield)}` : L.owned >= L.limit ? `Лимит ${L.owned}/${L.limit}` : !L.hits.left ? 'Штурмы завтра' : '';
+      return h('button', {type: 'button', class: 'ae-btn ' + (why ? '' : 'ae-primary') + (wide ? ' ae-wide' : ''), disabled: !!why, onclick: e => { e.stopPropagation(); landCall('/attack', {id: x.id}); }}, why || (wide ? `⚔️ Штурмовать (ваш удар ≈ ${fmt(L.myPw)})` : '⚔️ Штурм'));
+    }
+    function landCard(x) {
+      return h('div', {class: 'ae-land' + (x.mine ? ' is-mine' : ''), onclick: () => { landSel = x.id; govPick = false; rer(); }},
+        landPic(x),
+        h('div', {class: 'ae-grow ae-land-mid'}, h('div', {class: 'ae-land-title'}, h('b', {}, x.name), ownerChip(x)),
+          h('div', {class: 'ae-sub'}, `${x.tierName} · ${x.owner ? `${x.count}/${x.cap} воинов${x.gov ? ' · наместник' : ''}` : `доход ${fmt(x.baseIncome)}+ 🪙/ч после захвата`}`),
+          pbar(x.def, x.max, `🛡️ ${fmt(x.def)} / ${fmt(x.max)}`, x.mine ? 'is-good' : 'is-foe'),
+          x.mine ? h('div', {class: 'ae-land-inc'}, x.spec ? `${lands.specs[x.spec].icon} ${lands.specs[x.spec].name} ${x.specLvl} ур. · ` : '⚪ Без постройки · ', incText(x.income), ' в час') : ''),
+        x.mine ? h('span', {class: 'ae-coop-go'}, '›') : attackBtn(x));
+    }
+    function landSheet(body, x) {
+      const L = lands, T = L.treasury;
+      body.append(h('button', {type: 'button', class: 'ae-btn ae-land-back', onclick: () => { landSel = null; govPick = false; rer(); }}, '‹ Все земли'));
+      body.append(h('div', {class: 'ae-land-hero', style: `background-image:url("${x.img}")`}, h('div', {},
+        h('small', {}, `${x.tierName} ${tierRom[x.tier]}`), h('b', {}, x.name), h('div', {}, ownerChip(x), x.shield ? h('span', {class: 'ae-land-owner'}, `🛡️ защита ${untilText(x.shield)}`) : ''))));
+      body.append(pbar(x.def, x.max, `🛡️ Оборона ${fmt(x.def)} / ${fmt(x.max)} · восстанавливается 2% в час`, x.mine ? 'is-good' : 'is-foe'));
+      if (!x.mine) {
+        body.append(h('div', {class: 'ae-land-facts'}, h('div', {}, h('small', {}, 'Гарнизон'), h('b', {}, x.owner ? `${x.count}/${x.cap}` : 'стража короны')), h('div', {}, h('small', {}, 'Наместник'), h('b', {}, x.gov ? x.gov.name : '—')),
+          h('div', {}, h('small', {}, 'Доход после захвата'), h('b', {}, `${fmt(x.baseIncome)}+ 🪙/ч`))));
+        body.append(attackBtn(x, true));
+        body.append(h('p', {class: 'ae-sub'}, `Штурмуют все участники клана: каждый удар снимает часть обороны${x.owner ? ' и убивает часть гарнизона' : ''}. Когда оборона падёт до нуля — земля ваша. У каждого ${L.hits.max} штурма в день (осталось ${L.hits.left}). Оборона восстанавливается 2% в час — бейте вместе.`));
+        return;
+      }
+      // income & building
+      body.append(h('h3', {class: 'ae-h3'}, `🏗️ Постройка · доход ${incText(x.income)} в час`));
+      body.append(h('div', {class: 'ae-land-specs'}, Object.entries(L.specs).map(([k, sp]) => { const cur = x.spec === k, lvl = cur ? x.specLvl : 0, nextCost = cur ? x.next : null;
+        return h('button', {type: 'button', class: 'ae-land-spec' + (cur ? ' is-on' : ''), disabled: !L.spend || (cur && !x.next), onclick: () => {
+          const cost = cur ? x.next : null; const msg = cur ? `Улучшить «${sp.name}» до ${x.specLvl + 1} ур.?` : x.spec ? `Перестроить землю в «${sp.name}»? Текущая постройка (${L.specs[x.spec].name} ${x.specLvl} ур.) будет снесена.` : `Построить «${sp.name}»?`;
+          if (confirm(msg + ' Оплата из казны.')) landCall('/spec', {id: x.id, spec: k}, `${sp.icon} ${sp.name}: готово!`); }},
+          h('img', {src: SPEC_IMG[k], alt: ''}), h('b', {}, `${sp.icon} ${sp.name}`), h('small', {}, sp.desc),
+          h('span', {class: 'ae-land-pips'}, Array.from({length: L.specMax}, (_, i) => h('i', {class: i < lvl ? 'is-on' : ''}))),
+          h('em', {}, cur ? (x.next ? `⬆️ ${fmt(x.next)} 🪙` : 'Максимум') : x.spec ? 'Перестроить' : 'Построить')); })));
+      if (!L.spend) body.append(h('p', {class: 'ae-sub'}, 'Строить и нанимать могут глава, офицеры и казначей.'));
+      // garrison squads
+      body.append(h('h3', {class: 'ae-h3'}, `⚔️ Гарнизон · ${x.count}/${x.cap} воинов`));
+      for (const u of L.units) { const n = x.troops.find(t => t.k === u.k)?.n || 0, price = Math.round(u.hire * 0.6), free = x.cap - x.count;
+        const btn = q => h('button', {type: 'button', class: 'ae-btn' + (q === 10 ? ' ae-primary' : ''), disabled: !L.spend || !u.open || free <= 0 || T.gold < price * Math.min(q, free), onclick: () => landCall('/hire', {id: x.id, kind: u.k, n: q}, `${u.icon} Отряд нанят`)}, `+${Math.min(q, Math.max(1, free))}`, h('small', {}, `${fmt(price * Math.min(q, Math.max(1, free)))} 🪙`));
+        body.append(h('div', {class: 'ae-land-unit' + (u.open ? '' : ' is-locked')}, h('img', {src: `/assets/fort/guard-${u.k}.webp`, alt: ''}),
+          h('div', {class: 'ae-grow'}, h('b', {}, `${u.name} `, h('span', {class: 'ae-land-n'}, `×${n}`)), h('small', {}, u.open ? `сила ${fmt(u.pw)} за воина` : `🔒 Казармы ${u.need} ур. в Крепости`)),
+          u.open ? h('div', {class: 'ae-land-hire'}, btn(10), free > 10 ? btn(50) : '') : ''));
+      }
+      // governor
+      body.append(h('h3', {class: 'ae-h3'}, '🧭 Наместник'));
+      if (x.gov && !govPick) body.append(h('div', {class: 'ae-land-gov'}, h('img', {src: x.gov.img, alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, x.gov.name), h('small', {}, `соратник ${x.gov.ownerName} · ${x.gov.lvl} ур. · сила ${fmt(x.gov.pw)} · +10% обороны и дохода`)),
+        h('button', {type: 'button', class: 'ae-btn', onclick: () => { govPick = true; rer(); }}, 'Сменить')));
+      else if (!govPick) body.append(h('button', {type: 'button', class: 'ae-land-gov is-empty', onclick: () => { govPick = true; rer(); }}, h('span', {class: 'ae-entry-icon'}, '➕'), h('div', {class: 'ae-grow'}, h('b', {}, 'Назначить соратника наместником'), h('small', {}, 'Его сила встанет на стены, а земля даст +10% обороны и дохода'))));
+      if (govPick) {
+        if (!L.comps.length) body.append(h('p', {class: 'ae-empty'}, 'У вас нет соратников — наймите их в Казарме поселения.'));
+        for (const c of L.comps) body.append(h('button', {type: 'button', class: 'ae-land-gov', disabled: c.busy, onclick: () => { govPick = false; landCall('/governor', {id: x.id, compId: c.id}, `🧭 ${c.name} — наместник!`); }},
+          h('img', {src: c.img, alt: ''}), h('div', {class: 'ae-grow'}, h('b', {}, c.name), h('small', {}, `${c.lvl} ур. · сила ${fmt(c.pw)}${c.busy ? ' · уже управляет землёй' : ''}`)), h('span', {class: 'ae-coop-go'}, c.busy ? '' : '›')));
+        body.append(h('div', {class: 'ae-row'}, x.gov ? h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => { govPick = false; landCall('/governor', {id: x.id, compId: null}, 'Наместник снят'); }}, 'Снять наместника') : '',
+          h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => { govPick = false; rer(); }}, 'Отмена')));
+      }
+      if (x.log.length) { body.append(h('h3', {class: 'ae-h3'}, '📜 Хроника'));
+        for (const l of x.log) body.append(h('div', {class: 'ae-fort-log'}, h('span', {}, l.icon), h('div', {class: 'ae-grow'}, l.text, h('small', {}, new Date(l.at).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}))))); }
+    }
+    function landsBody(body) {
+      if (!lands) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const L = lands, sel = landSel && L.lands.find(x => x.id === landSel);
+      if (sel) return landSheet(body, sel);
+      body.append(h('div', {class: 'ae-land-sum'},
+        h('div', {}, h('small', {}, 'Земли'), h('b', {}, `🏰 ${L.owned}/${L.limit}`)),
+        h('div', {}, h('small', {}, 'Доход в час'), h('b', {class: 'ae-good'}, L.owned ? incText(L.income) : '—')),
+        h('div', {}, h('small', {}, 'Ваши штурмы'), h('b', {}, `⚔️ ${L.hits.left}/${L.hits.max}`))));
+      body.append(h('details', {class: 'ae-land-help'}, h('summary', {}, '❓ Как это работает'),
+        h('p', {}, '1. Захват: все участники штурмуют крепость (3 штурма в день у каждого). Оборона падает до нуля — земля ваша, и 6 часов её нельзя отбить.'),
+        h('p', {}, '2. Защита: нанимайте отряды воинов (по 10 и 50) и назначьте наместника — соратника, который стоит на стенах.'),
+        h('p', {}, '3. Доход: постройте Монетный двор (золото), Рудник (серебро и руда) или Бастион (оборона). Доход каждый час идёт в казну.'),
+        h('p', {}, `4. Лимит земель растёт с уровнем клана: +1 каждые 3 уровня (сейчас ${L.limit}). Чужие цитадели можно грабить набегом.`)));
+      const mine = L.lands.filter(x => x.mine), take = L.lands.filter(x => !x.mine);
+      const sub = [['mine', `🏰 Наши · ${mine.length}`], ['take', '⚔️ Захват'], ['cit', '🏯 Цитадели']];
+      body.append(h('div', {class: 'ae-tabs'}, sub.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (landTab === k ? ' is-on' : ''), onclick: () => { landTab = k; rer();
+        if (k === 'cit') api('/api/ae-clanx/fort/targets').then(r => { citadels = r.targets; rer(); }, e => { citadels = []; toast(cleanError(e)); }); }}, l))));
+      if (landTab === 'mine') {
+        if (!mine.length) body.append(h('div', {class: 'ae-card ae-land-empty'}, h('b', {}, 'У клана пока нет земель'), h('p', {class: 'ae-sub'}, 'Начните с застав I уровня — их оборона самая низкая.'), h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { landTab = 'take'; rer(); }}, '⚔️ Выбрать цель')));
+        for (const x of mine) body.append(landCard(x));
+      }
+      if (landTab === 'take') for (const x of take.sort((a, b) => a.tier - b.tier || a.def - b.def)) body.append(landCard(x));
+      if (landTab === 'cit') {
+        body.append(h('p', {class: 'ae-sub'}, 'Цитадели других кланов можно грабить: глава или офицер объявляет набег, 30 минут собирается отряд, победа приносит до 25% их казны. Нужна своя Цитадель в Крепости клана.'));
+        if (!citadels) body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+        else if (!citadels.length) body.append(h('p', {class: 'ae-empty'}, 'Целей пока нет: другие кланы ещё не построили Цитадель.'));
+        else for (const c of citadels) body.append(h('div', {class: 'ae-land'}, h('span', {class: 'ae-land-pic'}, h('img', {src: '/assets/fort/fort-hall.webp', alt: ''})),
+          h('div', {class: 'ae-grow ae-land-mid'}, h('div', {class: 'ae-land-title'}, h('b', {}, `${c.emblem} [${c.tag}] ${c.name}`)), h('div', {class: 'ae-sub'}, `ур. ${c.level} · ${c.members} уч. · защитников ${c.guards}`),
+            h('div', {class: 'ae-sub'}, c.def != null ? `🛡️ ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙` : `🛡️ ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])}`)),
+          c.shield ? h('span', {class: 'ae-sub'}, `🛡️ ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : !L.lead ? h('span', {class: 'ae-sub'}, 'набег объявляет глава') : !L.hasCitadel ? h('span', {class: 'ae-sub'}, 'нужна Цитадель') :
+            h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async () => { if (!confirm(`Объявить набег на [${c.tag}] «${c.name}»? 30 минут на сбор отряда, их клан будет предупреждён.`)) return;
+              try { await api('/api/ae-clanx/fort/assault', 'POST', {clanId: c.id}); toast('⚔️ Набег объявлен! Сбор отряда — в Крепости клана.'); go('fort'); } catch (e) { toast(cleanError(e)); } }}, '⚔️ Набег')));
+      }
+    }
     const fortTimer = setInterval(() => { if (openPanelState !== st) return clearInterval(fortTimer); if (tab === 'fort' && fort && !document.hidden) rer(); }, 30000);
     const st = openPanel('🏰 Штаб клана', body => {
       if (err) return body.append(h('p', {class: 'ae-empty'}, err));
@@ -2843,7 +2945,7 @@
       body.append(h('div', {class: 'ae-hq-head'}, h('span', {class: 'ae-hq-emblem'}, c.emblem || '🛡️'),
         h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`, place ? ' ' + MEDAL[place] : ''), h('div', {class: 'ae-sub'}, `Ур. ${c.level} · ${c.members}/${c.max} участников · вы: ${ROLE_RU[d.role] || d.role}`),
           pbar(c.xp % 1000, 1000, c.level >= 15 ? 'Максимальный уровень' : `До ур. ${c.level + 1}: ${fmt(c.xp % 1000)} / 1000 XP`, 'is-mp'))));
-      const tabs = [['main', '🏰 Штаб'], ['fort', '🏯 Крепость'], ['members', '📊 Вклад'], ['top', '🏆 Рейтинг'], ...(officer ? [['requests', `📨 Заявки${d.requests ? ' ' + d.requests : ''}`], ['settings', '⚙️']] : [])];
+      const tabs = [['main', '🏰 Штаб'], ['lands', '🗺️ Земли'], ['fort', '🏯 Крепость'], ['members', '📊 Вклад'], ['top', '🏆 Рейтинг'], ...(officer ? [['requests', `📨 Заявки${d.requests ? ' ' + d.requests : ''}`], ['settings', '⚙️']] : [])];
       body.append(h('div', {class: 'ae-tabs'}, tabs.map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => go(k)}, l))));
       if (tab === 'main') {
         const b = d.bonus;
@@ -2864,6 +2966,7 @@
           pbar(r.hp, r.max, `${fmt(r.hp)} / ${fmt(r.max)} HP`, 'is-foe'),
           h('button', {class: 'ae-btn ae-primary ae-wide', type: 'button', disabled: (!r.run && (r.doneToday || r.hp <= 0)), onclick: () => { closePanel(); openClanRaid(); }},
             r.run ? (r.run.status === 'active' ? '⚔️ Продолжить бой' : '🎁 Итоги боя') : r.hp <= 0 ? 'Страж повержен' : r.doneToday ? 'Бой уже был сегодня' : '⚔️ В бой со Стражем')));
+        body.append(h('button', {type: 'button', class: 'ae-land-entry', onclick: () => go('lands')}, h('img', {src: '/assets/regions/region-reg_dragon.webp', alt: ''}), h('span', {class: 'ae-grow'}, h('b', {}, '🗺️ Земли клана'), h('small', {}, 'Захватывайте крепости королевства — они приносят доход в казну каждый час')), h('span', {class: 'ae-coop-go'}, '›')));
         body.append(h('button', {type: 'button', class: 'ae-bag-merge ae-fort-entry', onclick: () => go('fort')}, h('span', {class: 'ae-entry-icon'}, '🏯'), h('span', {class: 'ae-grow'}, h('b', {}, 'Крепость клана'), h('small', {}, 'Здания до 10 ур., защитники, охота на боссов и набеги на другие кланы')), h('span', {class: 'ae-coop-go'}, '›')));
         const w = d.war;
         body.append(h('div', {class: 'ae-card ae-hq-war'}, h('b', {}, '⚔️ Война кланов'), w && w.foe ? [
@@ -2879,6 +2982,7 @@
         body.append(h('p', {class: 'ae-sub'}, '🤝 Если в кооп-подземелье с вами соклановец — награда +20% и выше шанс осколка.'));
       }
       if (tab === 'fort') fortBody(body);
+      if (tab === 'lands') landsBody(body);
       if (tab === 'members') {
         if (!mem) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
         if (mem.mvp) body.append(h('div', {class: 'ae-pill'}, `👑 Лучший прошлой недели: ${mem.mvp.name} — ${fmt(mem.mvp.pts)} очков`));
@@ -5245,6 +5349,30 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-land-entry{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:10px;border-radius:14px;border:1px solid #f0cf7a88;background:linear-gradient(120deg,#3a2a12f0,#14100af0);color:#f3e6c8;text-align:left;box-shadow:0 0 14px #f0cf7a22}
+.ae-land-entry img{width:62px;height:62px;border-radius:10px;object-fit:cover;object-position:center;clip-path:inset(0 round 10px);transform:scale(1.4);border:1px solid #f0cf7a66}.ae-land-entry b{font:700 15px Georgia,serif;color:#ffe6a8}.ae-land-entry small{display:block;font-size:12px;opacity:.85;margin-top:2px}
+.ae-land-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}.ae-land-sum>div{padding:8px;border-radius:12px;background:#0003;border:1px solid #ffffff1f;text-align:center}
+.ae-land-sum small{display:block;font-size:10.5px;opacity:.75}.ae-land-sum b{font-size:13px}
+.ae-land-help{margin:0 0 8px;padding:6px 10px;border-radius:10px;background:#0002;border:1px dashed #ffffff26;font-size:12.5px}.ae-land-help summary{cursor:pointer;font-weight:700}.ae-land-help p{margin:6px 0}
+.ae-land{display:flex;align-items:center;gap:10px;padding:9px;margin-bottom:8px;border-radius:14px;border:1px solid #ffffff22;background:#00000038;cursor:pointer}
+.ae-land.is-mine{border-color:#4ade8077;background:linear-gradient(120deg,#14532d33,#0003)}
+.ae-land-pic{position:relative;flex:0 0 64px;width:64px;height:64px;border-radius:12px;overflow:hidden;border:1px solid #ffffff33}.ae-land-pic img{width:100%;height:100%;object-fit:cover;transform:scale(1.45)}
+.ae-land-pic em{position:absolute;left:3px;top:3px;font:800 10px/1 Georgia,serif;font-style:normal;padding:2px 5px;border-radius:6px;background:#000c;color:#ffe6a8;border:1px solid #f0cf7a88}
+.ae-land-mid{min-width:0;display:flex;flex-direction:column;gap:3px}.ae-land-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ae-land-title b{font-size:14px}
+.ae-land-owner{font:700 10.5px system-ui;padding:1px 7px;border-radius:999px;background:#0006;border:1px solid #ffffff33;white-space:nowrap}.ae-land-owner.is-mine{color:#86efac;border-color:#4ade8088}.ae-land-owner.is-foe{color:#fca5a5;border-color:#ef444488}.ae-land-owner.is-free{color:#e5e7eb}
+.ae-land-inc{font-size:11.5px;color:#fde68a}.ae-bar.is-good i{background:linear-gradient(90deg,#22c55e,#15803d)}
+.ae-land-back{margin-bottom:8px}.ae-land-hero{height:150px;border-radius:14px;background:center 45%/165% auto no-repeat;background-color:#111;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:8px;border:1px solid #f0cf7a66}
+.ae-land-hero>div{width:100%;padding:10px 12px;background:linear-gradient(transparent,#000d 45%);color:#fff}.ae-land-hero small{font:700 11px system-ui;letter-spacing:.05em;color:#fde68a;text-transform:uppercase}.ae-land-hero b{display:block;font:700 19px Georgia,serif;margin:2px 0 4px}.ae-land-hero div div{display:flex;gap:6px;flex-wrap:wrap}
+.ae-land-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.ae-land-facts>div{padding:8px;border-radius:10px;background:#0003;text-align:center}.ae-land-facts small{display:block;font-size:10.5px;opacity:.75}.ae-land-facts b{font-size:12.5px}
+.ae-land-specs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ae-land-spec{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:12px;border:1px solid #ffffff26;background:#0003;color:inherit;text-align:center}
+.ae-land-spec img{width:42px;height:42px;object-fit:contain}.ae-land-spec b{font-size:12px}.ae-land-spec small{font-size:10.5px;opacity:.8;line-height:1.25}.ae-land-spec em{font-style:normal;font-size:11px;font-weight:700;color:#fde68a}
+.ae-land-spec.is-on{border-color:#f0cf7a;background:#f0cf7a22;box-shadow:0 0 10px #f0cf7a33}.ae-land-pips{display:flex;gap:2px}.ae-land-pips i{width:9px;height:5px;border-radius:2px;background:#ffffff26}.ae-land-pips i.is-on{background:#f0cf7a}
+.ae-land-unit{display:flex;align-items:center;gap:8px;padding:7px;margin-bottom:6px;border-radius:12px;background:#0003;border:1px solid #ffffff1f}.ae-land-unit img{width:46px;height:46px;border-radius:10px;object-fit:cover}
+.ae-land-unit b{font-size:13px}.ae-land-unit small{display:block;font-size:11px;opacity:.8}.ae-land-n{color:#fde68a}.ae-land-unit.is-locked{opacity:.55}
+.ae-land-hire{display:flex;gap:4px}.ae-land-hire .ae-btn{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:4px 6px;line-height:1.15}.ae-land-hire small{font-size:9.5px;opacity:.85}
+.ae-land-gov{display:flex;align-items:center;gap:10px;width:100%;padding:8px;margin-bottom:6px;border-radius:12px;background:#0003;border:1px solid #ffffff26;color:inherit;text-align:left}.ae-land-gov img{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f0cf7a88}
+.ae-land-gov b{font-size:13px}.ae-land-gov small{display:block;font-size:11px;opacity:.8}.ae-land-gov.is-empty{border-style:dashed}.ae-land-empty{text-align:center}
+html[data-interface=fantasy] .ae-land:not(.is-mine),html[data-interface=fantasy] .ae-land-sum>div,html[data-interface=fantasy] .ae-land-unit,html[data-interface=fantasy] .ae-land-gov,html[data-interface=fantasy] .ae-land-spec,html[data-interface=fantasy] .ae-land-facts>div{background:#1b150dcc}
 .ae-league{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:9px 11px;border-radius:12px;border:1px solid #f0cf7a66;background:linear-gradient(135deg,#2a2112e6,#15120ce6);color:#f3e6c8;text-align:left}
 .ae-league b{font:700 13px Georgia,serif;color:#ffe6a8}.ae-league small{display:block;font:11px system-ui;color:#d8c9aa;margin-top:3px}.ae-league-ic{font-size:26px;line-height:1}
 .ae-league-bar{display:block;height:6px;margin-top:5px;border-radius:4px;background:#0008;overflow:hidden}.ae-league-bar i{display:block;height:100%;background:linear-gradient(90deg,#f0cf7a,#d97706)}
@@ -5683,5 +5811,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();
