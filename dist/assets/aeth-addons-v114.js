@@ -5032,6 +5032,44 @@
     hint.style.display = need ? '' : 'none';
   }
   setInterval(() => { if (!document.hidden) try { paintForge(); tidyForgeHint(); } catch {} }, 1000);
+  // ---------- the workshop made clear: recipes for your land first, what you can make now on top, materials in sight ----------
+  let craftAutoLoc = false;
+  function paintCrafting() {
+    const head = [...document.querySelectorAll('main h1, main h2')].find(e => /^Крафт снаряжения/.test((e.textContent || '').trim()));
+    if (!head) { craftAutoLoc = false; return; }
+    const p = me() || {}, L = p.level || 1;
+    // 1. the long intro folds into one line
+    const intro = head.closest('.rounded-2xl, section, .ui-panel') || head.parentElement?.parentElement;
+    if (intro && !intro.dataset.aeFold) { intro.dataset.aeFold = '1'; intro.classList.add('ae-craft-intro');
+      intro.append(h('button', {type: 'button', class: 'ae-craft-more', onclick: e => { intro.classList.toggle('is-open'); e.currentTarget.textContent = intro.classList.contains('is-open') ? '▴ Свернуть' : 'ℹ️ Как устроено создание'; }}, 'ℹ️ Как устроено создание')); }
+    // 2. the recipes of the hero's own land (once per visit)
+    if (!craftAutoLoc) { craftAutoLoc = true; setTimeout(async () => { const trig = document.querySelector('main .selection-trigger'); if (!trig || !/с \d+ ур/.test(trig.textContent || '')) return;
+      const curLv = Number((/с (\d+) ур/.exec(trig.textContent) || [])[1]) || 1; trig.click(); await new Promise(r => setTimeout(r, 250));
+      const opts = [...document.querySelectorAll('.selection-option')].map(o => ({o, lv: Number((/с (\d+) ур/.exec(o.textContent || '') || [])[1]) || 0})).filter(x => x.lv <= L).sort((a, b) => b.lv - a.lv);
+      if (opts[0] && opts[0].lv > curLv) opts[0].o.click(); else document.querySelector('.selection-backdrop')?.click(); }, 300); }
+    // 3. recipe cards: ready first, then «almost», materials always open
+    const cards = [...document.querySelectorAll('main details')].filter(d => /Что нужно для крафта/.test(d.textContent || '')).map(d => ({d, card: d.closest('section, .rounded-xl, .rounded-2xl, article, li')})).filter(x => x.card);
+    if (!cards.length) return;
+    const list = cards[0].card.parentElement; list.classList.add('ae-craft-list');
+    let ready = 0, almost = 0;
+    for (const {d, card} of cards) {
+      if (!d.dataset.aeOpened) { d.dataset.aeOpened = '1'; d.open = true; }
+      const m = /(\d+)\s*\/\s*(\d+)\s*материал/.exec(d.querySelector('summary')?.textContent || ''), have = m ? +m[1] : 0, need = m ? +m[2] : 1;
+      const btn = [...card.querySelectorAll('button')].find(b => /^Создать/.test((b.textContent || '').trim()));
+      const state = btn && !btn.disabled ? 'ready' : need - have <= 1 ? 'almost' : 'far';
+      if (state === 'ready') ready++; else if (state === 'almost') almost++;
+      if (card.dataset.aeCraft !== state) { card.dataset.aeCraft = state; card.style.order = state === 'ready' ? 0 : state === 'almost' ? 1 : 2; }
+    }
+    let sum = list.parentElement.querySelector(':scope > [data-ae-craft-sum]');
+    const txt = `${ready}|${almost}`;
+    if (!sum || sum.dataset.v !== txt) {
+      const n = h('div', {class: 'ae-craft-sum', 'data-ae-craft-sum': '1', 'data-v': txt},
+        h('div', {}, h('b', {class: ready ? 'ae-good' : ''}, `✅ Можно создать: ${ready}`), h('span', {}, `🔸 Не хватает одного материала: ${almost}`)),
+        h('small', {}, 'Материалы падают с монстров земли и добываются в шахте. Нажмите на материал — подскажем, где его взять.'));
+      if (sum) sum.replaceWith(n); else list.before(n);
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintCrafting(); } catch {} }, 1000);
   // ---------- painted UI icons instead of emoji in our menus, tiles and buttons ----------
   const UI_ICON = {'🔔': 'bell', '✉️': 'letter', '📨': 'letter', '📩': 'letter', '🎁': 'chest', '🔨': 'gavel', '⚔️': 'sword', '🔍': 'magnifier', '🔎': 'magnifier', '🐾': 'paw', '🎟️': 'ticket', '🎟': 'ticket',
     '📯': 'horn', '📜': 'scroll', '🤝': 'hands', '👥': 'hooded', '📖': 'spellbook', '💬': 'speech', '🏆': 'trophy', '🌕': 'moon', '📅': 'calendar', '🗓️': 'calendar'};
@@ -5650,6 +5688,11 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-craft-intro:not(.is-open) p,.ae-craft-intro:not(.is-open) details{display:none!important}.ae-craft-more{display:block;margin-top:6px;padding:4px 0;font-size:12px;color:#fde68a;background:none;border:0;text-align:left}
+.ae-craft-list{display:flex!important;flex-direction:column;gap:8px}.ae-craft-list>*{margin:0!important}
+.ae-craft-list>[data-ae-craft=ready]{border-color:#22c55e!important;box-shadow:0 0 10px #22c55e44}.ae-craft-list>[data-ae-craft=ready] button:not(:disabled){background:linear-gradient(#22c55e,#15803d)!important;color:#fff!important;border-color:#86efac!important}
+.ae-craft-list>[data-ae-craft=almost]{border-color:#f59e0b88!important}.ae-craft-list>[data-ae-craft=far]{opacity:.8}
+.ae-craft-sum{display:flex;flex-direction:column;gap:3px;padding:9px 11px;margin:6px 0 8px;border-radius:12px;border:1px solid #f0cf7a55;background:#f0cf7a12}.ae-craft-sum>div{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}.ae-craft-sum small{font-size:11.5px;opacity:.8}
 .ae-forge-box{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px}.ae-forge-how{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:12px;border:1px solid #f0cf7a55;background:#f0cf7a12;font-size:12px}.ae-forge-how b{font-size:13px;color:#ffe6a8;margin-bottom:2px}
 .ae-forge-how span::before{content:'• ';opacity:.6}.ae-forge-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .ae-forge-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 5px;border-radius:12px;border:2px solid #6b5631;background:#0f1512;color:inherit;min-width:0}

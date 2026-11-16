@@ -1,0 +1,14 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); delete save.player.firstJourney; delete save.player.firstJourneyDeparture; save.player.gold = 50000; save.player.inventory.push(...[['Волчья шкура',4],['Уголь',6],['Мясо вепря',3],['Медная руда',8],['Гоблинский механизм',2]].map(([n,c],i)=>({id:'m'+i,templateId:'mat'+i,name:n,type:'material',rarity:'common',level:1,upgradeLevel:0,stats:{},icon:'🪨',sellPrice:1,disassembleYield:{},stackCount:c}))); save.player.silver = 20000; Object.assign(save.player, {level: 7, royalBriefingStep: 99, worldPlace: 'settlement'}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture; ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = process.argv[2] || 'modern';
+const s = await launch({localState: ls, setupWorld: w => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(8000);
+for (let k = 0; k < 6; k++) { await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^(Понятно|Позже|Закрыть|В бой, герой!?|Продолжить путь)$/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(400); }
+const st = process.argv[2] || 'modern';
+await p.evaluate(() => [...document.querySelectorAll('nav button, nav a, footer button')].find(b => /Поселение/.test(b.textContent))?.click()); await p.waitForTimeout(1200);
+await p.evaluate(() => document.querySelector('[data-settlement-place="crafting"], [data-settlement-place="workshop"]')?.click() || [...document.querySelectorAll('main button, main [role=button]')].find(b => /^Мастерская/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(2500);
+await p.waitForTimeout(1500); console.log('SUM', await p.evaluate(() => document.querySelector('[data-ae-craft-sum]')?.innerText.replace(/\n/g,' | '), ), await p.evaluate(() => document.querySelector('main .selection-trigger')?.textContent)); console.log('DOM', await p.evaluate(() => { const d = [...document.querySelectorAll('main details')].find(x => /Что нужно для крафта/.test(x.textContent)); if (!d) return 'none'; d.open = true; const card = d.closest('article, section, li, .rounded-2xl, .rounded-xl'); return 'CARD ' + card?.tagName + '.' + card?.className + ' PARENT ' + card?.parentElement?.className + ' || ' + d.outerHTML.slice(0, 1500); }));
+console.log('TXT', (await p.evaluate(() => document.querySelector('main')?.innerText || '')).replace(/\n+/g, ' | ').slice(0, 2500));
+await p.evaluate(() => window.scrollTo(0, 0)); for (let i = 0; i < 3; i++) { await p.screenshot({path: `craft-${st}-${i}.png`}); await p.evaluate(() => window.scrollBy(0, 700)); await p.waitForTimeout(400); }
+await s.close(); process.exit(0);
+
