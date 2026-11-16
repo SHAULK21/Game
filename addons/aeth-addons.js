@@ -1582,6 +1582,7 @@
     let btn = tools.querySelector('[data-ae-bag-merge]');
     if (!btn) {
       btn = h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-bag-merge': '1', onclick: openMerge}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}), h('small', {})), h('span', {class: 'ae-coop-go'}, '›'));
+      tools.append(h('button', {type: 'button', class: 'ae-bag-merge ae-forge-entry', onclick: () => openForge()}, h('span', {class: 'ae-entry-icon'}, '⚒️'), h('span', {class: 'ae-grow'}, h('b', {}, 'Заточить снаряжение'), h('small', {}, 'До +5 — без материалов и всегда успешно')), h('span', {class: 'ae-coop-go'}, '›')));
       tools.append(btn, autoEquipToggle(), h('button', {type: 'button', class: 'ae-bag-merge', 'data-ae-gems': '1', onclick: () => openGems()}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, 'Вставить кристалл'), h('small', {}, 'Вампиризм, крит, кровотечение… в снаряжение')), h('span', {class: 'ae-coop-go'}, '›')));
     }
     const label = n ? `Объединить одинаковые · ${n}` : 'Объединить одинаковые', sub = n ? 'Есть пары для ★ — нажмите, чтобы выбрать' : 'Пар одинаковых вещей пока нет';
@@ -4991,6 +4992,46 @@
       }
     });
   }
+  // ---------- the forge made simple: the hero's gear as tiles, «+1…+5 free of materials», one tap to pick ----------
+  async function openForge(itemName) {
+    const place = () => document.querySelector('[data-settlement-place="blacksmith"]');
+    if (!place()) { [...document.querySelectorAll('nav button, nav a')].find(b => /Поселение/.test(b.textContent || ''))?.click(); for (let i = 0; i < 14 && !place(); i++) await new Promise(r => setTimeout(r, 150)); }
+    if (!place()) return toast('Кузница — в поселении.');
+    closePanel(); place().click(); if (itemName) setTimeout(() => pickForgeItem(itemName), 700);
+  }
+  async function pickForgeItem(name) {
+    const trig = document.querySelector('main .selection-trigger'); if (!trig) return;
+    trig.click(); await new Promise(r => setTimeout(r, 250));
+    const opt = [...document.querySelectorAll('.selection-option')].find(o => (o.textContent || '').includes(name)); if (opt) opt.click(); else document.querySelector('.selection-backdrop')?.click();
+    setTimeout(() => document.querySelector('[data-ae-forge-tiles]')?.nextElementSibling?.scrollIntoView({block: 'start', behavior: 'smooth'}), 200);
+  }
+  const FORGE_SLOTS = ['weapon', 'offhand', 'helmet', 'armor', 'gloves', 'pants', 'boots', 'cloak', 'belt', 'amulet', 'ring', 'artifact'];
+  function paintForge() {
+    const head = [...document.querySelectorAll('main h1, main h2')].find(e => /Кузниц/.test(e.textContent || '')); const p = me();
+    if (!head || !p) return;
+    const anchor = [...document.querySelectorAll('main span, main div, main h2, main h3')].find(e => !e.childElementCount && /^(Выберите предмет( для улучшения)?:?)$/.test((e.textContent || '').trim()));
+    const host = anchor?.closest('.space-y-2') || anchor?.parentElement?.parentElement; if (!host) return;
+    const cur = (document.querySelector('main .selection-trigger')?.textContent || '').trim();
+    const eq = FORGE_SLOTS.map(k => p.equipped?.[k]).filter(it => it && !it.serverOwned);
+    const sig = JSON.stringify([eq.map(i => i.id + ':' + (i.upgradeLevel || 0)), cur]);
+    let box = host.parentElement.querySelector(':scope > [data-ae-forge-tiles]');
+    if (box && box.dataset.sig === sig) return;
+    const fresh = h('div', {class: 'ae-forge-box', 'data-ae-forge-tiles': '1', 'data-sig': sig},
+      h('div', {class: 'ae-forge-how'}, h('b', {}, '⚒️ Как точить'),
+        h('span', {}, '+1…+5 — только золото и серебро, всегда успех'), h('span', {}, '+6 и выше — нужны руда и трофеи, есть шанс провала'), h('span', {}, 'Пороги +5, +10, +15, +20 не сгорают')),
+      eq.length ? h('div', {class: 'ae-forge-tiles'}, eq.map(it => { const up = it.upgradeLevel || 0, on = cur.includes(it.name);
+        return h('button', {type: 'button', class: 'ae-forge-tile' + (on ? ' is-on' : '') + (up < 5 ? ' is-easy' : ''), 'data-ae-rarity': it.rarity, onclick: () => pickForgeItem(it.name)},
+          h('img', {src: iconFor(it) || '/assets/items/sprites/sword.webp', alt: '', style: iconStyle(it)}), h('i', {class: 'ae-doll-up'}, '+' + up), up < 5 ? h('em', {}, 'легко') : '', h('small', {}, it.name)); })) : h('p', {class: 'ae-sub'}, 'Наденьте снаряжение — его можно будет заточить здесь.'),
+      eq.some(it => (it.upgradeLevel || 0) < 5) ? h('div', {class: 'ae-forge-tip'}, '💡 Вещи с меткой «легко» можно заточить до +5 прямо сейчас — без материалов.') : '');
+    if (box) box.replaceWith(fresh); else host.before(fresh);
+  }
+  // no materials needed (up to +5): hide the «ore and catalyst…» hint
+  function tidyForgeHint() {
+    const hint = [...document.querySelectorAll('main p, main div')].find(e => !e.childElementCount && /^Руда и катализатор — в шахте/.test((e.textContent || '').trim()));
+    if (!hint) return; const need = [...document.querySelectorAll('main [data-ae-src], main span, main div')].some(e => !e.childElementCount && /^[А-ЯЁа-яё ]{3,40}\s*\d+\s*\/\s*\d+$/.test((e.textContent || '').trim()));
+    hint.style.display = need ? '' : 'none';
+  }
+  setInterval(() => { if (!document.hidden) try { paintForge(); tidyForgeHint(); } catch {} }, 1000);
   // ---------- painted UI icons instead of emoji in our menus, tiles and buttons ----------
   const UI_ICON = {'🔔': 'bell', '✉️': 'letter', '📨': 'letter', '📩': 'letter', '🎁': 'chest', '🔨': 'gavel', '⚔️': 'sword', '🔍': 'magnifier', '🔎': 'magnifier', '🐾': 'paw', '🎟️': 'ticket', '🎟': 'ticket',
     '📯': 'horn', '📜': 'scroll', '🤝': 'hands', '👥': 'hooded', '📖': 'spellbook', '💬': 'speech', '🏆': 'trophy', '🌕': 'moon', '📅': 'calendar', '🗓️': 'calendar'};
@@ -5609,6 +5650,13 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-forge-box{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px}.ae-forge-how{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:12px;border:1px solid #f0cf7a55;background:#f0cf7a12;font-size:12px}.ae-forge-how b{font-size:13px;color:#ffe6a8;margin-bottom:2px}
+.ae-forge-how span::before{content:'• ';opacity:.6}.ae-forge-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ae-forge-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 5px;border-radius:12px;border:2px solid #6b5631;background:#0f1512;color:inherit;min-width:0}
+.ae-forge-tile img{width:42px;height:42px;object-fit:contain}.ae-forge-tile small{font-size:9.5px;line-height:1.15;opacity:.8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ae-forge-tile em{position:absolute;top:-6px;right:-4px;font:800 8.5px/1 system-ui;font-style:normal;padding:2px 4px;border-radius:5px;background:#15803d;color:#ecfdf5}
+.ae-forge-tile.is-on{box-shadow:0 0 0 2px #f0cf7a,0 0 12px #f0cf7a66}.ae-forge-tile[data-ae-rarity=uncommon]{border-color:#22c55e}.ae-forge-tile[data-ae-rarity=rare]{border-color:#3b82f6}.ae-forge-tile[data-ae-rarity=epic]{border-color:#a855f7}.ae-forge-tile[data-ae-rarity=legendary]{border-color:#f59e0b}
+.ae-forge-tip{font-size:12px;color:#86efac}html[data-interface=fantasy] .ae-forge-tile{background:#1b150dcc}
 .ae-doll-asc{position:absolute;top:-4px;right:-4px;font:800 9.5px/1 system-ui;font-style:normal;padding:2px 3px;border-radius:5px;background:#3b1a5ae6;color:#f0abfc;border:1px solid #c084fc88}
 .ae-doll-rar{position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);font:800 8px/1 system-ui;font-style:normal;padding:1px 4px;border-radius:4px;background:#000d;color:var(--ae-r,#cbd5e1);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
 .ae-doll-rar[data-ae-rarity=common]{--ae-r:#cbd5e1}.ae-doll-rar[data-ae-rarity=uncommon],.ae-doll-tag-r[data-ae-rarity=uncommon]{--ae-r:#4ade80}.ae-doll-rar[data-ae-rarity=rare],.ae-doll-tag-r[data-ae-rarity=rare]{--ae-r:#60a5fa}.ae-doll-rar[data-ae-rarity=epic],.ae-doll-tag-r[data-ae-rarity=epic]{--ae-r:#c084fc}

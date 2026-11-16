@@ -1,0 +1,26 @@
+[
+ {
+  "name": "upgrade-no-materials-to-5",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33.js",
+  "old": "Kn=(e,t)=>{let n=Bn(e.level);return{ore:n.ore,oreCount:3+Math.floor(t/4),trophy:e.type===`armor`||e.type===`offhand`||e.type===`helmet`?n.armorMaterial:n.weaponMaterial,trophyCount:1+Math.floor(t/8),",
+  "new": "Kn=(e,t)=>{let n=Bn(e.level);return{ore:n.ore,oreCount:t<5?0:3+Math.floor(t/4),trophy:e.type===`armor`||e.type===`offhand`||e.type===`helmet`?n.armorMaterial:n.weaponMaterial,trophyCount:t<5?0:1+Math.floor(t/8),"
+ },
+ {
+  "name": "upgrade-skip-zero-materials",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33.js",
+  "old": "d=[{name:u.ore,count:u.oreCount},{name:u.trophy,count:u.trophyCount},...u.catalyst?[{name:u.catalyst,count:u.catalystCount}]:[]];if(n.gold<s)",
+  "new": "d=[{name:u.ore,count:u.oreCount},{name:u.trophy,count:u.trophyCount},...u.catalyst?[{name:u.catalyst,count:u.catalystCount}]:[]].filter(e=>e.count>0);if(n.gold<s)"
+ },
+ {
+  "name": "forge-list-BlacksmithScreen-0Tnl48o",
+  "file": "BlacksmithScreen-0Tnl48oX-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33.js",
+  "old": "L=I?[{name:I.ore,count:I.oreCount},{name:I.trophy,count:I.trophyCount},...I.catalyst?[{name:I.catalyst,count:I.catalystCount}]:[]]:[]",
+  "new": "L=I?[{name:I.ore,count:I.oreCount},{name:I.trophy,count:I.trophyCount},...I.catalyst?[{name:I.catalyst,count:I.catalystCount}]:[]].filter(e=>e.count>0):[]"
+ },
+ {
+  "name": "forge-list-fantasy",
+  "file": "BlacksmithScreen-Clge6VBj-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33.js",
+  "old": "{name:V.ore,count:V.oreCount},{name:V.trophy,count:V.trophyCount},...V.catalyst?[{name:V.catalyst,count:V.catalystCount}]:[]]:[],U=H.every(",
+  "new": "{name:V.ore,count:V.oreCount},{name:V.trophy,count:V.trophyCount},...V.catalyst?[{name:V.catalyst,count:V.catalystCount}]:[]].filter(e=>e.count>0):[],U=H.every("
+ }
+]
