@@ -4854,11 +4854,14 @@
     if (id === 'barracks' && (p.level || 1) < 5) return ['busy', '🔒 С 5 уровня'];
     if (id === 'barracks' && (p.level || 1) >= 5 && compCount === 0) return ['ready', '🛡 Наймите соратника'];
     if (id === 'barracks' && compDue) return ['warn', '💰 Жалование'];
-    if (placeSeen()[id] !== today()) return ['new', '✨ Загляните'];
+    if (id === 'clan' && clanX?.clan && (clanX.today || []).length) { const n = clanX.today.length, rew = clanX.today.some(x => x.pri === 0);
+      return [rew ? 'ready' : 'info', `${rew ? '🎁' : '📋'} ${n} ${plural(n, 'дело', 'дела', 'дел')}`]; }
+    if (id === 'chat') { const n = chatSeen() ? Math.max(0, chatLastKnown - chatSeen()) : 0; if (n) return ['info', `💬 ${n > 9 ? '9+' : n} ${plural(n, 'новое', 'новых', 'новых')}`]; }
+    if (placeSeen()[id] !== today()) return ['new', ''];   // a small dot: not visited today
     return null;
   }
   function paintPlaceBadges() {
-    const p = me(); const tiles = document.querySelectorAll('[data-settlement-place]'); if (!p || !tiles.length) return;
+    const p = me(); const tiles = document.querySelectorAll('[data-settlement-place]'); if (!p || !tiles.length) { document.querySelectorAll('[data-ae-town-now]').forEach(e => e.remove()); return; }
     for (const t of tiles) {
       const id = t.dataset.settlementPlace, want = placeBadge(id, p), sig = want ? want.join('|') : '';
       if (!t.dataset.aeSeenHook) { t.dataset.aeSeenHook = '1'; t.addEventListener('click', () => { const s = placeSeen(); s[id] = today(); localStorage.setItem(placeSeenKey(), JSON.stringify(s)); }, true); }
@@ -4868,7 +4871,47 @@
       const [kind, text] = want; t.setAttribute('data-ae-badge-kind', kind);
       t.append(h('span', {class: 'ae-place-badge is-' + kind, title: kind === 'new' ? 'Вы ещё не заходили сюда сегодня' : text}, text));
     }
+    paintTownNow(tiles, p);
   }
+  // «Сейчас в поселении»: everything ready or urgent, in one row under the square (the tiles take two screens)
+  let townClanAt = 0;
+  function paintTownNow(tiles, p) {
+    const intro = document.querySelector('main .settlement-introduction'), host = intro?.parentElement;
+    if (!host) { document.querySelectorAll('[data-ae-town-now]').forEach(e => e.remove()); return; }
+    if (Date.now() - townClanAt > 120000) { townClanAt = Date.now(); if (Date.now() - clanXAt > 120000) loadClanX(true).then(() => { try { paintPlaceBadges(); } catch {} }); }
+    const NAMES = {quests: 'Доска поручений', clan: 'Дом клана', chat: 'Таверна', pets: 'Приют спутников', barracks: 'Казарма', fishing: 'Причал', mine: 'Шахта', arena: 'Арена', alchemy: 'Алхимик'};
+    const items = [...tiles].map(t => { const id = t.dataset.settlementPlace, b = placeBadge(id, p); return b && (b[0] === 'ready' || b[0] === 'warn' || (b[0] === 'info' && id !== 'pets')) ? {id, kind: b[0], text: b[1]} : null; }).filter(Boolean)
+      .sort((a, b) => (a.kind === 'warn' ? 0 : a.kind === 'ready' ? 1 : 2) - (b.kind === 'warn' ? 0 : b.kind === 'ready' ? 1 : 2));
+    let strip = host.nextElementSibling?.matches?.('[data-ae-town-now]') ? host.nextElementSibling : null;
+    const sig = JSON.stringify(items);
+    if (!items.length) { strip?.remove(); return; }
+    if (strip && strip.dataset.sig === sig) return;
+    const fresh = h('div', {class: 'ae-town-now', 'data-ae-town-now': '1', 'data-sig': sig}, h('b', {class: 'ae-town-now-h'}, '⚡ Сейчас в поселении'),
+      h('div', {class: 'ae-town-now-row'}, items.map(x => h('button', {type: 'button', class: 'ae-town-chip is-' + x.kind, onclick: () => { sfx.play('page'); clickPlace(x.id); }}, h('small', {}, NAMES[x.id] || ''), h('span', {}, x.text)))));
+    if (strip) strip.replaceWith(fresh); else host.after(fresh);
+  }
+  // ---------- World: «this land is below your level» hint with the game's own recommended land ----------
+  const worldHintKey = () => 'aeth_world_hint_off_' + uid();
+  function paintWorldHint() {
+    const main = document.querySelector('main'), p = me(); if (!main || !p || p.worldJourney) return;
+    const old = main.querySelector('[data-ae-world-hint]');
+    const modernCur = main.querySelector('.world-current'), fantasyCur = main.querySelector('.region-dispatch');
+    const curName = ((modernCur || fantasyCur)?.querySelector('h2, h3')?.textContent || '').trim(); if (!curName) { old?.remove(); return; }
+    const low = [...main.querySelectorAll('details')].find(d => /низких уровней/.test(d.querySelector('summary')?.textContent || ''));
+    const below = low && ([...low.querySelectorAll('strong, h3, b')].some(e => (e.textContent || '').trim() === curName) || /Вы здесь/.test(low.querySelector('summary')?.textContent || ''));
+    // the game's own «по вашему уровню» land: modern list / the fantasy card right after «Земли и рубежи»
+    const rec = [...main.querySelectorAll('button, [role=button]')].find(e => !e.closest('details, .region-dispatch, .world-current, [data-ae-world-hint]') && /Ур\.\s*\d+\s*-\s*\d+/.test(e.innerText || ''));
+    const recName = ((rec?.innerText || '').split('\n').map(x => x.trim()).filter(Boolean)[0] || ''), lv = (rec?.innerText || '').match(/Ур\.\s*(\d+)\s*-\s*(\d+)/), recLvl = lv ? `${lv[1]}–${lv[2]}` : '';
+    const off = sessionStorage.getItem(worldHintKey()) === curName;
+    if (!below || !rec || !recName || recName === curName || off) { old?.remove(); return; }
+    const sig = curName + '|' + recName; if (old?.dataset.sig === sig) return;
+    const hint = h('div', {class: 'ae-world-hint', 'data-ae-world-hint': '1', 'data-sig': sig}, h('span', {class: 'ae-world-hint-ic'}, '🧭'),
+      h('span', {class: 'ae-grow'}, h('b', {}, `«${curName.split(':')[0]}» — земля ниже вашего уровня`), h('small', {}, `Монстры ${p.level} уровня — в «${recName}»${recLvl ? ` (ур. ${recLvl})` : ''}.`)),
+      h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => { sfx.play('page'); rec.scrollIntoView({block: 'center', behavior: 'smooth'}); setTimeout(() => rec.click(), 250); }}, 'Выбрать'),
+      h('button', {type: 'button', class: 'ae-world-hint-x', 'aria-label': 'Скрыть', onclick: () => { sessionStorage.setItem(worldHintKey(), curName); hint.remove(); }}, '×'));
+    if (old) old.replaceWith(hint); else if (modernCur) modernCur.after(hint); else fantasyCur.before(hint);
+  }
+  setInterval(() => { if (!document.hidden) try { paintWorldHint(); } catch (e) { console.warn('ae world hint', e); } }, 1500);
   // The Barracks: the companions' home in the settlement (a copy of the native «Приют спутников» tile).
   function injectBarracks() {
     const pets = document.querySelector('[data-settlement-place="pets"]'); if (!pets || pets.parentElement.querySelector('[data-settlement-place="barracks"]')) return;
@@ -6237,6 +6280,22 @@ html[data-interface=fantasy] .ae-bag-sort{color:#3b2a14}html[data-interface=fant
 html[data-interface=modern] .ae-clan-today{border-color:#2b3a52;background:#0d1524}html[data-interface=modern] .ae-today-h b{color:#e2e8f0}html[data-interface=modern] .ae-today-row{background:#111a2b;border-color:#2b3a52}html[data-interface=modern] .ae-today-row.is-reward{border-color:#facc15aa;background:#2a230e}
 html[data-interface=fantasy] .ae-clan-today{border-color:#a28a52;background:#2a2117;color:#f3e6c4}
 .ae-clan-xp{position:relative;height:16px;margin:4px 0 2px;border-radius:8px;background:#ffffff14;overflow:hidden;border:1px solid #ffffff1f}.ae-clan-xp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#a855f7,#f0cf7a);border-radius:8px}.ae-clan-xp small{position:relative;display:block;text-align:center;font:600 10px/14px system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000}
+.ae-place-badge.is-new{top:-4px!important;right:-3px!important;width:11px!important;height:11px!important;padding:0!important;border-radius:50%!important;background:#f6d77c!important;border:2px solid #2a1a05!important;box-shadow:0 0 8px #f6d77caa}
+.ae-town-now{margin:10px 0 2px;padding:9px 10px;border-radius:14px;border:1px solid #e5c67855;background:linear-gradient(160deg,#2a2112cc,#14110bcc)}.ae-town-now-h{display:block;font-size:13px;color:#ffe9b0;margin-bottom:6px}
+.ae-town-now-row{display:flex;flex-wrap:wrap;gap:6px}
+.ae-town-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:40px;padding:4px 10px!important;border-radius:12px!important;border:1px solid #ffffff2e!important;background:#0000004d!important;color:#fff!important;font:inherit;text-align:left;cursor:pointer}
+.ae-town-chip small{font:600 9.5px system-ui,sans-serif;opacity:.7;text-transform:uppercase;letter-spacing:.03em}.ae-town-chip span{font:700 12px system-ui,sans-serif}
+.ae-town-chip.is-ready{border-color:#22c55e!important;background:#14532d99!important}.ae-town-chip.is-warn{border-color:#ef4444!important;background:#7f1d1d99!important}.ae-town-chip.is-info{border-color:#f59e0b!important;background:#78350f80!important}
+html[data-interface=modern] .ae-town-now{border-color:#2b3a52;background:#0d1524}html[data-interface=modern] .ae-town-now-h{color:#e2e8f0}
+html[data-interface=fantasy] .ae-town-now{border-color:#a28a52;background:#2a2117}
+[data-settlement-place]:last-of-type:nth-of-type(odd){grid-column:1/-1}
+.ae-world-hint{display:flex;align-items:center;gap:8px;margin:10px 0;padding:9px 10px;border-radius:14px;border:1px solid #f59e0b88;background:linear-gradient(160deg,#3a2a0ccc,#1a140acc);color:#fde68a}
+.ae-world-hint b{display:block;font-size:12.5px;color:#fff3c4}.ae-world-hint small{display:block;font-size:11.5px;opacity:.85;line-height:1.3}.ae-world-hint-ic{font-size:22px;flex:none}
+.ae-world-hint .ae-btn{flex:none;min-height:36px!important;padding:6px 12px!important;font-size:12.5px!important}
+.ae-world-hint-x{flex:none;width:26px!important;height:26px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:50%!important;border:1px solid #ffffff33!important;background:#0006!important;color:#fff!important;font-size:15px!important;line-height:1}
+html[data-interface=modern] .ae-quick-btn{flex-direction:column!important;justify-content:center!important;align-items:center!important;text-align:center!important;gap:3px!important;padding:6px 4px!important;min-width:0}
+html[data-interface=modern] .ae-quick-btn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:12px!important}
+html[data-interface=fantasy] main details.leather-panel:not([open]){padding-top:2px!important;padding-bottom:2px!important}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}
