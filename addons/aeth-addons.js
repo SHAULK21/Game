@@ -1630,6 +1630,8 @@
   function ownIcon(item) {
     const t = String(item?.templateId || '');
     let m = t.match(/^ae_gem_([a-z]+)$/); if (m) return '/assets/items/gear/gem_' + m[1] + '.webp';
+    // unique items: one painted icon per kind and era (1–30, 31–60, 61–90, 91–120)
+    m = t.match(/^ae_uniq_b(\d{2})([a-z]+)$/); if (m) { const era = Math.min(4, Math.ceil(Number(m[1]) / 6)), k = {melee: 'sword', rogue: 'dagger', ranged: 'bow', caster: 'staff'}[m[2]] || m[2]; return `/assets/items/uniq/uniq-${k}-${era}.webp`; }
     m = t.match(/^ae_gear_(uncommon|rare|epic|legendary)_([a-z]+)_\d+(?:_v(\d))?$/) || t.match(/^ae_leg_([a-z]+)_\d+$/);
     if (!m) return null;
     const isGear = t.startsWith('ae_gear_'), rarity = isGear ? m[1] : 'legendary', type = isGear ? m[2] : m[1], v = isGear && m[3] === '2' ? 2 : 1;
@@ -4980,12 +4982,22 @@
           h('summary', {}, h('b', {}, `Комплект ${items[0].set}`), h('small', {}, ` · ${lo}–${lo + 4} ур. · ${got}/${items.length}`)),
           ...items.map(u => { const ok = have.has(u.id), mine = uniqFits(u, cls);
             return h('div', {class: 'ae-coll-row' + (ok ? ' is-got' : '') + ' r-' + u.rarity + (mine ? '' : ' is-other')},
-              h('span', {class: 'ae-coll-ic'}, ok ? (LEG_ICON[u.type] || '✨') : '❔'),
+              h('span', {class: 'ae-coll-ic'}, ok ? h('img', {src: ownIcon({templateId: 'ae_uniq_' + u.id}), alt: '', loading: 'lazy'}) : '❔'),
               h('div', {class: 'ae-grow'}, h('b', {}, ok ? u.name : '???'), h('small', {}, `${TYPE_RU[u.type] || u.type} · ${u.level} ур. · ${RARITY_RU[u.rarity] || u.rarity}${u.type === 'weapon' ? ' · ' + GROUP_RU[u.group] : ''}`),
                 ok && u.named ? h('small', {class: 'ae-coll-lore'}, `«${u.lore}»`) : '')); })));
       }
     });
   }
+  // ---------- painted UI icons instead of emoji in our menus, tiles and buttons ----------
+  const UI_ICON = {'🔔': 'bell', '✉️': 'letter', '📨': 'letter', '📩': 'letter', '🎁': 'chest', '🔨': 'gavel', '⚔️': 'sword', '🔍': 'magnifier', '🔎': 'magnifier', '🐾': 'paw', '🎟️': 'ticket', '🎟': 'ticket',
+    '📯': 'horn', '📜': 'scroll', '🤝': 'hands', '👥': 'hooded', '📖': 'spellbook', '💬': 'speech', '🏆': 'trophy', '🌕': 'moon', '📅': 'calendar', '🗓️': 'calendar'};
+  function paintUiIcons() {
+    for (const el of document.querySelectorAll('.ae-entry-icon, .ae-clan-tile-ic, .ae-hq-ic, .ae-chat-fab > span')) {
+      const t = (el.textContent || '').trim(), k = UI_ICON[t]; if (!k || el.dataset.aeIco === k) continue;
+      el.dataset.aeIco = k; el.textContent = ''; el.classList.add('ae-ui-ico'); el.append(h('img', {src: `/assets/ui-icons/${k}.webp`, alt: t, draggable: 'false'}));
+    }
+  }
+  setInterval(() => { if (!document.hidden) try { paintUiIcons(); } catch {} }, 1000);
   // ---------- Paragon: after level 120 experience fills endless Paragon levels (+3 stat points each, +1 talent point every 5) ----------
   const PAR_BASE = Math.round(160 * 120 ** 2.05);
   const parNeed = P => Math.round(PAR_BASE * 0.2 * (1 + P * 0.03));
@@ -5594,6 +5606,8 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-ui-ico{display:inline-grid;place-items:center}.ae-ui-ico img{width:1.55em;height:1.55em;object-fit:contain;filter:drop-shadow(0 1px 2px #000a)}.ae-entry-icon.ae-ui-ico img{width:30px;height:30px}
+.ae-clan-tile-ic.ae-ui-ico img{width:26px;height:26px}.ae-hq-ic.ae-ui-ico img{width:30px;height:30px}.ae-chat-fab>span.ae-ui-ico img{width:32px;height:32px}
 .ae-wild-regions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0 4px}.ae-wild-reg{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:64px;padding:5px;border-radius:10px;border:1px solid #ffffff2a;color:#fff;text-align:left;background:linear-gradient(transparent 20%,#000d),var(--ae-reg) center/170% no-repeat #111;overflow:hidden}
 .ae-wild-reg b{font-size:11px;line-height:1.15;text-shadow:0 1px 2px #000}.ae-wild-reg small{font-size:10px;color:#fde68a}.ae-wild-reg.is-going{border-color:#60a5fa;box-shadow:0 0 8px #60a5fa66}.ae-wild-reg:disabled:not(.is-going){opacity:.55}
 .ae-wild-res{margin-top:3px}.ae-wild-boss.is-locked{opacity:.55}.ae-wild-boss.is-found{border-color:#ef444488!important;box-shadow:0 0 12px #ef444433}
@@ -5617,7 +5631,7 @@ html[data-interface=fantasy] .ae-clan-tile{background:#1b150dcc;color:#f3e6c8}.a
 .ae-coll-set{margin-bottom:6px;border-radius:12px;border:1px solid #ffffff1f;background:#0002;padding:4px 6px}.ae-coll-set summary{cursor:pointer;padding:6px 4px;font-size:13px}.ae-coll-set summary small{opacity:.75}.ae-coll-row.is-other{opacity:.35}
 .ae-coll-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:6px}.ae-coll-head b{font:800 22px Georgia,serif;color:#ffe6a8}.ae-coll-head .ae-bar{flex-basis:100%}
 .ae-coll-row{display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:5px;border-radius:10px;background:#0003;border:1px solid #ffffff18;opacity:.6}
-.ae-coll-row.is-got{opacity:1;border-color:#f0cf7a55;background:#f0cf7a10}.ae-coll-n{font:700 10.5px system-ui;opacity:.6;min-width:30px}.ae-coll-ic{font-size:22px;width:28px;text-align:center}
+.ae-coll-row.is-got{opacity:1;border-color:#f0cf7a55;background:#f0cf7a10}.ae-coll-n{font:700 10.5px system-ui;opacity:.6;min-width:30px}.ae-coll-ic{font-size:22px;width:40px;text-align:center}.ae-coll-ic img{width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}
 .ae-coll-row b{font-size:13px}.ae-coll-row small{display:block;font-size:11px;opacity:.8}.ae-coll-lore{font-style:italic;opacity:.7!important}
 .ae-coll-row.is-got.r-legendary b{color:#fbbf24}.ae-coll-row.is-got.r-epic b{color:#c084fc}.ae-coll-row.is-got.r-rare b{color:#60a5fa}.ae-coll-row.is-got.r-uncommon b{color:#4ade80}
 .ae-par-chip{display:inline-flex;align-items:center;margin-left:5px;padding:0 6px;height:16px;border-radius:999px;font:800 10px/16px system-ui;color:#e9d5ff;background:#3b1a5acc;border:1px solid #c084fc99;vertical-align:middle;cursor:pointer;white-space:nowrap}
