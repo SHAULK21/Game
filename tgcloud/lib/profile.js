@@ -35,6 +35,14 @@ export const TITLES = [
   T('legend', '🏛️', 'Легенда королевства', 'Достичь 50 уровня', c => c.level, 50),
   T('immortal', '♾️', 'Бессмертный', 'Достичь 100 уровня', c => c.level, 100),
   {...T('tavern_regular', '🍺', 'Завсегдатай таверны', 'Тайное достижение: найдите его сами', c => c.secrets.tavern ? 1 : 0, 1), hidden: true},
+  T('miner1', '⛏️', 'Рудокоп', 'Горное дело 10 уровня', c => c.mine, 10),
+  T('miner2', '💎', 'Мастер-рудознатец', 'Горное дело 30 уровня', c => c.mine, 30),
+  T('miner3', '🏔️', 'Повелитель недр', 'Горное дело 60 уровня', c => c.mine, 60),
+  T('miner4', '🐉', 'Покоритель драконитовых жил', 'Горное дело 90 уровня', c => c.mine, 90),
+  T('alch1', '⚗️', 'Травник', 'Алхимия 10 уровня', c => c.alch, 10),
+  T('alch2', '🧪', 'Зельевар', 'Алхимия 30 уровня', c => c.alch, 30),
+  T('alch3', '🔮', 'Мастер эликсиров', 'Алхимия 60 уровня', c => c.alch, 60),
+  T('alch4', '🌌', 'Великий алхимик', 'Алхимия 90 уровня', c => c.alch, 90),
   T('power1', '💪', 'Закалённый боец', 'Сила героя 5 000', c => c.power, 5000),
   T('power2', '⚔️', 'Грозный воитель', 'Сила героя 15 000', c => c.power, 15000),
   T('power3', '🌋', 'Гроза земель', 'Сила героя 40 000', c => c.power, 40000),
@@ -86,7 +94,8 @@ function ctxOf(world, id, now) {
   const p = player(world, id) || {}, s = rows(world, 'ae_stats').find(x => same(x.u, id))?.c || {};
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
-  return {level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
+  const cs = rows(world, 'ae_combat_stats').find(x => same(x.u, id)) || {};
+  return {mine: Number(cs.mine) || 1, alch: Number(cs.alch) || 1, level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
     friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), secrets: rows(world, 'ae_profiles').find(x => same(x.u, id))?.secrets || {}, comp: compCtx(world, id), power: powerOf(world, id, now)?.total || 0, apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
 // ---------- profile look, chosen by the player (frames, nickname colour, motto, showcase, aura, card theme) ----------

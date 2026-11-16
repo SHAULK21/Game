@@ -28,6 +28,8 @@ export function saveStats(world, id, raw, now = Date.now()) {
     mdef: num(raw.magicDefense, 0, b.def * 10), cd: num(raw.critDamage, 100, 400), ev: num(raw.evasion, 0, 80), vamp: num(raw.vampirism, 0, 50), pen: num(raw.armorPenetration, 0, 60),
     hpr: num(raw.hpRegen, 0, maxHp), mpr: num(raw.mpRegen, 0, 400 + b.level * 60)});
   if (raw.kit) { const k = cleanKit(raw.kit, b.level); if (k) r.kit = k; }
+  // professions (for the titles): mining and alchemy levels, never going down
+  for (const [k, f] of [['mine', 'mining'], ['alch', 'alchemy']]) if (raw[f] != null) r[k] = Math.max(Number(r[k]) || 1, Math.max(1, Math.min(100, Math.floor(Number(raw[f]) || 1))));
   if (b.level >= 120 && raw.paragon != null) r.par = Math.max(0, Math.min(5000, Math.floor(Number(raw.paragon) || 0)));  // Paragon levels after 120
   // The active companion, shown on the hero's profile.
   if (raw.pet === null) r.pet = null;

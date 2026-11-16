@@ -56,7 +56,7 @@
   function heroStatsPayload() {
     const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
     const pet = me()?.activePet;
-    return {paragon: Number(me()?.paragon) || 0, pet: pet ? {id: pet.id, name: pet.name, level: pet.level || 1, rarity: pet.rarity, hungry: !!pet.aeHungry} : null, maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
+    return {paragon: Number(me()?.paragon) || 0, mining: Number(me()?.miningLevel) || 1, alchemy: Number(me()?.alchemyLevel) || 1, pet: pet ? {id: pet.id, name: pet.name, level: pet.level || 1, rarity: pet.rarity, hungry: !!pet.aeHungry} : null, maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
   }
   // The hero's skills with the same math as the main combat: skill rank (level + main attribute) and the talent tree.
   const MAIN_ATTR = {warrior: 'strength', berserker: 'strength', knight: 'vitality', rogue: 'agility', assassin: 'agility', archer: 'agility', hunter: 'agility', mage: 'intelligence', necromancer: 'intelligence', paladin: 'spirit', druid: 'spirit'};
