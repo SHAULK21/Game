@@ -1708,6 +1708,7 @@
   async function socialPulse() {
     if (!uid() || document.hidden) return;
     let r; try { r = await api('/api/social/pulse'); } catch { return; }
+    try { chatPulse(Number(r.chatLast) || 0); } catch {}
     let seen; try { seen = JSON.parse(localStorage.getItem(pulseKey()) || '{}'); } catch { seen = {}; }
     const notes = [];
     for (const f of r.friendRequests || []) if (!seen['f' + f.id]) { seen['f' + f.id] = 1; notes.push({icon: '👋', text: `${f.name} хочет добавить вас в друзья`, act: 'Открыть', fn: () => openFriends('requests')}); }
@@ -3887,6 +3888,90 @@
     const h = Math.max(240, Math.round((bottom - formH - 14 - st.getBoundingClientRect().top) / z));
     document.documentElement.style.setProperty('--ae-chat-h', h + 'px');
   }
+  // ---------- global chat: tap a message for actions, replies with a quote, @mentions, day separators, «new» pill, unread badge ----------
+  window.__aeChatErr = msg => toast(cleanError(msg));
+  const chatSeenKey = () => 'aeth_chat_seen_' + uid();
+  let chatLastKnown = 0;
+  const chatSeen = () => Number(localStorage.getItem(chatSeenKey())) || 0;
+  function markChatSeen(id) { id = Number(id) || 0; if (id > chatSeen()) localStorage.setItem(chatSeenKey(), String(id)); if (id > chatLastKnown) chatLastKnown = id; paintChatBadge(); }
+  function paintChatBadge() {
+    const fab = document.querySelector('.ae-chat-fab'); if (!fab) return;
+    const n = chatSeen() ? Math.max(0, chatLastKnown - chatSeen()) : 0; let b = fab.querySelector('.ae-chat-fab-n');
+    if (!n) { b?.remove(); return; }
+    if (!b) { b = h('b', {class: 'ae-chat-fab-n'}); fab.append(b); }
+    const t = n > 9 ? '9+' : String(n); if (b.textContent !== t) b.textContent = t;
+  }
+  function chatPulse(last) { if (!(last > 0) || !uid()) return; chatLastKnown = Math.max(chatLastKnown, last); if (!chatSeen()) localStorage.setItem(chatSeenKey(), String(last)); paintChatBadge(); }
+  const chatForm = () => document.querySelector('#tavern-chat .chat-composer');
+  function setChatInput(v) {
+    const inp = chatForm()?.querySelector('input, textarea'); if (!inp) return;
+    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'value').set.call(inp, v); inp.dispatchEvent(new Event('input', {bubbles: true})); inp.focus();
+  }
+  const msgInfo = m => ({id: m.dataset.aeMid, uid: m.dataset.aeAuthor, own: m.classList.contains('is-own'),
+    name: (m.querySelector('.chat-sender')?.textContent || 'Игрок').replace(/👑/g, '').trim(), text: (m.querySelector('.chat-message-text')?.textContent || '').trim()});
+  function paintReplyBar() {
+    const form = chatForm(), r = window.__aeChatReply; if (!form) return;
+    let bar = form.querySelector('.ae-chat-replybar');
+    if (!r) { bar?.remove(); form.classList.remove('ae-has-reply'); return; }
+    if (bar && bar.dataset.id === r.id) return; bar?.remove();
+    bar = h('div', {class: 'ae-chat-replybar', 'data-id': r.id}, h('span', {class: 'ae-grow'}, '↩️ Ответ ', h('b', {}, r.name), h('small', {}, r.text.slice(0, 70) || '…')),
+      h('button', {type: 'button', 'aria-label': 'Отменить ответ', onclick: e => { e.preventDefault(); window.__aeChatReply = null; paintReplyBar(); }}, '×'));
+    form.classList.add('ae-has-reply'); form.prepend(bar);
+  }
+  addEventListener('ae-chat-sent', () => { paintReplyBar(); const st = document.querySelector('#tavern-chat .chat-stream'); if (st) setTimeout(() => { st.scrollTop = st.scrollHeight; }, 60); });
+  function chatActions(m) {
+    const x = msgInfo(m); if (!x.id || m.dataset.aeGone || m.classList.contains('is-del')) return;
+    const mine = x.own || x.uid === uid(), admin = uid() === '437290420';
+    const act = (icon, label, fn, cls = '') => h('button', {type: 'button', class: 'ae-btn ae-wide ' + cls, onclick: () => { closePanel(); fn(); }}, icon + ' ' + label);
+    openPanel('💬 Сообщение', body => {
+      body.append(h('div', {class: 'ae-chat-preview'}, h('b', {}, x.name), h('p', {}, x.text.slice(0, 300))),
+        act('↩️', 'Ответить', () => { window.__aeChatReply = {id: x.id, name: x.name, text: x.text}; paintReplyBar(); setChatInput(chatForm()?.querySelector('input')?.value || ''); }, 'ae-primary'),
+        mine ? '' : act('@', 'Упомянуть', () => { const cur = chatForm()?.querySelector('input')?.value || ''; setChatInput(`${cur && !cur.endsWith(' ') ? cur + ' ' : cur}@${x.name} `); }),
+        mine ? '' : act('👤', 'Карточка героя', () => openPlayerCard(x.uid, x.name)),
+        mine ? '' : act('✉️', 'Написать лично', () => openChat({id: x.uid, name: x.name})),
+        navigator.clipboard ? act('📋', 'Скопировать текст', () => navigator.clipboard.writeText(x.text).then(() => toast('Текст скопирован'), () => {})) : '',
+        mine || admin ? act('🗑', mine ? 'Удалить моё сообщение' : 'Удалить (админ)', async () => {
+          try { await api('/api/ae-chat/delete', 'POST', {id: x.id}); m.dataset.aeGone = '1'; toast('Сообщение удалено'); } catch (e) { toast(cleanError(e)); }
+        }, 'ae-danger') : '');
+    }, {cls: 'ae-chat-menu'});
+  }
+  const dayLabel = d => { const t = new Date(), y = new Date(t - 864e5); return d.toDateString() === t.toDateString() ? 'Сегодня' : d.toDateString() === y.toDateString() ? 'Вчера' : d.toLocaleDateString('ru-RU', {day: 'numeric', month: 'long'}); };
+  function decorateChat() {
+    const st = document.querySelector('#tavern-chat .chat-stream'); if (!st) return;
+    if (!st.dataset.aeChatOn) {
+      st.dataset.aeChatOn = '1';
+      st.addEventListener('click', e => {
+        const q = e.target.closest('.ae-chat-quote');
+        if (q) { const src = st.querySelector(`.chat-message[data-ae-mid="${q.dataset.aeReply}"]`); if (src) { src.scrollIntoView({block: 'center', behavior: 'smooth'}); src.classList.add('ae-flash'); setTimeout(() => src.classList.remove('ae-flash'), 1400); } else toast('Это сообщение уже ушло из истории.'); return; }
+        const m = e.target.closest('.chat-message[data-ae-mid]');
+        if (!m || e.target.closest('.ae-nick, .ae-nick-ava, .ae-chat-item, .ae-clan-tag, button, a, input')) return;
+        chatActions(m);
+      });
+      st.addEventListener('scroll', () => { if (st.scrollHeight - st.scrollTop - st.clientHeight < 64) decorateChat(); }, {passive: true});
+    }
+    paintReplyBar();
+    const msgs = st.querySelectorAll('.chat-message[data-ae-mid]'); if (!msgs.length) return;
+    const myName = (me()?.name || '').trim().toLowerCase(); let prevDay = '';
+    for (const m of msgs) {
+      const at = new Date(m.dataset.aeAt || ''), day = isNaN(at) ? prevDay : at.toDateString(), lbl = day && day !== prevDay ? dayLabel(at) : '';
+      if ((m.dataset.aeDay || '') !== lbl) { if (lbl) m.dataset.aeDay = lbl; else delete m.dataset.aeDay; }
+      prevDay = day;
+      if (m.classList.contains('is-own')) continue;
+      const txt = (m.querySelector('.chat-message-text')?.textContent || '').toLowerCase(), qn = (m.querySelector('.ae-chat-quote > b')?.textContent || '').trim().toLowerCase();
+      const hit = !!myName && (txt.includes('@' + myName) || qn === myName);
+      if (m.classList.contains('ae-mention') !== hit) m.classList.toggle('ae-mention', hit);
+    }
+    // «↓ Новые сообщения» when something arrives while the player reads older messages
+    const last = Number(msgs[msgs.length - 1].dataset.aeMid) || 0, near = st.scrollHeight - st.scrollTop - st.clientHeight < 64, form = chatForm();
+    let pill = form?.querySelector('.ae-chat-newpill');
+    if (near) { markChatSeen(last); st.dataset.aeSeen = String(last); pill?.remove(); return; }
+    if (!st.dataset.aeSeen) { st.dataset.aeSeen = String(last); markChatSeen(last); return; }
+    const fresh = [...msgs].filter(m => Number(m.dataset.aeMid) > Number(st.dataset.aeSeen) && !m.classList.contains('is-own')).length;
+    if (!fresh || !form) { pill?.remove(); return; }
+    if (!pill) { pill = h('button', {type: 'button', class: 'ae-chat-newpill', onclick: e => { e.preventDefault(); st.scrollTo({top: st.scrollHeight, behavior: 'smooth'}); }}); form.append(pill); }
+    const t = `↓ Новые: ${fresh}`; if (pill.textContent !== t) pill.textContent = t;
+  }
+  setInterval(() => { if (!document.hidden) try { decorateChat(); } catch (e) { console.warn('ae chat', e); } }, 800);
   function drinkMoonshine() {
     const b = B(), p = me(); if (!b || !p) return;
     if (p.worldPlace !== 'settlement' || p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return toast('Таверна работает только в поселении.');
@@ -5786,6 +5871,24 @@ html.ae-dizzy main{animation:ae-dizzy 4.5s ease-in-out infinite;transform-origin
 .ae-sc-fig.glow-void .ae-sc-body{filter:drop-shadow(0 0 14px #7c3aed) drop-shadow(0 0 30px #4c1d95) hue-rotate(20deg)}.ae-sc-fig.glow-gold .ae-sc-body{filter:drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 28px #f59e0b88)}.ae-sc-fig.glow-fire .ae-sc-body{filter:drop-shadow(0 0 12px #f97316) drop-shadow(0 0 26px #ef444488)}.ae-sc-fig.glow-echo .ae-sc-body{filter:drop-shadow(0 0 12px #93c5fd) grayscale(.5) brightness(1.15);opacity:.82}
 .ae-asc-pick{outline:2px solid #f0cf7a;outline-offset:3px;border-radius:12px;animation:ae-asc-pulse 1.4s ease-in-out infinite}@keyframes ae-asc-pulse{50%{outline-color:#f0cf7a33}}.ae-asc-need{font-size:14px!important;font-weight:800;color:#fde68a!important}.ae-asc-need::before{content:'👆 '}
 .ae-chat-fab{position:fixed;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;width:50px;height:50px;border-radius:50%;border:2px solid #f0cf7a;background:radial-gradient(circle at 35% 30%,#3a2c16,#141a17);box-shadow:0 4px 14px #000a,0 0 12px #f0cf7a44;display:grid;place-items:center;font-size:23px;cursor:pointer}.ae-chat-fab[hidden]{display:none}.ae-chat-fab:active{transform:scale(.92)}
+#tavern-chat .chat-message>div:first-child{justify-content:flex-start!important;gap:6px!important;flex-wrap:nowrap}#tavern-chat .chat-message .chat-time{margin-left:auto;flex:none}#tavern-chat .chat-sender{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ae-chat-lvl{flex:none;font-size:10px;line-height:15px;padding:0 5px;border-radius:8px;background:#ffffff12;color:#cbd5e1;border:1px solid #ffffff1f;white-space:nowrap;font-weight:600}
+#tavern-chat .chat-message-text{font-size:13.5px!important;line-height:1.35!important;color:#e5e7eb;white-space:pre-wrap}#tavern-chat .chat-sender{font-size:12px!important}#tavern-chat .chat-time{font-size:10px!important}
+#tavern-chat .chat-message{cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}#tavern-chat .chat-message:active{filter:brightness(1.15)}
+#tavern-chat .chat-message[data-ae-day]{margin-top:28px!important}#tavern-chat .chat-message[data-ae-day]::before{content:attr(data-ae-day);position:absolute;left:50%;top:-23px;transform:translateX(-50%);font-size:10.5px;line-height:16px;padding:1px 10px;border-radius:9px;background:#0b0f14e6;border:1px solid #ffffff22;color:#cbd5e1;white-space:nowrap;pointer-events:none}
+.ae-chat-quote{margin:3px 0 2px;padding:3px 8px;border-left:3px solid #f0cf7a;border-radius:6px;background:#ffffff0d;font-size:11.5px;line-height:1.25;cursor:pointer;overflow:hidden}.ae-chat-quote b{display:block;color:#f0cf7a;font-size:11px}.ae-chat-quote span{display:block;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-interface=modern] .ae-chat-quote{border-left-color:#38bdf8}html[data-interface=modern] .ae-chat-quote b{color:#7dd3fc}
+#tavern-chat .chat-message.ae-mention{border-color:#f0cf7a!important;box-shadow:0 0 0 1px #f0cf7a55,0 0 12px #f0cf7a33;background:#3a2c1655!important}
+#tavern-chat .chat-message.is-del .chat-message-text{font-style:italic;opacity:.55}#tavern-chat .chat-message.is-del{cursor:default}
+#tavern-chat .chat-message[data-ae-gone] .chat-message-text{font-size:0!important}#tavern-chat .chat-message[data-ae-gone] .chat-message-text::after{content:'· сообщение удалено ·';font-size:12px;font-style:italic;opacity:.55}#tavern-chat .chat-message[data-ae-gone] .ae-chat-quote{display:none}
+#tavern-chat .chat-message.ae-flash{animation:ae-chat-flash 1.4s}@keyframes ae-chat-flash{30%{box-shadow:0 0 0 2px #f0cf7a,0 0 18px #f0cf7a88}}
+#tavern-chat .chat-composer{position:relative}
+.ae-chat-replybar{position:absolute;left:0;right:0;bottom:calc(100% + 1px);display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:10px 10px 0 0;background:#141a17f5;border:1px solid #f0cf7a66;border-bottom:0;font-size:12px;z-index:2;min-width:0}.ae-chat-replybar>span{min-width:0}.ae-chat-replybar small{display:block;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-chat-replybar b{color:#f0cf7a;margin-left:2px}
+.ae-chat-replybar button{flex:none;width:28px!important;height:28px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:50%;border:1px solid #ffffff33;background:#0006;color:#fff;font-size:16px;line-height:1;cursor:pointer}
+html[data-interface=modern] .ae-chat-replybar{background:#0f172af5;border-color:#38bdf866}html[data-interface=modern] .ae-chat-replybar b{color:#7dd3fc}
+.ae-chat-newpill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 10px);z-index:3;padding:6px 14px;border-radius:16px;border:1px solid #f0cf7a;background:#3a2c16f0;color:#ffe9b0;font-size:12px;font-weight:700;box-shadow:0 4px 12px #000a;white-space:nowrap;cursor:pointer}.ae-has-reply .ae-chat-newpill{bottom:calc(100% + 58px)}
+.ae-chat-fab-n{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#dc2626;color:#fff;font:700 11px/16px system-ui,sans-serif;text-align:center;border:2px solid #141a17;box-sizing:border-box}
+.ae-chat-preview{padding:8px 10px;border-radius:10px;background:#ffffff0d;margin-bottom:4px}.ae-chat-preview p{margin:4px 0 0;font-size:13px;white-space:pre-wrap;word-break:break-word}.ae-chat-menu .ae-btn{margin-top:6px}.ae-chat-menu .ae-btn.ae-danger{border-color:#ef444488!important;color:#fca5a5!important}
 .ae-fx{position:absolute;z-index:6;pointer-events:none}
 .ae-fx-slash{width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;border-top:7px solid var(--c);border-right:3px solid transparent;filter:drop-shadow(0 0 8px var(--c)) drop-shadow(0 0 2px #fff);transform:rotate(var(--rot)) scale(.5);opacity:0;animation:ae-slash .42s ease-out forwards}
 @keyframes ae-slash{0%{opacity:0;transform:rotate(calc(var(--rot) - 70deg)) scale(.55)}25%{opacity:1}100%{opacity:0;transform:rotate(calc(var(--rot) + 60deg)) scale(1.05)}}

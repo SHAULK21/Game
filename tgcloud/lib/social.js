@@ -33,8 +33,10 @@ import {handleHordeRequest} from './horde.js';
 import {handleProfileRequest} from './profile.js';
 import {handleLiveRequest} from './live.js';
 import {handleMarketPlus} from './marketPlus.js';
+import {handleGlobalChat} from './globalChat.js';
 
 export async function handleSocialRequest(world, input, user, now, native) {
+  { const p = String(input?.path || '').split('?')[0]; if (p === '/api/chat/global' || p.startsWith('/api/ae-chat/')) { const r = await handleGlobalChat(world, input, user, now, native, notify); if (r) return r; } }
   const live = await handleLiveRequest(world, input, user, now, native, notify);
   if (live) return live;
   const market = handleMarketPlus(world, input, user, now, notify);

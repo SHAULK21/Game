@@ -38,6 +38,7 @@ function pulse(world, me) {
     friendRequests: pending.map(f => ({id: String(f.requester), name: nameOf(player(world, f.requester)), at: f.created_at})),
     unread: unread.length, lastMessage: lastMsg ? {from: String(lastMsg.sender_id), name: nameOf(player(world, lastMsg.sender_id)), text: String(lastMsg.text).slice(0, 80), id: lastMsg.id} : null,
     events: rows(world, 'ae_events').filter(e => same(e.to, me) && !e.acked).slice(-10),
+    chatLast: rows(world, 'global_chat_messages').reduce((a, m) => Math.max(a, Number(m.id) || 0), 0),
     duelsAgainstMe: rows(world, 'duels').filter(d => same(d.defender, me) && d.status !== 'active' && !d.defender_seen).slice(-3).map(d => ({id: d.id, by: nameOf(player(world, d.attacker)), won: d.status === 'lost'})),
   });
 }

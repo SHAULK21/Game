@@ -1,0 +1,74 @@
+[
+ {
+  "name": "chat-keep-ae",
+  "file": "useGlobalChat-BhVScZ6e-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "is_premium:!!e.is_premium}))",
+  "new": "is_premium:!!e.is_premium,ae:e.ae||null}))"
+ },
+ {
+  "name": "chat-reply-body",
+  "file": "useGlobalChat-BhVScZ6e-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "JSON.stringify({text:i})",
+  "new": "JSON.stringify({text:i,replyTo:window.__aeChatReply?.id})"
+ },
+ {
+  "name": "chat-sent-hook",
+  "file": "useGlobalChat-BhVScZ6e-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "l(``),h(``),r(`light`)",
+  "new": "l(``),h(``),r(`light`),window.__aeChatReply=null,window.dispatchEvent(new Event(`ae-chat-sent`))"
+ },
+ {
+  "name": "chat-send-err",
+  "file": "useGlobalChat-BhVScZ6e-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "catch(e){y.current&&(h(e instanceof Error?e.message:`Не удалось отправить сообщение.`),r(`error`))}",
+  "new": "catch(e){y.current&&(window.__aeChatErr?window.__aeChatErr(e instanceof Error?e.message:`Не удалось отправить сообщение.`):h(e instanceof Error?e.message:`Не удалось отправить сообщение.`),r(`error`))}"
+ },
+ {
+  "name": "chat-time24-d",
+  "file": "ChatScreen-PO-229bS-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "toLocaleTimeString(void 0,{hour:`2-digit`,minute:`2-digit`})",
+  "new": "toLocaleTimeString(`ru-RU`,{hour:`2-digit`,minute:`2-digit`})"
+ },
+ {
+  "name": "chat-msg-attrs-d",
+  "file": "ChatScreen-PO-229bS-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,d.jsxs)(`div`,{className:`chat-message ${t?`is-own`:``} ",
+  "new": "(0,d.jsxs)(`div`,{\"data-ae-mid\":String(e.id),\"data-ae-author\":String(e.telegram_id??``),\"data-ae-at\":e.created_at,className:`chat-message ${e.ae?.del?`is-del`:``} ${t?`is-own`:``} "
+ },
+ {
+  "name": "chat-lvl-d",
+  "file": "ChatScreen-PO-229bS-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,d.jsx)(`span`,{className:`chat-time ",
+  "new": "e.ae?.lvl&&(0,d.jsx)(`span`,{className:`ae-chat-lvl`,children:e.ae.lvl+` ур.`}),(0,d.jsx)(`span`,{className:`chat-time "
+ },
+ {
+  "name": "chat-quote-d",
+  "file": "ChatScreen-PO-229bS-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,d.jsx)(`div`,{className:`chat-message-text",
+  "new": "e.ae?.reply&&(0,d.jsxs)(`div`,{className:`ae-chat-quote`,\"data-ae-reply\":e.ae.reply.id,children:[(0,d.jsx)(`b`,{children:e.ae.reply.name}),(0,d.jsx)(`span`,{children:e.ae.reply.text})]}),(0,d.jsx)(`div`,{className:`chat-message-text"
+ },
+ {
+  "name": "chat-time24-u",
+  "file": "ChatScreen-QrE84YkF-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "toLocaleTimeString(void 0,{hour:`2-digit`,minute:`2-digit`})",
+  "new": "toLocaleTimeString(`ru-RU`,{hour:`2-digit`,minute:`2-digit`})"
+ },
+ {
+  "name": "chat-msg-attrs-u",
+  "file": "ChatScreen-QrE84YkF-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,u.jsxs)(`div`,{className:`chat-message ${t?`is-own`:``} ",
+  "new": "(0,u.jsxs)(`div`,{\"data-ae-mid\":String(e.id),\"data-ae-author\":String(e.telegram_id??``),\"data-ae-at\":e.created_at,className:`chat-message ${e.ae?.del?`is-del`:``} ${t?`is-own`:``} "
+ },
+ {
+  "name": "chat-lvl-u",
+  "file": "ChatScreen-QrE84YkF-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,u.jsx)(`span`,{className:`chat-time ",
+  "new": "e.ae?.lvl&&(0,u.jsx)(`span`,{className:`ae-chat-lvl`,children:e.ae.lvl+` ур.`}),(0,u.jsx)(`span`,{className:`chat-time "
+ },
+ {
+  "name": "chat-quote-u",
+  "file": "ChatScreen-QrE84YkF-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35.js",
+  "old": "(0,u.jsx)(`div`,{className:`chat-message-text",
+  "new": "e.ae?.reply&&(0,u.jsxs)(`div`,{className:`ae-chat-quote`,\"data-ae-reply\":e.ae.reply.id,children:[(0,u.jsx)(`b`,{children:e.ae.reply.name}),(0,u.jsx)(`span`,{children:e.ae.reply.text})]}),(0,u.jsx)(`div`,{className:`chat-message-text"
+ }
+]
