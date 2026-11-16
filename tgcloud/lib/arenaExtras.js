@@ -316,11 +316,29 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode(existing) {
   for (;;) { let c = 'AE-'; for (let i = 0; i < 6; i++) c += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]; if (!existing.has(c)) return c; }
 }
+// who came through a source code: activations, how many were new players (registered < 3 days before), and their names now
+function sourceStats(world, c, now) {
+  const log = c.log || [], names = log.slice(-12).reverse().map(x => { const p = player(world, x.u); return {name: p ? nameOf(p) : 'Игрок', level: Number(p?.level) || x.lvl, isNew: !!x.isNew, at: x.at, active: Date.parse(p?.last_seen_at || 0) > now - 3 * DAY}; });
+  return {code: c.code, source: c.source, label: c.label || '', title: c.title, usesLeft: c.usesLeft, used: log.length, newPlayers: log.filter(x => x.isNew).length,
+    active: log.filter(x => Date.parse(player(world, x.u)?.last_seen_at || 0) > now - 3 * DAY).length, created_at: c.created_at, recent: names};
+}
 export function handlePromo(world, path, method, body, user, now) {
   const codes = rows(world, 'promo_codes');
   if (path === '/api/admin/promo') {
     if (!user.isAdmin) return fail('Недостаточно прав.', 403);
-    if (method === 'GET') return ok({packs: Object.entries(PROMO_PACKS).map(([id, p]) => ({id, title: p.title, minLevel: p.minLevel})), codes: codes.slice(-30).reverse()});
+    if (method === 'GET') return ok({packs: Object.entries(PROMO_PACKS).map(([id, p]) => ({id, title: p.title, minLevel: p.minLevel})), codes: codes.filter(c => !c.source).slice(-30).reverse(),
+      sources: codes.filter(c => c.source).map(c => sourceStats(world, c, now)).reverse()});
+    // a source code: one code for one place (a TikTok video, a channel…), many activations, tracked by who used it
+    if (body.source) {
+      const pack = PROMO_PACKS[body.pack]; if (!pack) return fail('Выберите набор наград.');
+      const want = String(body.code || '').trim().toUpperCase().replace(/\s+/g, '');
+      if (want && !/^[A-Z0-9-]{4,16}$/.test(want)) return fail('Код: 4–16 латинских букв, цифр или «-».');
+      const existing = new Set(codes.map(c => c.code)); if (want && existing.has(want)) return fail('Такой код уже есть.');
+      const prefix = String(body.source) === 'tiktok' ? 'TT-' : 'SRC-';
+      let code = want; if (!code) { do { code = prefix; for (let i = 0; i < 5; i++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]; } while (existing.has(code)); }
+      const c = {code, pack: body.pack, title: pack.title, source: String(body.source).slice(0, 20), label: String(body.label || '').slice(0, 60), usesLeft: Math.max(1, Math.min(5000, Math.floor(Number(body.uses) || 500))), usedBy: [], log: [], created_at: new Date(now).toISOString()};
+      codes.push(c); return ok({source: sourceStats(world, c, now)}, 201);
+    }
     const pack = PROMO_PACKS[body.pack];
     if (!pack) return fail('Выберите набор наград.');
     const existing = new Set(codes.map(c => c.code)), made = [];
@@ -338,6 +356,7 @@ export function handlePromo(world, path, method, body, user, now) {
     const level = Math.max(Number(p.level) || 1, Math.min(Number(body.level) || 0, (Number(p.level) || 1) + 10));
     if (level < pack.minLevel) return fail(`Этот промокод доступен с ${pack.minLevel} уровня.`);
     c.usesLeft--; c.usedBy.push(String(user.id)); bumpStat(world, user.id, 'promo');
+    if (c.source) { const age = now - (Date.parse(p.created_at) || now); (c.log ||= []).push({u: String(user.id), at: new Date(now).toISOString(), lvl: Number(p.level) || 1, isNew: age < 3 * DAY}); if (c.log.length > 500) c.log = c.log.slice(-500); }
     if (pack.premiumDays) p.premium_until = new Date(Math.max(now, Date.parse(p.premium_until || 0) || 0) + pack.premiumDays * DAY).toISOString();
     return ok({title: pack.title, reward: {gold: pack.gold || 0, silver: pack.silver || 0, fragments: pack.fragments || 0, energy: pack.energy || 0, arenaTickets: pack.arenaTickets || 0, premiumDays: pack.premiumDays || 0}, usesLeft: c.usesLeft});
   }

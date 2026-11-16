@@ -56,7 +56,7 @@
   function heroStatsPayload() {
     const s = B()?.stats; if (!s || !(s.maxHp > 0)) return null;
     const pet = me()?.activePet;
-    return {pet: pet ? {id: pet.id, name: pet.name, level: pet.level || 1, rarity: pet.rarity, hungry: !!pet.aeHungry} : null, maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
+    return {paragon: Number(me()?.paragon) || 0, pet: pet ? {id: pet.id, name: pet.name, level: pet.level || 1, rarity: pet.rarity, hungry: !!pet.aeHungry} : null, maxHp: s.maxHp, attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, critChance: s.critChance, critDamage: s.critDamage, evasion: s.evasion, vampirism: s.vampirism, armorPenetration: s.armorPenetration, hpRegen: s.hpRegen, mpRegen: s.mpRegen, maxMp: s.maxMp, kit: heroKit()};
   }
   // The hero's skills with the same math as the main combat: skill rank (level + main attribute) and the talent tree.
   const MAIN_ATTR = {warrior: 'strength', berserker: 'strength', knight: 'vitality', rogue: 'agility', assassin: 'agility', archer: 'agility', hunter: 'agility', mage: 'intelligence', necromancer: 'intelligence', paladin: 'spirit', druid: 'spirit'};
@@ -650,7 +650,7 @@
     const showFloats = () => {
       while (floats.length) {
         const f = floats.shift(), el = st.body.querySelector(f.sel); if (!el) continue;
-        const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.35 + Math.random() * 0.3)}px;top:${r.top + 18}px`}, f.text);
+        const r = zrect(el), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.35 + Math.random() * 0.3)}px;top:${r.top + 18}px`}, f.text);
         document.body.append(n); setTimeout(() => n.remove(), 1100);
       }
     };
@@ -1735,7 +1735,7 @@
         if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
         if ((shake.me || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         requestAnimationFrame(() => { while (floats.length) { const f = floats.shift(), el = body.querySelector(f.side === 'me' ? '[data-bv-hero]' : '[data-bv-foe]'); if (!el) continue;
-          const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * 0.4}px;top:${r.top + r.height * 0.3}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 1100); } });
+          const r = zrect(el), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * 0.4}px;top:${r.top + r.height * 0.3}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 1100); } });
         return;
       }
       const chips = f => { const fx = f.fx || {}, c = [];
@@ -1763,7 +1763,7 @@
       }
       body.append(h('div', {class: 'ae-log ae-duel-log'}, (duel.log || []).slice().reverse().map(l => h('div', {class: l.who ? (String(l.who) === String(duel.me.id) ? 'is-me' : 'is-foe') : ''}, l.text))));
       requestAnimationFrame(() => { while (floats.length) { const f = floats.shift(), el = body.querySelector(`[data-ae-duelist="${f.side}"] .ae-duelist-img`); if (!el) continue;
-        const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * 0.4}px;top:${r.top + 20}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 1100); } });
+        const r = zrect(el), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * 0.4}px;top:${r.top + 20}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 1100); } });
     }, {cls: 'ae-duel-panel'});
     load();
   }
@@ -2416,11 +2416,23 @@
     const list = h('div', {class: 'ae-admin-list'}), sel = h('select', {class: 'ae-input'});
     const paint = () => list.replaceChildren(...codes.slice(0, 15).map(c => h('div', {class: 'ae-row ae-card'}, h('code', {class: 'ae-code'}, c.code), h('span', {class: 'ae-grow ae-sub'}, `${c.title} · осталось ${c.usesLeft}/3`),
       h('button', {class: 'ae-btn', type: 'button', onclick: () => navigator.clipboard?.writeText(c.code).then(() => toast('Скопировано: ' + c.code), () => toast(c.code))}, '📋'))));
-    const load = async () => { try { const r = await api('/api/admin/promo'); packs = r.packs; codes = r.codes; sel.replaceChildren(...packs.map(p => h('option', {value: p.id}, `${p.title}${p.minLevel > 1 ? ` (с ${p.minLevel} ур.)` : ''}`))); paint(); } catch {} };
+    const srcList = h('div', {class: 'ae-admin-list'}), srcPack = h('select', {class: 'ae-input'}), srcLabel = h('input', {class: 'ae-input', placeholder: 'Где: например «TikTok · ролик №4»', maxlength: '60'}),
+      srcCode = h('input', {class: 'ae-input', placeholder: 'Свой код (необязательно), напр. TT-ZEMLI', maxlength: '16'}), srcUses = h('input', {class: 'ae-input', type: 'number', min: '1', max: '5000', value: '500'});
+    const paintSrc = list => srcList.replaceChildren(...(list.length ? list.map(c => h('div', {class: 'ae-card ae-src-card'},
+      h('div', {class: 'ae-row'}, h('code', {class: 'ae-code'}, c.code), h('b', {class: 'ae-grow'}, c.label || (c.source === 'tiktok' ? 'TikTok' : c.source)),
+        h('button', {class: 'ae-btn', type: 'button', onclick: () => navigator.clipboard?.writeText(c.code).then(() => toast('Скопировано: ' + c.code), () => toast(c.code))}, '📋')),
+      h('div', {class: 'ae-src-stats'}, h('span', {}, h('b', {}, fmt(c.used)), ' активаций'), h('span', {class: 'ae-good'}, h('b', {}, fmt(c.newPlayers)), ' новых игроков'), h('span', {}, h('b', {}, fmt(c.active)), ' в игре за 3 дня'), h('span', {class: 'ae-sub'}, `осталось ${fmt(c.usesLeft)} · ${c.title}`)),
+      c.recent.length ? h('div', {class: 'ae-src-who'}, c.recent.map(x => h('span', {class: x.isNew ? 'is-new' : ''}, `${x.isNew ? '🆕 ' : ''}${x.name} · ${x.level} ур.`))) : h('div', {class: 'ae-sub'}, 'Пока никто не активировал.')))
+      : [h('p', {class: 'ae-sub'}, 'Кодов-источников пока нет.')]));
+    const genSrc = async () => { try { const r = await api('/api/admin/promo', 'POST', {source: 'tiktok', pack: srcPack.value, label: srcLabel.value.trim(), code: srcCode.value.trim(), uses: Number(srcUses.value) || 500});
+        toast('Код создан: ' + r.source.code); navigator.clipboard?.writeText(r.source.code).catch(() => {}); srcLabel.value = ''; srcCode.value = ''; load(); } catch (e) { toast(cleanError(e)); } };
+    const load = async () => { try { const r = await api('/api/admin/promo'); packs = r.packs; codes = r.codes; paintSrc(r.sources || []); srcPack.replaceChildren(...packs.map(p => h('option', {value: p.id, selected: p.id === 'starter'}, p.title))); sel.replaceChildren(...packs.map(p => h('option', {value: p.id}, `${p.title}${p.minLevel > 1 ? ` (с ${p.minLevel} ур.)` : ''}`))); paint(); } catch {} };
     const gen = async () => { try { const r = await api('/api/admin/promo', 'POST', {pack: sel.value}); codes = [...r.codes, ...codes]; paint(); toast('Создано 5 промокодов по 3 активации'); navigator.clipboard?.writeText(r.codes.map(c => c.code).join('\n')).catch(() => {}); } catch (e) { toast(cleanError(e)); } };
     load();
     return h('section', {class: 'ae-admin-premium', 'data-ae-admin-promo': '1'}, h('div', {class: 'ae-h3'}, '🎟️ Промокоды'), h('div', {class: 'ae-sub'}, 'Генерируются по 5 кодов, у каждого 3 активации. Коды копируются в буфер.'),
-      h('div', {class: 'ae-row'}, sel, h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: gen}, 'Создать 5')), list);
+      h('div', {class: 'ae-row'}, sel, h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: gen}, 'Создать 5')), list,
+      h('div', {class: 'ae-h3'}, '📈 Коды для TikTok и других мест'), h('div', {class: 'ae-sub'}, 'Один код — одно место (ролик, канал, реклама). Много активаций и статистика: сколько ввели, сколько из них новых игроков (зарегистрировались не раньше 3 дней до ввода) и кто они. В посты канала эти коды не попадают.'),
+      srcLabel, h('div', {class: 'ae-row'}, srcCode, srcUses), h('div', {class: 'ae-row'}, srcPack, h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: genSrc}, 'Создать код')), srcList);
   }
 
   // ---------- clickable nicknames ----------
@@ -2554,7 +2566,7 @@
       h('p', {class: 'ae-sub'}, 'Главное — снаряжение, характеристики и таланты: они дают урон и живучесть. Важен баланс: герой, который и бьёт, и держит удар, сильнее, чем «стеклянная пушка» или глухая стена. Вознесение усиливает всё сразу, питомец и соратники дают небольшую прибавку.'),
       w.real ? '' : h('p', {class: 'ae-sub'}, 'Пока посчитано по уровню: сыграйте бой, чтобы учлись снаряжение и таланты.')); };
   const profileHeader = pr => h('div', {class: 'ae-prof-head' + (pr.banner ? ' has-banner' : '') + ` ae-theme-${pr.look?.theme || 'night'} ae-frame-${pr.look?.frame || 'none'}`, style: pr.banner ? `--ae-banner:url("${pr.banner.src}")` : ''}, h('span', {class: 'ae-ava-ring'}, h('img', {class: 'ae-avatar is-big ae-ava-frame', src: pr.avatar.src, alt: ''})),
-    h('div', {class: 'ae-grow'}, h('b', {class: `ae-prof-name ae-nc-${pr.look?.color || 'default'}`}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), pr.look?.motto ? h('div', {class: 'ae-motto'}, `«${pr.look.motto}»`) : '', h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`), pr.power ? h('div', {class: 'ae-power-badge', title: 'Общая сила героя'}, h('span', {}, '💪'), h('b', {}, fmt(pr.power.total)), h('small', {}, 'сила героя')) : '', pr.look?.showcase?.length ? h('div', {class: 'ae-showcase'}, pr.look.showcase.map(t => h('span', {title: t.name}, `${t.icon} ${t.name}`))) : '',
+    h('div', {class: 'ae-grow'}, h('b', {class: `ae-prof-name ae-nc-${pr.look?.color || 'default'}`}, pr.clan ? h('span', {class: 'ae-clan-tag'}, `[${pr.clan.tag}]`) : '', pr.name, pr.app ? h('span', {class: 'ae-app-ico', title: 'Играет в мобильном приложении'}, '📱') : ''), pr.look?.motto ? h('div', {class: 'ae-motto'}, `«${pr.look.motto}»`) : '', h('div', {class: 'ae-sub'}, `${CLASS_NAME[pr.classId] || pr.classId} · ${pr.level} ур.`, pr.paragon ? h('span', {class: 'ae-par-chip', title: 'Уровень Парагона: опыт после 120 уровня'}, `✦${pr.paragon}`) : ''), pr.power ? h('div', {class: 'ae-power-badge', title: 'Общая сила героя'}, h('span', {}, '💪'), h('b', {}, fmt(pr.power.total)), h('small', {}, 'сила героя')) : '', pr.look?.showcase?.length ? h('div', {class: 'ae-showcase'}, pr.look.showcase.map(t => h('span', {title: t.name}, `${t.icon} ${t.name}`))) : '',
       pr.clan ? h('div', {class: 'ae-prof-clan'}, `${pr.clan.emblem || '🛡️'} Клан «${pr.clan.name}» · ур. ${pr.clan.level}${pr.clan.role === 'owner' ? ' · глава' : pr.clan.role === 'officer' ? ' · офицер' : ''}`) : h('div', {class: 'ae-sub'}, 'Без клана'),
       pr.pet ? h('div', {class: 'ae-prof-pet'}, h('img', {src: `/assets/pets/icon-${pr.pet.id}.webp`, alt: '', onerror: e => e.target.remove()}), h('span', {}, `${pr.pet.name} · ур. ${pr.pet.level}`), h('small', {}, `${RARITY_RU[pr.pet.rarity] || ''}${pr.pet.hungry ? ' · голоден' : ''}`)) : h('div', {class: 'ae-sub'}, '🐾 Без питомца'),
       pr.title ? h('div', {class: 'ae-title-badge'}, `${pr.title.icon} ${pr.title.name}`) : h('div', {class: 'ae-sub'}, 'Без титула'),
@@ -3055,7 +3067,7 @@
         if (run.status === 'ended') { sfx.play(run.result?.defeated ? 'coins' : 'fail', 0.5); loadClanX(true); } }
       catch (e) { toast(cleanError(e)); } finally { busy = false; rer(); }
     };
-    const floatAt = (sel, text, cls) => requestAnimationFrame(() => { const el = st.body.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * 0.45}px;top:${r.top + r.height * 0.25}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); });
+    const floatAt = (sel, text, cls) => requestAnimationFrame(() => { const el = st.body.querySelector(sel); if (!el) return; const r = zrect(el), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * 0.45}px;top:${r.top + r.height * 0.25}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); });
     const claim = async () => { try { const r = await api(base + '/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); toast('Награда: ' + rewardText(r.reward)); } closePanel(); setTimeout(() => hunt ? openClanHQ('fort') : reopenClan(), 300); } catch (e) { toast(cleanError(e)); } };
     const st = openPanel(hunt ? '🐾 Клановая охота' : '🐲 Страж клановых врат', body => {
       if (err) return body.append(h('p', {class: 'ae-empty'}, err), h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => { closePanel(); openClanHQ(hunt ? 'fort' : 'main'); }}, '← В штаб клана'));
@@ -4723,6 +4735,9 @@
     return h('span', {class: 'ae-sc-fx', title: `${e.name || e.type}${n ? ` · ещё ${n} х.` : ''}`}, k ? h('img', {src: `/assets/battle/fx-${k}.webp`, alt: ''}) : h('i', {}, e.icon || FX_EMOJI[e.type] || '✨'), n ? h('b', {}, n) : ''); });
   const scBar = (cls, v, max) => h('div', {class: 'ae-sc-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * (v || 0) / Math.max(1, max || 1)))}%`}), h('span', {}, `${/is-mp/.test(cls) ? 'MP ' : ''}${fmt(Math.max(0, Math.round(v || 0)))} / ${fmt(max || 0)}`));
   const heroFig = cls => `/assets/sprites/generated/heroes/combat/${cls || 'warrior'}.webp`;
+  // UI scale uses CSS zoom on <html>: rects come zoomed, fixed positions get zoomed again — divide once
+  function zoomOf() { return document.documentElement.currentCSSZoom || parseFloat(getComputedStyle(document.documentElement).zoom) || 1; }
+  function zrect(el) { const r = el.getBoundingClientRect(), z = zoomOf(); return z === 1 ? r : {left: r.left / z, top: r.top / z, right: r.right / z, bottom: r.bottom / z, width: r.width / z, height: r.height / z}; }
   // ---------- «Драконит 0/12»: tap a needed resource to see where to get it ----------
   let srcMap = null, srcLoading = null;
   const loadSources = () => srcLoading ||= fetch('/assets/item-sources-v2.json').then(r => r.json()).then(j => (srcMap = j)).catch(() => (srcMap = {}));
@@ -4747,9 +4762,9 @@
     const pop = h('div', {class: 'ae-src-pop', role: 'tooltip'}, h('b', {}, name, need && have < need ? h('small', {}, ` · нужно ещё ${need - have}`) : need ? h('small', {}, ' · хватает ✅') : ''),
       ...srcMap[name].map(t => h('div', {}, t)));
     document.body.append(pop);
-    const r = chip.getBoundingClientRect(), w = Math.min(300, innerWidth - 16); pop.style.width = w + 'px';
-    pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
-    const ph = pop.offsetHeight; pop.style.top = (r.bottom + 6 + ph < innerHeight - 70 ? r.bottom + 6 : Math.max(8, r.top - ph - 6)) + 'px';
+    const r = zrect(chip), vw = innerWidth / zoomOf(), vh = innerHeight / zoomOf(), w = Math.min(300, vw - 16); pop.style.width = w + 'px';
+    pop.style.left = Math.max(8, Math.min(vw - w - 8, r.left)) + 'px';
+    const ph = pop.offsetHeight; pop.style.top = (r.bottom + 6 + ph < vh - 70 ? r.bottom + 6 : Math.max(8, r.top - ph - 6)) + 'px';
     const off = ev => { if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener('pointerdown', off, true); removeEventListener('scroll', off2, true); } }, off2 = () => off({target: document.body});
     setTimeout(() => { document.addEventListener('pointerdown', off, true); addEventListener('scroll', off2, true); }, 0);
   }, true);
@@ -4801,6 +4816,49 @@
     });
   }
   setInterval(() => { if (!document.hidden) try { paintLeague(); } catch {} }, 1500);
+  // ---------- Paragon: after level 120 experience fills endless Paragon levels (+3 stat points each, +1 talent point every 5) ----------
+  const PAR_BASE = Math.round(160 * 120 ** 2.05);
+  const parNeed = P => Math.round(PAR_BASE * 0.2 * (1 + P * 0.03));
+  let parSeen = null;
+  function paintParagon() {
+    const p = me(); if (!p) return;
+    const P = Number(p.paragon) || 0, on = (Number(p.level) || 1) >= 120;
+    // header chip next to the level («Ур. 120 ✦7»)
+    const ownText = e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+    const lvl = [...document.querySelectorAll('header span, header p, header div')].find(e => e.offsetParent && /(^|\s)Ур\.\s*\d+/.test(ownText(e)));
+    let chip = document.querySelector('header .ae-par-chip');
+    if (!on || !P || !lvl) chip?.remove();
+    else { if (!chip || chip.parentElement !== lvl) { chip?.remove(); chip = h('span', {class: 'ae-par-chip', title: 'Уровень Парагона', onclick: e => { e.stopPropagation(); openParagon(); }}); lvl.append(chip); } if (chip.textContent !== '✦' + P) chip.textContent = '✦' + P; }
+    // the hero screen: the «До уровня 121» bar becomes the Paragon bar
+    if (!on) return;
+    const bar = [...document.querySelectorAll('main span, main div, main p')].find(e => !e.childElementCount && /^До уровня 12[1-9]/.test((e.textContent || '').trim()));
+    const host = bar?.parentElement?.parentElement;
+    // modern style: «EXP 0%» pill in the hero summary instead of the «До уровня» line
+    const pill = !bar && [...document.querySelectorAll('main span, main div')].find(e => !e.childElementCount && /^EXP \d+%$/.test((e.textContent || '').trim()));
+    if (pill) { pill.textContent = `✦ ${P}`; const box = pill.closest('section, .rounded-2xl, .rounded-xl'); if (box && !box.querySelector('[data-ae-par]')) box.append(paragonCard(p)); }
+    if (host && !host.parentElement.querySelector(':scope > [data-ae-par]')) { host.style.display = 'none'; host.after(paragonCard(p)); }
+    else { const c = document.querySelector('[data-ae-par]'); if (c && c.dataset.v !== `${P}:${p.paragonExp || 0}`) c.replaceWith(paragonCard(p)); }
+    if (parSeen != null && P > parSeen) { bigBanner(`✦ Парагон ${P}! +3 очка характеристик${P % 5 === 0 ? ' и +1 очко таланта' : ''}`, P % 5 === 0); sfx.play('coins'); }
+    parSeen = P;
+  }
+  function paragonCard(p) {
+    const P = Number(p.paragon) || 0, cur = Number(p.paragonExp) || 0, need = parNeed(P);
+    return h('button', {type: 'button', class: 'ae-par-card', 'data-ae-par': '1', 'data-v': `${P}:${cur}`, onclick: openParagon},
+      h('span', {class: 'ae-par-ic'}, '✦'), h('span', {class: 'ae-grow'}, h('b', {}, `Парагон ${P}`, h('small', {}, ' · максимальный уровень 120 достигнут')),
+        h('i', {class: 'ae-league-bar'}, h('i', {style: `width:${Math.min(100, 100 * cur / need)}%`})), h('small', {}, `До ✦${P + 1}: ${fmt(cur)} / ${fmt(need)} опыта`)), h('span', {class: 'ae-coop-go'}, '›'));
+  }
+  function openParagon() {
+    const p = me() || {}, P = Number(p.paragon) || 0;
+    openPanel('✦ Уровни Парагона', body => {
+      body.append(h('p', {class: 'ae-note'}, 'На 120 уровне рост уровня заканчивается, но опыт не пропадает: он копится в бесконечные уровни Парагона.'));
+      body.append(h('div', {class: 'ae-land-sum'}, h('div', {}, h('small', {}, 'Парагон'), h('b', {}, `✦ ${P}`)), h('div', {}, h('small', {}, 'Получено очков'), h('b', {}, `+${P * 3} хар.`)), h('div', {}, h('small', {}, 'Таланты'), h('b', {}, `+${Math.floor(P / 5)}`))));
+      body.append(h('div', {class: 'ae-card'}, h('b', {}, 'За каждый уровень Парагона'), h('p', {class: 'ae-sub'}, '• +3 очка характеристик — распределите их в Герое → Характеристики.'), h('p', {class: 'ae-sub'}, '• Каждый 5-й уровень — ещё +1 очко таланта.'),
+        h('p', {class: 'ae-sub'}, '• Значок ✦ рядом с уровнем видят все игроки в вашей карточке.')));
+      body.append(h('div', {class: 'ae-card'}, h('b', {}, '⚒️ Мифическое снаряжение 120 уровня'), h('p', {class: 'ae-sub'}, 'В Мастерской (локация «Драконий сандор») открывается божественный комплект «Прадракона» 120 уровня — оружие, доспех, шлем и сапоги, обычный, усиленный и мастерский. Материалы — Осколок вечности и Небесная слеза из Эфириумной жилы, Эфириум и Звёздное ядро.')));
+      body.append(h('p', {class: 'ae-sub'}, 'Опыт дают монстры, Орда, вознесение, кооп и арена — всё как раньше.'));
+    });
+  }
+  setInterval(() => { if (!document.hidden) try { paintParagon(); } catch {} }, 1500);
   // ---------- mine: every vein shows its own ore ----------
   const VEIN_ORE = [[/угольн/i, 'coal'], [/медн/i, 'copper'], [/железн/i, 'iron'], [/серебрян/i, 'silver'], [/золот/i, 'gold'], [/кобальт/i, 'cobalt'], [/мифрил/i, 'mithril'], [/адамантит/i, 'adamantite'], [/обсидиан/i, 'obsidian'], [/драконит/i, 'draconite'], [/эфириум/i, 'aetherium']];
   function paintMineVeins() {
@@ -4842,7 +4900,7 @@
       F ? h('div', {class: 'ae-sc-fig is-foe' + (F.mirror ? ' is-mirror' : '') + (F.glow ? ' glow-' + F.glow : ''), 'data-bv-foe': ''}, h('img', {class: 'ae-sc-body', src: F.img, alt: '', onerror: e => { if (F.img2 && !e.target.dataset.fb) { e.target.dataset.fb = 1; e.target.src = F.img2; } }})) : '',
       d.queue?.length ? h('div', {class: 'ae-sc-queue', title: 'Следующие враги'}, d.queue.slice(0, 3).map(q => h('img', {src: q, alt: ''}))) : '');
   }
-  const sceneFloat = (root, sel, text, cls) => { const el = root?.querySelector(sel); if (!el) return; const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.3)}px;top:${r.top + r.height * 0.2}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); };
+  const sceneFloat = (root, sel, text, cls) => { const el = root?.querySelector(sel); if (!el) return; const r = zrect(el), n = h('div', {class: 'ae-float ' + cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.3)}px;top:${r.top + r.height * 0.2}px`}, text); document.body.append(n); setTimeout(() => n.remove(), 900); };
   // ---------- attack effects on the scene: a sword swing, an arrow or a spell — by class; hit flash or «Промах» ----------
   const ATTACK_STYLE = {warrior: ['slash', '#e5e7eb'], knight: ['slash', '#cbd5e1'], berserker: ['slash', '#f87171'], paladin: ['slash', '#fde68a'], rogue: ['double', '#c4b5fd'], assassin: ['double', '#a78bfa'],
     hunter: ['arrow', '#d6b98a'], archer: ['arrow', '#e7d3a8'], mage: ['orb', '#60a5fa'], necromancer: ['orb', '#4ade80'], druid: ['orb', '#a3e635']};
@@ -4852,7 +4910,7 @@
   function sceneFx(scene, who, opts = {}) {  // who: 'hero' attacks the foe, 'foe' attacks the hero
     if (!scene?.isConnected || fxOff()) return;
     const src = scene.querySelector(who === 'hero' ? '.ae-sc-fig.is-hero' : '.ae-sc-fig.is-foe'), dst = scene.querySelector(who === 'hero' ? '.ae-sc-fig.is-foe' : '.ae-sc-fig.is-hero'); if (!src || !dst) return;
-    const box = scene.getBoundingClientRect(), a = src.getBoundingClientRect(), b = dst.getBoundingClientRect();
+    const box = zrect(scene), a = zrect(src), b = zrect(dst);
     const ax = a.left - box.left + a.width * 0.55, ay = a.top - box.top + a.height * 0.45, bx = b.left - box.left + b.width * 0.5, by = b.top - box.top + b.height * 0.42;
     const [kind, color] = who === 'foe' ? ['claw', '#ef4444'] : ATTACK_STYLE[opts.cls] || ATTACK_STYLE.warrior;
     const add = (cls, style, life = 700) => { const n = h('div', {class: 'ae-fx ' + cls, style: `--c:${color};` + style}); scene.append(n); setTimeout(() => n.remove(), life); return n; };
@@ -5098,7 +5156,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
       }
     };
     const showFloats = () => { while (floats.length) { const f = floats.shift(), el = st.body.querySelector(f.at === 'hero' ? '[data-bv-hero], [data-hz="hero"]' : '[data-bv-foe], [data-hz="foe"]'); if (!el) continue;
-      const r = el.getBoundingClientRect(), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.35)}px;top:${r.top + r.height * 0.25}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 900); } };
+      const r = zrect(el), n = h('div', {class: 'ae-float ' + f.cls, style: `left:${r.left + r.width * (0.3 + Math.random() * 0.35)}px;top:${r.top + r.height * 0.25}px`}, f.text); document.body.append(n); setTimeout(() => n.remove(), 900); } };
     const act = async (action, steps = 1, skillId) => {
       if (busy || !run || run.status !== 'active') return; busy = true;
       try { const r = await api('/api/horde/act', 'POST', {action, steps, skillId}); run = r.run; feel(r.events); if (action !== 'attack' || steps === 1) sfx.tick?.(); }
@@ -5366,6 +5424,11 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-par-chip{display:inline-flex;align-items:center;margin-left:5px;padding:0 6px;height:16px;border-radius:999px;font:800 10px/16px system-ui;color:#e9d5ff;background:#3b1a5acc;border:1px solid #c084fc99;vertical-align:middle;cursor:pointer;white-space:nowrap}
+.ae-par-card{display:flex;align-items:center;gap:10px;width:100%;margin:8px 0;padding:9px 11px;border-radius:12px;border:1px solid #c084fc88;background:linear-gradient(135deg,#2a1240e6,#120a1ce6);color:#f3e8ff;text-align:left}
+.ae-par-card b{font:700 13.5px Georgia,serif;color:#e9d5ff}.ae-par-card b small{font:500 10.5px system-ui;opacity:.75}.ae-par-card>span>small{display:block;font:11px system-ui;opacity:.85;margin-top:3px}.ae-par-ic{font-size:26px;color:#d8b4fe;text-shadow:0 0 10px #a855f7}
+.ae-par-card .ae-league-bar i{background:linear-gradient(90deg,#c084fc,#7c3aed)}
+.ae-src-card{display:flex;flex-direction:column;gap:6px}.ae-src-stats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px}.ae-src-who{display:flex;flex-wrap:wrap;gap:4px}.ae-src-who span{font-size:11px;padding:2px 7px;border-radius:999px;background:#ffffff12;border:1px solid #ffffff22}.ae-src-who span.is-new{border-color:#4ade8088;color:#86efac}
 .ae-inv-search{gap:6px;margin-bottom:8px}.ae-inv-search .ae-inv-q{flex:1;min-width:0}
 .ae-land-nocit{border-color:#f0cf7a88!important;text-align:center;margin-bottom:8px}.ae-land-nocit b{font-size:15px;color:#ffe6a8}
 .ae-land-prot{max-width:120px;text-align:right;font-size:11px;line-height:1.25;opacity:.85}
@@ -5831,5 +5894,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

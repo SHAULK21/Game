@@ -155,8 +155,8 @@ export function publicProfile(world, id, now) {
   const title = TITLES.find(t => t.id === pr.title && earned.has(t.id));
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
-  const lg = leagueOf(p.arena_rating ?? 1000);
-  return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', league: {id: lg.id, icon: lg.icon, name: lg.name}, arenaRating: Number(p.arena_rating ?? 1000) || 0, title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
+  const lg = leagueOf(p.arena_rating ?? 1000), par = Number(rows(world, 'ae_combat_stats').find(x => same(x.u, id))?.par) || 0;
+  return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, paragon: par, classId: p.class_id || 'warrior', league: {id: lg.id, icon: lg.icon, name: lg.name}, arenaRating: Number(p.arena_rating ?? 1000) || 0, title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
     avatar: av, look: styleOf(world, id, pr, now), app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), power: powerOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 

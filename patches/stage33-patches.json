@@ -1,0 +1,14 @@
+[
+ {
+  "name": "paragon-levels",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32.js",
+  "old": "function Se(e,t){let n=Math.max(0,Math.floor(t)),r=e.level,i=Math.max(0,e.exp)+n,a=e.nextExp>0?e.nextExp:xe(r),o=e.statPoints,s=e.talentPoints,c=0;for(;i>=a;)i-=a,r+=1,a=xe(r),o+=5,s+=1,c+=1;return{levelsGained:c,player:{...e,level:r,exp:i,nextExp:a,statPoints:o,talentPoints:s}}}",
+  "new": "function Se(e,t){let n=Math.max(0,Math.floor(t)),r=e.level,i=Math.max(0,e.exp)+n,a=e.nextExp>0?e.nextExp:xe(r),o=e.statPoints,s=e.talentPoints,c=0;for(;i>=a&&r<120;)i-=a,r+=1,a=xe(r),o+=5,s+=1,c+=1;let P=e.paragon||0,pe=e.paragonExp||0,pg=0;if(r>=120){pe+=i;i=0;a=xe(120);let need=Math.round(xe(120)*.2*(1+P*.03));for(;pe>=need;)pe-=need,P+=1,pg+=1,o+=3,P%5==0&&(s+=1),need=Math.round(xe(120)*.2*(1+P*.03))}return{levelsGained:c,paragonGained:pg,player:{...e,level:r,exp:i,nextExp:a,statPoints:o,talentPoints:s,paragon:P,paragonExp:pe}}}"
+ },
+ {
+  "name": "mythic-120-recipes",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32.js",
+  "old": "weaponName:`Эфирный клинок Прадракона`,armorName:`Эфирный доспех Прадракона`,rarity:`divine`}]",
+  "new": "weaponName:`Эфирный клинок Прадракона`,armorName:`Эфирный доспех Прадракона`,rarity:`divine`},{regionId:`reg_dragon`,level:120,miningLevel:95,ore:`Эфириум`,catalyst:`Звёздное ядро`,weaponMaterial:`Осколок вечности`,armorMaterial:`Небесная слеза`,weaponName:`Мифический клинок Вечности`,armorName:`Доспех Вечности`,rarity:`divine`}]"
+ }
+]
