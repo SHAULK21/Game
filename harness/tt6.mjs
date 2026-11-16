@@ -5,7 +5,7 @@ import {launch} from './browser.mjs'; import fs from 'node:fs';
 const OUT = 'video/tt6'; fs.mkdirSync(OUT, {recursive: true});
 const KEY = 'aethelgard_save_v1_data_437290420', ME = '437290420';
 const marksFile = OUT + '/marks.json', marks = fs.existsSync(marksFile) ? JSON.parse(fs.readFileSync(marksFile)) : {};
-const PROMO = 'AE-6NGGUR';
+const PROMO = 'TT-ZEMLI';
 const gear = (id, name, type, rarity, lvl, stats, extra = {}) => ({id, templateId: id, name, type, rarity, level: lvl, upgradeLevel: 0, stats, icon: '⚔️', sellPrice: 50, disassembleYield: {}, stackCount: 1, ...extra});
 function baseLs(mut) {
   const ls = JSON.parse(fs.readFileSync('ls.json')); const save = JSON.parse(ls[KEY]);
