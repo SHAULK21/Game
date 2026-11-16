@@ -18,7 +18,7 @@ const MAX = 10;
 const LEADERS = ['owner', 'officer'], SPENDERS = ['owner', 'officer', 'quartermaster'];
 
 export const BUILD = {
-  hall: {name: 'Цитадель', icon: '🏯', gold: 3000, desc: 'Сердце крепости. Открывает набеги (и делает клан их целью). Остальные здания — не выше уровня Цитадели. С 5 ур. — две стройки одновременно.'},
+  hall: {name: 'Цитадель', icon: '🏯', gold: 3000, desc: 'Сердце крепости. Без неё нельзя захватывать земли королевства и ходить в набеги (и клан не может стать целью набега). Остальные здания — не выше уровня Цитадели. С 5 ур. — две стройки одновременно.'},
   walls: {name: 'Стены', icon: '🧱', gold: 2000, desc: '+300 к обороне и +10% к силе всей обороны за уровень.'},
   barracks: {name: 'Казармы', icon: '⚔️', gold: 2200, desc: '+3 места для защитников за уровень. Открывают арбалетчиков (3 ур.), рыцарей (6) и паладинов (9). +5% к силе набега.'},
   tower: {name: 'Сторожевая башня', icon: '🗼', gold: 1800, desc: '+6% к обороне за уровень. С башней видно точную оборону врага перед набегом.'},
@@ -142,7 +142,7 @@ function targets(world, clan, f, now) {
     return {id: c.id, tag: c.tag, name: c.name, emblem: metaOf(world, c).emblem, level: Number(c.level) || 1, members: membersOf(world, c).length, hall, shield, busy: busy.has(String(c.id)),
       def: exact ? def : null, defRange: exact ? null : [Math.round(def * 0.7 / 100) * 100, Math.round(def * 1.3 / 100) * 100], walls: lv(g, 'walls'), guards: g ? guardCount(g) : 0,
       treasury: exact ? gold(c) : null};
-  }).filter(c => c.hall >= 1).sort((a, b) => Math.abs(a.level - (Number(clan.level) || 1)) - Math.abs(b.level - (Number(clan.level) || 1))).slice(0, 30);
+  }).sort((a, b) => (b.hall >= 1) - (a.hall >= 1) || Math.abs(a.level - (Number(clan.level) || 1)) - Math.abs(b.level - (Number(clan.level) || 1))).slice(0, 30);  // clans without a Citadel are listed too, marked as protected
 }
 
 // ---------- boss hunts (one fight a day per member, at the boss the officers picked) ----------

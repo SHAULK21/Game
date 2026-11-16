@@ -2820,11 +2820,11 @@
         body.append(h('p', {class: 'ae-sub'}, `Набег: глава или офицер выбирает цель, 30 минут идёт сбор — соклановцы вступают в отряд, а враг может встать на стены. Сила отряда = сумма сил героев × ${F.attackMul}% (Кузница +3%, Казармы +5% за уровень). Победа — до 25% незащищённой казны врага (Сокровищница прячет 6% за уровень) и 25% его защитников. После набега у цели щит 8 ч, у вас — отдых 12 ч. Нападать и быть целью можно только с Цитаделью.`));
         body.append(h('div', {class: 'ae-pill'}, `Ваша сила: ${fmt(F.myPw)}${F.cooldown ? ` · отряд отдыхает ещё ${untilText(F.cooldown)}` : ''}`));
         if (!tgts) body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
-        else if (!tgts.length) body.append(h('p', {class: 'ae-empty'}, 'Целей пока нет: другие кланы ещё не построили Цитадель.'));
+        else if (!tgts.length) body.append(h('p', {class: 'ae-empty'}, 'Других кланов пока нет.'));
         else for (const c of tgts) body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-hq-ic'}, c.emblem),
           h('div', {class: 'ae-grow'}, h('b', {}, `[${c.tag}] ${c.name}`), h('div', {class: 'ae-sub'}, `ур. ${c.level} · ${c.members} уч. · стены ${c.walls} · защитников ${c.guards}`),
-            h('div', {class: 'ae-sub'}, c.def != null ? `🛡️ оборона ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙 (🗼 разведка башни)` : `🛡️ оборона ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])} (точнее — со Сторожевой башней)`)),
-          c.shield ? h('span', {class: 'ae-sub'}, `🛡️ щит ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : F.lead ? h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: !!F.cooldown || live.some(a => a.side === 'att'), onclick: () => { if (confirm(`Объявить набег на [${c.tag}] «${c.name}»? Через 30 минут — штурм, их клан будет предупреждён.`)) fortCall('/assault', {clanId: c.id}); }}, '⚔️ Набег') : ''));
+            h('div', {class: 'ae-sub'}, c.hall < 1 ? '🏚️ Цитадель не построена' : c.def != null ? `🛡️ оборона ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙 (🗼 разведка башни)` : `🛡️ оборона ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])} (точнее — со Сторожевой башней)`)),
+          c.hall < 1 ? h('span', {class: 'ae-sub ae-land-prot'}, '👑 Под защитой короны: нет Цитадели') : c.shield ? h('span', {class: 'ae-sub'}, `🛡️ щит ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : F.lead ? h('button', {class: 'ae-btn ae-primary', type: 'button', disabled: !!F.cooldown || live.some(a => a.side === 'att'), onclick: () => { if (confirm(`Объявить набег на [${c.tag}] «${c.name}»? Через 30 минут — штурм, их клан будет предупреждён.`)) fortCall('/assault', {clanId: c.id}); }}, '⚔️ Набег') : ''));
         if (F.history.length) { body.append(h('h3', {class: 'ae-h3'}, 'Последние сражения'));
           for (const a of F.history) { const r = a.res || {}, won = a.side === 'att' ? r.win : !r.win;
             body.append(h('div', {class: 'ae-card ae-sub ' + (won ? 'ae-good' : 'ae-bad')}, `${won ? '🏆' : '🏳️'} ${a.side === 'att' ? 'Набег на' : 'Оборона от'} [${a.foe?.tag || '?'}]: ${fmt(r.att)} против ${fmt(r.def)}${r.gold ? ` · ${a.side === 'att' ? '+' : '−'}${fmt(r.gold)} 🪙` : ''}`)); } }
@@ -2844,7 +2844,7 @@
     const landPic = (x, cls = 'ae-land-pic') => h('span', {class: cls}, h('img', {src: x.img, alt: '', loading: 'lazy'}), h('em', {}, tierRom[x.tier]));
     const ownerChip = x => x.owner ? h('span', {class: 'ae-land-owner' + (x.mine ? ' is-mine' : ' is-foe')}, `${x.owner.emblem || '🛡️'} [${x.owner.tag}]`) : h('span', {class: 'ae-land-owner is-free'}, '🏳️ Ничья');
     function attackBtn(x, wide) {
-      const L = lands, why = x.mine ? 'Наша' : x.shield ? `🛡️ ${untilText(x.shield)}` : L.owned >= L.limit ? `Лимит ${L.owned}/${L.limit}` : !L.hits.left ? 'Штурмы завтра' : '';
+      const L = lands, why = x.mine ? 'Наша' : !L.hasCitadel ? 'Нужна Цитадель' : x.shield ? `🛡️ ${untilText(x.shield)}` : L.owned >= L.limit ? `Лимит ${L.owned}/${L.limit}` : !L.hits.left ? 'Штурмы завтра' : '';
       return h('button', {type: 'button', class: 'ae-btn ' + (why ? '' : 'ae-primary') + (wide ? ' ae-wide' : ''), disabled: !!why, onclick: e => { e.stopPropagation(); landCall('/attack', {id: x.id}); }}, why || (wide ? `⚔️ Штурмовать (ваш удар ≈ ${fmt(L.myPw)})` : '⚔️ Штурм'));
     }
     function landCard(x) {
@@ -2910,7 +2910,10 @@
         h('div', {}, h('small', {}, 'Земли'), h('b', {}, `🏰 ${L.owned}/${L.limit}`)),
         h('div', {}, h('small', {}, 'Доход в час'), h('b', {class: 'ae-good'}, L.owned ? incText(L.income) : '—')),
         h('div', {}, h('small', {}, 'Ваши штурмы'), h('b', {}, `⚔️ ${L.hits.left}/${L.hits.max}`))));
+      if (!L.hasCitadel) body.append(h('div', {class: 'ae-card ae-land-nocit'}, h('b', {}, '🏯 Сначала — Цитадель'), h('p', {class: 'ae-sub'}, 'Захватывать земли может только клан с Цитаделью. Её строят в Крепости клана глава, офицеры или казначей.'),
+        h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide', onclick: () => { fortTab = 'build'; go('fort'); }}, '🏗️ Построить Цитадель')));
       body.append(h('details', {class: 'ae-land-help'}, h('summary', {}, '❓ Как это работает'),
+        h('p', {}, '0. Нужна Цитадель в Крепости клана — без неё земли не захватить.'),
         h('p', {}, '1. Захват: все участники штурмуют крепость (3 штурма в день у каждого). Оборона падает до нуля — земля ваша, и 6 часов её нельзя отбить.'),
         h('p', {}, '2. Защита: нанимайте отряды воинов (по 10 и 50) и назначьте наместника — соратника, который стоит на стенах.'),
         h('p', {}, '3. Доход: постройте Монетный двор (золото), Рудник (серебро и руда) или Бастион (оборона). Доход каждый час идёт в казну.'),
@@ -2925,13 +2928,13 @@
       }
       if (landTab === 'take') for (const x of take.sort((a, b) => a.tier - b.tier || a.def - b.def)) body.append(landCard(x));
       if (landTab === 'cit') {
-        body.append(h('p', {class: 'ae-sub'}, 'Цитадели других кланов можно грабить: глава или офицер объявляет набег, 30 минут собирается отряд, победа приносит до 25% их казны. Нужна своя Цитадель в Крепости клана.'));
+        body.append(h('p', {class: 'ae-sub'}, 'Цитадели других кланов можно грабить: глава или офицер объявляет набег, 30 минут собирается отряд, победа приносит до 25% их казны. Нужна своя Цитадель в Крепости клана. Кланы без Цитадели под защитой короны — их нельзя грабить, пока они её не построят.'));
         if (!citadels) body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
-        else if (!citadels.length) body.append(h('p', {class: 'ae-empty'}, 'Целей пока нет: другие кланы ещё не построили Цитадель.'));
+        else if (!citadels.length) body.append(h('p', {class: 'ae-empty'}, 'Других кланов пока нет.'));
         else for (const c of citadels) body.append(h('div', {class: 'ae-land'}, h('span', {class: 'ae-land-pic'}, h('img', {src: '/assets/fort/fort-hall.webp', alt: ''})),
           h('div', {class: 'ae-grow ae-land-mid'}, h('div', {class: 'ae-land-title'}, h('b', {}, `${c.emblem} [${c.tag}] ${c.name}`)), h('div', {class: 'ae-sub'}, `ур. ${c.level} · ${c.members} уч. · защитников ${c.guards}`),
-            h('div', {class: 'ae-sub'}, c.def != null ? `🛡️ ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙` : `🛡️ ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])}`)),
-          c.shield ? h('span', {class: 'ae-sub'}, `🛡️ ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : !L.lead ? h('span', {class: 'ae-sub'}, 'набег объявляет глава') : !L.hasCitadel ? h('span', {class: 'ae-sub'}, 'нужна Цитадель') :
+            h('div', {class: 'ae-sub'}, c.hall < 1 ? '🏚️ Цитадель не построена' : c.def != null ? `🛡️ ${fmt(c.def)} · казна ${fmt(c.treasury)} 🪙` : `🛡️ ≈ ${fmt(c.defRange[0])}–${fmt(c.defRange[1])}`)),
+          c.hall < 1 ? h('span', {class: 'ae-sub ae-land-prot'}, '👑 Под защитой короны: нет Цитадели') : c.shield ? h('span', {class: 'ae-sub'}, `🛡️ ${untilText(c.shield)}`) : c.busy ? h('span', {class: 'ae-sub'}, 'уже атакуют') : !L.lead ? h('span', {class: 'ae-sub'}, 'набег объявляет глава') : !L.hasCitadel ? h('span', {class: 'ae-sub'}, 'нужна Цитадель') :
             h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async () => { if (!confirm(`Объявить набег на [${c.tag}] «${c.name}»? 30 минут на сбор отряда, их клан будет предупреждён.`)) return;
               try { await api('/api/ae-clanx/fort/assault', 'POST', {clanId: c.id}); toast('⚔️ Набег объявлен! Сбор отряда — в Крепости клана.'); go('fort'); } catch (e) { toast(cleanError(e)); } }}, '⚔️ Набег')));
       }
@@ -5349,6 +5352,8 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-land-nocit{border-color:#f0cf7a88!important;text-align:center;margin-bottom:8px}.ae-land-nocit b{font-size:15px;color:#ffe6a8}
+.ae-land-prot{max-width:120px;text-align:right;font-size:11px;line-height:1.25;opacity:.85}
 .ae-land-entry{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:10px;border-radius:14px;border:1px solid #f0cf7a88;background:linear-gradient(120deg,#3a2a12f0,#14100af0);color:#f3e6c8;text-align:left;box-shadow:0 0 14px #f0cf7a22}
 .ae-land-entry img{width:62px;height:62px;border-radius:10px;object-fit:cover;object-position:center;clip-path:inset(0 round 10px);transform:scale(1.4);border:1px solid #f0cf7a66}.ae-land-entry b{font:700 15px Georgia,serif;color:#ffe6a8}.ae-land-entry small{display:block;font-size:12px;opacity:.85;margin-top:2px}
 .ae-land-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}.ae-land-sum>div{padding:8px;border-radius:12px;background:#0003;border:1px solid #ffffff1f;text-align:center}

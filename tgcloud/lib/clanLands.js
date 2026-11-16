@@ -129,6 +129,7 @@ export function handleLands(world, path, method, body, me, now, notify) {
 
   if (path === '/api/ae-clanx/lands/attack') {
     if (mine) return fail('Это уже наша земля.');
+    if (lv(fortOf(world, clan.id), 'hall') < 1) return fail('Сначала постройте Цитадель в Крепости клана — без неё земли не захватить.');
     if (r.shield && Date.parse(r.shield) > now) return fail(`Земля под защитой после захвата ещё ${Math.ceil((Date.parse(r.shield) - now) / HOUR)} ч.`);
     const owned = landsOf(world).filter(x => same(x.owner, clan.id)).length;
     if (owned >= limitOf(clan)) return fail(`Клан уже держит ${owned} из ${limitOf(clan)} земель. Лимит растёт с уровнем клана (+1 каждые 3 уровня).`);
