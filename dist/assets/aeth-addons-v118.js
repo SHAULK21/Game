@@ -192,6 +192,7 @@
   function closePanel() {
     const s = openPanelState; if (!s) return;
     s.timers.forEach(clearInterval); s.onClose?.(); s.root.remove(); openPanelState = null;
+    if (document.querySelector('[data-ae-clan-today]')) loadClanX(true).then(() => { try { paintClanToday(); } catch {} });
   }
   addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
   document.addEventListener('click', e => { if (openPanelState && document.querySelector('.ae-battle-backdrop') && e.target.closest?.('nav.game-nav')) closePanel(); }, true);
@@ -3452,6 +3453,45 @@
     }
     for (const box of list.querySelectorAll(':scope > .ae-fold')) box._aeSum?.();
   }
+  // ---------- «Сегодня в клане»: what can be done right now (from the same overview that feeds the HQ badge) ----------
+  let todayOpen = false;
+  function clanGo(go) {
+    sfx.play('page');
+    if (go === 'raid') return openClanRaid();
+    if (go === 'hunt') return openClanHQ('fort', 'hunt');
+    if (go === 'fort') return openClanHQ('fort', 'build');
+    if (go === 'lands') return openClanHQ('lands', 'take');
+    if (go === 'wild' || go === 'requests') return openClanHQ(go);
+    return openClanHQ('main');
+  }
+  function paintClanToday() {
+    const tiles = document.querySelector('[data-ae-clan-tiles]'); if (!tiles) return;
+    if (clanX?.clan && Date.now() - clanXAt > 60000 && !document.hidden) { clanXAt = Date.now(); loadClanX(true).then(() => paintClanToday()); }
+    const list = clanX?.clan ? clanX.today || [] : null; if (!list) return;
+    let box = tiles.querySelector(':scope > [data-ae-clan-today]');
+    const sig = JSON.stringify([list.map(x => [x.k, x.title, x.sub]), todayOpen]);
+    if (box && box.dataset.sig === sig) return;
+    const row = x => h('button', {type: 'button', class: 'ae-today-row' + (x.pri === 0 ? ' is-reward' : x.pri === 1 ? ' is-urgent' : ''), onclick: () => clanGo(x.go)},
+      h('span', {class: 'ae-today-ic'}, x.icon), h('span', {class: 'ae-grow'}, h('b', {}, x.title), h('small', {}, x.sub + (x.until ? ` · ещё ${untilText(x.until)}` : ''))), h('span', {class: 'ae-today-go'}, '›'));
+    const shown = todayOpen ? list : list.slice(0, 4);
+    const fresh = h('div', {class: 'ae-clan-today', 'data-ae-clan-today': '1', 'data-sig': sig},
+      h('div', {class: 'ae-today-h'}, h('b', {}, '📋 Сегодня в клане'), h('small', {}, list.length ? `дел: ${list.length}` : '')),
+      list.length ? shown.map(row) : h('div', {class: 'ae-today-empty'}, '✅ На сегодня всё сделано. Новые бои — после 02:00 по Киеву.'),
+      list.length > 4 ? h('button', {type: 'button', class: 'ae-today-more', onclick: () => { todayOpen = !todayOpen; paintClanToday(); }}, todayOpen ? 'Свернуть' : `Ещё ${list.length - 4}`) : '');
+    if (box) box.replaceWith(fresh); else { const hq = tiles.querySelector(':scope > [data-ae-clan-hq]'); if (hq) hq.after(fresh); else tiles.prepend(fresh); }
+  }
+  // the clan card shows only «0 XP»: a bar to the next level (1000 XP per level, up to 15)
+  function paintClanXp() {
+    const c = clanX?.clan, tiles = document.querySelector('[data-ae-clan-tiles]'); if (!c || !tiles) return;
+    const card = tiles.parentElement, xpEl = [...card.querySelectorAll('div, span, p')].find(e => !e.childElementCount && /^[\d\s ]+XP$/.test((e.textContent || '').trim()) && !e.closest('[data-ae-clan-tiles]')); if (!xpEl) return;
+    const max = c.level >= 15, cur = c.xp % 1000, t = max ? 'макс. уровень' : `${fmt(cur)} / 1000 XP до ${c.level + 1} ур.`;
+    let bar = card.querySelector('[data-ae-clan-xp]');
+    if (!bar) {
+      const grid = [...card.children].find(c => c !== tiles && /участник/.test(c.textContent || '') && /казна/.test(c.textContent || ''));
+      bar = h('div', {class: 'ae-clan-xp', 'data-ae-clan-xp': '1'}, h('i', {}), h('small', {})); if (grid) grid.before(bar); else xpEl.parentElement.after(bar); xpEl.classList.add('ae-hide-note'); }
+    const w = (max ? 100 : Math.round(cur / 10)) + '%'; if (bar.firstChild.style.width !== w) bar.firstChild.style.width = w;
+    if (bar.lastChild.textContent !== t) bar.lastChild.textContent = t;
+  }
   // HQ / search buttons in the Clan House; the native «Удар» opens the real fight.
   function injectClanHQ() {
     const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
@@ -3471,6 +3511,7 @@
       loadClanX(true).then(() => { const b = document.querySelector('[data-ae-clan-hq]'); const k = clanX?.clan ? (clanX.chest?.ready ? 1 : 0) + (clanX.goals || []).filter(g => g.canClaim).length + (clanX.requests || 0) : 0; if (b && k && !b.querySelector('.ae-hq-badge')) b.append(h('i', {class: 'ae-hq-badge'}, String(k))); });
     }
     compactClanScreen();
+    try { paintClanToday(); paintClanXp(); } catch (e) { console.warn('ae clan today', e); }
     const proj = [...document.querySelectorAll('main h2, main h3, main div, main p, main span')].find(e => !e.childElementCount && (e.textContent || '').trim() === 'Клановые проекты');
     if (proj && !proj.parentElement.querySelector('[data-ae-proj-note]')) proj.after(h('div', {class: 'ae-sub ae-proj-note', 'data-ae-proj-note': '1'}, 'Эти проекты усиливают только рейд со Стражем. Здания с бонусами для всего клана — в ', h('a', {href: '#', onclick: e => { e.preventDefault(); openClanHQ('fort', 'build'); }}, '🏯 Крепости'), ', а доход — в ', h('a', {href: '#', onclick: e => { e.preventDefault(); openClanHQ('lands'); }}, '🗺️ Землях'), '.'));
     const strike = [...document.querySelectorAll('main button')].find(b => /^Удар$/.test((b.textContent || '').trim()) && /Страж клановых врат/.test(b.closest('section, div')?.parentElement?.textContent || ''));
@@ -6185,6 +6226,17 @@ html[data-interface=fantasy] .ae-bag-sort{color:#3b2a14}html[data-interface=fant
 .ae-bag-tools{display:grid!important;grid-template-columns:1fr 1fr;gap:6px!important}.ae-bag-tools>.ae-bag-tools-h{grid-column:1/-1}
 .ae-bag-tools .ae-bag-merge{margin:0!important;min-height:48px!important;padding:6px 8px!important;gap:7px!important}.ae-bag-tools .ae-bag-merge small,.ae-bag-tools .ae-bag-merge .ae-coop-go{display:none!important}.ae-bag-tools .ae-bag-merge b{font-size:12px!important;line-height:1.2}
 .ae-bag-tools .ae-forge-entry small{display:block!important;font-size:10px!important;line-height:1.2;opacity:.8}.ae-bag-tools .ae-bag-merge .ae-entry-icon{flex:0 0 26px;width:26px;height:26px;font-size:18px}
+.ae-clan-today{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:14px;border:1px solid #e5c67855;background:linear-gradient(160deg,#2a2112cc,#14110bcc)}
+.ae-today-h{display:flex;align-items:baseline;justify-content:space-between;padding:0 2px}.ae-today-h b{font-size:13.5px;color:#ffe9b0}.ae-today-h small{font-size:11px;opacity:.7}
+.ae-today-row{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:5px 8px;border-radius:10px;border:1px solid #ffffff1c;background:#0000003d;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.ae-today-row b{display:block;font-size:12.5px;line-height:1.2}.ae-today-row small{display:block;font-size:10.5px;opacity:.75;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ae-today-row.is-reward{border-color:#facc15aa;background:#3a2c0f99;box-shadow:0 0 10px #facc1533}.ae-today-row.is-urgent{border-color:#f87171aa}
+.ae-today-ic{flex:0 0 26px;font-size:19px;text-align:center}.ae-today-go{flex:none;font-size:18px;opacity:.6}
+.ae-today-more{align-self:center;min-height:28px!important;padding:2px 14px!important;border-radius:14px!important;border:1px solid #ffffff2e!important;background:#0000004d!important;color:inherit!important;font:600 11.5px system-ui,sans-serif!important}
+.ae-today-empty{font-size:12px;opacity:.8;padding:4px 2px}
+html[data-interface=modern] .ae-clan-today{border-color:#2b3a52;background:#0d1524}html[data-interface=modern] .ae-today-h b{color:#e2e8f0}html[data-interface=modern] .ae-today-row{background:#111a2b;border-color:#2b3a52}html[data-interface=modern] .ae-today-row.is-reward{border-color:#facc15aa;background:#2a230e}
+html[data-interface=fantasy] .ae-clan-today{border-color:#a28a52;background:#2a2117;color:#f3e6c4}
+.ae-clan-xp{position:relative;height:16px;margin:4px 0 2px;border-radius:8px;background:#ffffff14;overflow:hidden;border:1px solid #ffffff1f}.ae-clan-xp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#a855f7,#f0cf7a);border-radius:8px}.ae-clan-xp small{position:relative;display:block;text-align:center;font:600 10px/14px system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}

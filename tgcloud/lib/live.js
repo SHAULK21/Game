@@ -4,9 +4,9 @@ import {bloodWeekend} from './horde.js';
 import {saveStats} from './heroStats.js';
 import {encodeDocument, STORAGE_CELL_LIMIT} from './storageCodec.js';
 import {handleClanPlus, clanTick, clanOf} from './clanPlus.js';
-import {handleFort, fortTick} from './clanFort.js';
-import {handleLands, landsTick} from './clanLands.js';
-import {handleWild, wildTick} from './wildBosses.js';
+import {handleFort, fortTick, fortToday} from './clanFort.js';
+import {handleLands, landsTick, landsToday} from './clanLands.js';
+import {handleWild, wildTick, wildToday} from './wildBosses.js';
 import {handleCompanions} from './companions.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
@@ -231,6 +231,21 @@ export function clanSuccession(world, now, notify) {
 }
 
 let lastClanSweep = 0;
+// «Сегодня в клане»: everything this player can do in the clan right now, most urgent first (read-only).
+function clanToday(world, me, ov, now) {
+  const {clan, m} = clanOf(world, me); if (!clan || !m) return [];
+  const out = [];
+  if (ov.chest?.ready) out.push({k: 'chest', icon: '🎁', title: 'Клановый сундук', sub: 'бесплатная награда раз в день', go: 'main', pri: 0});
+  const goals = (ov.goals || []).filter(g => g.canClaim);
+  if (goals.length) out.push({k: 'goals', icon: '🎯', title: 'Награда за цели клана', sub: goals.map(g => g.name).join(', '), go: 'main', pri: 0});
+  const raid = ov.raid || {};
+  if (raid.run?.status === 'active') out.push({k: 'raid', icon: '⚔️', title: 'Бой со Стражем врат идёт', sub: 'продолжите бой', go: 'raid', pri: 1});
+  else if (raid.run) out.push({k: 'raid', icon: '🎁', title: 'Итог боя со Стражем', sub: 'заберите награду', go: 'raid', pri: 0});
+  else if (!raid.doneToday && Number(raid.hp) > 0) out.push({k: 'raid', icon: '🛡️', title: 'Страж клановых врат', sub: `удар дня · здоровье ${Math.max(1, Math.round(raid.hp / (raid.max || raid.hp) * 100))}%`, go: 'raid', pri: 2});
+  if (ov.requests > 0) out.push({k: 'requests', icon: '📨', title: `Заявки в клан: ${ov.requests}`, sub: 'примите новых бойцов', go: 'requests', pri: 1});
+  out.push(...wildToday(world, clan, m, me, now), ...fortToday(world, clan, m, me, now), ...landsToday(world, clan, m, now));
+  return out.sort((a, b) => a.pri - b.pri || (a.until && b.until ? String(a.until).localeCompare(String(b.until)) : a.until ? -1 : b.until ? 1 : 0));
+}
 export async function handleLiveRequest(world, input, user, now, native, notify) {
   try { weekendAnnounce(world, now); refJoinNotice(world, String(user.id), now, notify); } catch (e) { console.warn('live prelude', e?.message); }
   // Whole-world clan sweeps (leader succession) run at most once per 5 minutes per isolate; the cheap per-player part runs always.
@@ -252,6 +267,11 @@ export async function handleLiveRequest(world, input, user, now, native, notify)
   if (path.startsWith('/api/ae-clanx/wild')) return handleWild(world, path, method, body, me, now, notify);
   if (path.startsWith('/api/ae-clanx/lands')) return handleLands(world, path, method, body, me, now, notify);
   if (path.startsWith('/api/ae-clanx/fort')) return handleFort(world, path, method, body, me, now, notify);
+  if (path === '/api/ae-clanx' && method === 'GET') {  // the clan overview + «Сегодня в клане» (one request feeds the list and the HQ badge)
+    const r = await handleClanPlus(world, path, method, body, me, now, native, notify);
+    if (r?.status < 300 && r.body?.clan) try { r.body.today = clanToday(world, me, r.body, now); } catch (e) { console.warn('clan today', e?.message); }
+    return r;
+  }
   if (path.startsWith('/api/ae-clanx')) return handleClanPlus(world, path, method, body, me, now, native, notify);
   if (path.startsWith('/api/ae-clan')) return handleClanInvites(world, path, method, body, me, now, notify);
   if (path === '/api/ae-referrals') { if (!player(world, me)) return fail('Сначала создайте персонажа.', 404); return handleReferrals(world, me, native); }

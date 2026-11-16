@@ -194,3 +194,22 @@ export function handleWild(world, path, method, body, me, now, notify) {
   }
   return fail('API не найден.', 404);
 }
+
+// «Сегодня в клане»: found wandering bosses this player may fight, waiting rewards, idle scouts. Read-only.
+export function wildToday(world, clan, m, me, now) {
+  const out = [], mineR = (world.tables.ae_wild_rewards || []).filter(r => same(r.u, me));
+  if (mineR.length) out.push({k: 'wild-reward', icon: '🎁', title: 'Награда за бродячего босса', sub: mineR.map(r => r.name).join(', '), go: 'wild', pri: 0});
+  const run = (world.tables.ae_wild_runs || []).filter(r => same(r.u, me)).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+  if (run?.status === 'active') out.push({k: 'wild-run', icon: '⚔️', title: 'Бой с бродячим боссом идёт', sub: run.bossFull || '', go: 'wild', pri: 1});
+  else if (run?.result && !run.claimed) out.push({k: 'wild-run', icon: '🎁', title: 'Итог боя с боссом', sub: run.bossFull || '', go: 'wild', pri: 0});
+  const w = (world.tables.ae_wild || []).find(x => same(x.clan, clan.id)); if (!w) return out;
+  const L = Number(player(world, me)?.level) || 1, left = FIGHTS - (m.wild_day === todayStart(now) ? m.wild_n || 0 : 0);
+  let alive = 0;
+  for (const b of WILD) {
+    const f = w.found?.[b.k]; if (!f || f.hp <= 0 || (f.until && Date.parse(f.until) <= now)) continue; alive++;
+    if (left > 0 && L >= b.lvl - 10 && run?.status !== 'active') out.push({k: 'wild-' + b.k, icon: b.icon || '🐉', title: `${b.name} найден!`, sub: `${regionName(f.region)} · здоровье ${Math.max(1, Math.round(f.hp / f.max * 100))}% · ваших боёв: ${left}/${FIGHTS}`, until: f.until, go: 'wild', pri: 1});
+  }
+  const hall = Number((world.tables.ae_clan_fort || []).find(x => same(x.clan, clan.id))?.b?.hall?.lvl) || 0, free = scoutOf(w.scout).squads - (w.squads || []).filter(s => !s.done).length;
+  if (!alive && hall >= 1 && free > 0) out.push({k: 'scout', icon: '🔭', title: 'Отправьте разведку', sub: `боссов пока не нашли · свободных отрядов: ${free}`, go: 'wild', pri: 4});
+  return out;
+}

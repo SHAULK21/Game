@@ -331,3 +331,25 @@ export function pruneFort(world, now) {
   if (world.tables.ae_clan_assaults) world.tables.ae_clan_assaults = world.tables.ae_clan_assaults.filter(a => !a.done || Date.parse(a.ends) > now - 7 * DAY);
   if (world.tables.ae_clan_fort) { const ids = new Set(rows(world, 'clans').map(c => String(c.id))); world.tables.ae_clan_fort = world.tables.ae_clan_fort.filter(f => ids.has(String(f.clan))); }
 }
+
+// «Сегодня в клане»: what this player can do in the fortress right now. Read-only (no rows created).
+export function fortToday(world, clan, m, me, now) {
+  const f = (world.tables.ae_clan_fort || []).find(x => same(x.clan, clan.id)); if (!f) return [];
+  const out = [], day = todayStart(now);
+  const run = (world.tables.ae_clan_hunt_runs || []).filter(r => same(r.u, me)).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+  if (run?.status === 'active') out.push({k: 'hunt', icon: '🐾', title: 'Охота Крепости — бой идёт', sub: run.bossFull || '', go: 'hunt', pri: 1});
+  else if (run?.result && !run.claimed) out.push({k: 'hunt', icon: '🎁', title: 'Награда за охоту', sub: run.bossFull || '', go: 'hunt', pri: 0});
+  else {
+    const b = BOSSES.find(x => x.k === f.hunt), s = b && f.bosses?.[b.k];
+    if (b && lv(f, 'den') >= b.den && !(s && s.hp <= 0) && !(m.last_hunt && Date.parse(m.last_hunt) >= day))
+      out.push({k: 'hunt', icon: b.icon || '🐾', title: 'Охота Крепости', sub: `${b.name} — бой дня`, go: 'hunt', pri: 2});
+  }
+  const help = Object.entries(f.b || {}).filter(([, c]) => c?.until && Date.parse(c.until) > now && !(c.helps || []).includes(String(me)) && (c.helps || []).length < 15);
+  if (help.length) out.push({k: 'help', icon: '🔨', title: 'Помочь стройке', sub: help.map(([k]) => BUILD[k]?.name || k).join(', ') + ' — быстрее на 3%', go: 'fort', pri: 2});
+  for (const a of (world.tables.ae_clan_assaults || []).filter(a => !a.done && Date.parse(a.ends) > now)) {
+    const att = same(a.from, clan.id), side = att ? a.att : same(a.to, clan.id) ? a.def : null; if (!side || side.some(x => same(x.u, me))) continue;
+    const foe = (world.tables.clans || []).find(c => same(c.id, att ? a.to : a.from));
+    out.push({k: 'assault-' + a.id, icon: att ? '⚔️' : '🚨', title: att ? 'Сбор на набег' : 'На нас нападают!', sub: `${foe ? `[${foe.tag}] ${foe.name}` : 'клан'} — ${att ? 'встаньте в отряд' : 'встаньте на стены'}`, until: a.ends, go: 'fort', pri: 1});
+  }
+  return out;
+}

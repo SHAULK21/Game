@@ -199,3 +199,12 @@ export function handleLands(world, path, method, body, me, now, notify) {
   }
   return fail('API не найден.', 404);
 }
+
+// «Сегодня в клане»: land assaults left today, only when one would be accepted. Read-only.
+export function landsToday(world, clan, m, now) {
+  const f = (world.tables.ae_clan_fort || []).find(x => same(x.clan, clan.id)); if (lv(f, 'hall') < 1) return [];
+  const used = m.land_day === todayStart(now) ? m.land_n || 0 : 0, left = HITS_PER_DAY - used; if (left <= 0) return [];
+  const all = world.tables.ae_lands || [], owned = all.filter(x => same(x.owner, clan.id)).length; if (owned >= limitOf(clan)) return [];
+  const free = LANDS.filter(L => { const r = all.find(x => x.id === L.id); return !r || (!same(r.owner, clan.id) && !(r.shield && Date.parse(r.shield) > now)); }).length;
+  return free ? [{k: 'lands', icon: '🗺️', title: 'Штурм земель', sub: `осталось ${left} из ${HITS_PER_DAY} · свободных для атаки: ${free}`, go: 'lands', pri: 3}] : [];
+}

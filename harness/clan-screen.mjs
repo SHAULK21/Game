@@ -27,4 +27,12 @@ await p.evaluate(() => [...document.querySelectorAll('.ae-fold')].find(b => /Х�
 console.log('TOGGLE', await p.evaluate(() => [...document.querySelectorAll('.ae-fold')].map(b => (b.classList.contains('is-open') ? 'OPEN ' : 'closed ') + Math.round(b.getBoundingClientRect().height)).join(' | ')));
 await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(300);
 for (let i = 0; i < 2; i++) { await p.screenshot({path: `clan-screen-${style}-${i}.png`}); await p.evaluate(() => window.scrollBy(0, 700)); await p.waitForTimeout(400); }
+await p.evaluate(() => window.scrollTo(0, 0));
+await p.evaluate(() => [...document.querySelectorAll('.ae-today-row')].find(b => /сундук/i.test(b.textContent))?.click()); await p.waitForTimeout(1500);
+console.log('GO chest ->', (await p.evaluate(() => document.querySelector('.ae-panel')?.innerText || 'none')).replace(/\n+/g, ' | ').slice(0, 160));
+await p.evaluate(() => [...document.querySelectorAll('.ae-panel button')].find(b => /Открыть сундук|Открыть/.test(b.textContent))?.click()); await p.waitForTimeout(1500);
+await p.evaluate(() => [...document.querySelectorAll('.ae-banner button, .ae-big-banner button')].forEach(b => b.click())); await p.evaluate(() => document.querySelector('.ae-x')?.click()); await p.waitForTimeout(2500);
+console.log('TODAY after', await p.evaluate(() => document.querySelector('[data-ae-clan-today]')?.innerText.replace(/\n+/g, ' | ')), '| blocks', await p.evaluate(() => document.querySelectorAll('[data-ae-clan-today]').length), 'xpbars', await p.evaluate(() => document.querySelectorAll('[data-ae-clan-xp]').length));
+await p.evaluate(() => [...document.querySelectorAll('.ae-today-row')].find(b => /Страж/.test(b.textContent))?.click()); await p.waitForTimeout(1500);
+console.log('GO raid ->', (await p.evaluate(() => (document.querySelector('.ae-panel, .ae-battle-backdrop') || {}).innerText || 'none')).replace(/\n+/g, ' | ').slice(0, 160));
 await s.close(); process.exit(0);
