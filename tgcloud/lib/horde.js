@@ -152,8 +152,10 @@ export function handleHordeRequest(world, input, user, now) {
   if (!p) return fail('Сначала создайте персонажа.', 404);
   const runs = rows(world, 'horde_runs');
   world.tables.horde_runs = runs.filter(r => r.status === 'active' || !r.claimed || Date.parse(r.updated_at) > now - 2 * 864e5);
-  let run = rows(world, 'horde_runs').filter(r => same(r.user, me)).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
-  if (run && run.status === 'active' && Date.parse(run.updated_at) < now - 30 * 60e3) { run.status = 'ended'; run.log.push('Поход прерван: вы долго отсутствовали.'); }
+  // the newest run of this player; an active one always wins (a new run used to have no updated_at and lost to the finished one)
+  const at = r => Date.parse(r.updated_at || r.started_at || '') || 0;
+  let run = rows(world, 'horde_runs').filter(r => same(r.user, me)).sort((a, b) => (b.status === 'active') - (a.status === 'active') || at(b) - at(a))[0];
+  if (run && run.status === 'active' && at(run) && at(run) < now - 12 * 3600e3) { run.status = 'ended'; run.log.push('Поход прерван: вас не было больше 12 часов. Награды сохранены.'); }
   const best = rows(world, 'horde_best').find(b => same(b.user, me));
   if (method === 'GET') return ok({run: view(run), best: best || {kills: 0, bloodKills: 0}, cost: HORDE_COST, weekend: bloodWeekend(now)});
   if (path === '/api/horde/start') {
@@ -164,7 +166,7 @@ export function handleHordeRequest(world, input, user, now) {
     // monsters grow with the hero's real strength too (halfway), so strong gear helps but does not walk through the Horde
     const base = h.real ? {...base0, atk: mid(mid(base0.atk, h.atk), h.atk), maxHp: mid(mid(base0.maxHp, h.maxHp), h.maxHp)} : base0, weekend = bloodWeekend(now).on, blood = weekend || !!body.blood;
     if (blood && !weekend && h.level < 10) return fail('Кровавая луна открывается с 10 уровня.');
-    run = {id: crypto.randomUUID(), user: me, status: 'active', blood, weekend, base, hero: h, hp: h.maxHp, maxMp: h.maxMp, mp: h.maxMp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
+    run = {id: crypto.randomUUID(), user: me, status: 'active', started_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), blood, weekend, base, hero: h, hp: h.maxHp, maxMp: h.maxMp, mp: h.maxMp, potions: POTIONS, powerCd: 0, kills: 0, bloodKills: 0, spawned: 0, queue: [],
       loot: {gold: 0, exp: 0, fragments: 0}, log: [weekend ? '🌕 Выходные Кровавой луны! Награды ×2 — Орда беснуется!' : blood ? '🌕 Восходит Кровавая луна… Орда беснуется!' : '⚔️ Орда приближается!'], claimed: false, created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString()};
     fillQueue(run); rows(world, 'horde_runs').push(run);
     return ok({run: view(run)}, 201);

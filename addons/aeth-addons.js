@@ -4633,6 +4633,53 @@
     setTimeout(() => { document.addEventListener('pointerdown', off, true); addEventListener('scroll', off2, true); }, 0);
   }, true);
   setInterval(() => { if (!document.hidden) try { markSourceChips(); } catch {} }, 1500);
+  // ---------- arena leagues: the hero's league follows the rating; league card, rewards for reaching each league ----------
+  const LEAGUES = [['bronze', '🥉', 'Бронза', 0], ['silver', '🥈', 'Серебро', 1200], ['gold', '🥇', 'Золото', 1600], ['platinum', '💠', 'Платина', 2200], ['diamond', '💎', 'Алмаз', 3000], ['master', '🔥', 'Мастер', 4000], ['grandmaster', '👑', 'Грандмастер', 5500], ['legend', '⚜️', 'Легенда', 7500]];
+  const leagueIdx = r => { let i = 0; LEAGUES.forEach((l, k) => { if ((Number(r) || 0) >= l[3]) i = k; }); return i; };
+  let leagueData = null, leagueAt = 0, leagueBusy = false;
+  async function claimLeagues(quiet) {
+    if (leagueBusy) return; leagueBusy = true;
+    try { const r = await api('/api/ae-profile/league', 'POST', {}); leagueData = {...(leagueData || {}), ...r}; leagueAt = Date.now();
+      if (r?.gift) { applyReward(r.gift); const L = LEAGUES.find(l => l[0] === r.league) || LEAGUES[0]; bigBanner(`${L[1]} Арена: лига «${L[2]}»!`, true); toast('Награда за лигу: ' + rewardText(r.gift)); sfx.play('coins'); }
+      else if (!quiet) toast('Новых наград за лиги пока нет.');
+    } catch (e) { if (!quiet) toast(cleanError(e)); } finally { leagueBusy = false; }
+  }
+  function paintLeague() {
+    const p = me(); if (!p) return;
+    const L = LEAGUES[leagueIdx(p.arenaRating ?? 1000)];
+    if (p.arenaLeague !== L[2]) B()?.setPlayer?.(x => x && {...x, arenaLeague: L[2]});
+    const lab = [...document.querySelectorAll('main div')].find(e => /^Лига:\s/.test((e.textContent || '').trim()) && e.childElementCount <= 2 && e.querySelector('span'));
+    if (!lab) return;
+    // the gladiators grow with the hero: they fight in the hero's league
+    const NAMES = new Set(['Бронза', 'Серебро', 'Золото', 'Платина']);
+    for (const b of document.querySelectorAll('main span, main div')) if (!b.childElementCount && NAMES.has((b.textContent || '').trim()) && b.closest('main') && !b.closest('[data-ae-league]') && b.textContent.trim() !== L[2]) { const box = b.parentElement?.parentElement; if (box && /Ур\.\s*\d+/.test(box.textContent || '')) b.textContent = L[2]; }
+    const host = lab.closest('div.flex')?.parentElement || lab.parentElement; if (!host || host.querySelector(':scope > [data-ae-league]')) { const c = host?.querySelector(':scope > [data-ae-league]'); if (c && c.dataset.r !== String(p.arenaRating)) c.replaceWith(leagueCard(p)); return; }
+    host.append(leagueCard(p));
+    if (Date.now() - leagueAt > 60e3) { leagueAt = Date.now(); claimLeagues(true); }
+  }
+  function leagueCard(p) {
+    const r = Number(p.arenaRating ?? 1000), i = leagueIdx(r), L = LEAGUES[i], N = LEAGUES[i + 1];
+    const pct = N ? Math.max(0, Math.min(100, 100 * (r - L[3]) / (N[3] - L[3]))) : 100;
+    return h('button', {type: 'button', class: 'ae-league', 'data-ae-league': '1', 'data-r': String(r), onclick: openLeagues},
+      h('span', {class: 'ae-league-ic'}, L[1]), h('span', {class: 'ae-grow'}, h('b', {}, `Лига «${L[2]}» · ${fmt(r)}`), h('i', {class: 'ae-league-bar'}, h('i', {style: `width:${pct}%`})),
+        h('small', {}, N ? `До «${N[2]}» ${N[1]}: ещё ${fmt(N[3] - r)} рейтинга` : 'Высшая лига арены!')), h('span', {class: 'ae-coop-go'}, '›'));
+  }
+  async function openLeagues() {
+    const st = openPanel('🏟 Лиги арены', async body => {
+      const p = me() || {}, r = Number(p.arenaRating ?? 1000), cur = leagueIdx(r);
+      body.append(h('p', {class: 'ae-note'}, 'Лига зависит от рейтинга арены: побеждайте гладиаторов, чтобы подняться выше. За первое достижение каждой лиги — награда.'));
+      let d = leagueData; try { d = await api('/api/ae-profile/league'); leagueData = d; } catch {}
+      const claimed = new Set(d?.claimed || []), srv = Number(d?.rating ?? r), list = d?.leagues || [];
+      body.append(h('div', {class: 'ae-league-list'}, LEAGUES.map(([id, ic, name, from], k) => { const g = list.find(x => x.id === id)?.gift;
+        const state = k <= cur ? (g ? (claimed.has(id) ? '✅ получена' : '🎁 доступна') : '✅') : '🔒';
+        return h('div', {class: 'ae-league-row' + (k === cur ? ' is-cur' : '') + (k > cur ? ' is-locked' : '')}, h('span', {class: 'ae-league-ic'}, ic),
+          h('span', {class: 'ae-grow'}, h('b', {}, name, h('small', {}, ` · от ${fmt(from)}`)), g ? h('small', {}, rewardText(g)) : h('small', {}, 'Стартовая лига')), h('em', {}, state)); })));
+      if (LEAGUES.some(([id, , , from], k) => k <= cur && list.find(x => x.id === id)?.gift && !claimed.has(id)))
+        body.append(h('button', {type: 'button', class: 'ae-btn ae-wide ae-primary', onclick: async () => { await claimLeagues(false); st.rerender(); }}, h('b', {}, '🎁 Забрать награды за лиги')));
+      if (srv + 50 < r) body.append(h('p', {class: 'ae-note'}, 'Рейтинг ещё синхронизируется с сервером — награды за новую лигу станут доступны через минуту-две.'));
+    });
+  }
+  setInterval(() => { if (!document.hidden) try { paintLeague(); } catch {} }, 1500);
   // ---------- mine: every vein shows its own ore ----------
   const VEIN_ORE = [[/угольн/i, 'coal'], [/медн/i, 'copper'], [/железн/i, 'iron'], [/серебрян/i, 'silver'], [/золот/i, 'gold'], [/кобальт/i, 'cobalt'], [/мифрил/i, 'mithril'], [/адамантит/i, 'adamantite'], [/обсидиан/i, 'obsidian'], [/драконит/i, 'draconite'], [/эфириум/i, 'aetherium']];
   function paintMineVeins() {
@@ -4854,7 +4901,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
           if (!node.isConnected) return;
           const hitFoe = sd.foe && (prev.foe !== sd.foe.name ? fresh : sd.foe.hp < prev.fhp), hurt = sd.hero.hp < prev.hhp;
           if (hitFoe) { sceneFx(node, 'hero', {cls, hit: true}); pendingAct = 0; }
-          else if (fresh && sd.foe && prev.foe === sd.foe.name) { sceneFx(node, 'hero', {cls, hit: false, missText: /уклон|блок/i.test(recentLog()) ? 'Уклонение!' : 'Промах!'}); pendingAct = 0; }
+          else if (fresh && sd.foe && prev.foe === sd.foe.name && /промах|уклон|увернул|блок|мимо/i.test(recentLog())) { sceneFx(node, 'hero', {cls, hit: false, missText: /уклон|увернул|блок/i.test(recentLog()) ? 'Уклонение!' : 'Промах!'}); pendingAct = 0; }  // only a miss the fight log reports (not a redraw before the server answers)
           if (hurt) setTimeout(() => sceneFx(node, 'foe', {hit: true}), hitFoe ? 650 : 0);
         }, 40); } }
     root.querySelectorAll('[data-bv]').forEach(b => { const fn = handlers[Number(b.getAttribute('data-bv'))]; if (fn) b.addEventListener('click', e => { e.preventDefault(); if (!b.disabled) fn(e); }); });
@@ -4934,7 +4981,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
     const act = async (action, steps = 1, skillId) => {
       if (busy || !run || run.status !== 'active') return; busy = true;
       try { const r = await api('/api/horde/act', 'POST', {action, steps, skillId}); run = r.run; feel(r.events); if (action !== 'attack' || steps === 1) sfx.tick?.(); }
-      catch (e) { toast(cleanError(e)); auto = false; } finally { busy = false; if (openPanelState === st) st.rerender(); }
+      catch (e) { auto = false; if (/Поход окончен|Похода нет/.test(cleanError(e))) { try { run = (await api('/api/horde')).run; } catch {} toast('Этот поход уже завершён — вот его итог.'); } else toast(cleanError(e)); } finally { busy = false; if (openPanelState === st) st.rerender(); }
     };
     // Auto-battle: back-to-back requests, several exchanges each, no artificial pauses.
     const autoLoop = async () => {
@@ -5198,6 +5245,11 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-league{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:9px 11px;border-radius:12px;border:1px solid #f0cf7a66;background:linear-gradient(135deg,#2a2112e6,#15120ce6);color:#f3e6c8;text-align:left}
+.ae-league b{font:700 13px Georgia,serif;color:#ffe6a8}.ae-league small{display:block;font:11px system-ui;color:#d8c9aa;margin-top:3px}.ae-league-ic{font-size:26px;line-height:1}
+.ae-league-bar{display:block;height:6px;margin-top:5px;border-radius:4px;background:#0008;overflow:hidden}.ae-league-bar i{display:block;height:100%;background:linear-gradient(90deg,#f0cf7a,#d97706)}
+.ae-league-list{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}.ae-league-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#0003;border:1px solid #ffffff1f}
+.ae-league-row b small{font-weight:500;opacity:.7}.ae-league-row small{display:block;font-size:11.5px;opacity:.85}.ae-league-row em{font-style:normal;font-size:11.5px;white-space:nowrap}.ae-league-row.is-cur{border-color:#f0cf7aaa;background:#f0cf7a1a}.ae-league-row.is-locked{opacity:.55}
 html[data-interface=fantasy] .selection-trigger:is(.bestiary-panel,.leather-panel,[class*="bg-[#1"],[class*="bg-slate-9"]){color:#eadcbe!important}html[data-interface=fantasy] .selection-trigger:is(.bestiary-panel,.leather-panel,[class*="bg-[#1"],[class*="bg-slate-9"]) .selection-chevron{color:#d6b46a!important}
 html[data-interface=fantasy] .codex-paper :is([class*="bg-[#111416]"],[class*="bg-[#101315]"]){background:#efe2c4!important;border-color:#b89a63!important;box-shadow:inset 0 1px 0 #fff6,0 1px 2px #0002}
 html[data-interface=fantasy] .codex-paper [class*="bg-[#111416]"] > :first-child{color:#7a4a12!important}html[data-interface=fantasy] .codex-paper [class*="bg-[#111416]"] p{color:#4a3a26!important}

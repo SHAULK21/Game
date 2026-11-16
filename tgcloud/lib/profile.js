@@ -155,7 +155,8 @@ export function publicProfile(world, id, now) {
   const title = TITLES.find(t => t.id === pr.title && earned.has(t.id));
   const av = AVATARS.find(a => a.id === pr.avatar) || AVATARS.find(a => a.id === 'hero_' + (p.class_id || 'warrior')) || AVATARS[0];
   const c = ctxOf(world, id, now);
-  return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
+  const lg = leagueOf(p.arena_rating ?? 1000);
+  return {id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, classId: p.class_id || 'warrior', league: {id: lg.id, icon: lg.icon, name: lg.name}, arenaRating: Number(p.arena_rating ?? 1000) || 0, title: title ? {id: title.id, icon: title.icon, name: title.name} : null,
     avatar: av, look: styleOf(world, id, pr, now), app: Date.parse(pr.apkSeen || pr.apkAt || 0) > now - 30 * 864e5, banner: BANNERS.find(b => b.id === pr.banner) || null, asc: ascOf(pr), clan: clanOf(world, id), pet: petOf(world, id, now), power: powerOf(world, id, now), titlesEarned: earned.size, stats: {duelRating: c.duelRating, duelWins: c.s.duel_win, coopWins: c.s.coop_win, hordeBest: c.hordeBest, hordeKills: c.s.horde_kill}};
 }
 
@@ -165,6 +166,18 @@ function awardSSS(world, me, now) {
   pr.sssAt = new Date(now).toISOString();
   rows(world, 'ae_events').push({id: crypto.randomUUID(), to: String(me), icon: '🌟', text: 'Достижение «Первый вознесённый»: вы прошли все испытания вознесения до ранга SSS! Титул можно надеть в профиле.', kind: 'achievement', data: null, at: pr.sssAt, acked: false});
 }
+// Arena leagues by rating (the server's own arena_rating). Reaching a league for the first time pays once.
+export const LEAGUES = [
+  {id: 'bronze', icon: '🥉', name: 'Бронза', from: 0, gift: null},
+  {id: 'silver', icon: '🥈', name: 'Серебро', from: 1200, gift: {gold: 800, silver: 150, tickets: 2}},
+  {id: 'gold', icon: '🥇', name: 'Золото', from: 1600, gift: {gold: 2000, silver: 300, tickets: 3}},
+  {id: 'platinum', icon: '💠', name: 'Платина', from: 2200, gift: {gold: 4000, silver: 600, tickets: 4, fragments: 1}},
+  {id: 'diamond', icon: '💎', name: 'Алмаз', from: 3000, gift: {gold: 7000, silver: 1000, tickets: 5, fragments: 2}},
+  {id: 'master', icon: '🔥', name: 'Мастер', from: 4000, gift: {gold: 12000, silver: 1500, tickets: 6, fragments: 3}},
+  {id: 'grandmaster', icon: '👑', name: 'Грандмастер', from: 5500, gift: {gold: 20000, silver: 2500, tickets: 8, fragments: 4}},
+  {id: 'legend', icon: '⚜️', name: 'Легенда', from: 7500, gift: {gold: 35000, silver: 4000, tickets: 10, fragments: 6}},
+];
+export const leagueOf = rating => [...LEAGUES].reverse().find(l => (Number(rating) || 0) >= l.from) || LEAGUES[0];
 export function handleProfileRequest(world, input, user, now) {
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/ae-profile')) return null;
@@ -180,6 +193,18 @@ export function handleProfileRequest(world, input, user, now) {
     return ok({profiles: ids.map(id => publicProfile(world, id, now)).filter(Boolean).map(p => ({id: p.id, app: p.app, color: p.look?.color !== 'default' ? p.look?.color : undefined, title: p.title, avatar: p.avatar.src, asc: p.asc?.rank || null, clan: p.clan?.tag || null, clanPlace: p.clan ? placeOf(world, p.clan.id, now) : null, emblem: p.clan?.emblem || null}))});
   }
   let pr = profileRow(world, me); if (!pr && method === 'POST') { pr = {u: me}; rows(world, 'ae_profiles').push(pr); }
+  if (path === '/api/ae-profile/league') {
+    const rating = Number(player(world, me)?.arena_rating) || 1000, cur = leagueOf(rating), claimed = pr?.leagues || [];
+    if (method === 'GET') return ok({rating, league: cur.id, leagues: LEAGUES, claimed});
+    // claim every league reached so far that has not paid yet
+    const due = LEAGUES.filter(l => l.gift && rating >= l.from && !claimed.includes(l.id));
+    if (!due.length) return ok({rating, league: cur.id, claimed, gift: null});
+    const gift = {gold: 0, silver: 0, tickets: 0, fragments: 0};
+    for (const l of due) for (const k of Object.keys(gift)) gift[k] += l.gift[k] || 0;
+    pr.leagues = [...claimed, ...due.map(l => l.id)];
+    rows(world, 'ae_events').push({id: crypto.randomUUID(), to: me, icon: cur.icon, text: `Арена: лига «${cur.name}»! Награда за ${due.map(l => l.name).join(', ')}: ${gift.gold} 🪙, ${gift.silver} 🥈, ${gift.tickets} 🎟${gift.fragments ? `, ${gift.fragments} ✦` : ''}.`, kind: 'league', data: {league: cur.id}, at: new Date(now).toISOString(), acked: false});
+    return ok({rating, league: cur.id, claimed: pr.leagues, gift, reached: due.map(l => l.id)});
+  }
   if (method === 'POST' && path === '/api/ae-profile/title') {
     if (body.id == null || body.id === '') { pr.title = null; return ok({profile: publicProfile(world, me, now)}); }
     const t = titlesOf(world, me, now).find(x => x.id === body.id);
