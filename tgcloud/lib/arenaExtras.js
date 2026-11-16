@@ -599,7 +599,7 @@ export function handleExtras(world, input, user, now, notify) {
     // Progress lives in the player's own save: the game applies this on the player's next pulse.
     for (const e of rows(world, 'ae_events')) if (same(e.to, target.telegram_id) && e.kind === 'admin_level' && !e.acked) e.acked = true;
     pushEvent(world, target.telegram_id, '🎖️', `Администратор установил вашему герою ${level} уровень.`, 'admin_level', {level}, now);
-    if (level > (Number(target.level) || 1)) target.level = level;
+    target.level = level;  // up or down: an admin override
     notify?.(world, target.telegram_id, `🎖️ Администратор повысил вашего героя до ${level} уровня. Откройте игру!`, 'admin-level', now);
     return ok({ok: true, name: nameOf(target), level});
   }

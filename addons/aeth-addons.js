@@ -1427,6 +1427,56 @@
       description: `${word} находка.${bonuses.length ? ' Особые свойства: ' + bonuses.join(', ') + '.' : ''}`, stats: st, sellPrice: Math.round((20 + L * 10) * m), disassembleYield: {silver: Math.round((10 + L * 3) * m)}, stackCount: 1};
   }
   const makeLegendary = p => makeGear(p, 'legendary');
+  // ---------- 100 unique named items (levels 3–120): rare finds near the hero's level, collected in «📚 Коллекция» ----------
+  const UNIQ_RAW = [["melee","weapon","Тесак Старого Мельника","Им рубили не только хворост, когда у мельницы появились волки."],["any","ring","Перстень Пастушки Эльги","Говорят, с ним овцы сами возвращаются домой."],["any","boots","Сапоги Гонца Равнин","Подошвы стёрты тысячей вестей."],["caster","weapon","Ивовый Прут Знахарки","Пахнет полынью и дождём."],["any","helmet","Шапель Деревенского Старосты","Помята, но честна."],["rogue","weapon","Нож Конокрада Тибо","Тибо поймали. Нож — нет."],["any","belt","Пояс Кузнеца Брана","Широкий, как его ладонь."],["ranged","weapon","Лук Лесника Арвина","Тетива поёт тише ветра."],["any","cloak","Плащ из Шкуры Вожака","Снят с самого злого волка Пастбищ."],["any","gloves","Рукавицы Гоблина-Вора","Пальцы сами тянутся к чужим кошелькам."],["any","amulet","Оберег Сторожевого Костра","Тёплый даже зимой."],["melee","weapon","Секира Лесоруба Ольгерда","Ольгерд рубил деревья. Потом — пауков."],["any","armor","Кожанка Лесного Дозора","На рукаве — выжженная метка дозора."],["any","offhand","Щит Мостового Стражника","Видел больше путников, чем любой трактир."],["caster","weapon","Посох Шёпота Листвы","В тишине слышно, как он шепчет."],["any","pants","Поножи Болотного Ходока","Не промокают. Почти."],["any","ring","Кольцо Паучьей Нити","Тонкое, но не рвётся."],["rogue","weapon","Кинжал Ядовитой Росы","Капля на лезвии не высыхает."],["any","helmet","Капюшон Склепного Сторожа","Сторож всё ещё ищет его."],["ranged","weapon","Арбалет Охотника на Нежить","Болты из серебра и упрямства."],["any","artifact","Фонарь Забытого Склепа","Светит туда, где страшно."],["any","boots","Сапоги Топкой Тропы","Знают, куда ступать."],["melee","weapon","Меч Сержанта Корвина","Корвин держал склеп три ночи."],["any","gloves","Перчатки Травника Мирры","Пахнут мятой и порохом."],["any","cloak","Накидка Ночного Разведчика","Темнее самой ночи."],["caster","weapon","Жезл Болотного Огонька","Ведёт путников в трясину — и врагов тоже."],["any","belt","Кушак Контрабандиста","Семь потайных карманов."],["any","amulet","Клык Матери-Паучихи","Ещё помнит вкус яда."],["any","armor","Кольчуга Пограничной Заставы","Каждое кольцо — чья-то клятва."],["rogue","weapon","Стилет Шепчущего Клинка","Убивает тише, чем говорит."],["any","offhand","Эгида Каменного Тролля","Тролль не одолжил. Пришлось забрать."],["melee","weapon","Молот Горного Кузнеца","Звенит, как наковальня."],["any","ring","Перстень Песчаной Королевы","Королева правила миражами."],["ranged","weapon","Лук Пустынного Ветра","Стрелы летят по ветру, даже против него."],["any","helmet","Тюрбан Караванщика","Хранит прохладу и секреты."],["caster","weapon","Посох Миражей","Враг видит трёх магов вместо одного."],["any","pants","Шаровары Барханного Всадника","Песок не набивается. Это магия."],["any","boots","Сандалии Ловца Скорпионов","Ни одного укуса за сорок лет."],["any","artifact","Скарабей Золотой Гробницы","Шевелится, когда рядом золото."],["melee","weapon","Ятаган Султана Песков","Кривой, как улыбка султана."],["any","armor","Броня Стража Оазиса","Пила воду, а не кровь."],["any","gloves","Наручи Гладиатора Арены","Помнят рёв толпы."],["rogue","weapon","Парные Когти Ассасина Песков","Оставляют следы, похожие на звериные."],["any","cloak","Плащ Проклятого Барона","Барон проклял — плащ остался."],["any","amulet","Медальон Плачущей Вдовы","Иногда слышен плач."],["caster","weapon","Коса Некроманта Мортиса","Срезает не колосья."],["any","offhand","Щит Падшего Паладина","Свет на нём ещё не погас."],["any","belt","Пояс Чумного Лекаря","Склянки звенят, как колокольчики."],["melee","weapon","Меч Рыцаря-Призрака","Проходит сквозь доспехи, как он — сквозь стены."],["any","helmet","Шлем Безголового Всадника","Носить его… странно."],["ranged","weapon","Лук Костяного Егеря","Тетива из сухожилия дракона-нежити."],["any","ring","Кольцо Кровавого Договора","Договор ещё в силе."],["any","boots","Поступь Призрачного Волка","Шаги не оставляют следов."],["rogue","weapon","Кинжал Теневого Палача","Тень бьёт раньше хозяина."],["any","armor","Латы Чёрного Ордена","Орден пал. Латы — нет."],["any","artifact","Череп Пророка","Иногда отвечает на вопросы."],["caster","weapon","Гримуар Запретных Рун","Страницы переворачиваются сами."],["any","gloves","Длань Демонического Кузнеца","Горячая. Всегда."],["any","pants","Поножи Стража Разлома","Выкованы на краю мира."],["melee","weapon","Секира Демоноборца","Рукоять исписана именами павших демонов."],["any","cloak","Мантия Огненного Разлома","Тлеет, но не сгорает."],["any","amulet","Сердце Импа","Бьётся в такт битве."],["ranged","weapon","Лук Багровой Луны","Лучше всего стреляет в полнолуние."],["any","offhand","Щит Адских Врат","Снят с ворот самой Бездны."],["rogue","weapon","Клинки Разломного Странника","Режут даже пространство."],["any","helmet","Корона Падшего Короля","Тяжела не золотом — виной."],["any","belt","Пояс Повелителя Цепей","Цепи гремят при каждом шаге."],["caster","weapon","Жезл Пепельной Ведьмы","Оставляет за собой пепельный след."],["any","ring","Перстень Малгора","Владыка Бездны не любит, когда его носят."],["any","armor","Доспех Кровавого Обсидиана","Холодный, как камень, острый, как стекло."],["melee","weapon","Клинок Драконоборца Эрика","Эрик убил трёх драконов. Четвёртый убил Эрика."],["any","boots","Сапоги Огненной Чешуи","Не горят даже в лаве."],["any","artifact","Яйцо Последнего Дракона","Иногда в нём что-то шевелится."],["ranged","weapon","Лук Драконьего Крыла","Сделан из кости крыла."],["any","gloves","Когти Драконьего Стража","Сжимают меч крепче железа."],["rogue","weapon","Клык Аэтельгора","Яд дракона в каждом порезе."],["any","cloak","Крылья Пепельного Змея","Почти позволяют летать."],["caster","weapon","Посох Драконьего Пламени","Дышит огнём вместо хозяина."],["any","helmet","Шлем Повелителя Драконов","Драконы склоняют головы."],["any","amulet","Глаз Древнего Дракона","Видит сквозь ложь."],["any","pants","Поножи Драконьего Пика","Выкованы у вершины, где рождаются бури."],["melee","weapon","Молот Небесного Грома","Каждый удар — раскат грома."],["any","offhand","Эгида Звёздного Хранителя","На ней карта созвездий."],["any","ring","Кольцо Падающей Звезды","Загадай желание — и бей."],["ranged","weapon","Лук Лунной Охотницы","Стрелы светятся серебром."],["any","belt","Пояс Небесного Воителя","Держит крепче цепей Бездны."],["rogue","weapon","Кинжалы Затмения","В их тени гаснет солнце."],["any","armor","Доспех Эфирного Рыцаря","Почти невесом. Почти неуязвим."],["caster","weapon","Скипетр Звёздного Ядра","Внутри — крошечная звезда."],["any","boots","Сапоги Небесной Тропы","Шагают по облакам."],["any","artifact","Песочные Часы Вечности","Время в них течёт вспять."],["melee","weapon","Меч Первозданного Стража","Был выкован до начала мира."],["any","gloves","Длань Повелителя Вечности","Держит судьбу за горло."],["any","cloak","Плащ из Небесной Слезы","Переливается, как северное сияние."],["ranged","weapon","Лук Последнего Рассвета","Его стрела гасит тьму."],["any","helmet","Венец Прадракона","Носил тот, кто старше драконов."],["rogue","weapon","Клинок Безвременья","Ранит ещё до удара."],["any","amulet","Сердце Аэтельгарда","Бьётся вместе с королевством."],["caster","weapon","Посох Творения","Из него родились первые звёзды."],["melee","weapon","Клинок Короны Аэтельгарда","Меч первого короля. Теперь — твой."]];
+  // Even drops on every level: 24 bands of 5 levels, each a themed set of 15 pieces (11 armour/jewellery slots + a weapon for each class group).
+  // The hand-written items above take their places in the bands; the rest are named after the band's theme. Rarity does not follow the level.
+  const UNIQ_THEMES = [['Пастбищного Дозора', 'Первые защитники равнин держали дозор у пастбищ.'], ['Шепчущего Леса', 'Лес шепчет тем, кто носит его дары.'], ['Паучьего Логова', 'Сплетено из нитей, что не рвутся.'],
+    ['Забытого Склепа', 'Найдено среди костей тех, кого забыли.'], ['Топких Болот', 'Пахнет тиной и старой магией.'], ['Каменного Тролля', 'Тяжёлое, как кулак тролля.'], ['Песчаных Барханов', 'Горячее от солнца пустыни.'],
+    ['Золотой Гробницы', 'Блестит золотом фараонов.'], ['Проклятого Баронства', 'Проклятие барона всё ещё в силе.'], ['Рыцаря Смерти', 'Холодное, как дыхание нежити.'], ['Чумного Мора', 'Пережило мор — переживёт и бой.'],
+    ['Чёрного Ордена', 'Знак ордена, павшего в бездне.'], ['Огненного Разлома', 'Тлеет, но не сгорает.'], ['Пепельной Ведьмы', 'Оставляет пепельный след.'], ['Кровавого Обсидиана', 'Острое, как вулканическое стекло.'],
+    ['Владыки Бездны', 'Сила, вырванная у самой Бездны.'], ['Драконьего Пика', 'Выковано у вершины, где рождаются бури.'], ['Огненной Чешуи', 'Не горит даже в лаве.'], ['Аэтельгора', 'Дар последнего великого дракона.'],
+    ['Эфирного Рыцаря', 'Почти невесомое, почти неуязвимое.'], ['Звёздного Хранителя', 'На нём карта созвездий.'], ['Небесного Воителя', 'Сияет, как северное небо.'], ['Первозданного Стража', 'Создано до начала мира.'], ['Короны Вечности', 'Достойно первого короля Аэтельгарда.']];
+  const UNIQ_SLOTS = [['helmet', 'any', 'Шлем'], ['armor', 'any', 'Доспех'], ['pants', 'any', 'Поножи'], ['gloves', 'any', 'Перчатки'], ['boots', 'any', 'Сапоги'], ['amulet', 'any', 'Амулет'], ['ring', 'any', 'Кольцо'],
+    ['belt', 'any', 'Пояс'], ['cloak', 'any', 'Плащ'], ['offhand', 'any', 'Щит'], ['artifact', 'any', 'Реликвия'], ['weapon', 'melee', 'Меч'], ['weapon', 'rogue', 'Кинжал'], ['weapon', 'ranged', 'Лук'], ['weapon', 'caster', 'Посох']];
+  const MELEE_NOUN = ['Меч', 'Секира', 'Молот'];
+  const UNIQ_RARITY = ['uncommon', 'rare', 'uncommon', 'epic', 'rare', 'uncommon', 'legendary', 'rare', 'uncommon', 'epic', 'rare', 'uncommon', 'legendary', 'rare', 'epic'];  // 5 / 5 / 3 / 2 per set
+  const UNIQ_WEIGHT = {uncommon: 6, rare: 4, epic: 2, legendary: 1};
+  const UNIQUES = (() => {
+    const cells = new Map();  // `${band}:${slot}` → a hand-written item
+    UNIQ_RAW.forEach(([group, type, name, lore], i) => { const want = Math.max(1, Math.min(24, Math.ceil(Math.round(3 + i * 117 / 99) / 5))), slot = UNIQ_SLOTS.findIndex(([t, g]) => t === type && (type !== 'weapon' || g === group));
+      for (const d of [0, 1, -1, 2, -2, 3, -3, 4, -4]) { const b = want + d; if (b < 1 || b > 24 || cells.has(`${b}:${slot}`)) continue; cells.set(`${b}:${slot}`, {name, lore}); break; } });
+    const out = [];
+    for (let b = 1; b <= 24; b++) { const [theme, setLore] = UNIQ_THEMES[b - 1];
+      UNIQ_SLOTS.forEach(([type, group, noun], k) => { const own = cells.get(`${b}:${k}`), level = 5 * b - 4 + (k % 5);
+        const word = type === 'weapon' && group === 'melee' ? MELEE_NOUN[b % 3] : noun;
+        out.push({id: `b${String(b).padStart(2, '0')}${type === 'weapon' ? group : type}`, n: out.length + 1, band: b, set: theme, group, type, level,
+          name: own?.name || `${word} ${theme}`, lore: own?.lore || setLore, named: !!own, rarity: UNIQ_RARITY[(k + b * 4) % 15],
+          bonus: [LEG_BONUS[(b * 3 + k) % LEG_BONUS.length], LEG_BONUS[(b * 5 + k * 2 + 1) % LEG_BONUS.length]]}); }); }
+    return out;
+  })();
+  const UNIQ_TOTAL = UNIQUES.length; window.__aeUniques = UNIQUES;
+  const UNIQ_GROUP = {melee: ['warrior', 'knight', 'paladin', 'berserker'], rogue: ['rogue', 'assassin'], ranged: ['archer', 'hunter'], caster: ['mage', 'necromancer', 'druid']};
+  const uniqFits = (u, cls) => u.type !== 'weapon' || u.group === 'any' || (UNIQ_GROUP[u.group] || []).includes(cls);
+  const uniqFound = p => new Set([...(p?.aeUniques || []), ...[...(p?.inventory || []), ...Object.values(p?.equipped || {})].filter(Boolean).map(i => /^ae_uniq_(b\d{2}[a-z]+)$/.exec(i.templateId || '')?.[1]).filter(Boolean)]);
+  function makeUnique(p, u) {
+    const L = u.level, m = (GEAR_MULT[u.rarity] || 1) * 1.15, st = {}, caster = CASTER.has(p.classId), type = u.type;
+    if (type === 'weapon') { st[caster ? 'magicAttack' : 'attack'] = Math.round((12 + L * 3) * m); st.critChance = Math.round((2 + L / 15) * 1.5); }
+    else if (type === 'armor') { st.defense = Math.round((6 + L * 2) * m); st.magicDefense = Math.round((4 + L) * m); st.maxHp = Math.round((25 + L * 9) * m); }
+    else if (['helmet', 'offhand', 'pants', 'gloves', 'boots', 'belt', 'cloak'].includes(type)) { st.defense = Math.round((3 + L) * m); st.magicDefense = Math.round((2 + L * 0.6) * m); st.maxHp = Math.round((12 + L * 4) * m); }
+    else { st[caster ? 'magicAttack' : 'attack'] = Math.round((4 + L) * m); st.maxHp = Math.round((10 + L * 3) * m); st.critChance = 1 + Math.floor(L / 20); }
+    const props = [];
+    u.bonus.forEach((bonus, k) => { const bg = GEMS.find(g => g.stat === bonus); st[bonus] = (st[bonus] || 0) + Math.round((bg?.value || 3) * (k === 0 ? 2 : 1)); props.push(STAT_RU[bonus] || bonus); });
+    return {id: 'loot_' + uuid4(), templateId: 'ae_uniq_' + u.id, name: u.name, type, rarity: u.rarity, level: L, upgradeLevel: 0, icon: LEG_ICON[type] || '✨',
+      description: `📜 Уникальная вещь № ${u.n} из ${UNIQ_TOTAL} · комплект «${u.set}». «${u.lore}» Особые свойства: ${props.join(', ')}.`, stats: st, sellPrice: Math.round((40 + L * 14) * m), disassembleYield: {silver: Math.round((20 + L * 4) * m)}, stackCount: 1};
+  }
+  // a unique near the hero's level (−8…+2), new ones first
+  function rollUnique(p) {
+    const L = p.level || 1, have = uniqFound(p), fit = UNIQUES.filter(u => uniqFits(u, p.classId) && u.level <= L + 1);
+    const near = fit.filter(u => u.level >= L - 4), pool = (near.length ? near : fit.slice(-6)), fresh = pool.filter(u => !have.has(u.id));
+    const list = fresh.length ? fresh : pool; if (!list.length) return null;
+    let r = Math.random() * list.reduce((a, u) => a + UNIQ_WEIGHT[u.rarity], 0); for (const u of list) { r -= UNIQ_WEIGHT[u.rarity]; if (r <= 0) return u; } return list[0];  // rarer ones drop less often
+  }
   // Drop table after a victory (luck multiplies the chances).
   function rollLoot(boss, luckMul) {
     const r = Math.random();
@@ -1444,10 +1494,13 @@
     const lm = luckInfo(p).legMul * (1 + (clanX?.clan ? clanX.bonus?.loot || 0 : 0) / 100), found = [];
     for (let i = 0; i < Math.max(0, dk - db); i++) { const r = rollLoot(false, lm); if (r) found.push(r); }
     for (let i = 0; i < db; i++) found.push(rollLoot(true, lm));
-    const room = (p.maxInventorySlots || 40) - (p.inventory || []).length; if (!found.length || room <= 0) return;
-    const items = found.slice(0, room).map(r => makeGear(p, r));
-    b.setPlayer(cur => cur && cur.inventory.length + items.length <= (cur.maxInventorySlots || 40) ? {...cur, inventory: [...cur.inventory, ...items]} : cur);
-    for (const it of items) {
+    const uniq = []; for (let i = 0; i < Math.max(0, dk - db); i++) if (Math.random() < 0.012 * lm) uniq.push(1); for (let i = 0; i < db; i++) if (Math.random() < 0.08 * lm) uniq.push(1);
+    const room = (p.maxInventorySlots || 40) - (p.inventory || []).length; if ((!found.length && !uniq.length) || room <= 0) return;
+    const uitems = uniq.slice(0, 1).map(() => rollUnique(p)).filter(Boolean).map(u => makeUnique(p, u));
+    const items = [...uitems, ...found.slice(0, Math.max(0, room - uitems.length)).map(r => makeGear(p, r))];
+    b.setPlayer(cur => cur && cur.inventory.length + items.length <= (cur.maxInventorySlots || 40) ? {...cur, inventory: [...cur.inventory, ...items], aeUniques: [...new Set([...(cur.aeUniques || []), ...uitems.map(i => i.templateId.slice(8))])]} : cur);
+    for (const it of uitems) setTimeout(() => { bigBanner(`📜 Уникальная находка: ${it.name}! (${uniqFound(me()).size} из ${UNIQ_TOTAL} в коллекции)`, true); sfx.play('coins'); }, 900);
+    for (const it of items.filter(i => !uitems.includes(i))) {
       if (it.rarity === 'legendary' || it.rarity === 'epic') setTimeout(() => { bigBanner(`${it.rarity === 'legendary' ? '🌟 Легендарная' : '💜 Эпическая'} находка: ${it.name}!`, it.rarity === 'legendary'); sfx.play('coins'); try { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {} }, 600);
       else setTimeout(() => toast(`🎁 Находка: ${it.name} (${RARITY_RU[it.rarity]})`), 600);
     }
@@ -1805,7 +1858,7 @@
     const eq = Object.values(pl.equipped || {}).filter(Boolean).map(i => i.id).sort().join(','); let h = 0; const t = [pl.name, pl.classId, pl.level, pl.exp, pl.gold, pl.silver, inv, eq, pl.statsSummary?.monstersKilled, pl.statsSummary?.battlesWon, JSON.stringify(pl.ascension || {}), (s.quests || []).length].join('|');
     for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); } catch { return ''; } };
   const heroOf = raw => { try { const pl = JSON.parse(raw).player || {}; return {name: pl.name || 'Герой', level: pl.level || 1, cls: CLASS_NAME?.[pl.classId] || pl.classId || ''}; } catch { return {name: 'Герой', level: 1}; } };
-  let cloudReady = false, cloudBusy = false;
+  let cloudReady = false, cloudBusy = false, cloudForce = false;  // cloudForce: the next push may lower the level (admin-set level)
   // never swap the hero here for a weaker one without asking
   const cloudWeaker = (m, raw) => !!raw && (Number(m.level) || 1) < (heroOf(raw).level || 1);
   // works before the game screen exists (hero creation on a new device), unlike api()
@@ -1851,7 +1904,7 @@
     const raw = localStorage.getItem(SAVE_KEY()); if (!raw) return;
     const sig = progressSig(raw); if (sig && sig === localStorage.getItem(cKey('sig'))) return;
     cloudBusy = true;
-    try { const r = await cloudApi('/api/ae-save', 'POST', {baseRev: Number(localStorage.getItem(cKey('rev'))) || 0, device: deviceId, data: raw}); markSynced(r.rev, raw); }
+    try { const force = cloudForce; const r = await cloudApi('/api/ae-save', 'POST', {baseRev: Number(localStorage.getItem(cKey('rev'))) || 0, device: deviceId, data: raw, ...(force ? {force: true} : {})}); markSynced(r.rev, raw); if (force) cloudForce = false; }
     catch (e) { if (/409|другого|conflict/i.test(String(e?.message || e)) || e?.status === 409) { try { const m = await cloudApi('/api/ae-save'); cloudChoose(m, raw); } catch {} } }
     finally { cloudBusy = false; }
   }
@@ -2779,9 +2832,11 @@
   const ROLE_RU = {owner: 'Глава', officer: 'Офицер', quartermaster: 'Казначей', veteran: 'Ветеран', member: 'Участник', recruit: 'Новичок'};
   const MEDAL = {1: '🥇', 2: '🥈', 3: '🥉'};
   const pbar = (cur, max, label, cls = '') => h('div', {class: 'ae-bar ' + cls}, h('i', {style: `width:${Math.max(0, Math.min(100, 100 * cur / Math.max(1, max)))}%`}), h('span', {}, label || `${fmt(cur)} / ${fmt(max)}`));
-  function openClanHQ(startTab = 'main') {
+  function openClanHQ(startTab = 'main', sub) {
     if (startTab === 'fort') firstStory('fortress');
     let d = null, tab = startTab, mem = null, topD = null, reqs = null, err = '', fort = null, fortTab = 'build', tgts = null, lands = null, landTab = 'mine', landSel = null, govPick = false, citadels = null;
+    if (sub && startTab === 'fort') fortTab = sub; if (sub && startTab === 'lands') landTab = sub;
+    if (landTab === 'cit') api('/api/ae-clanx/fort/targets').then(r => { citadels = r.targets; rer(); }, () => { citadels = []; });
     const fortCall = async (path, body) => { try { fort = await api('/api/ae-clanx/fort' + path, 'POST', body); sfx.play('coins', 0.4); } catch (e) { toast(cleanError(e)); } rer(); };
     const load = async () => { try { d = await api('/api/ae-clanx'); clanX = d; clanXAt = Date.now(); err = ''; } catch (e) { err = cleanError(e); } rer(); };
     const rer = () => { if (openPanelState === st) st.rerender(); };
@@ -3253,14 +3308,51 @@
     if (tab && (tab.getAttribute('aria-selected') === 'true' || (!tab.hasAttribute('aria-selected') && /amber|#302c24/.test(tab.className)))) { if (!have) shopRow.after(gemEntry('data-ae-gem-shop', 'Кристаллы', `Редкий товар: от ${fmt(Math.min(...GEMS.map(g => g.gold)))} 🪙`, 'buy')); }
     else have?.remove();
   }
+  // The clan screen: sections first (tiles at the top), the old big blocks folded into one line each.
+  function compactClanScreen() {
+    const tiles = document.querySelector('[data-ae-clan-tiles]'); if (!tiles) return;
+    const card = tiles.parentElement; card.classList.add('ae-clan-card');
+    const hq = card.querySelector(':scope > [data-ae-clan-hq]'), invite = card.querySelector(':scope > .ae-clan-invite');
+    if (hq && hq.parentElement !== tiles) { hq.classList.add('ae-clan-tile-hq'); tiles.prepend(hq); }
+    if (invite && tiles.nextElementSibling !== invite) tiles.after(invite);
+    const list = card.parentElement; if (!list) return;
+    const FOLD = [[/^Клановые проекты$/, '⚙️', 'Проекты рейда', box => [...box.querySelectorAll(':scope > div > b')].map(b => b.textContent.replace('Исследовательский зал', 'Зал').trim()).join(' · ')],
+      [/^(🏦 )?Хранилище клана$/, '', '', box => ([...box.children].find(c => /^Казна:/.test(c.textContent || ''))?.textContent || '').replace('Казна: ', 'казна ')],
+      [/^Устройство клана$/, '👥', '', () => 'роли, правила набора, участники, журнал']];
+    for (const box of list.children) {
+      if (box.dataset.aeFold) continue;
+      const head = [...box.querySelectorAll('h2, h3')].find(x => FOLD.some(([re]) => re.test((x.textContent || '').trim()))), title = (head?.textContent || '').trim(), rule = FOLD.find(([re]) => re.test(title)); if (!rule) continue;
+      box.dataset.aeFold = '1'; box.classList.add('ae-fold');
+      const top = [...box.children].find(c => c === head || c.contains(head));
+      if (rule[2]) head.textContent = rule[2];
+      const sum = h('small', {class: 'ae-fold-sum'}, ''), chev = h('span', {class: 'ae-fold-chev'}, '▸');
+      top.classList.add('ae-fold-head'); (head.parentElement === top || head === top ? top : head.parentElement).append(sum, chev);
+      top.addEventListener('click', e => { if (e.target.closest('button, a, input, textarea, select, label')) return; box.classList.toggle('is-open'); chev.textContent = box.classList.contains('is-open') ? '▾' : '▸'; });
+      box._aeSum = () => { try { sum.textContent = rule[3](box); } catch {} };
+    }
+    for (const box of list.querySelectorAll(':scope > .ae-fold')) box._aeSum?.();
+  }
   // HQ / search buttons in the Clan House; the native «Удар» opens the real fight.
   function injectClanHQ() {
     const leave = [...document.querySelectorAll('main button')].find(b => /^Выйти из клана$/.test((b.textContent || '').trim()));
-    if (leave && !leave.parentElement.querySelector(':scope > [data-ae-clan-hq]')) {
+    if (leave && !leave.parentElement.querySelector('[data-ae-clan-hq], [data-ae-clan-tiles]')) {
       const n = clanX?.clan ? (clanX.chest?.ready ? 1 : 0) + (clanX.goals || []).filter(g => g.canClaim).length + (clanX.requests || 0) : 0;
       leave.before(h('button', {type: 'button', class: 'ae-btn ae-primary ae-wide ae-hq-btn', 'data-ae-clan-hq': '1', onclick: () => openClanHQ()}, '🏰 Штаб клана', h('small', {}, 'сундук · задания · вклад · рейтинг · война'), n ? h('i', {class: 'ae-hq-badge'}, String(n)) : ''));
+      // every clan section in sight, not hidden behind one button
+      const tile = (ic, title, sub, fn, key) => h('button', {type: 'button', class: 'ae-clan-tile', 'data-k': key || '', onclick: fn}, h('span', {class: 'ae-clan-tile-ic'}, ic), h('b', {}, title), h('small', {}, sub));
+      leave.before(h('div', {class: 'ae-clan-tiles', 'data-ae-clan-tiles': '1'},
+        tile('✨', 'Бонусы клана', 'опыт, золото, добыча', () => openClanHQ('main'), 'bonus'),
+        tile('🏯', 'Крепость', 'здания, воины, охота на боссов', () => openClanHQ('fort', 'build')),
+        tile('🗺️', 'Земли', 'захват крепостей и доход', () => openClanHQ('lands')),
+        tile('⚔️', 'Набеги', 'грабёж цитаделей кланов', () => openClanHQ('lands', 'cit')),
+        tile('📊', 'Вклад', 'кто сколько сделал', () => openClanHQ('members')),
+        tile('🏆', 'Рейтинг и война', 'кланы недели', () => openClanHQ('top'))));
+      loadClanX(true).then(() => { const bt = document.querySelector('[data-ae-clan-tiles] [data-k="bonus"] small'), bn = clanX?.bonus; if (bt && bn) bt.textContent = `+${bn.exp}% опыта и золота`; });
       loadClanX(true).then(() => { const b = document.querySelector('[data-ae-clan-hq]'); const k = clanX?.clan ? (clanX.chest?.ready ? 1 : 0) + (clanX.goals || []).filter(g => g.canClaim).length + (clanX.requests || 0) : 0; if (b && k && !b.querySelector('.ae-hq-badge')) b.append(h('i', {class: 'ae-hq-badge'}, String(k))); });
     }
+    compactClanScreen();
+    const proj = [...document.querySelectorAll('main h2, main h3, main div, main p, main span')].find(e => !e.childElementCount && (e.textContent || '').trim() === 'Клановые проекты');
+    if (proj && !proj.parentElement.querySelector('[data-ae-proj-note]')) proj.after(h('div', {class: 'ae-sub ae-proj-note', 'data-ae-proj-note': '1'}, 'Эти проекты усиливают только рейд со Стражем. Здания с бонусами для всего клана — в ', h('a', {href: '#', onclick: e => { e.preventDefault(); openClanHQ('fort', 'build'); }}, '🏯 Крепости'), ', а доход — в ', h('a', {href: '#', onclick: e => { e.preventDefault(); openClanHQ('lands'); }}, '🗺️ Землях'), '.'));
     const strike = [...document.querySelectorAll('main button')].find(b => /^Удар$/.test((b.textContent || '').trim()) && /Страж клановых врат/.test(b.closest('section, div')?.parentElement?.textContent || ''));
     if (strike && !strike.dataset.aeRaid) {
       strike.dataset.aeRaid = '1'; strike.textContent = '⚔️ В бой';
@@ -3760,7 +3852,11 @@
     const b = B();
     if (e.kind === 'admin_level' && b) {
       const target = Number(e.data?.level) || 0;
-      b.setPlayer(p => { if (!p || target <= (p.level || 1) || !b.gainExp) return p; let x = p; for (let i = 0; i < 130 && (x.level || 1) < target; i++) x = b.gainExp(x, Math.max(1, (x.nextExp || 100) - (x.exp || 0))).player; return x; });
+      b.setPlayer(p => { if (!p || !target || target === (p.level || 1)) return p;
+        // lower: set it straight (an admin override, the cloud guard lets it through below)
+        if (target < (p.level || 1)) return {...p, level: target, exp: 0, nextExp: Math.max(160, Math.round(160 * target ** 2.05)), ...(target < 120 ? {paragon: 0, paragonExp: 0} : {})};
+        if (!b.gainExp) return p; let x = p; for (let i = 0; i < 130 && (x.level || 1) < target; i++) x = b.gainExp(x, Math.max(1, (x.nextExp || 100) - (x.exp || 0))).player; return x; });
+      cloudForce = true; setTimeout(() => cloudPush(), 1500);
     }
     if (e.kind === 'market-item') setTimeout(refreshServerBag, 300);
     if (e.kind === 'market' || e.kind === 'auction-outbid') setTimeout(() => sweepWallet(true), 800);
@@ -3907,7 +4003,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', () => openCloudPanel()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['📚', 'Коллекция', '360 уникальных вещей: соберите комплекты', () => openCollection()], ['☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', () => openCloudPanel()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['🛡', 'Соратники', 'Свои боты-союзники: качайте и одевайте', openCompanions], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -4391,10 +4487,11 @@
     news: '<rect x="4.5" y="5.5" width="19" height="17" rx="2"/><path d="M8.5 10h11M8.5 14h11M8.5 18h6"/><circle cx="21.5" cy="6.5" r="2.5" fill="currentColor" stroke="none"/>',
     phone: '<rect x="8" y="3.5" width="12" height="21" rx="2.5"/><path d="M12.5 20.5h3"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>',
+    coll: '<path d="M5 5.5h5.5v17H5zM11.5 5.5H17v17h-5.5zM18.5 7l4.5-1.2 4 15.6-4.5 1.2z"/>',
     cloud: '<path d="M8 21.5h12.5a4.5 4.5 0 0 0 .6-9 6.5 6.5 0 0 0-12.6-1.6A5.3 5.3 0 0 0 8 21.5z"/><path d="M14 13v6M11.5 16.5L14 19l2.5-2.5"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
   const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
-    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
+    ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['coll', 'Коллекция', () => openCollection()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
   // Switch the game's interface style (the game's own switch lives in the Telegram settings button / desktop top bar).
   function switchStyle(k, label) {
     if ((isModern() ? 'modern' : 'fantasy') === k) return;
@@ -4816,6 +4913,33 @@
     });
   }
   setInterval(() => { if (!document.hidden) try { paintLeague(); } catch {} }, 1500);
+  window.__aeTestUnique = () => { const p = me(), b = B(), u = rollUnique(p); if (!u) return null; const it = makeUnique(p, u);  // harness only
+    b.setPlayer(cur => cur && {...cur, inventory: [...cur.inventory, it], aeUniques: [...new Set([...(cur.aeUniques || []), u.id])]}); return it; };
+  // ---------- «📚 Коллекция»: the 100 unique items, found ones open ----------
+  function openCollection() {
+    let band = 0;
+    const BANDS = [[1, 30, 'I · 1–30'], [31, 60, 'II · 31–60'], [61, 90, 'III · 61–90'], [91, 120, 'IV · 91–120']];
+    const TYPE_RU = {weapon: 'Оружие', armor: 'Доспех', helmet: 'Шлем', pants: 'Поножи', gloves: 'Перчатки', boots: 'Сапоги', amulet: 'Амулет', ring: 'Кольцо', belt: 'Пояс', cloak: 'Плащ', offhand: 'Щит', artifact: 'Реликвия'};
+    const GROUP_RU = {melee: 'воины, рыцари, паладины, берсерки', rogue: 'разбойники и ассасины', ranged: 'лучники и охотники', caster: 'маги, некроманты, друиды'};
+    const st = openPanel('📚 Коллекция уникальных вещей', body => {
+      const p = me() || {}, have = uniqFound(p), L = p.level || 1, cls = p.classId;
+      body.append(h('div', {class: 'ae-coll-head'}, h('b', {}, `${have.size} из ${UNIQ_TOTAL}`), h('small', {}, ' найдено'), pbar(have.size, UNIQ_TOTAL, `${have.size} / ${UNIQ_TOTAL}`, 'is-mp')));
+      body.append(h('p', {class: 'ae-sub'}, 'На каждые 5 уровней — свой комплект из 15 уникальных вещей: броня, украшения и оружие для каждого класса. Выпадают редко (примерно 1 раз на 80 монстров, с боссов чаще) — вещи вашего уровня, сначала новые. Легендарные бывают на любом уровне, но выпадают реже.'));
+      body.append(h('div', {class: 'ae-tabs'}, BANDS.map(([a, b, t], k) => { const n = UNIQUES.filter(u => u.level >= a && u.level <= b), got = n.filter(u => have.has(u.id)).length;
+        return h('button', {type: 'button', class: 'ae-tab' + (band === k ? ' is-on' : ''), onclick: () => { band = k; st.rerender(); }}, `${t} · ${got}/${n.length}`); })));
+      const [a, b] = BANDS[band];
+      for (let sb = Math.ceil(a / 5); sb <= Math.ceil(b / 5); sb++) {
+        const items = UNIQUES.filter(u => u.band === sb), got = items.filter(u => have.has(u.id)).length, lo = 5 * sb - 4;
+        body.append(h('details', {class: 'ae-coll-set', open: L >= lo && L <= lo + 4 ? '' : null},
+          h('summary', {}, h('b', {}, `Комплект ${items[0].set}`), h('small', {}, ` · ${lo}–${lo + 4} ур. · ${got}/${items.length}`)),
+          ...items.map(u => { const ok = have.has(u.id), mine = uniqFits(u, cls);
+            return h('div', {class: 'ae-coll-row' + (ok ? ' is-got' : '') + ' r-' + u.rarity + (mine ? '' : ' is-other')},
+              h('span', {class: 'ae-coll-ic'}, ok ? (LEG_ICON[u.type] || '✨') : '❔'),
+              h('div', {class: 'ae-grow'}, h('b', {}, ok ? u.name : '???'), h('small', {}, `${TYPE_RU[u.type] || u.type} · ${u.level} ур. · ${RARITY_RU[u.rarity] || u.rarity}${u.type === 'weapon' ? ' · ' + GROUP_RU[u.group] : ''}`),
+                ok && u.named ? h('small', {class: 'ae-coll-lore'}, `«${u.lore}»`) : '')); })));
+      }
+    });
+  }
   // ---------- Paragon: after level 120 experience fills endless Paragon levels (+3 stat points each, +1 talent point every 5) ----------
   const PAR_BASE = Math.round(160 * 120 ** 2.05);
   const parNeed = P => Math.round(PAR_BASE * 0.2 * (1 + P * 0.03));
@@ -5424,6 +5548,25 @@ html:not(.ae-anim-off) .ae-doll-hero:not(.ae-aura-none) .ae-doll-body{animation:
 .ae-look-opt[class*=ae-aura-]:not(.ae-aura-none) b{text-shadow:0 0 8px currentColor}.ae-look-opt.ae-aura-ember b{color:#fdba74}.ae-look-opt.ae-aura-frost b{color:#bae6fd}.ae-look-opt.ae-aura-shadow b{color:#a78bfa}.ae-look-opt.ae-aura-holy b{color:#fde68a}.ae-look-opt.ae-aura-void b{color:#c4b5fd}.ae-look-opt.ae-aura-royal b{color:#f0abfc}
 .ae-look-opt.ae-nc-rainbow{background:#141a17!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#f1ead8!important}.ae-look-opt.ae-nc-rainbow b{background:linear-gradient(90deg,#f87171,#facc15,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not(.ae-apk) .ae-look-opt{filter:saturate(.6);opacity:.75}
+.ae-clan-card .grid-cols-3{gap:6px!important;margin-top:8px!important}.ae-clan-card .grid-cols-3>div{padding:5px 4px!important;min-height:0!important}.ae-clan-card .grid-cols-3>div svg{width:13px!important;height:13px!important}
+.ae-clan-card .ae-clan-tiles{grid-template-columns:repeat(3,1fr);margin:8px 0 6px}.ae-clan-card .ae-clan-tile{min-height:0;padding:7px 8px;align-items:center;text-align:center}.ae-clan-card .ae-clan-tile small{display:none}
+.ae-clan-card .ae-clan-tile[data-k="bonus"] small{display:block;font-size:9.5px;color:#86efac;opacity:1}.ae-clan-card .ae-clan-tile b{font-size:12px}
+.ae-clan-tile-hq{grid-column:1/-1;margin:0!important;min-height:44px}
+.ae-clan-card .ae-clan-invite{margin-top:2px}.ae-clan-card .ae-clan-invite .ae-btn{min-height:36px;font-size:12.5px;padding:6px 8px}
+.ae-clan-card>button:last-child{margin-top:6px!important;padding:5px!important;font-size:11.5px;opacity:.8}
+.ae-fold{padding-top:10px!important;padding-bottom:10px!important}.ae-fold:not(.is-open)>:not(.ae-fold-head){display:none!important}
+.ae-fold-head{display:flex!important;flex-wrap:wrap;align-items:center;gap:4px 8px;cursor:pointer}.ae-fold-head h3{margin:0!important}
+.ae-fold-sum{flex:1;min-width:0;font-size:11px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-fold-chev{margin-left:auto;font-size:14px;opacity:.8;order:5}
+.ae-fold.is-open .ae-fold-head{margin-bottom:8px}.ae-fold:not(.is-open) .ae-fold-head :is(p,.ae-proj-note){display:none!important}.ae-clan-card .rpg-button-danger{min-height:32px!important;margin-top:6px!important;font-size:12px!important;opacity:.85}.ae-fold-head>div{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;flex:1;min-width:0}.ae-fold-head>span:not(.ae-fold-chev){order:3}
+.ae-clan-tiles{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 8px}.ae-clan-tile{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 10px;border-radius:12px;border:1px solid #f0cf7a55;background:#0003;color:inherit;text-align:left;min-height:62px}
+.ae-clan-tile-ic{font-size:18px;line-height:1.1}.ae-clan-tile b{font-size:13px}.ae-clan-tile small{font-size:10.5px;opacity:.8;line-height:1.25}
+html[data-interface=fantasy] .ae-clan-tile{background:#1b150dcc;color:#f3e6c8}.ae-proj-note{margin:2px 0 6px;font-size:11.5px}.ae-proj-note a{color:#fde68a;text-decoration:underline}
+.ae-coll-set{margin-bottom:6px;border-radius:12px;border:1px solid #ffffff1f;background:#0002;padding:4px 6px}.ae-coll-set summary{cursor:pointer;padding:6px 4px;font-size:13px}.ae-coll-set summary small{opacity:.75}.ae-coll-row.is-other{opacity:.35}
+.ae-coll-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:6px}.ae-coll-head b{font:800 22px Georgia,serif;color:#ffe6a8}.ae-coll-head .ae-bar{flex-basis:100%}
+.ae-coll-row{display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:5px;border-radius:10px;background:#0003;border:1px solid #ffffff18;opacity:.6}
+.ae-coll-row.is-got{opacity:1;border-color:#f0cf7a55;background:#f0cf7a10}.ae-coll-n{font:700 10.5px system-ui;opacity:.6;min-width:30px}.ae-coll-ic{font-size:22px;width:28px;text-align:center}
+.ae-coll-row b{font-size:13px}.ae-coll-row small{display:block;font-size:11px;opacity:.8}.ae-coll-lore{font-style:italic;opacity:.7!important}
+.ae-coll-row.is-got.r-legendary b{color:#fbbf24}.ae-coll-row.is-got.r-epic b{color:#c084fc}.ae-coll-row.is-got.r-rare b{color:#60a5fa}.ae-coll-row.is-got.r-uncommon b{color:#4ade80}
 .ae-par-chip{display:inline-flex;align-items:center;margin-left:5px;padding:0 6px;height:16px;border-radius:999px;font:800 10px/16px system-ui;color:#e9d5ff;background:#3b1a5acc;border:1px solid #c084fc99;vertical-align:middle;cursor:pointer;white-space:nowrap}
 .ae-par-card{display:flex;align-items:center;gap:10px;width:100%;margin:8px 0;padding:9px 11px;border-radius:12px;border:1px solid #c084fc88;background:linear-gradient(135deg,#2a1240e6,#120a1ce6);color:#f3e8ff;text-align:left}
 .ae-par-card b{font:700 13.5px Georgia,serif;color:#e9d5ff}.ae-par-card b small{font:500 10.5px system-ui;opacity:.75}.ae-par-card>span>small{display:block;font:11px system-ui;opacity:.85;margin-top:3px}.ae-par-ic{font-size:26px;color:#d8b4fe;text-shadow:0 0 10px #a855f7}
@@ -5894,5 +6037,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), collection: () => openCollection(), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();
