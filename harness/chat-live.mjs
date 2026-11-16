@@ -17,6 +17,7 @@ console.log('MENU after card tap', await p.evaluate(() => !!document.querySelect
 await p.evaluate(() => { const st = document.querySelector('#tavern-chat .chat-stream'); st.scrollTop = 0; }); await p.waitForTimeout(1000);
 push(555, 'Новое сообщение, пока вы читаете старые'); push(556, 'И ещё одно'); await p.waitForTimeout(12000);
 console.log('PILL', await p.evaluate(() => document.querySelector('.ae-chat-newpill')?.textContent || '-'));
+console.log('PILLDBG', JSON.stringify(await p.evaluate(() => { const pl = document.querySelector('.ae-chat-newpill'); if (!pl) return null; const f = pl.parentElement, cs = getComputedStyle(f), pcs = getComputedStyle(pl); return {parent: f.tagName + '.' + f.className.slice(0, 60), pos: cs.position, h: f.getBoundingClientRect().height, pillPos: pcs.position, pillBottom: pcs.bottom, pillTop: Math.round(pl.getBoundingClientRect().top), formTop: Math.round(f.getBoundingClientRect().top), transform: pcs.transform}; })));
 await p.screenshot({path: `chat-${st}-5.png`});
 await p.evaluate(() => document.querySelector('.ae-chat-newpill')?.click()); await p.waitForTimeout(1500);
 console.log('PILL after click', await p.evaluate(() => document.querySelector('.ae-chat-newpill')?.textContent || '-'));

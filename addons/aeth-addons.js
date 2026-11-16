@@ -1686,6 +1686,73 @@
         ascOf(item) ? h('b', {class: 'ae-b-asc'}, '★' + ascOf(item)) : '',
         isGear(item) ? h('b', {class: 'ae-b-lvl'}, (item.level || 1) + '') : '');
     }
+    try { decorateBagExtras(); } catch (e) { console.warn('ae bag', e); }
+  }
+  // ---------- bag: «better than worn» arrow, over-level warning, sorting, stat names ----------
+  // The arrow uses the game's own comparison score (the «Сила +N» of the item sheet), exposed by the stage37 patch.
+  window.__aeStatRu = {strength: 'Сила (атрибут)', vitality: 'Выносливость', willpower: 'Воля', agility: 'Ловкость', luck: 'Удача', spirit: 'Дух', intelligence: 'Интеллект',
+    hp: 'HP', mp: 'MP', dodge: 'Уклонение', block: 'Блок', blockChance: 'Шанс блока', lifesteal: 'Вампиризм', critRate: 'Шанс крита', damage: 'Урон', power: 'Мощь', magicPower: 'Сила магии'};
+  const RARITY_RANK = {common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5};
+  const BAG_SORTS = [['power', 'Сила'], ['level', 'Уровень'], ['rarity', 'Редкость'], ['slot', 'Слот']];
+  const SLOT_ORDER = ['weapon', 'offhand', 'helmet', 'armor', 'pants', 'gloves', 'boots', 'cloak', 'belt', 'amulet', 'ring', 'artifact', 'pickaxe', 'alchemyTool'];
+  const bagSortKey = () => 'aeth_bag_sort_' + uid();
+  const bagSort = () => { const v = localStorage.getItem(bagSortKey()); return BAG_SORTS.some(([k]) => k === v) ? v : 'power'; };
+  function itemGain(item, p) {
+    const score = window.__aeItemScore; if (typeof score !== 'function' || !isGear(item)) return null;
+    const worn = p.equipped?.[item.type]; if (worn && String(worn.id) === String(item.id)) return null;
+    if (item.type === 'offhand' && isTwoHand(p.equipped?.weapon)) return null;   // both hands are busy
+    // a two-handed weapon also takes the offhand off
+    const off = item.type === 'weapon' && isTwoHand(item) ? p.equipped?.offhand : null;
+    try { return score(item, p.classId) - (worn ? score(worn, p.classId) : 0) - (off ? score(off, p.classId) : 0); } catch { return null; }
+  }
+  function decorateBagExtras() {
+    const p = me(); if (!p) return;
+    const tiles = [...document.querySelectorAll('main [data-inventory-item]')]; if (!tiles.length) return;
+    const sort = bagSort(), lvl = Number(p.level) || 1, grids = new Set();
+    // only the strongest wearable candidate of each slot gets the arrow: «this one is worth putting on»
+    const best = new Map();
+    // auto-equip (Premium) already tried these on and kept the old ones: no arrow that contradicts it
+    const rejected = autoOn() && premiumActive ? autoSeenIds() : null;
+    for (const tile of tiles) {
+      const item = findItem(tile.getAttribute('data-inventory-item')); if (!item || !isGear(item) || !SLOT_ORDER.includes(item.type) || (item.level || 1) > lvl) continue;
+      if (rejected && (rejected.has(item.id + '@L' + lvl) || rejected.has(item.id))) continue;
+      const gain = itemGain(item, p); if (gain == null || gain <= 0) continue;
+      const cur = best.get(item.type); if (!cur || gain > cur.gain) best.set(item.type, {id: String(item.id), gain});
+    }
+    for (const tile of tiles) {
+      const item = findItem(tile.getAttribute('data-inventory-item')); if (!item) continue;
+      const gear = isGear(item) && SLOT_ORDER.includes(item.type), over = gear && (item.level || 1) > lvl;
+      const top = gear ? best.get(item.type) : null, gain = top && top.id === String(item.id) ? top.gain : null;
+      // marker kept outside the cached badge key: it depends on what is worn
+      const want = gain ? (p.equipped?.[item.type] ? '▲ +' + gain : '▲ надеть') : '';
+      let mk = tile.querySelector(':scope > .ae-b-better');
+      if (!want) mk?.remove();
+      else { if (!mk) { mk = h('b', {class: 'ae-b-better', 'aria-hidden': 'true'}); tile.append(mk); } if (mk.dataset.t !== want) { mk.dataset.t = want; mk.replaceChildren('▲', h('i', {}, want.slice(1))); } }
+      tile.toggleAttribute('data-ae-over', over); { const tt = over ? `Нужен ${item.level} уровень — сейчас наденется со штрафом` : ''; if (tile.title !== tt) tile.title = tt; }
+      tile.toggleAttribute('data-ae-asc', !!ascOf(item));
+      // sorting (CSS order; «Сила» is the game's own order)
+      const ord = !gear ? '' : sort === 'level' ? 1000 - (item.level || 1) : sort === 'rarity' ? (6 - (RARITY_RANK[item.rarity] ?? 0)) * 200 - Math.min(199, item.level || 1) : sort === 'slot' ? (SLOT_ORDER.indexOf(item.type) + 1) * 200 - Math.min(199, item.level || 1) : '';
+      const o = String(ord); if (tile.style.order !== o) tile.style.order = o;
+      if (tile.parentElement) grids.add(tile.parentElement);
+    }
+    for (const g of grids) {
+      if (!tiles.some(t => t.parentElement === g && isGear(findItem(t.getAttribute('data-inventory-item'))))) continue;  // only the equipment grid
+      for (const e of g.querySelectorAll(':scope > .is-empty')) if (e.style.order !== '99999') e.style.order = '99999';
+      let bar = g.querySelector(':scope > .ae-bag-sort');
+      if (!bar) {
+        bar = h('div', {class: 'ae-bag-sort', role: 'group', 'aria-label': 'Сортировка'}, h('span', {}, 'Сортировка:'),
+          ...BAG_SORTS.map(([k, t]) => h('button', {type: 'button', 'data-k': k, onclick: e => { e.stopPropagation(); localStorage.setItem(bagSortKey(), k); sfx.play('page'); decorateBagExtras(); }}, t)));
+        g.prepend(bar);
+      }
+      for (const b of bar.querySelectorAll('button')) b.classList.toggle('is-on', b.dataset.k === sort);
+      const n = tiles.filter(t => t.parentElement === g && t.querySelector(':scope > .ae-b-better')).length;
+      const bt = n ? `▲ — лучшая вещь для слота, сильнее надетой (${n})` : ''; if ((bar.dataset.better || '') !== bt) bar.dataset.better = bt;
+    }
+    // modern: the long Premium note duplicates the «+5 слотов · Только Premium» button
+    if (document.documentElement.dataset.interface === 'modern') for (const el of document.querySelectorAll('main div')) {
+      if (el.childElementCount > 2 || el.classList.contains('ae-hide-note') || !/^👑?\s*Расширение сумки доступно только/.test((el.textContent || '').trim())) continue;
+      el.classList.add('ae-hide-note');
+    }
   }
 
   // ---------- land icons ----------
@@ -3909,8 +3976,15 @@
   }
   const msgInfo = m => ({id: m.dataset.aeMid, uid: m.dataset.aeAuthor, own: m.classList.contains('is-own'),
     name: (m.querySelector('.chat-sender')?.textContent || 'Игрок').replace(/👑/g, '').trim(), text: (m.querySelector('.chat-message-text')?.textContent || '').trim()});
+  // a zero-height layer right above the message box holds the reply bar and the «new» pill (the box itself is sticky)
+  function chatFloat() {
+    const form = chatForm(); if (!form) return null;
+    let w = form.previousElementSibling?.classList.contains('ae-chat-float') ? form.previousElementSibling : null;
+    if (!w) { w = h('div', {class: 'ae-chat-float'}); form.before(w); }
+    return w;
+  }
   function paintReplyBar() {
-    const form = chatForm(), r = window.__aeChatReply; if (!form) return;
+    const form = chatFloat(), r = window.__aeChatReply; if (!form) return;
     let bar = form.querySelector('.ae-chat-replybar');
     if (!r) { bar?.remove(); form.classList.remove('ae-has-reply'); return; }
     if (bar && bar.dataset.id === r.id) return; bar?.remove();
@@ -3947,8 +4021,11 @@
         if (!m || e.target.closest('.ae-nick, .ae-nick-ava, .ae-chat-item, .ae-clan-tag, button, a, input')) return;
         chatActions(m);
       });
-      st.addEventListener('scroll', () => { if (st.scrollHeight - st.scrollTop - st.clientHeight < 64) decorateChat(); }, {passive: true});
+      // stuck to the bottom unless the player scrolled up: avatars, levels and cards drawn later make the list taller
+      st.dataset.aeStick = '1';
+      st.addEventListener('scroll', () => { const near = st.scrollHeight - st.scrollTop - st.clientHeight < 64; st.dataset.aeStick = near ? '1' : '0'; if (near) decorateChat(); }, {passive: true});
     }
+    if (st.dataset.aeStick === '1' && st.scrollHeight - st.scrollTop - st.clientHeight > 2) st.scrollTop = st.scrollHeight;
     paintReplyBar();
     const msgs = st.querySelectorAll('.chat-message[data-ae-mid]'); if (!msgs.length) return;
     const myName = (me()?.name || '').trim().toLowerCase(); let prevDay = '';
@@ -3962,7 +4039,7 @@
       if (m.classList.contains('ae-mention') !== hit) m.classList.toggle('ae-mention', hit);
     }
     // «↓ Новые сообщения» when something arrives while the player reads older messages
-    const last = Number(msgs[msgs.length - 1].dataset.aeMid) || 0, near = st.scrollHeight - st.scrollTop - st.clientHeight < 64, form = chatForm();
+    const last = Number(msgs[msgs.length - 1].dataset.aeMid) || 0, near = st.scrollHeight - st.scrollTop - st.clientHeight < 64, form = chatFloat();
     let pill = form?.querySelector('.ae-chat-newpill');
     if (near) { markChatSeen(last); st.dataset.aeSeen = String(last); pill?.remove(); return; }
     if (!st.dataset.aeSeen) { st.dataset.aeSeen = String(last); markChatSeen(last); return; }
@@ -3972,6 +4049,9 @@
     const t = `↓ Новые: ${fresh}`; if (pill.textContent !== t) pill.textContent = t;
   }
   setInterval(() => { if (!document.hidden) try { decorateChat(); } catch (e) { console.warn('ae chat', e); } }, 800);
+  // Telegram expands the app after start, the keyboard opens and closes: the message list follows the window height
+  { let t = 0; const refit = () => { clearTimeout(t); t = setTimeout(() => { if (!document.querySelector('#tavern-chat .chat-stream')) return; try { sizeTavernStream(); decorateChat(); } catch {} }, 300); };
+    addEventListener('resize', refit); window.visualViewport?.addEventListener('resize', refit); try { window.Telegram?.WebApp?.onEvent?.('viewportChanged', refit); } catch {} }
   function drinkMoonshine() {
     const b = B(), p = me(); if (!b || !p) return;
     if (p.worldPlace !== 'settlement' || p.worldJourney || document.documentElement.hasAttribute('data-in-combat')) return toast('Таверна работает только в поселении.');
@@ -5882,11 +5962,11 @@ html[data-interface=modern] .ae-chat-quote{border-left-color:#38bdf8}html[data-i
 #tavern-chat .chat-message.is-del .chat-message-text{font-style:italic;opacity:.55}#tavern-chat .chat-message.is-del{cursor:default}
 #tavern-chat .chat-message[data-ae-gone] .chat-message-text{font-size:0!important}#tavern-chat .chat-message[data-ae-gone] .chat-message-text::after{content:'· сообщение удалено ·';font-size:12px;font-style:italic;opacity:.55}#tavern-chat .chat-message[data-ae-gone] .ae-chat-quote{display:none}
 #tavern-chat .chat-message.ae-flash{animation:ae-chat-flash 1.4s}@keyframes ae-chat-flash{30%{box-shadow:0 0 0 2px #f0cf7a,0 0 18px #f0cf7a88}}
-#tavern-chat .chat-composer{position:relative}
-.ae-chat-replybar{position:absolute;left:0;right:0;bottom:calc(100% + 1px);display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:10px 10px 0 0;background:#141a17f5;border:1px solid #f0cf7a66;border-bottom:0;font-size:12px;z-index:2;min-width:0}.ae-chat-replybar>span{min-width:0}.ae-chat-replybar small{display:block;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-chat-replybar b{color:#f0cf7a;margin-left:2px}
+.ae-chat-float{position:relative;height:0;margin-top:-12px;z-index:6;flex:none}
+.ae-chat-replybar{position:absolute;left:0;right:0;bottom:-11px;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:10px 10px 0 0;background:#141a17f5;border:1px solid #f0cf7a66;border-bottom:0;font-size:12px;z-index:2;min-width:0}.ae-chat-replybar>span{min-width:0}.ae-chat-replybar small{display:block;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-chat-replybar b{color:#f0cf7a;margin-left:2px}
 .ae-chat-replybar button{flex:none;width:28px!important;height:28px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:50%;border:1px solid #ffffff33;background:#0006;color:#fff;font-size:16px;line-height:1;cursor:pointer}
 html[data-interface=modern] .ae-chat-replybar{background:#0f172af5;border-color:#38bdf866}html[data-interface=modern] .ae-chat-replybar b{color:#7dd3fc}
-.ae-chat-newpill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 10px);z-index:3;padding:6px 14px;border-radius:16px;border:1px solid #f0cf7a;background:#3a2c16f0;color:#ffe9b0;font-size:12px;font-weight:700;box-shadow:0 4px 12px #000a;white-space:nowrap;cursor:pointer}.ae-has-reply .ae-chat-newpill{bottom:calc(100% + 58px)}
+.ae-chat-newpill{position:absolute;left:50%;transform:translateX(-50%);bottom:10px;z-index:3;padding:6px 14px;border-radius:16px;border:1px solid #f0cf7a;background:#3a2c16f0;color:#ffe9b0;font-size:12px;font-weight:700;box-shadow:0 4px 12px #000a;white-space:nowrap;cursor:pointer}.ae-has-reply .ae-chat-newpill{bottom:58px}
 .ae-chat-fab-n{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#dc2626;color:#fff;font:700 11px/16px system-ui,sans-serif;text-align:center;border:2px solid #141a17;box-sizing:border-box}
 .ae-chat-preview{padding:8px 10px;border-radius:10px;background:#ffffff0d;margin-bottom:4px}.ae-chat-preview p{margin:4px 0 0;font-size:13px;white-space:pre-wrap;word-break:break-word}.ae-chat-menu .ae-btn{margin-top:6px}.ae-chat-menu .ae-btn.ae-danger{border-color:#ef444488!important;color:#fca5a5!important}
 .ae-fx{position:absolute;z-index:6;pointer-events:none}
@@ -6091,6 +6171,20 @@ html[data-interface=fantasy] .ae-bag-merge{background:#2a2117;color:#f3e6c4;bord
 .ae-tile[data-ae-rarity=common]{box-shadow:inset 0 0 0 1px var(--ae-r)!important}
 .ae-tile::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--ae-r);border-radius:0 0 6px 6px;pointer-events:none}
 .ae-tile .inventory-bag-upgrade{display:none!important}
+.ae-b-better{position:absolute;top:3px;right:3px;z-index:4;padding:2px 4px;border-radius:6px;background:#064e3bf0;border:1px solid #34d399;color:#a7f3d0;font:800 9.5px/1 system-ui,sans-serif;pointer-events:none;box-shadow:0 0 8px #34d39966;white-space:nowrap}
+[data-ae-asc]>.ae-b-better{top:21px}.ae-b-better i{font-style:normal}html[data-interface=fantasy] .ae-b-better i{display:none}html[data-interface=fantasy] .ae-b-better{padding:2px 3px;font-size:10px}
+[data-ae-over] .ae-b-lvl{background:#7f1d1df0!important;color:#fecaca!important}.modern-item-card[data-ae-over]>div.justify-between>span:first-child{color:#f87171!important;font-weight:700}[data-ae-over]>img,[data-ae-over] img{filter:grayscale(.55) brightness(.8)}
+.modern-item-card .ae-badges .ae-b-up,.modern-item-card .ae-badges .ae-b-lvl{display:none}
+.ae-bag-sort{grid-column:1/-1;order:-100000;display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:2px 0 4px;font:600 11px system-ui,sans-serif}.ae-bag-sort>span{opacity:.75;margin-right:2px}
+.ae-bag-sort button{min-height:28px!important;padding:3px 10px!important;border-radius:14px!important;border:1px solid #ffffff2e!important;background:#0000004d!important;color:inherit!important;font:600 11.5px system-ui,sans-serif!important;cursor:pointer}
+.ae-bag-sort button.is-on{border-color:#f0cf7a!important;background:#f0cf7a2e!important;color:#ffe9b0!important}
+html[data-interface=modern] .ae-bag-sort button.is-on{border-color:#38bdf8!important;background:#0c4a6e!important;color:#e0f2fe!important}
+html[data-interface=fantasy] .ae-bag-sort{color:#3b2a14}html[data-interface=fantasy] .ae-bag-sort button{background:#2a2117!important;color:#f3e6c4!important;border-color:#a28a52!important}html[data-interface=fantasy] .ae-bag-sort button.is-on{background:linear-gradient(#c79a3e,#8f6a24)!important;color:#1a1306!important}
+.ae-bag-sort[data-better]:not([data-better=''])::after{content:attr(data-better);flex-basis:100%;color:#34d399;font-size:11px;font-weight:700}html[data-interface=fantasy] .ae-bag-sort[data-better]:not([data-better=''])::after{color:#166534}
+.ae-hide-note{display:none!important}
+.ae-bag-tools{display:grid!important;grid-template-columns:1fr 1fr;gap:6px!important}.ae-bag-tools>.ae-bag-tools-h{grid-column:1/-1}
+.ae-bag-tools .ae-bag-merge{margin:0!important;min-height:48px!important;padding:6px 8px!important;gap:7px!important}.ae-bag-tools .ae-bag-merge small,.ae-bag-tools .ae-bag-merge .ae-coop-go{display:none!important}.ae-bag-tools .ae-bag-merge b{font-size:12px!important;line-height:1.2}
+.ae-bag-tools .ae-forge-entry small{display:block!important;font-size:10px!important;line-height:1.2;opacity:.8}.ae-bag-tools .ae-bag-merge .ae-entry-icon{flex:0 0 26px;width:26px;height:26px;font-size:18px}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}

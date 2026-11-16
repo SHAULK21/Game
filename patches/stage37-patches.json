@@ -1,0 +1,34 @@
+[
+ {
+  "name": "inv-count-modern",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36.js",
+  "old": "M.filter(e=>a.inventory.some(t=>t.type===e)).length",
+  "new": "q.length"
+ },
+ {
+  "name": "inv-score-modern",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36.js",
+  "old": ",L=(e,t)=>P.has(e)?",
+  "new": ",__aeIS=window.__aeItemScore=I,L=(e,t)=>P.has(e)?"
+ },
+ {
+  "name": "inv-score-fantasy",
+  "file": "InventoryScreen-tRt9SWVd-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36.js",
+  "old": ",J=(e,t)=>G.has(e)?",
+  "new": ",__aeIS=window.__aeItemScore=q,J=(e,t)=>G.has(e)?"
+ },
+ {
+  "name": "inv-statru-modern",
+  "file": "InventoryScreen-8eXoBvWG-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36.js",
+  "old": "r(E[e]||e)",
+  "new": "r(E[e]||window.__aeStatRu?.[e]||e)",
+  "count": 2
+ },
+ {
+  "name": "inv-statru-fantasy",
+  "file": "InventoryScreen-tRt9SWVd-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36.js",
+  "old": "r(E[e]||e)",
+  "new": "r(E[e]||window.__aeStatRu?.[e]||e)",
+  "count": 2
+ }
+]
