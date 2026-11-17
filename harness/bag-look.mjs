@@ -13,9 +13,10 @@ pl.inventory.push({id: 'pot1', templateId: 'potion_health_small', name: 'Мал�
 if (process.env.TWOH) { pl.equipped = {...(pl.equipped || {}), weapon: {id: 'th1', templateId: 'drop_th', name: 'Двуручный молот', type: 'weapon', rarity: 'rare', level: 10, upgradeLevel: 0, icon: '🔨', stats: {attack: 30}, twoHanded: true, isEquipped: true}};
   delete pl.equipped.offhand;
   pl.inventory.push({id: 'th2', templateId: 'drop_th2', name: 'Двуручная секира', type: 'weapon', rarity: 'epic', level: 20, upgradeLevel: 0, icon: '🪓', stats: {attack: 40}, twoHanded: true}); }
+if (process.env.LONG) { pl.inventory[pl.inventory.findIndex(i => i.id === 'g1')].name = 'Парные клинки болотного хранителя'; pl.inventory.find(i => i.id === 'g1').stats = {attack: 179, critChance: 5, agility: 3}; if (pl.equipped?.weapon) Object.assign(pl.equipped.weapon, {name: 'Двуручный меч сумеречного стражника', stats: {attack: 1765, critChance: 7, strength: 6, vampirism: 7, agility: 14}}); }
 ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; if (process.env.PREM) ls['aeth_autoequip_' + 437290420] = '1';
 const s = await launch({localState: ls, setupWorld: w => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); if (process.env.PREM) for (const r of w.tables.players) r.premium_until = new Date(Date.now() + 30 * 864e5).toISOString(); }});
-const p = s.page; p.setDefaultTimeout(5000); await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(7000);
+const p = s.page; p.setDefaultTimeout(5000); await p.setViewportSize({width: +(process.env.W || 390), height: 844}); await p.waitForTimeout(7000);
 for (let k = 0; k < 6; k++) { await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^(Понятно|Позже|Закрыть|В бой, герой!?|Продолжить путь)$/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(400); }
 await p.evaluate(() => [...document.querySelectorAll('nav button, nav a')].find(b => /Сумка/.test(b.textContent))?.click()); await p.waitForTimeout(2500);
 console.log('TXT', (await p.evaluate(() => document.querySelector('main')?.innerText || '')).replace(/\n+/g, ' | ').slice(0, 2500));
@@ -27,6 +28,7 @@ await p.evaluate(() => [...document.querySelectorAll('.ae-bag-sort button')].fin
 const tile = await p.evaluate(() => { const t = [...document.querySelectorAll('main button')].find(b => /Ур\.?\s?12|^\+1/.test(b.innerText) && b.querySelector('img')); if (!t) return 'none'; t.scrollIntoView({block: 'center'}); t.click(); return t.outerHTML.slice(0, 1500); });
 console.log('TILE', tile); await p.waitForTimeout(1200);
 await p.screenshot({path: `bag-${style}-detail.png`});
+console.log('OVER', await p.evaluate(() => { const out = []; for (const e of document.querySelectorAll('[role=dialog] *, .bottom-sheet-backdrop *')) { const r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect(); if (r.width && r.right > pr.right + 2 && e.textContent.trim()) out.push(e.tagName + '.' + String(e.className).slice(0, 50) + ' +' + Math.round(r.right - pr.right) + ' ' + e.textContent.trim().slice(0, 30)); } return out.slice(0, 8).join(' || '); }));
 console.log('DETAIL', (await p.evaluate(() => (document.querySelector('[role=dialog], .bottom-sheet-backdrop, .game-dialog-backdrop') || document.querySelector('main')).innerText)).replace(/\n+/g, ' | ').slice(0, 1500));
 const before = await p.evaluate(() => [...document.querySelectorAll('.ae-b-better')].map(b => b.closest('[data-inventory-item]').getAttribute('data-inventory-item') + b.dataset.t).join(','));
 await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^Экипировать$/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(1500);

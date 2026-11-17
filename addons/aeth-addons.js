@@ -528,6 +528,27 @@
       } catch (e) { toast(cleanError(e)); }
       if (openPanelState === st) st.rerender();
     };
+    // «Надеть лучшее»: for every open slot, the strongest bag item the companion can wear (≤ its level + 3), if it beats what is on
+    const bestFor = c => { const p = me() || {}, worn = new Set(Object.values(p.equipped || {}).filter(Boolean).map(e => e.id)), out = [], used = new Set();
+      for (const sl of d.slots) { if (d.heroLevel < (d.slotLvl?.[sl] || 0)) continue;
+        const cand = (p.inventory || []).filter(i => i && i.type === sl && !used.has(i.id) && !i.isEquipped && !worn.has(i.id) && !i.isLocked && !i.boundToClan && (i.serverOwned || transferable(i)) && (i.level || 1) <= c.lvl + 3)
+          .sort((a, b) => quickScore(b) - quickScore(a))[0];
+        if (cand && (!c.gear[sl] || quickScore(cand) > quickScore(c.gear[sl]) * 1.02)) { out.push(cand); used.add(cand.id); } }
+      return out; };
+    const equipBest = async c => {
+      const list = bestFor(c); if (!list.length) return toast('Лучше надетого в сумке ничего нет.');
+      if (!confirm(`${c.name} наденет:\n${list.map(i => '• ' + baseName(i) + (i.upgradeLevel ? ' +' + i.upgradeLevel : '') + ' (ур. ' + (i.level || 1) + ')').join('\n')}\n\nЗаменённые вещи вернутся в сумку.`)) return;
+      const err = canAct?.(); if (err) return toast(err);
+      let n = 0;
+      for (const it of list) {
+        try { const srv = it.serverOwned ? it : await depositItem(it, 1);
+          const r = await api('/api/ae-comp/equip', 'POST', {id: c.id, itemId: srv.id}); d = r; n++;
+          B()?.setPlayer(x => x && {...x, inventory: [...x.inventory.filter(i => i.id !== srv.id), ...(r.back ? [r.back] : [])]}); rememberGone([srv.id]);
+        } catch (e) { toast(cleanError(e)); break; }
+      }
+      if (n) { sfx.play('equip'); toast(`⚡ ${c.name}: надето вещей — ${n}`); }
+      if (openPanelState === st) st.rerender();
+    };
     const sk = 'aeth_barracks_story_' + uid();
     if (!localStorage.getItem(sk)) { localStorage.setItem(sk, '1'); setTimeout(() => showStory('/assets/story/companions.webp', 'Казарма', 'Плечом к плечу',
       'Старый сержант распахивает ворота казармы: «Одному в эти земли больше не пройти — твари с каждым днём злее. Здесь собираются те, кто готов идти с тобой: щитоносцы, лекари и боевые маги. Нанимай, учи, одевай в своё снаряжение — и они прикроют тебя в самый тяжёлый момент». Казарма будет открываться постепенно: чем опытнее вы, тем больше она даёт.', 'Войти в казарму'), 200); }
@@ -600,14 +621,15 @@
           h('div', {class: 'ae-sub'}, gear.length ? `Надето: ${gear.map(([, it]) => it.name).join(', ')}. Нажмите на ячейку, чтобы надеть, заменить или снять вещь.` : 'Снаряжения нет — нажмите на ячейку, чтобы надеть вещь из сумки.', ` · походов ${c.runs}, побед ${c.wins}`),
           h('div', {class: 'ae-comp-wage' + (c.paid ? '' : ' is-due')}, h('span', {class: 'ae-grow'}, c.paid ? `💰 Жалование оплачено до ${new Date(c.paidUntil).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}` : '😴 Отдыхает — ждёт жалования', h('small', {}, `${fmt(c.wage)} 🪙 в день. Без оплаты соратник не помогает в боях и не ходит в кооп.`)),
             ...[[1, 'День'], [7, 'Неделя']].map(([n, l]) => h('button', {class: 'ae-btn' + (c.paid ? '' : ' ae-primary'), type: 'button', onclick: () => pay(c.wage * n, () => call('/api/ae-comp/pay', {id: c.id, days: n, pay: c.wage * n}, `💰 ${c.name}: жалование оплачено`))}, `${l} · ${fmt(c.wage * n)} 🪙`))),
+          (() => { const n = bestFor(c).length; return n ? h('button', {class: 'ae-btn ae-primary ae-wide ae-comp-best', type: 'button', onclick: () => equipBest(c)}, `⚡ Надеть лучшее · ${n} ${plural(n, 'вещь', 'вещи', 'вещей')}`) : ''; })(),
           h('div', {class: 'ae-row ae-wrap'},
-            h('button', {class: 'ae-btn ae-primary ae-grow', type: 'button', onclick: () => { pick = {id: c.id, slot: null}; st.rerender(); }}, '👕 Надеть вещь'),
+            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { pick = {id: c.id, slot: null}; st.rerender(); }}, '👕 Выбрать вещь'),
             (() => { const xp = Math.round(c.need * 0.35), cost = Math.round(xp * 0.5);
               return HL < U.train ? h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: true}, `🔒 Тренировки с ${U.train} ур.`) : h('button', {class: 'ae-btn ae-grow', type: 'button', disabled: !d.train.left || c.lvl >= d.heroLevel, onclick: () => pay(cost, () => { firstStory('training'); call('/api/ae-comp/train', {id: c.id, pay: cost}, r => `🏋️ ${c.name}: +${fmt(r.gained)} опыта`); })}, `🏋️ +${fmt(xp)} опыта · ${fmt(cost)} 🪙`); })()),
-          h('div', {class: 'ae-row'},
+          h('details', {class: 'ae-comp-more'}, h('summary', {}, '⚙️ Ещё: имя, облик, отпустить'), h('div', {class: 'ae-row'},
             h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => { const n = prompt('Новое имя соратника:', c.name); if (n) call('/api/ae-comp/rename', {id: c.id, name: n}); }}, '✏️ Имя'),
             h('button', {class: 'ae-btn ae-grow', type: 'button', title: 'Сменить облик', onclick: () => call('/api/ae-comp/sex', {id: c.id, sex: c.sex === 'f' ? 'm' : 'f'}, 'Облик изменён')}, c.sex === 'f' ? '👤 Облик ♀ → ♂' : '👤 Облик ♂ → ♀'),
-            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => confirm(`Отпустить ${c.name}? Вся его экипировка вернётся в сумку, уровень пропадёт.`) && call('/api/ae-comp/dismiss', {id: c.id}, 'Соратник ушёл, вещи в сумке')}, 'Отпустить'))));
+            h('button', {class: 'ae-btn ae-grow', type: 'button', onclick: () => confirm(`Отпустить ${c.name}? Вся его экипировка вернётся в сумку, уровень пропадёт.`) && call('/api/ae-comp/dismiss', {id: c.id}, 'Соратник ушёл, вещи в сумке')}, 'Отпустить')))));
       }
       body.append(h('p', {class: 'ae-sub'}, `🏋️ Тренировок сегодня: ${d.train.left} из ${d.train.per}. Ещё опыт соратники получают в кооп-подземельях — за победу полный, за поражение часть.`));
       if (d.hire == null && d.nextHireAt) body.append(h('p', {class: 'ae-pill'}, `👥 Следующий соратник — с ${d.nextHireAt} уровня.`));
@@ -1790,6 +1812,7 @@
     if (evs.length || (r.friendRequests || []).length) setTimeout(() => loadInbox(true), 1500);
   }
   function popup({icon, text, act, fn}) {
+    if (document.documentElement.hasAttribute('data-in-combat') && icon === '📱') return setTimeout(() => popup({icon, text, act, fn}), 60000);  // promos wait for the fight to end
     const el = h('div', {class: 'ae-pop', role: 'status'}, h('span', {class: 'ae-pop-i'}, icon), h('span', {class: 'ae-grow'}, text),
       act ? h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => { el.remove(); fn?.(); }}, act) : '', h('button', {class: 'ae-pop-x', type: 'button', 'aria-label': 'Закрыть', onclick: () => el.remove()}, '×'));
     document.body.append(el); sfx.play('bell', 0.4); setTimeout(() => el.classList.add('is-on'), 20); setTimeout(() => el.remove(), 9000);
@@ -2066,8 +2089,9 @@
   // «Стиль интерфейса» is in the settings now: hide the switch from the header
   function hideHeaderStyle() {
     for (const el of document.querySelectorAll('header summary, header button, header a, header span')) {
-      if (el.dataset.aeNoStyle || !/^[►▸▶\s]*Стиль интерфейса$/.test((el.textContent || '').trim())) continue;
-      el.dataset.aeNoStyle = '1'; (el.closest('details') || el).classList.add('ae-nat-hide');
+      // re-checked every time: other screens clear «.ae-nat-hide» when they close, which used to bring the switch back
+      if (!/^[►▸▶\s]*Стиль интерфейса$/.test((el.textContent || '').trim())) continue;
+      const box = el.closest('details') || el; if (!box.classList.contains('ae-nat-hide')) box.classList.add('ae-nat-hide');
     }
   }
   setInterval(() => { if (!document.hidden) try { hideHeaderStyle(); } catch {} }, 1000);
@@ -3390,7 +3414,7 @@
     if (!P) {
       const have = MINE_LOOT.filter(x => x[2] <= lvl), next = MINE_LOOT.find(x => x[2] > lvl);
       return h('div', {class: 'ae-exp-extra'},
-        h('div', {class: 'ae-exp-table'}, SHIFTS.map(([hh, name]) => { const y = shiftYield(hh); return h('div', {class: 'ae-exp-row'}, h('b', {}, `${hh} ч.`), h('span', {}, name), h('span', {}, `≈ ${y.lo}–${y.hi} шт. · ${y.kinds} вида`), h('small', {}, `редкие ${y.rare} · +${y.exp} опыта`)); })),
+
         h('div', {class: 'ae-exp-loot'}, h('small', {}, 'Можно найти: '), have.map(x => h('span', {title: x[1]}, x[0])), next ? h('small', {class: 'ae-exp-next'}, ` · с ${next[2]} ур. шахты: ${MINE_LOOT.filter(x => x[2] === next[2]).map(x => x[0] + ' ' + x[1]).join(', ')}`) : ''),
         h('small', {class: 'ae-exp-tip'}, '💡 Запустите «Дальнюю экспедицию» перед сном — утром заберёте больше всего добычи. Бот напомнит, когда она вернётся.'));
     }
@@ -3413,7 +3437,33 @@
     expSig = sig; const next = h('div', {'data-ae-exp': '1'}, expeditionExtra(p));
     if (box) box.replaceWith(next); else card.append(next);
   }
-  setInterval(() => { if (!document.hidden && document.querySelector('[data-ae-mine-lifted]')) try { decorateExpedition(); } catch (e) { console.warn('ae exp', e); } }, 1000);
+  // the shift cards themselves say what each shift brings (instead of a second table below them)
+  function decorateShiftCards() {
+    const card = document.querySelector('[data-ae-mine-lifted]'); if (!card || me()?.miningExpedition) return;
+    for (const [hh, name] of SHIFTS) {
+      const b = [...card.querySelectorAll('button')].find(x => (x.innerText || '').includes(name)); if (!b || b.querySelector('.ae-shift-yield')) continue;
+      const y = shiftYield(hh), host = [...b.querySelectorAll('span, div')].find(e => (e.innerText || '').trim().startsWith(name))?.parentElement || b;
+      host.append(h('small', {class: 'ae-shift-yield'}, `≈ ${y.lo}–${y.hi} шт. · ${y.kinds} вида · редкие ${y.rare} · +${y.exp} опыта`));
+    }
+  }
+  // manual mining: open veins + the next one; the rest folded under one line
+  let veinsOpen = false;
+  function foldLockedVeins() {
+    const main = document.querySelector('main'); if (!main) return;
+    const lockBtns = [...main.querySelectorAll('button')].filter(b => /^С \d+ ур\.?$/.test((b.textContent || '').replace(/\s+/g, ' ').trim()));
+    if (lockBtns.length < 3) return;
+    const cardOf = b => { let n = b; while (n.parentElement && !(n.parentElement.children.length >= 3 && [...n.parentElement.children].filter(c => c.querySelector('button')).length >= 3)) n = n.parentElement; return n; };
+    const cards = lockBtns.map(cardOf), list = cards[0].parentElement; if (!list || cards.some(c => c.parentElement !== list)) return;
+    const lvlOf = b => Number((b.textContent || '').match(/\d+/)?.[0]) || 0;
+    const hidden = cards.slice(1);
+    for (const c of list.querySelectorAll(':scope > .ae-vein-hidden')) if (!hidden.includes(c)) c.classList.remove('ae-vein-hidden');
+    for (const c of hidden) c.classList.toggle('ae-vein-hidden', !veinsOpen);
+    let tg = list.querySelector(':scope > [data-ae-veins]');
+    const t = veinsOpen ? '▲ Свернуть закрытые жилы' : `🔒 Ещё ${hidden.length} ${plural(hidden.length, 'жила', 'жилы', 'жил')} · с ${lockBtns.slice(1).map(lvlOf).join(', ')} ур.`;
+    if (!tg) { tg = h('button', {type: 'button', class: 'ae-veins-toggle', 'data-ae-veins': '1', onclick: () => { veinsOpen = !veinsOpen; foldLockedVeins(); }}); list.append(tg); }
+    if (tg.textContent !== t) tg.textContent = t;
+  }
+  setInterval(() => { if (!document.hidden && document.querySelector('[data-ae-mine-lifted]')) try { decorateExpedition(); decorateShiftCards(); foldLockedVeins(); } catch (e) { console.warn('ae exp', e); } }, 1000);
   // Crystal entry points inside the right places (Forge, Workshop, market's basic shop).
   function gemEntry(attr, title, sub, tab) {
     return h('button', {type: 'button', class: 'ae-bag-merge ae-gem-entry', [attr]: '1', onclick: () => openGems(tab)}, h('span', {class: 'ae-entry-icon'}, '💎'), h('span', {class: 'ae-grow'}, h('b', {}, title), h('small', {}, sub)), h('span', {class: 'ae-coop-go'}, '›'));
@@ -3938,7 +3988,7 @@
   // ================= batch 6 =================
   // ---------- travel screen: rotating banners with tips ----------
   const TIPS = ['Защищайтесь перед сильным ударом — прогноз приёма врага показан над кнопками боя.', 'Пиво в таверне восстанавливает энергию, но на несколько боёв снижает атаку и защиту.',
-    'Одинаковые вещи объединяются прямо в Сумке: каждая ★ даёт +10% к характеристикам.', 'Заточке нужна руда из шахты: чем выше +, тем более редкая руда понадобится.',
+    'Одинаковые вещи объединяются прямо в Сумке: каждая ★ даёт +10% к характеристикам.', 'Заточка до +5 — без материалов и всегда успешна. Выше +5 понадобится руда из шахты.',
     'Осколки вознесения падают с боссов и элит — копите их для рангов на арене.', 'В кооп-подземельях лидер выбирает путь: неверная тропа может стоить отряду здоровья.',
     'Билеты арены обновляются в 00:00 UTC — не забывайте их тратить.', 'Друзей можно позвать в кооп одним нажатием — бот пришлёт им приглашение.',
     '«Густой туман» даёт больше добычи, но засады в нём опаснее.', 'Перед походом проверьте зелья: в бою они спасают от поражения.',
@@ -3998,6 +4048,14 @@
   }
   // ---------- global chat: tap a message for actions, replies with a quote, @mentions, day separators, «new» pill, unread badge ----------
   window.__aeChatErr = msg => toast(cleanError(msg));
+  // combat log: «96 физического урона» instead of «96 PHYSICAL урона» (stage38)
+  // uk: the game's own dictionary translates the old upper-case words, so they are passed through unchanged
+  const isUkLang = () => document.documentElement.lang === 'uk';
+  const DMG_RU = {physical: 'физического', magic: 'магического', magical: 'магического', fire: 'огненного', ice: 'ледяного', frost: 'ледяного', lightning: 'электрического', poison: 'ядовитого', dark: 'тёмного', shadow: 'тёмного', holy: 'светлого', light: 'светлого', true: 'чистого', pure: 'чистого'};
+  const FX_RU = {fortify: 'Укрепление', vulnerability: 'Уязвимость', stun: 'Оглушение', poison: 'Яд', burn: 'Горение', fury: 'Ярость', shield: 'Щит', bleed: 'Кровотечение', weaken: 'Ослабление', slow: 'Замедление'};
+  const FX_UK = {fortify: 'Зміцнення', vulnerability: 'Вразливість', stun: 'Оглушення', poison: 'Отрута', burn: 'Горіння', fury: 'Лють', shield: 'Щит', bleed: 'Кровотеча', weaken: 'Послаблення', slow: 'Сповільнення'};
+  window.__aeFxRu = t => { const k = String(t || '').toLowerCase(); return (isUkLang() ? FX_UK : FX_RU)[k] || String(t || ''); };
+  window.__aeDmgRu = t => isUkLang() ? String(t || '').toUpperCase() : DMG_RU[String(t || '').toLowerCase()] || String(t || '').toLowerCase();
   const chatSeenKey = () => 'aeth_chat_seen_' + uid();
   let chatLastKnown = 0;
   const chatSeen = () => Number(localStorage.getItem(chatSeenKey())) || 0;
@@ -4890,6 +4948,57 @@
       h('div', {class: 'ae-town-now-row'}, items.map(x => h('button', {type: 'button', class: 'ae-town-chip is-' + x.kind, onclick: () => { sfx.play('page'); clickPlace(x.id); }}, h('small', {}, NAMES[x.id] || ''), h('span', {}, x.text)))));
     if (strip) strip.replaceWith(fresh); else host.after(fresh);
   }
+  // ---------- caves: «for you / hard / easy» next to each cave, from its recommended level ----------
+  function paintCaveTags() {
+    const main = document.querySelector('main'), p = me(); if (!main || !p) return;
+    const leaves = [...main.querySelectorAll('span, small, p, div')].filter(e => !e.childElementCount && /Рекомендуемый уровень · \d+\+|· уровень \d+ ·/.test(e.textContent || ''));
+    if (!leaves.length) return;
+    const L = Number(p.level) || 1, req = e => Number(((e.textContent || '').match(/Рекомендуемый уровень · (\d+)|уровень (\d+)/) || []).slice(1).find(Boolean)) || 1;
+    const best = Math.max(0, ...leaves.map(req).filter(r => r <= L));
+    for (const leaf of leaves) {
+      const r = req(leaf), [cls, txt] = r > L ? ['is-hard', `⚠️ нужен ${r} ур.`] : r === best ? ['is-best', '★ для вас'] : ['is-easy', 'легко'];
+      let tag = leaf.nextElementSibling?.classList?.contains('ae-cave-tag') ? leaf.nextElementSibling : null;
+      if (!tag) { tag = h('span', {class: 'ae-cave-tag'}); leaf.after(tag); }
+      if (tag.textContent !== txt) { tag.textContent = txt; tag.className = 'ae-cave-tag ' + cls; }
+    }
+  }
+  // after losing to a dungeon boss: how close it was and what to do before the next try
+  function paintBossDefeatTip() {
+    const back = [...document.querySelectorAll('button')].find(b => /^Вернуться в подземелье$/.test((b.textContent || '').trim()) && b.offsetParent);
+    const old = document.querySelector('[data-ae-boss-tip]');
+    if (!back) { old?.remove(); return; }
+    const box = back.closest('main') || document.body, txt = box.innerText || '';
+    if (!/ПОРАЖЕНИЕ|Поражение/.test(txt) || !/👑 Босс|\(Босс\)/.test(txt)) { old?.remove(); return; }
+    const m = txt.split(/👑 Босс/)[1]?.match(/([\d\s ]+)\s*\/\s*([\d\s ]+)/), hp = m ? Number(m[1].replace(/\D/g, '')) : null, max = m ? Number(m[2].replace(/\D/g, '')) : null;
+    const pct = hp != null && max ? Math.max(1, Math.round(hp / max * 100)) : null, sig = String(pct);
+    if (old?.dataset.sig === sig) return;
+    const tip = h('div', {class: 'ae-boss-tip', 'data-ae-boss-tip': '1', 'data-sig': sig},
+      h('b', {}, pct != null ? (pct <= 25 ? `💪 Почти! У босса осталось ${pct}% здоровья` : `У босса осталось ${pct}% здоровья`) : 'Босс оказался сильнее'),
+      h('small', {}, 'Здоровье восстановлено — можно попробовать снова. Перед боем: пейте зелья, ставьте «Защиту» перед сильным ударом (прогноз над кнопками), заточите оружие или наденьте вещи получше.'));
+    if (old) old.replaceWith(tip); else back.before(tip);
+  }
+  setInterval(() => { if (!document.hidden) try { paintCaveTags(); paintBossDefeatTip(); } catch (e) { console.warn('ae caves', e); } }, 1200);
+  // ---------- fishing: what the rod upgrade still needs (the native button is just greyed out) ----------
+  function paintRodNeeds() {
+    const up = [...document.querySelectorAll('main button')].find(b => /^Улучшить удочку$/.test((b.textContent || '').trim())); if (!up) return;
+    const p = me(); if (!p) return; const box = up.parentElement;
+    const lines = [...box.querySelectorAll(':scope > p')].map(e => (e.textContent || '').trim());
+    const head = lines.find(t => /Рыболов \d+/.test(t)) || '', mats = lines.find(t => /×\d+/.test(t) && !/Рыболов/.test(t)) || '';
+    const needLvl = Number(head.match(/Рыболов (\d+)/)?.[1]) || 0, needSilver = Number(head.match(/(\d[\d\s ]*) серебра/)?.[1]?.replace(/\D/g, '')) || 0;
+    const have = name => (p.inventory || []).reduce((n, i) => n + (i.name === name ? i.stackCount || 1 : 0), 0);
+    const rows = [];
+    if (needLvl) { const l = p.fishing?.level || 1; rows.push([l >= needLvl, `Рыболов ${needLvl} ур.`, `у вас ${l}`]); }
+    if (needSilver) rows.push([(p.silver || 0) >= needSilver, `${fmt(needSilver)} 🥈`, `у вас ${fmt(p.silver || 0)}`]);
+    for (const m of mats.split(/,\s*/)) { const mm = m.match(/^(.+?)\s*×\s*(\d+)/); if (!mm) continue; const n = have(mm[1].trim()); rows.push([n >= Number(mm[2]), `${mm[1].trim()} ×${mm[2]}`, `есть ${n}`, /руда/i.test(mm[1]) ? 'mine' : null]); }
+    const sig = JSON.stringify(rows); let el = box.querySelector(':scope > [data-ae-rod]');
+    if (!rows.length || !up.disabled) { el?.remove(); return; }
+    if (el?.dataset.sig === sig) return;
+    const fresh = h('div', {class: 'ae-rod-needs', 'data-ae-rod': '1', 'data-sig': sig}, h('small', {}, 'Для улучшения:'),
+      ...rows.map(([ok, what, note, go]) => h('div', {class: 'ae-rod-need' + (ok ? ' is-ok' : '')}, h('span', {}, ok ? '✅' : '❌'), h('b', {}, what), h('small', {}, note),
+        !ok && go === 'mine' ? h('button', {type: 'button', class: 'ae-pill-btn', onclick: () => { sfx.play('page'); const back = [...document.querySelectorAll('main button')].find(b => /^Назад$/.test(b.textContent.trim())); back?.click(); setTimeout(() => clickPlace('mine'), 450); }}, '⛏️ В шахту') : '')));
+    if (el) el.replaceWith(fresh); else up.before(fresh);
+  }
+  setInterval(() => { if (!document.hidden) try { paintRodNeeds(); } catch (e) { console.warn('ae rod', e); } }, 1500);
   // ---------- World: «this land is below your level» hint with the game's own recommended land ----------
   const worldHintKey = () => 'aeth_world_hint_off_' + uid();
   function paintWorldHint() {
@@ -4943,11 +5052,29 @@
       const nb = h('div', {class: 'ae-alch-cats', 'data-sig': sig}, h('button', {type: 'button', class: 'ae-pill-btn' + (alchCat === 'all' ? ' is-on' : ''), onclick: () => { alchCat = 'all'; paintAlchemyGroups(); }}, `Все · ${cards.length}`),
         ...ALCH_CATS.filter(([k]) => counts[k]).map(([k, l]) => h('button', {type: 'button', class: 'ae-pill-btn' + (alchCat === k ? ' is-on' : ''), onclick: () => { alchCat = k; paintAlchemyGroups(); }}, `${l} · ${counts[k]}`)));
       if (bar) bar.replaceWith(nb); else box.before(nb); }
+    // ready to brew first, then «not enough ingredients», then recipes for a higher alchemy level (folded)
     const order = Object.fromEntries(ALCH_CATS.map(([k], i) => [k, i])), seen = new Set();
-    for (const c of cards) { const k = c.dataset.aeCat, show = alchCat === 'all' || alchCat === k;
-      c.style.display = show ? '' : 'none'; c.style.order = String((order[k] ?? 9) * 1000 + cards.indexOf(c));
-      if (show && alchCat === 'all' && !seen.has(k)) { seen.add(k); c.dataset.aeCatTitle = ALCH_CATS.find(x => x[0] === k)?.[1] || ''; } else delete c.dataset.aeCatTitle; }
+    const stateOf = c => { const bs = [...c.querySelectorAll('button')], t = c.textContent || '';
+      if (bs.some(b => /^(С|Герой) \d+ ур/.test((b.textContent || '').trim()))) return 2;
+      if (/Не хватает/.test(t)) return 1;
+      return 0; };
+    // ranked once per card (when it appears): brewing again and again must not move the recipe from under the finger
+    const frozen = Date.now() < alchFreezeUntil;
+    const rank = c => { if (!frozen || c.dataset.aeState == null) c.dataset.aeState = String(stateOf(c)); return Number(c.dataset.aeState); };
+    if (!box.dataset.aeFreeze) { box.dataset.aeFreeze = '1'; box.addEventListener('click', () => { alchFreezeUntil = Date.now() + 8000; }, true); }
+    const ST = ['✅ Можно сварить', '⚠️ Не хватает ингредиентов', '🔒 Откроются позже — нужен уровень алхимии или героя'];
+    let locked = 0;
+    for (const c of cards) { const k = c.dataset.aeCat, stt = rank(c), show = (alchCat === 'all' || alchCat === k) && (stt < 2 || alchLockedOpen);
+      if (stt === 2 && (alchCat === 'all' || alchCat === k)) locked++;
+      c.style.display = show ? '' : 'none'; c.style.order = String(stt * 100000 + (order[k] ?? 9) * 1000 + cards.indexOf(c));
+      const key = stt; if (show && !seen.has(key)) { seen.add(key); c.dataset.aeCatTitle = ST[stt]; } else delete c.dataset.aeCatTitle; }
+    let tg = box.querySelector(':scope > [data-ae-alch-locked]');
+    if (!locked) { tg?.remove(); return; }
+    const t = alchLockedOpen ? '▲ Скрыть закрытые рецепты' : `🔒 Ещё ${locked} ${plural(locked, 'рецепт', 'рецепта', 'рецептов')} — откроются с уровнем алхимии или героя`;
+    if (!tg) { tg = h('button', {type: 'button', class: 'ae-veins-toggle', 'data-ae-alch-locked': '1', style: 'order:99999999', onclick: () => { alchLockedOpen = !alchLockedOpen; paintAlchemyGroups(); }}); box.append(tg); }
+    if (tg.textContent !== t) tg.textContent = t;
   }
+  let alchLockedOpen = false, alchFreezeUntil = 0;
   setInterval(() => { if (document.hidden) return; try { paintAlchemyGroups(); } catch {} }, 1200);
   // Hero power on the game's own screens: the bag heading (fantasy), the hero card and the bag (modern).
   function paintPowerNative() {
@@ -6296,6 +6423,24 @@ html[data-interface=fantasy] .ae-town-now{border-color:#a28a52;background:#2a211
 html[data-interface=modern] .ae-quick-btn{flex-direction:column!important;justify-content:center!important;align-items:center!important;text-align:center!important;gap:3px!important;padding:6px 4px!important;min-width:0}
 html[data-interface=modern] .ae-quick-btn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:12px!important}
 html[data-interface=fantasy] main details.leather-panel:not([open]){padding-top:2px!important;padding-bottom:2px!important}
+.grid-cols-\\[1fr_1fr\\]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}.grid-cols-\\[1fr_1fr\\]>*{min-width:0}.grid-cols-\\[1fr_1fr\\] .truncate{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.25}
+.grid-cols-\\[1fr_auto_auto\\]>:first-child{min-width:0;overflow-wrap:anywhere}
+.game-header details.modern-appearance{display:none!important}
+.world-travel-overlay,.fantasy-travel-overlay{min-height:100vh!important;min-height:calc(100dvh / var(--ae-zoom, 1))!important;bottom:auto!important}
+.ae-cave-tag{display:inline-block;margin:3px 0 0 6px;padding:1px 8px;border-radius:9px;font:700 10.5px/16px system-ui,sans-serif;vertical-align:middle;white-space:nowrap}
+.ae-cave-tag.is-best{background:#14532d;color:#bbf7d0;border:1px solid #22c55e}.ae-cave-tag.is-hard{background:#7f1d1d;color:#fecaca;border:1px solid #ef4444}.ae-cave-tag.is-easy{background:#ffffff14;color:#cbd5e1;border:1px solid #ffffff26}
+.ae-boss-tip{margin:8px 0;padding:9px 11px;border-radius:12px;border:1px solid #f59e0b88;background:#3a2a0ccc;color:#fde68a;text-align:left}.ae-boss-tip b{display:block;font-size:13px;color:#fff3c4}.ae-boss-tip small{display:block;font-size:11.5px;line-height:1.35;opacity:.9;margin-top:2px}
+.ae-comp-wage{flex-wrap:wrap!important}.ae-comp-wage>.ae-grow{flex-basis:100%!important}.ae-comp-wage>.ae-btn{flex:1 1 0!important}
+.ae-comp-best{margin:6px 0!important;animation:none}
+.ae-comp-more{margin-top:6px}.ae-comp-more>summary{cursor:pointer;font-size:12px;opacity:.75;padding:4px 2px;list-style:none}.ae-comp-more>summary::-webkit-details-marker{display:none}.ae-comp-more[open]>summary{opacity:1}
+.ae-shift-yield{display:block;margin-top:3px;font:600 10.5px/1.3 system-ui,sans-serif;color:#86efac;opacity:.95}
+.ae-vein-hidden{display:none!important}
+.ae-veins-toggle{width:100%;min-height:42px;margin:4px 0;padding:8px 12px!important;border-radius:12px!important;border:1px dashed #ffffff40!important;background:#0000003d!important;color:inherit!important;font:600 12.5px system-ui,sans-serif!important;cursor:pointer}
+div:has(>img[class*="fishing-water"]){aspect-ratio:auto!important;height:150px!important}
+.ae-rod-needs{display:flex;flex-direction:column;gap:4px;margin:4px 0 6px;padding:7px 9px;border-radius:10px;border:1px solid #ffffff1f;background:#0000002e}.ae-rod-needs>small{font-size:11px;opacity:.7}
+.ae-rod-need{display:flex;align-items:center;gap:7px;font-size:12px}.ae-rod-need b{font-weight:600}.ae-rod-need small{opacity:.7;font-size:11px;flex:1}.ae-rod-need.is-ok{opacity:.75}.ae-rod-need .ae-pill-btn{min-height:28px!important;padding:2px 10px!important;font-size:11.5px!important}
+.ae-sc-intent{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25;text-align:right}
+html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>span){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px!important;align-items:start}html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>span)>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}

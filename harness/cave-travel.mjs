@@ -1,0 +1,23 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'modern';
+const ls = JSON.parse(fs.readFileSync('ls.json')); const key = 'aethelgard_save_v1_data_437290420';
+const save = JSON.parse(ls[key]); Object.assign(save.player, {level: 12, energy: 60, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture;
+ls[key] = JSON.stringify(save); ls.aethelgard_interface_style = style; if (process.env.SCALE) ls.aeth_ui_scale = process.env.SCALE;
+const s = await launch({localState: ls, setupWorld: w => Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json')))});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); await p.waitForTimeout(6000);
+for (let k = 0; k < 6; k++) { await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^(Понятно|Позже|Закрыть|В бой, герой!?|Продолжить путь)$/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(300); }
+await p.evaluate(() => [...document.querySelectorAll('nav button, nav a')].find(b => b.textContent.includes('Поселение'))?.click()); await p.waitForTimeout(1200);
+await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /Отправиться в пещеру/.test(b.textContent))?.click()); await p.waitForTimeout(1500);
+console.log('CAVES', (await p.evaluate(() => document.querySelector('main')?.innerText || '')).replace(/\n+/g, ' | ').slice(0, 1500));
+await p.screenshot({path: `cave-${style}-list.png`});
+await p.evaluate(() => [...document.querySelectorAll('main button, main [role=button]')].find(b => /Пещера летучих мышей/.test(b.textContent))?.click()); await p.waitForTimeout(1200);
+console.log('SHEET', await p.evaluate(() => [...document.querySelectorAll('button')].map(b => b.textContent.trim()).filter(t => /Войти|Отправ|Начать|пещер/i.test(t)).join(' | ')));
+await p.screenshot({path: `cave-${style}-sheet.png`});
+await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^Войти · /.test(b.textContent.trim()) && !b.disabled)?.click()); await p.waitForTimeout(900);
+console.log('ANC', await p.evaluate(() => { const o = document.querySelector('.world-travel-overlay, .fantasy-travel-overlay'); const out = []; let n = o?.parentElement; while (n && n !== document.documentElement) { const cs = getComputedStyle(n); if (cs.transform !== 'none' || cs.filter !== 'none' || cs.willChange !== 'auto' || cs.contain !== 'none' || cs.backdropFilter !== 'none' || cs.perspective !== 'none') out.push(n.tagName + '.' + String(n.className).slice(0, 50) + ` tf=${cs.transform} f=${cs.filter} wc=${cs.willChange} c=${cs.contain} bf=${cs.backdropFilter}`); n = n.parentElement; } return out.join(' || ') || 'clean'; }));
+console.log('OVERLAY', await p.evaluate(() => { const o = document.querySelector('.world-travel-overlay, .fantasy-travel-overlay'); if (!o) return 'none'; const r = o.getBoundingClientRect(), cs = getComputedStyle(o); return JSON.stringify({cls: o.className, top: r.top, h: r.height, pos: cs.position, bg: cs.backgroundColor, inner: innerHeight, zoom: document.documentElement.style.zoom, txt: o.innerText.replace(/\n+/g, ' | ').slice(0, 300)}); }));
+await p.screenshot({path: `cave-${style}-travel.png`});
+await p.waitForTimeout(6000);
+console.log('AFTER', (await p.evaluate(() => document.querySelector('main')?.innerText || '')).replace(/\n+/g, ' | ').slice(0, 1200));
+await p.screenshot({path: `cave-${style}-in.png`});
+await s.close(); process.exit(0);

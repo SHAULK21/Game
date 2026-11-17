@@ -1,0 +1,26 @@
+[
+ {
+  "name": "dmg-ru-S",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36-p37.js",
+  "old": "${S.toUpperCase()} урона",
+  "new": "${(window.__aeDmgRu?.(S))||S} урона"
+ },
+ {
+  "name": "dmg-ru-g",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36-p37.js",
+  "old": "${g.toUpperCase()} урона",
+  "new": "${(window.__aeDmgRu?.(g))||g} урона"
+ },
+ {
+  "name": "dmg-ru-e_damageType",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36-p37.js",
+  "old": "${e.damageType.toUpperCase()} урона",
+  "new": "${(window.__aeDmgRu?.(e.damageType))||e.damageType} урона"
+ },
+ {
+  "name": "fx-ru",
+  "file": "index-Bqyd-ipJ-p1-p2-p3-p4-p5-p6-p7-p8-p9-p10-p11-p12-p13-p14-p15-p16-p17-p18-p19-p20-p21-p22-p23-p24-p25-p26-p27-p28-p29-p30-p31-p32-p33-p34-p35-p36-p37.js",
+  "old": "накладывает [${e.effect}]!",
+  "new": "накладывает [${(window.__aeFxRu?.(e.effect))||e.effect}]!"
+ }
+]
