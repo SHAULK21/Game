@@ -6369,6 +6369,7 @@ html:not(.ae-anim-off) .ae-sc-fig.is-hero .ae-sc-body{animation:ae-breathe 3.4s 
 .ae-gem-row .ae-gem-i{font-size:26px;width:34px;text-align:center}.ae-gem-recipe{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ae-gem-recipe span{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid #ffffff22}
 .ae-gem-pick{display:flex;flex-wrap:wrap;gap:6px}.ae-gem-chip{min-height:38px;font-size:12px}.ae-gem-chip.is-on{background:#e5ce96;color:#1a1306;font-weight:700}
 .ae-ing-low{color:#fca5a5!important;border-color:#b91c1c!important}.ae-ing-ok{color:#86efac!important}
+.alchemy-recipe-row:has(>.ae-alch-note){flex-wrap:wrap!important}.alchemy-recipe-row:has(>.ae-alch-note)>:first-child{flex:1 1 0;min-width:0}.alchemy-recipe-row>.ae-alch-note{flex:1 1 100%!important;order:99;max-width:100%;box-sizing:border-box}
 .ae-alch-note{margin-top:6px;padding:6px 10px;border-radius:8px;background:#450a0a99;border:1px solid #b91c1c88;color:#fecaca;font-size:12px}
 .ae-alch-blocked{filter:grayscale(.6);opacity:.75}
 .ae-coop-skills{display:flex;flex-direction:column;gap:6px;margin:6px 0}
