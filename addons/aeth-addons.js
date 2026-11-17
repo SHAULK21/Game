@@ -2178,7 +2178,7 @@
   // Where an event leads: [button label, action]. By kind first, then by what the text is about.
   function eventAction(e) {
     const k = e.kind || '', t = String(e.text || ''), d = e.data || {}, place = id => () => { if (document.querySelector(`[data-settlement-place="${id}"]`)) clickPlace(id); else toast('Загляните в поселение.'); };
-    const byKind = {trade_offer: ['Смотреть', () => openFriends('trades')], trade_paid: ['Сделки', () => openFriends('trades')], trade_return: ['Сумка', () => openFriends('trades')],
+    const byKind = {mentor: ['Открыть', () => openMentor()], trade_offer: ['Смотреть', () => openFriends('trades')], trade_paid: ['Сделки', () => openFriends('trades')], trade_return: ['Сумка', () => openFriends('trades')],
       coop: ['Открыть', openCoop], 'coop-invite': ['Открыть', openCoop], 'friend-accepted': ['Написать', () => openChat({id: d.id, name: ''})], friend: ['Друзья', () => openFriends('requests')],
       premium: ['Ура!', () => checkPremium()], market: ['Мои лоты', () => openAuction('mine')], 'market-item': ['Мои лоты', () => openAuction('mine')], 'lot-offer': ['Ответить', () => openAuction('mine')],
       'buy-request': ['Ответить', () => openAuction('req')], 'auction-outbid': ['Перебить', () => openAuction('all')], 'clan-hint': ['Найти клан', () => openClanSearch()],
@@ -4319,7 +4319,7 @@
   }
 
   // ---------- menu entry points ----------
-  const ENTRIES = [['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['📚', 'Коллекция', '360 уникальных вещей: соберите комплекты', () => openCollection()], ['☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', () => openCloudPanel()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
+  const ENTRIES = [['🏆', 'Сезон 1', 'Очки, награды и рейтинг сезона', () => openSeason()], ['🎓', 'Наставничество', 'Помогите новичку — награды обоим', () => openMentor()], ['👤', 'Профиль', 'Титулы и аватарка', () => openProfile()], ['🔍', 'Интерфейс', 'Стиль, размер и эффекты боя', () => openUiScale()], ['📚', 'Коллекция', '360 уникальных вещей: соберите комплекты', () => openCollection()], ['☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', () => openCloudPanel()], ['📱', 'Приложение Android', 'Играть без Telegram, напоминания на телефон', () => openApkInfo()], ['📰', 'Что нового', 'Обновления игры', () => openNews()],['🌕', 'Орда', 'Быстрые бои и Кровавая луна', () => openHorde()],['⚒️', 'Объединение', 'Сливайте одинаковые вещи в ★', openMerge], ['👥', 'Друзья', 'Друзья и личные сообщения', () => openFriends()], ['🎁', 'Пригласить друга', 'Premium вам и другу', () => openInvite()],
     ['🤝', 'Кооп-подземелья', 'Проходите подземелья отрядом', openCoop], ['🛡', 'Соратники', 'Свои боты-союзники: качайте и одевайте', openCompanions], ['⚔️', 'Дуэли', 'PvP по нику, пошаговый бой', () => openDuel()], ['📜', 'Задания', 'За кооп и PvP', () => openSpecialQuests()], ['🎁', 'Промокод', 'Активировать код', openPromo], ['📖', 'Вики', 'Как играть, где что найти', openWiki]];
   function entryBlock() {
     return h('section', {class: 'ae-entry', 'data-ae-entry': '1'}, h('h3', {}, 'Ещё возможности'),
@@ -4789,6 +4789,8 @@
   // ---------- modern «Меню»: one style, no duplicates, add-on features as a native group ----------
   // Line icons in the menu's own style (stroke = currentColor, 28×28 like the game's icons)
   const LINE = {
+    season: '<path d="M9 4h10v5a5 5 0 0 1-10 0z"/><path d="M9 6H5a3 3 0 0 0 4 4M19 6h4a3 3 0 0 1-4 4M14 14v5M10 23h8M11 19h6"/>',
+    mentor: '<circle cx="10" cy="8" r="3.5"/><circle cx="19.5" cy="11" r="2.5"/><path d="M3.5 22c.6-4 3.4-6.5 6.5-6.5s5.9 2.5 6.5 6.5M15.5 21.5c.4-2.6 2-4.2 4-4.2s3.6 1.6 4 4.2"/><path d="M8 3l2-1.5L12 3"/>',
     scale: '<circle cx="12" cy="12" r="7"/><path d="M17 17l7 7M9 12h6M12 9v6"/>',
     gems: '<path d="M8 4h12l4 6-10 14L4 10z"/><path d="M4 10h20M11 4l-2 6 5 14 5-14-2-6"/>',
     invite: '<circle cx="11" cy="10" r="4"/><path d="M3.5 23c.7-4 3.7-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.2M21 14v8M17 18h8"/>',
@@ -4806,7 +4808,7 @@
     coll: '<path d="M5 5.5h5.5v17H5zM11.5 5.5H17v17h-5.5zM18.5 7l4.5-1.2 4 15.6-4.5 1.2z"/>',
     cloud: '<path d="M8 21.5h12.5a4.5 4.5 0 0 0 .6-9 6.5 6.5 0 0 0-12.6-1.6A5.3 5.3 0 0 0 8 21.5z"/><path d="M14 13v6M11.5 16.5L14 19l2.5-2.5"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  const AE_GROUP = [['season', 'Сезон 1', () => openSeason()], ['mentor', 'Наставничество', () => openMentor()], ['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['coll', 'Коллекция', () => openCollection()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
   // Switch the game's interface style (the game's own switch lives in the Telegram settings button / desktop top bar).
   function switchStyle(k, label) {
@@ -5100,6 +5102,83 @@
   }
   async function loadNews() { try { newsCache = (await api('/api/news')).posts || []; } catch { newsCache = newsCache || []; } return newsCache; }
   const unreadNews = () => { const seen = localStorage.getItem(newsSeenKey()) || ''; return (newsCache || []).filter(x => x.at > seen).length; };
+  // ---------- Season 1: points, the 30-step track, the rating; at the end the heroes start over ----------
+  const seasonEnd = s => new Date(s.end).toLocaleString('ru-RU', {day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'});
+  function openSeason() {
+    let d = null, tab = 'track';
+    const load = async () => { try { d = await api('/api/ae-season'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const claim = async t => { try { const r = await api('/api/ae-season/claim', 'POST', {tier: t}); applyReward(r.reward); sfx.play('coins');
+        bigBanner(`🏆 Сезон 1 · ступень ${t}: ${[rewardText(r.reward), r.title && `титул «${r.title}»`, r.premiumDays && `${r.premiumDays} дня Premium`].filter(Boolean).join(', ')}`, false); await load(); } catch (e) { toast(cleanError(e)); } };
+    const st = openPanel('🏆 Сезон 1 · Пробуждение', body => {
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      const S = d.season, left = Date.parse(S.end) - Date.now(), next = Math.min(d.tiers, d.tier + 1), inStep = d.tier >= d.tiers ? d.step : d.pts - d.tier * d.step;
+      body.append(h('div', {class: 'ae-card ae-season-head'},
+        h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, S.live ? `До конца сезона: ${untilText(S.end)}` : 'Сезон завершён'), h('span', {class: 'ae-fort-lvl'}, `ступень ${d.tier}/${d.tiers}`)),
+        h('div', {class: 'ae-sub'}, `Финал: ${seasonEnd(S)} (по времени вашего телефона).`),
+        pbar(inStep, d.step, d.tier >= d.tiers ? `${fmt(d.pts)} очков · трек пройден` : `${fmt(d.pts)} очков · до ступени ${next}: ${fmt(next * d.step - d.pts)}`, 'is-mp'),
+        h('div', {class: 'ae-sub'}, `Сегодня: ${fmt(d.dayPts)} / ${fmt(d.dailyCap)} очков${d.place ? ` · место в рейтинге: ${d.place}` : ''}`)),
+        h('div', {class: 'ae-card ae-season-warn'}, h('b', {}, '⚠️ В конце сезона герои начнут заново'),
+          h('p', {class: 'ae-sub'}, 'Сбросятся уровень, вещи, золото, сумка, соратники и питомцы. Останутся: друзья, Premium, аватары и все сезонные титулы. Кланы сохранят название, тег и состав, но их уровень, казна, крепость и земли обнулятся.')),
+        h('div', {class: 'ae-tabs'}, [['track', '🎁 Награды'], ['top', '🏅 Рейтинг'], ['how', '❓ Очки']].map(([k, l]) => h('button', {type: 'button', class: 'ae-tab' + (tab === k ? ' is-on' : ''), onclick: () => { tab = k; st.rerender(); }}, l))));
+      if (tab === 'track') {
+        if (d.titles.length) body.append(h('div', {class: 'ae-sub'}, 'Ваши титулы сезона: ', d.titles.map(t => `${t.icon} ${t.name}`).join(', ')));
+        for (const x of d.track) {
+          const what = [x.text, x.gold && `${fmt(x.gold)} 🪙`, x.silver && `${fmt(x.silver)} 🥈`, x.fragments && `${x.fragments} ✦`, x.tickets && `${x.tickets} 🎟️`].filter(Boolean).join(' · ');
+          body.append(h('div', {class: 'ae-season-step' + (x.got ? ' is-got' : x.open ? ' is-open' : '') + (x.title ? ' is-big' : '')},
+            h('span', {class: 'ae-season-n'}, String(x.t)), h('span', {class: 'ae-grow'}, h('b', {}, what), h('small', {}, `${fmt(x.t * d.step)} очков`)),
+            x.got ? h('span', {class: 'ae-sub'}, '✅') : x.open ? h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => claim(x.t)}, 'Забрать') : h('span', {class: 'ae-sub'}, '🔒')));
+        }
+      }
+      if (tab === 'top') {
+        body.append(h('p', {class: 'ae-sub'}, 'Места в конце сезона дают титулы навсегда:'), h('div', {class: 'ae-hq-pills'}, d.places.map(([ic, pl, t]) => h('span', {}, `${ic} ${pl}: ${t}`))));
+        if (!d.top.length) body.append(h('p', {class: 'ae-empty'}, 'Пока никто не набрал очков — станьте первым!'));
+        for (const r of d.top) body.append(h('div', {class: 'ae-season-row' + (r.me ? ' is-me' : '')}, h('b', {}, `${r.place <= 3 ? ['🥇', '🥈', '🥉'][r.place - 1] : r.place}`), h('span', {class: 'ae-grow'}, `${r.name} · ${r.level} ур.`), h('b', {}, fmt(r.pts))));
+        if (d.place > 20) body.append(h('p', {class: 'ae-sub'}, `Ваше место: ${d.place}`));
+      }
+      if (tab === 'how') {
+        body.append(h('p', {class: 'ae-sub'}, `Очки дают бои, которые проводит сервер. В день — не больше ${d.dailyCap}.`));
+        for (const [ic, t, n] of d.sources) body.append(h('div', {class: 'ae-season-row'}, h('span', {}, ic), h('span', {class: 'ae-grow'}, t), h('b', {}, `+${n}`)));
+      }
+    }, {cls: 'ae-season-panel'});
+    load();
+  }
+  // ---------- Mentorship: 50+ heroes lead up to 3 apprentices to 40 level ----------
+  function openMentor() {
+    let d = null, busy = false;
+    const load = async () => { try { d = await api('/api/ae-mentor'); } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
+    const call = async (path, body) => { if (busy) return; busy = true; try { const r = await api('/api/ae-mentor/' + path, 'POST', body); d = r;
+        if (r.reward) { applyReward(r.reward); sfx.play('coins'); bigBanner(`🎓 Награда наставничества: ${rewardText(r.reward)}`, false); }
+        if (r.toast) toast(r.toast); } catch (e) { toast(cleanError(e)); } busy = false; if (openPanelState === st) st.rerender(); };
+    const steps = (x, role) => h('div', {class: 'ae-mentor-steps'}, x.steps.map(s => { const got = role === 'm' ? s.gotM : s.gotA, rw = role === 'm' ? s.m : s.a;
+      if (s.before) return h('div', {class: 'ae-mentor-step is-got'}, h('b', {}, `${s.lvl} ур.`), h('small', {}, 'пройдено до наставничества'));
+      return h('div', {class: 'ae-mentor-step' + (got ? ' is-got' : s.reached ? ' is-open' : '')}, h('b', {}, `${s.lvl} ур.${s.grad ? ' 🎓' : ''}`), h('small', {}, rewardText(rw)),
+        got ? h('small', {}, '✅ получено') : s.reached ? h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => call('claim', {id: x.id, lvl: s.lvl})}, 'Забрать') : h('small', {}, '🔒')); }));
+    const st = openPanel('🎓 Наставничество', body => {
+      if (!d) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
+      body.append(h('p', {class: 'ae-note'}, `Сильный герой (${d.mentorLvl}+ ур.) ведёт новичков (до ${d.apprenticeMax} ур.). Когда ученик достигает 10, 20, 30 и 40 уровня, награду получают оба. На 40 уровне ученик выпускается. Наставник забирает свою награду за ступень не раньше чем через 1–4 дня наставничества.`));
+      if (d.mentor) { const x = d.mentor;
+        body.append(h('div', {class: 'ae-card'}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `Ваш наставник: ${x.mentor.name} · ${x.mentor.level} ур.`),
+            h('button', {type: 'button', class: 'ae-btn', onclick: () => openChat({id: x.mentor.id, name: x.mentor.name})}, '✉️')),
+          x.status === 'pending' ? h('p', {class: 'ae-sub'}, '⏳ Ждём ответа наставника.') : steps(x, 'a'),
+          h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => confirm('Завершить наставничество?') && call('leave', {id: x.id})}, x.status === 'pending' ? 'Отменить просьбу' : 'Завершить')));
+      }
+      if (d.canMentor) {
+        body.append(h('h3', {class: 'ae-h3'}, `Ваши ученики · ${d.apprentices.filter(x => x.status === 'active').length}/${d.slots}`), h('p', {class: 'ae-sub'}, `Выпущено в этом сезоне: ${d.graduates} из ${d.gradCap}.`));
+        if (!d.apprentices.length) body.append(h('p', {class: 'ae-empty'}, 'Учеников пока нет. Новички до 20 уровня видят вас в списке наставников и могут попросить о помощи.'));
+        for (const x of d.apprentices) body.append(h('div', {class: 'ae-card'}, h('div', {class: 'ae-row'}, h('b', {class: 'ae-grow'}, `${x.apprentice.name} · ${x.apprentice.level} ур.`),
+            h('button', {type: 'button', class: 'ae-btn', onclick: () => openChat({id: x.apprentice.id, name: x.apprentice.name})}, '✉️')),
+          x.status === 'pending' ? h('div', {class: 'ae-row'}, h('button', {type: 'button', class: 'ae-btn ae-primary ae-grow', onclick: () => call('accept', {id: x.id})}, '✅ Взять в ученики'), h('button', {type: 'button', class: 'ae-btn ae-grow', onclick: () => call('decline', {id: x.id})}, 'Отказать'))
+            : [steps(x, 'm'), h('p', {class: 'ae-sub'}, 'Помогайте ученику: зовите в кооп, советуйте в чате, делитесь вещами.'), h('button', {type: 'button', class: 'ae-btn ae-wide', onclick: () => confirm(`Завершить наставничество с ${x.apprentice.name}?`) && call('leave', {id: x.id})}, 'Завершить')]));
+      } else if (!d.mentor && !d.canLearn) body.append(h('p', {class: 'ae-empty'}, `Стать наставником можно с ${d.mentorLvl} уровня. Учеником — до ${d.apprenticeMax} уровня.`));
+      if (d.canLearn) {
+        body.append(h('h3', {class: 'ae-h3'}, 'Выберите наставника'));
+        if (!d.mentors.length) body.append(h('p', {class: 'ae-empty'}, 'Сейчас нет свободных наставников. Загляните позже.'));
+        for (const m of d.mentors) body.append(h('div', {class: 'ae-card ae-row'}, h('span', {class: 'ae-grow'}, h('b', {}, `${m.name} · ${m.level} ур.`), h('small', {class: 'ae-sub'}, ` учеников ${m.busy}/${d.slots}${m.grads ? ` · выпустил ${m.grads}` : ''}`)),
+          h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => call('ask', {mentorId: m.id})}, 'Попросить')));
+      }
+    });
+    load();
+  }
   function openNews() {
     const st = openPanel('📰 Что нового', body => {
       if (!newsCache) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
@@ -6441,6 +6520,13 @@ div:has(>img[class*="fishing-water"]){aspect-ratio:auto!important;height:150px!i
 .ae-rod-need{display:flex;align-items:center;gap:7px;font-size:12px}.ae-rod-need b{font-weight:600}.ae-rod-need small{opacity:.7;font-size:11px;flex:1}.ae-rod-need.is-ok{opacity:.75}.ae-rod-need .ae-pill-btn{min-height:28px!important;padding:2px 10px!important;font-size:11.5px!important}
 .ae-sc-intent{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25;text-align:right}
 html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>span){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px!important;align-items:start}html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>span)>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ae-season-head{display:flex;flex-direction:column;gap:6px}.ae-season-warn{border-color:#f59e0b88!important;background:#3a2a0c99!important}.ae-season-warn b{color:#fde68a}
+.ae-season-step{display:flex;align-items:center;gap:8px;margin:5px 0;padding:7px 9px;border-radius:12px;border:1px solid #ffffff1f;background:#0000002e}.ae-season-step b{display:block;font-size:12.5px}.ae-season-step small{font-size:10.5px;opacity:.65}
+.ae-season-step.is-open{border-color:#22c55e;background:#14532d55}.ae-season-step.is-got{opacity:.55}.ae-season-step.is-big{border-color:#f0cf7a88}
+.ae-season-n{flex:0 0 30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#ffffff14;font:800 12px system-ui}.ae-season-step.is-big .ae-season-n{background:#f0cf7a;color:#2a1a05}
+.ae-season-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #ffffff12;font-size:12.5px}.ae-season-row.is-me{background:#f0cf7a22;border-radius:8px}
+.ae-mentor-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}.ae-mentor-step{display:flex;flex-direction:column;gap:3px;padding:7px;border-radius:10px;border:1px solid #ffffff1f;background:#0000002e;font-size:12px}
+.ae-mentor-step.is-open{border-color:#22c55e}.ae-mentor-step.is-got{opacity:.55}.ae-mentor-step small{opacity:.75}.ae-mentor-step .ae-btn{min-height:30px!important;padding:3px 8px!important;font-size:12px!important}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}

@@ -34,8 +34,13 @@ import {handleProfileRequest} from './profile.js';
 import {handleLiveRequest} from './live.js';
 import {handleMarketPlus} from './marketPlus.js';
 import {handleGlobalChat} from './globalChat.js';
+import {handleSeason} from './season.js';
+import {handleMentor} from './mentor.js';
 
 export async function handleSocialRequest(world, input, user, now, native) {
+  { const p = String(input?.path || '').split('?')[0];
+    if (p.startsWith('/api/ae-season')) return handleSeason(world, input, user, now);
+    if (p.startsWith('/api/ae-mentor')) return handleMentor(world, input, user, now); }
   { const p = String(input?.path || '').split('?')[0]; if (p === '/api/chat/global' || p.startsWith('/api/ae-chat/')) { const r = await handleGlobalChat(world, input, user, now, native, notify); if (r) return r; } }
   const live = await handleLiveRequest(world, input, user, now, native, notify);
   if (live) return live;

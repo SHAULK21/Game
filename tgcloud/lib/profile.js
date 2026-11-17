@@ -1,5 +1,6 @@
 import {placeOf} from './clanPlus.js';
 import {COMP_TITLES, compCtx} from './companions.js';
+import {SEASON_TITLES, seasonAwards} from './season.js';
 import {compStats, compImg} from './companions.js';
 import {realStats, baseStats} from './heroStats.js';
 // Titles earned across the whole game + a chosen avatar (game characters only). Others see both on the player card.
@@ -67,6 +68,7 @@ export const TITLES = [
   T('pioneer', '🧭', 'Первопроходец', 'Начать играть до 1 января 2027', c => c.pioneer ? 1 : 0, 1),
   T('ascended_sss', '🌟', 'Первый вознесённый', 'Достичь вознесения ранга SSS', c => c.asc === 'SSS' ? 1 : 0, 1),
   ...COMP_TITLES.map(([id, icon, name, desc, val, need]) => T(id, icon, name, desc, c => val(c.comp), need)),
+  ...Object.entries(SEASON_TITLES).map(([id, [icon, name, desc]]) => T(id, icon, name, desc, c => c.season?.has(id) ? 1 : 0, 1)),
   T('pocket_hero', '📱', 'Герой в кармане', 'Играть в мобильном приложении Android', c => c.apk ? 1 : 0, 1),
   T('keeper', '🗝️', 'Хранитель Аэтельгарда', 'Администрация игры', c => c.admin ? 1 : 0, 1)];
 
@@ -95,7 +97,7 @@ function ctxOf(world, id, now) {
   const hb = rows(world, 'horde_best').find(x => same(x.user, id)) || {}, dr = rows(world, 'duel_ratings').find(x => same(x.id, id));
   const friends = rows(world, 'friendships').filter(f => f.status === 'accepted' && (same(f.a, id) || same(f.b, id))).length;
   const cs = rows(world, 'ae_combat_stats').find(x => same(x.u, id)) || {};
-  return {mine: Number(cs.mine) || 1, alch: Number(cs.alch) || 1, level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
+  return {season: seasonAwards(world, id), mine: Number(cs.mine) || 1, alch: Number(cs.alch) || 1, level: Number(p.level) || 1, s: new Proxy(s, {get: (o, k) => Number(o[k]) || 0}), hordeBest: hb.kills || 0, bloodBest: hb.bloodKills || 0, duelRating: dr?.rating || 1000,
     friends, asc: rows(world, 'ae_profiles').find(x => same(x.u, id))?.asc || null, clan: !!p.clan_id, premium: Date.parse(p.premium_until || 0) > now, pioneer: Date.parse(p.created_at || now) < Date.parse('2027-01-01T00:00:00Z'), admin: same(id, ADMIN_ID), secrets: rows(world, 'ae_profiles').find(x => same(x.u, id))?.secrets || {}, comp: compCtx(world, id), power: powerOf(world, id, now)?.total || 0, apk: !!rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt};
 }
 // ---------- profile look, chosen by the player (frames, nickname colour, motto, showcase, aura, card theme) ----------

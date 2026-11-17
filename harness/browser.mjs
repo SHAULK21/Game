@@ -3,6 +3,7 @@ import http from 'node:http'; import fs from 'node:fs'; import path from 'node:p
 export async function launch({engine = './engine-patched.js', userId = 437290420, setupWorld, localState, pageOptions} = {}) {
   const E = await import(engine);
   const {handleSocialRequest} = await import('../tgcloud/lib/social.js');
+  const {seasonHook} = await import('../tgcloud/lib/season.js');
   const world = {tables: {}};
   if (setupWorld) await setupWorld(world, E);
   const root = path.resolve(process.env.DIST || '../dist');
@@ -39,6 +40,7 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
       calls.push({path: input.path, method: input.method, status: res.status, body: JSON.stringify(res.body).slice(0, 200)}); return res;
     }
     const res = (await handleSocialRequest(world, input, {...user, isAdmin: user.id === E.ADMIN_TELEGRAM_ID}, nowT, native)) || await E.handleProgressRequest(world, input, user, {now: () => Date.now(), isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
+    try { seasonHook(world, user.id, input, res, nowT); } catch {}
     E.validateNativeWorld(world);
     calls.push({path: input.path, method: input.method, status: res.status, body: JSON.stringify(res.body).slice(0, 300)});
     if (snapshotFirst) await new Promise(r => setTimeout(r, Number(process.env.AE_LATENCY) * 4));

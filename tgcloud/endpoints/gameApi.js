@@ -5,6 +5,7 @@ import {pruneWorld, clampProfileSync, syncCanonicalProfile} from '../lib/mainten
 import {drainDeliveries, sendPremiumWelcome} from '../lib/deliveryWorker.js';
 import {handleSocialRequest} from '../lib/social.js';
 import {handleCloudSave} from '../lib/cloudSave.js';
+import {seasonHook} from '../lib/season.js';
 
 // Telegram Serverless has no scheduler: deliver due notifications after player requests (throttled per isolate).
 let lastDrain = 0, lastPrune = 0;
@@ -33,7 +34,7 @@ async function handle(input, ctx) {
       const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
       const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
       const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at, native);
-      if (social) return social;
+      if (social) { seasonHook(world, user.id, input, social, at); return social; }
       if (input.path === '/api/profile/sync' && input.body) {
         const synced = syncCanonicalProfile(world, user.id, input.body, at);
         if (synced) { validateNativeWorld(world); return synced; }
@@ -42,6 +43,7 @@ async function handle(input, ctx) {
       const response = await handleProgressRequest(world, input, {id: user.id, username: user.username,
         displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок',
         allowsWriteToPm: user.allows_write_to_pm === true}, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
+      seasonHook(world, user.id, input, response, at);
       validateNativeWorld(world); return response;
     }, {maxAttempts: input.path === '/api/admin/broadcasts' && String(input.method).toUpperCase() === 'POST' ? 32 : 8});
     if (input.path === '/api/admin/news' && reply.status < 300) reply.body.channel = await syncChannel(input, reply.body);
