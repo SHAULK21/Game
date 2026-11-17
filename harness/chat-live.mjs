@@ -14,6 +14,11 @@ const push = (u, text) => { const L = s.world.tables.global_chat_messages; L.pus
 console.log('CARD', await p.evaluate(() => !!document.querySelector('.chat-message .ae-chat-item')));
 await p.evaluate(() => document.querySelector('.chat-message .ae-chat-item')?.click()); await p.waitForTimeout(500);
 console.log('MENU after card tap', await p.evaluate(() => !!document.querySelector('.ae-chat-menu')));
+{ const box = await p.evaluate(() => { const r = document.querySelector('#tavern-chat .chat-stream').getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; });
+  await p.mouse.move(box.x, box.y); const tops = [];
+  for (let i = 0; i < 15; i++) { await p.mouse.wheel(0, -30); await p.waitForTimeout(250); tops.push(await p.evaluate(() => Math.round(document.querySelector('#tavern-chat .chat-stream').scrollTop))); }
+  await p.waitForTimeout(2000); tops.push(await p.evaluate(() => Math.round(document.querySelector('#tavern-chat .chat-stream').scrollTop)));
+  console.log('WHEEL tops', tops.join(',')); }
 await p.evaluate(() => { const st = document.querySelector('#tavern-chat .chat-stream'); st.scrollTop = 0; }); await p.waitForTimeout(1000);
 push(555, 'Новое сообщение, пока вы читаете старые'); push(556, 'И ещё одно'); await p.waitForTimeout(12000);
 console.log('PILL', await p.evaluate(() => document.querySelector('.ae-chat-newpill')?.textContent || '-'));

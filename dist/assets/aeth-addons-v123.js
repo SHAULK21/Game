@@ -4121,10 +4121,21 @@
         chatActions(m);
       });
       // stuck to the bottom unless the player scrolled up: avatars, levels and cards drawn later make the list taller
-      st.dataset.aeStick = '1';
-      st.addEventListener('scroll', () => { const near = st.scrollHeight - st.scrollTop - st.clientHeight < 64; st.dataset.aeStick = near ? '1' : '0'; if (near) decorateChat(); }, {passive: true});
+      // stuck to the bottom only until the player moves the list: any move up, or a finger on it, lets go
+      st.dataset.aeStick = '1'; st._aeTop = st.scrollTop; st._aeH = st.scrollHeight; st._aeTouch = 0;
+      const hold = () => { st._aeTouch = Date.now() + 60000; st.dataset.aeStick = '0'; }, free = () => { st._aeTouch = Date.now() + 1200; };
+      st.addEventListener('touchstart', hold, {passive: true}); st.addEventListener('touchend', free, {passive: true}); st.addEventListener('touchcancel', free, {passive: true});
+      st.addEventListener('wheel', e => { st._aeTouch = Date.now() + 1200; if (e.deltaY < 0) st.dataset.aeStick = '0'; }, {passive: true});
+      st.addEventListener('touchmove', () => { st._aeTouch = Math.max(st._aeTouch || 0, Date.now() + 1200); }, {passive: true});
+      st.addEventListener('pointerdown', hold, {passive: true}); st.addEventListener('pointerup', free, {passive: true});
+      st.addEventListener('scroll', () => { const near = st.scrollHeight - st.scrollTop - st.clientHeight < 24, up = st.scrollTop < (st._aeTop || 0) - 1; st._aeTop = st.scrollTop;
+        const user = Date.now() < (st._aeTouch || 0);   // a finger / wheel right now (not the browser's own scroll anchoring)
+        if (up && user) st.dataset.aeStick = '0'; else if (near && !user) st.dataset.aeStick = '1';
+        if (near) decorateChat(); }, {passive: true});
     }
-    if (st.dataset.aeStick === '1' && st.scrollHeight - st.scrollTop - st.clientHeight > 2) st.scrollTop = st.scrollHeight;
+    // pull down only when the list grew (new messages, cards drawn later) and nobody is touching it
+    { const grew = st.scrollHeight > (st._aeH || 0); st._aeH = st.scrollHeight;
+      if (grew && st.dataset.aeStick === '1' && Date.now() > (st._aeTouch || 0) && st.scrollHeight - st.scrollTop - st.clientHeight > 2) { st.scrollTop = st.scrollHeight; st._aeTop = st.scrollTop; } }
     paintReplyBar();
     const msgs = st.querySelectorAll('.chat-message[data-ae-mid]'); if (!msgs.length) return;
     const myName = (me()?.name || '').trim().toLowerCase(); let prevDay = '';
