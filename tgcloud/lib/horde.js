@@ -14,7 +14,10 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const CLASS = {warrior: {hp: 1.25, atk: 1.0}, knight: {hp: 1.3, atk: 0.9}, paladin: {hp: 1.15, atk: 0.95}, berserker: {hp: 1.05, atk: 1.3}, rogue: {hp: 0.9, atk: 1.25, crit: 0.22},
   assassin: {hp: 0.85, atk: 1.35, crit: 0.25}, hunter: {hp: 0.95, atk: 1.2}, archer: {hp: 0.95, atk: 1.2}, mage: {hp: 0.8, atk: 1.4}, necromancer: {hp: 0.9, atk: 1.25}, druid: {hp: 1.0, atk: 1.0}};
 export const HORDE_COST = 10;
-const MAX_STEPS = 6, POTIONS = 3, POWER_CD = 4, MILESTONES = [20, 40, 60];
+const MAX_STEPS = 6, POTIONS = 3, POWER_CD = 4;
+const GROW = 1.014, GROW_HP = 1.01;   // each new monster: +1.4% attack, +1% health
+// the most one run can bring (×1.75 Blood Moon, ×2 weekend): a long run is worth it, an endless one is not
+const lootCap = run => { const L = run.hero.level, m = (run.blood ? 1.75 : 1) * (run.weekend ? 2 : 1); return {gold: Math.round((60 + L * 8) * 30 * m), exp: Math.round((10 + L * 3) * 220 * m), fragments: 10}; };
 // Tuned by simulation: auto-battle reaches ~39 kills, a careful player ~60; Blood Moon ~25 (auto ~14).
 const TUNE = {atk: 0.018, atkGrow: 0.01, hpGrow: 0.015, leaderHp: 3.5, regen: 0.06};
 // [sprite id, name, tier level]
@@ -56,9 +59,10 @@ function spawn(run) {
   let [sprite, name] = pool[Math.floor(Math.random() * pool.length)];
   if (run.blood && kind === 'leader') [sprite, name] = BLOOD_LEADER;
   else if (run.blood && Math.random() < 0.6) [sprite, name] = BLOOD_REGULARS[Math.floor(Math.random() * BLOOD_REGULARS.length)];
-  const grow = 1 + run.kills * TUNE.hpGrow, mult = kind === 'leader' ? TUNE.leaderHp : kind === 'elite' ? 1.8 : 1;
-  const hp = Math.round(ref.atk * rand(2.1, 2.7) * grow * mult);
-  const atk = Math.round(ref.maxHp * TUNE.atk * (1 + run.kills * TUNE.atkGrow) * (kind === 'leader' ? 1.4 : kind === 'elite' ? 1.25 : 1) * (run.blood ? 1.3 : 1));
+  // every new monster is a little stronger than the one before (no thresholds): every run ends, even for the strongest heroes
+  const step = Math.pow(GROW, run.kills), mult = kind === 'leader' ? TUNE.leaderHp : kind === 'elite' ? 1.8 : 1;
+  const hp = Math.round(ref.atk * rand(2.1, 2.7) * Math.pow(GROW_HP, run.kills) * mult);
+  const atk = Math.round(ref.maxHp * TUNE.atk * step * (kind === 'leader' ? 1.4 : kind === 'elite' ? 1.25 : 1) * (run.blood ? 1.3 : 1));
   run.spawned = n;
   return {uid: n, sprite, name: (kind === 'leader' ? 'Вожак: ' : kind === 'elite' ? 'Элита: ' : '') + name, kind, hp, maxHp: hp, atk};
 }
@@ -69,8 +73,8 @@ function reward(run, kind) {
   if (kind === 'leader' && Math.random() < 0.25) run.loot.fragments++;
 }
 function milestone(run, events, now, world, me) {
-  if (!run.kills || run.kills % 20) return; const k = run.kills / 20 - 1;   // a chest every 20 kills, no upper limit
-  const L = run.hero.level, gold = (60 + L * 8) * (k + 1) * (run.weekend ? 2 : 1), frag = k >= 1 ? 1 : 0;
+  if (!run.kills || run.kills % 20) return; const k = Math.min(2, run.kills / 20 - 1);   // a chest every 20 kills; after 60 it stops growing
+  const L = run.hero.level, gold = (60 + L * 8) * (k + 1) * (run.weekend ? 2 : 1), frag = run.kills <= 60 ? (k >= 1 ? 1 : 0) : (run.kills % 40 === 0 ? 1 : 0);
   run.loot.gold += gold; run.loot.fragments += frag;
   events.push({t: 'milestone', n: run.kills, gold, frag});
   run.log.push(`🏆 Веха ${run.kills} монстров! Сундук: +${gold} 🪙${frag ? ' и ✦ осколок' : ''}`);
@@ -175,7 +179,7 @@ function exchange(world, me, run, action, now, events, skillId) {
 }
 const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, mp: run.mp ?? run.maxMp ?? run.hero?.maxMp ?? 100, maxMp: run.maxMp || run.hero?.maxMp || 100, barrier: run.barrier || 0, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
   queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp, atk: Math.round(m.atk * (run.hero.guardMul || 1))})), loot: run.loot, log: run.log, claimed: !!run.claimed,
-  next: (Math.floor(run.kills / 20) + 1) * 20, boon: run.boon?.length ? run.boon.map(id => ({id, ...BOONS[id]})) : null, boons: (run.boons || []).map(id => ({id, ...BOONS[id]}))});
+  next: (Math.floor(run.kills / 20) + 1) * 20, cap: lootCap(run), boon: run.boon?.length ? run.boon.map(id => ({id, ...BOONS[id]})) : null, boons: (run.boons || []).map(id => ({id, ...BOONS[id]}))});
 
 // weekly ranking (Monday 00:00 Moscow time); the top 3 of the week before get a letter with gifts
 const weekKey = now => { const d = new Date(now + MSK), day = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10); };
@@ -247,6 +251,7 @@ export function handleHordeRequest(world, input, user, now) {
     if (run.status !== 'ended') return fail('Сначала завершите поход.');
     if (run.claimed) return ok({reward: run.loot, alreadyClaimed: true});
     run.claimed = true;
+    { const cap = lootCap(run); for (const k of ['gold', 'exp', 'fragments']) run.loot[k] = Math.min(run.loot[k] || 0, cap[k]); }
     const b = best || (rows(world, 'horde_best').push({user: me, kills: 0, bloodKills: 0}), rows(world, 'horde_best').find(x => same(x.user, me)));
     if (run.kills > b.kills) b.kills = run.kills; if (run.blood && run.kills > b.bloodKills) b.bloodKills = run.kills;
     { const wk = weekKey(now), list = rows(world, 'horde_week'); let w = list.find(r => r.w === wk && same(r.u, me));   // the week's best single run
