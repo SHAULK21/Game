@@ -65,15 +65,46 @@ function spawn(run) {
 function fillQueue(run) { const want = run.blood ? 3 : 2; while (run.queue.length < want) run.queue.push(spawn(run)); }
 function reward(run, kind) {
   const L = run.hero.level, m = (kind === 'leader' ? 8 : kind === 'elite' ? 3 : 1) * (run.blood ? 1.75 : 1) * (run.weekend ? 2 : 1);
-  run.loot.gold += Math.round((2 + L * 0.3) * m); run.loot.exp += Math.round((10 + L * 3) * m);
+  run.loot.gold += Math.round((2 + L * 0.3) * m * (1 + (run.greed || 0))); run.loot.exp += Math.round((10 + L * 3) * m);
   if (kind === 'leader' && Math.random() < 0.25) run.loot.fragments++;
 }
 function milestone(run, events, now, world, me) {
-  const k = MILESTONES.indexOf(run.kills); if (k < 0) return;
+  if (!run.kills || run.kills % 20) return; const k = run.kills / 20 - 1;   // a chest every 20 kills, no upper limit
   const L = run.hero.level, gold = (60 + L * 8) * (k + 1) * (run.weekend ? 2 : 1), frag = k >= 1 ? 1 : 0;
   run.loot.gold += gold; run.loot.fragments += frag;
   events.push({t: 'milestone', n: run.kills, gold, frag});
   run.log.push(`🏆 Веха ${run.kills} монстров! Сундук: +${gold} 🪙${frag ? ' и ✦ осколок' : ''}`);
+}
+// «Дары Орды»: on the 10th, 30th, 50th… kill the hero picks one of three boons for the rest of the run
+export const BOONS = {
+  fury: {icon: '⚔️', name: 'Ярость', text: '+8% урона'},
+  vigor: {icon: '❤️', name: 'Стойкость', text: '+10% здоровья и лечение 20%'},
+  eye: {icon: '🎯', name: 'Меткость', text: '+4% шанса крита'},
+  leech: {icon: '🩸', name: 'Кровопийца', text: '3% урона возвращается здоровьем'},
+  flask: {icon: '🧪', name: 'Запас зелий', text: '+1 зелье'},
+  second: {icon: '🌿', name: 'Второе дыхание', text: '+2% здоровья за каждое убийство'},
+  greed: {icon: '💰', name: 'Жадность', text: '+15% золота с монстров'},
+  focus: {icon: '🔷', name: 'Сосредоточение', text: '+20% маны и полная мана'},
+};
+function offerBoon(run, events) {
+  if (!run.kills || run.kills % 20 !== 10) return;
+  if (run.boon?.length) applyBoon(run, run.boon[0]);   // an old offer nobody answered: its first boon
+  const ids = Object.keys(BOONS).filter(k => k !== 'flask' || run.potions < 6).sort(() => Math.random() - 0.5).slice(0, 3);
+  run.boon = ids; events.push({t: 'boon', ids}); run.log.push('✨ Дары Орды: выберите усиление!');
+}
+function applyBoon(run, id) {
+  const b = BOONS[id], h = run.hero; if (!b) return false;
+  (run.boons ||= []).push(id); run.boon = null;
+  if (id === 'fury') h.atk = Math.round(h.atk * 1.08);
+  if (id === 'vigor') { h.maxHp = Math.round(h.maxHp * 1.1); run.hp = Math.min(h.maxHp, run.hp + Math.round(h.maxHp * 0.2)); }
+  if (id === 'eye') h.crit = Math.min(0.75, (h.crit || 0) + 0.04);
+  if (id === 'leech') run.leech = (run.leech || 0) + 0.03;
+  if (id === 'flask') run.potions = (run.potions || 0) + 1;
+  if (id === 'second') run.regenPlus = (run.regenPlus || 0) + 0.02;
+  if (id === 'greed') run.greed = (run.greed || 0) + 0.15;
+  if (id === 'focus') { run.maxMp = Math.round((run.maxMp || 100) * 1.2); run.mp = run.maxMp; }
+  run.log.push(`${b.icon} Дар «${b.name}»: ${b.text}`);
+  return true;
 }
 function killFront(world, me, run, events, now, kit) {
   const front = run.queue[0], h = run.hero; if (!front || front.hp > 0) return;
@@ -81,9 +112,9 @@ function killFront(world, me, run, events, now, kit) {
     reward(run, front.kind); events.push({t: 'kill', name: front.name, kind: front.kind});
     run.log.push(`☠️ ${front.name} повержен${front.kind === 'leader' ? '! Вожак пал' : ''}`);
     logQuest(world, me, 'horde_kill', now); if (run.blood) logQuest(world, me, 'horde_blood_kill', now);
-    const regen = Math.round(h.maxHp * ((run.blood ? TUNE.regen * 0.85 : TUNE.regen) + (kit.talents?.killRecovery || 0) / 200)); run.hp = Math.min(h.maxHp, run.hp + regen);
+    const regen = Math.round(h.maxHp * ((run.blood ? TUNE.regen * 0.85 : TUNE.regen) + (kit.talents?.killRecovery || 0) / 200 + (run.regenPlus || 0))); run.hp = Math.min(h.maxHp, run.hp + regen);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.08));
-    run.queue.shift(); milestone(run, events, now, world, me); fillQueue(run);
+    run.queue.shift(); milestone(run, events, now, world, me); offerBoon(run, events); fillQueue(run);
     if (run.blood && Math.random() < 0.3) { run.queue.push(spawn(run)); events.push({t: 'join'}); run.log.push('🩸 На запах крови прибежал ещё один монстр!'); }
 }
 function exchange(world, me, run, action, now, events, skillId) {
@@ -116,6 +147,7 @@ function exchange(world, me, run, action, now, events, skillId) {
     if (power) run.powerCd = POWER_CD;
     const crit = Math.random() < h.crit + pbCrit(run), dmg = Math.round(h.atk * rand(0.9, 1.1) * (power ? 2.5 : 1) * (crit ? 1.7 : 1) * outMult(run) * pbAtk(run) * inMult(front));
     front.hp = Math.max(0, front.hp - dmg); events.push({t: 'hit', v: dmg, crit, power});
+    if (run.leech) { const v = Math.round(dmg * run.leech); if (v > 0) run.hp = Math.min(h.maxHp, run.hp + v); }
     for (const g of gemProcs({atk: h.atk}, front, kit)) run.log.push(g);
     run.mp = Math.min(run.maxMp, run.mp + Math.round(run.maxMp * 0.05));
   }
@@ -143,8 +175,19 @@ function exchange(world, me, run, action, now, events, skillId) {
 }
 const view = run => run && ({id: run.id, status: run.status, blood: run.blood, weekend: !!run.weekend, mp: run.mp ?? run.maxMp ?? run.hero?.maxMp ?? 100, maxMp: run.maxMp || run.hero?.maxMp || 100, barrier: run.barrier || 0, kills: run.kills, hp: run.hp, maxHp: run.hero.maxHp, potions: run.potions, powerCd: run.powerCd, died: !!run.died,
   queue: run.queue.map(m => ({uid: m.uid, sprite: m.sprite, name: m.name, kind: m.kind, hp: m.hp, maxHp: m.maxHp, atk: Math.round(m.atk * (run.hero.guardMul || 1))})), loot: run.loot, log: run.log, claimed: !!run.claimed,
-  next: MILESTONES.find(x => x > run.kills) || null});
+  next: (Math.floor(run.kills / 20) + 1) * 20, boon: run.boon?.length ? run.boon.map(id => ({id, ...BOONS[id]})) : null, boons: (run.boons || []).map(id => ({id, ...BOONS[id]}))});
 
+// weekly ranking (Monday 00:00 Moscow time); the top 3 of the week before get a letter with gifts
+const weekKey = now => { const d = new Date(now + MSK), day = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10); };
+const WEEK_PRIZES = [{gold: 10000, fragments: 5, arenaTickets: 3}, {gold: 6000, fragments: 3, arenaTickets: 2}, {gold: 3000, fragments: 2, arenaTickets: 1}];
+const weekTop = (world, wk) => rows(world, 'horde_week').filter(r => r.w === wk && r.kills > 0).sort((a, b) => b.kills - a.kills || String(a.at).localeCompare(String(b.at)));
+function weekPrizes(world, now) {
+  const prev = weekKey(now - 7 * 864e5), flags = rows(world, 'ae_flags'), key = 'horde_week_' + prev; if (flags.some(f => f.key === key)) return;
+  flags.push({key, at: new Date(now).toISOString()});
+  weekTop(world, prev).slice(0, 3).forEach((r, i) => rows(world, 'ae_mail').push({id: crypto.randomUUID(), op: `horde-week-${prev}-${r.u}`, to: String(r.u),
+    title: `🌕 Орда: ${i + 1}-е место недели!`, text: `Вы ${i + 1}-й в рейтинге Орды за неделю с ${prev}: ${r.kills} монстров за один поход. Награда — в письме.`, gifts: WEEK_PRIZES[i], at: new Date(now).toISOString()}));
+  world.tables.horde_week = rows(world, 'horde_week').filter(r => r.w >= prev);
+}
 export function handleHordeRequest(world, input, user, now) {
   const path = String(input?.path || '').split('?')[0];
   if (!path.startsWith('/api/horde')) return null;
@@ -157,7 +200,11 @@ export function handleHordeRequest(world, input, user, now) {
   let run = rows(world, 'horde_runs').filter(r => same(r.user, me)).sort((a, b) => (b.status === 'active') - (a.status === 'active') || at(b) - at(a))[0];
   if (run && run.status === 'active' && at(run) && at(run) < now - 12 * 3600e3) { run.status = 'ended'; run.log.push('Поход прерван: вас не было больше 12 часов. Награды сохранены.'); }
   const best = rows(world, 'horde_best').find(b => same(b.user, me));
-  if (method === 'GET') return ok({run: view(run), best: best || {kills: 0, bloodKills: 0}, cost: HORDE_COST, weekend: bloodWeekend(now)});
+  weekPrizes(world, now);
+  if (method === 'GET') { const wk = weekKey(now), top = weekTop(world, wk), place = top.findIndex(r => same(r.u, me)) + 1;
+    return ok({run: view(run), best: best || {kills: 0, bloodKills: 0}, cost: HORDE_COST, weekend: bloodWeekend(now), boons: BOONS,
+      week: {top: top.slice(0, 10).map((r, i) => ({place: i + 1, name: String(player(world, r.u)?.character_name || 'Игрок'), level: Number(player(world, r.u)?.level) || 1, kills: r.kills, me: same(r.u, me)})),
+        place: place || null, mine: top.find(r => same(r.u, me))?.kills || 0, prizes: WEEK_PRIZES, ends: new Date(Date.parse(wk + 'T00:00:00Z') - MSK + 7 * 864e5).toISOString()}}); }
   if (path === '/api/horde/start') {
     if (run && run.status === 'active') return ok({run: view(run)});
     if (run && !run.claimed && (run.loot.gold || run.loot.exp)) return fail('Сначала заберите награду прошлого похода.');
@@ -188,6 +235,10 @@ export function handleHordeRequest(world, input, user, now) {
     for (let i = 0; i < steps && run.status === 'active'; i++) exchange(world, me, run, i === 0 ? action : 'attack', now, events, body.skillId);
     return ok({run: view(run), events});
   }
+  if (path === '/api/horde/boon') {
+    if (run.status !== 'active' || !run.boon?.includes(body.id)) return fail('Дар уже выбран.');
+    applyBoon(run, body.id); return ok({run: view(run)});
+  }
   if (path === '/api/horde/leave') {
     if (run.status === 'active') { run.status = 'ended'; run.log.push('🏃 Вы покинули поле боя с добычей.'); }
     return ok({run: view(run)});
@@ -198,6 +249,8 @@ export function handleHordeRequest(world, input, user, now) {
     run.claimed = true;
     const b = best || (rows(world, 'horde_best').push({user: me, kills: 0, bloodKills: 0}), rows(world, 'horde_best').find(x => same(x.user, me)));
     if (run.kills > b.kills) b.kills = run.kills; if (run.blood && run.kills > b.bloodKills) b.bloodKills = run.kills;
+    { const wk = weekKey(now), list = rows(world, 'horde_week'); let w = list.find(r => r.w === wk && same(r.u, me));   // the week's best single run
+      if (!w) { w = {w: wk, u: me, kills: 0}; list.push(w); } if (run.kills > w.kills) { w.kills = run.kills; w.at = new Date(now).toISOString(); } }
     return ok({reward: run.loot, kills: run.kills, best: b});
   }
   return fail('API не найден.', 404);

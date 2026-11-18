@@ -1812,7 +1812,7 @@
     if (evs.length || (r.friendRequests || []).length) setTimeout(() => loadInbox(true), 1500);
   }
   function popup({icon, text, act, fn}) {
-    if (document.documentElement.hasAttribute('data-in-combat') && icon === '📱') return setTimeout(() => popup({icon, text, act, fn}), 60000);  // promos wait for the fight to end
+    if ((document.documentElement.hasAttribute('data-in-combat') || document.querySelector('.ae-bv')) && icon === '📱') return setTimeout(() => popup({icon, text, act, fn}), 60000);  // promos wait for the fight to end
     const el = h('div', {class: 'ae-pop', role: 'status'}, h('span', {class: 'ae-pop-i'}, icon), h('span', {class: 'ae-grow'}, text),
       act ? h('button', {class: 'ae-btn ae-primary', type: 'button', onclick: () => { el.remove(); fn?.(); }}, act) : '', h('button', {class: 'ae-pop-x', type: 'button', 'aria-label': 'Закрыть', onclick: () => el.remove()}, '×'));
     document.body.append(el); sfx.play('bell', 0.4); setTimeout(() => el.classList.add('is-on'), 20); setTimeout(() => el.remove(), 9000);
@@ -5874,7 +5874,12 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
     const sprite = id => `/assets/sprites/generated/monsters/${id}.webp`;
     const load = async () => { try { info = await api('/api/horde'); run = info.run; } catch (e) { toast(cleanError(e)); } if (openPanelState === st) st.rerender(); };
     const feel = events => {
-      for (const ev of events || []) {
+      // several exchanges come at once (auto-battle): one number per side, not a pile
+      const evs = events || [], hits = evs.filter(e => e.t === 'hit'), hurts = evs.filter(e => e.t === 'hurt');
+      if (hits.length > 1) { const sum = hits.reduce((a, e) => a + e.v, 0), big = hits.some(e => e.crit || e.power); floats.push({at: 'foe', text: (big ? '💥' : '') + '−' + fmt(sum) + ` ×${hits.length}`, cls: big ? 'is-dmg is-big' : 'is-dmg'}); shake.foe = Date.now() + 260; }
+      if (hurts.length > 1) { floats.push({at: 'hero', text: '−' + fmt(hurts.reduce((a, e) => a + e.v, 0)), cls: 'is-hurt'}); shake.hero = Date.now() + 260; }
+      for (const ev of evs) {
+        if ((ev.t === 'hit' && hits.length > 1) || (ev.t === 'hurt' && hurts.length > 1)) continue;
         if (ev.t === 'hit') { floats.push({at: 'foe', text: (ev.crit ? '💥' : '') + '−' + fmt(ev.v), cls: ev.crit || ev.power ? 'is-dmg is-big' : 'is-dmg'}); shake.foe = Date.now() + 260; }
         if (ev.t === 'hurt') { floats.push({at: 'hero', text: '−' + fmt(ev.v), cls: 'is-hurt'}); shake.hero = Date.now() + 260; }
         if (ev.t === 'heal') floats.push({at: 'hero', text: '+' + fmt(ev.v), cls: 'is-heal'});
@@ -5911,6 +5916,9 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
         B()?.setPlayer(x => x && {...x, energy: Math.max(0, (x.energy || 0) - HORDE_COST)}); sfx.play(blood ? 'heavy' : 'whoosh'); st.rerender(); }
       catch (e) { toast(cleanError(e)); }
     };
+    let boonBusy = false;
+    const BOON_RANK = ['fury', 'vigor', 'second', 'leech', 'eye', 'flask', 'focus', 'greed'];   // what auto-battle takes first
+    const pickBoon = async id => { try { run = (await api('/api/horde/boon', 'POST', {id})).run; sfx.play('page'); } catch {} boonBusy = false; if (openPanelState === st) st.rerender(); };
     const claim = async () => {
       try { const r = await api('/api/horde/claim', 'POST', {}); if (!r.alreadyClaimed) { applyReward(r.reward); B()?.sound?.playVictory?.(); toast('Добыча: ' + rewardText(r.reward)); }
         run = null; await load(); refreshQuestBadge(); }
@@ -5922,8 +5930,13 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
       if (!info) return body.append(h('p', {class: 'ae-empty'}, 'Загрузка…'));
       const lvl = me()?.level || 1, energy = me()?.energy || 0;
       if (!run || (run.status === 'ended' && run.claimed)) {
-        body.append(h('div', {class: 'ae-horde-hero'}, h('b', {}, 'Орда монстров'), h('span', {}, 'Бесконечный поток врагов, мгновенные бои и автобой. Добыча за каждого монстра, сундуки на 20, 40 и 60 убийствах.')));
+        body.append(h('div', {class: 'ae-horde-hero'}, h('b', {}, 'Орда монстров'), h('span', {}, 'Бесконечный поток врагов, мгновенные бои и автобой. Добыча за каждого монстра, сундук каждые 20 убийств, а на 10-м, 30-м, 50-м… — Дар Орды на выбор.')));
         body.append(h('div', {class: 'ae-pill'}, `🏆 Рекорд: ${info.best.kills || 0} · 🌕 ${info.best.bloodKills || 0}`));
+        if (info.week) { const W = info.week;
+          body.append(h('details', {class: 'ae-combos ae-horde-week', open: !!W.top.length}, h('summary', {}, `🏅 Рейтинг недели${W.place ? ` · вы ${W.place}-й` : ''} · до ${new Date(W.ends).toLocaleDateString('ru-RU', {day: 'numeric', month: 'long'})}`),
+            h('div', {class: 'ae-sub'}, `Лучший поход недели. Топ-3 получат письмо: 1 место — ${fmt(W.prizes[0].gold)} 🪙 и ${W.prizes[0].fragments} ✦, 2 — ${fmt(W.prizes[1].gold)} 🪙, 3 — ${fmt(W.prizes[2].gold)} 🪙.`),
+            W.top.length ? W.top.map(r => h('div', {class: 'ae-season-row' + (r.me ? ' is-me' : '')}, h('b', {}, r.place <= 3 ? ['🥇', '🥈', '🥉'][r.place - 1] : String(r.place)), h('span', {class: 'ae-grow'}, `${r.name} · ${r.level} ур.`), h('b', {}, `☠️ ${r.kills}`)))
+              : h('p', {class: 'ae-empty'}, 'На этой неделе ещё никто не ходил в Орду — займите первое место!'))); }
         const wk = info.weekend || {};
         if (wk.on) {
           body.append(h('div', {class: 'ae-weekend is-on'}, h('b', {}, '🌕 Выходные Кровавой луны!'), h('span', {}, `Каждый поход — Кровавая луна, награды ×2 (итого ×3.5 к обычной Орде). До конца: ${untilText(wk.endsAt)}.`)));
@@ -5935,7 +5948,7 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
           if (wk.nextAt) body.append(h('div', {class: 'ae-weekend'}, h('b', {}, '🗓️ Выходные Кровавой луны'), h('span', {}, `Каждую субботу и воскресенье Кровавая луна для всех с двойной наградой. Начнутся через ${untilText(wk.nextAt)}.`)));
         }
         if (energy < HORDE_COST) body.append(h('p', {class: 'ae-sub'}, 'Не хватает энергии — она восстанавливается со временем, а в таверне есть пиво и самогон.'));
-        body.append(h('details', {class: 'ae-combos'}, h('summary', {}, '📜 Как играть'), h('div', {class: 'ae-sub', html: '• Каждое нажатие — мгновенный обмен ударами. <b>Автобой</b> бьёт без пауз.<br>• Каждый 10-й монстр — элита, каждый 20-й — вожак.<br>• После каждой победы вы немного восстанавливаете здоровье, с собой 3 зелья.<br>• Погибнете — поход закончится, но вся добыча останется вашей.<br>• 🌕 <b>Кровавая луна</b>: монстры бьют сильнее и чаще, раненые убегают, на их место прибегают новые.<br>• Ежедневные задания: 20, 40 и 60 монстров Орды; недельное — 30 в Кровавую луну.'})));
+        body.append(h('details', {class: 'ae-combos'}, h('summary', {}, '📜 Как играть'), h('div', {class: 'ae-sub', html: '• Каждое нажатие — мгновенный обмен ударами. <b>Автобой</b> бьёт без пауз.<br>• Каждый 10-й монстр — элита, каждый 20-й — вожак. Сундук — каждые 20 убийств, без предела.<br>• ✨ <b>Дары Орды</b>: на 10-м, 30-м, 50-м… убийстве выберите 1 из 3 усилений до конца похода (в автобое выбирается само).<br>• 🏅 <b>Рейтинг недели</b>: лучший поход недели. Топ-3 в понедельник получают письмо с наградой.<br>• После каждой победы вы немного восстанавливаете здоровье, с собой 3 зелья.<br>• Погибнете — поход закончится, но вся добыча останется вашей.<br>• 🌕 <b>Кровавая луна</b>: монстры бьют сильнее и чаще, раненые убегают, на их место прибегают новые.<br>• Ежедневные задания: 20, 40 и 60 монстров Орды; недельное — 30 в Кровавую луну.'})));
         body.append(h('button', {class: 'ae-btn ae-wide', type: 'button', onclick: () => openSpecialQuests()}, '📜 Задания Орды'));
         return;
       }
@@ -5959,6 +5972,11 @@ ${(() => { const st = B()?.stats; return st ? `<div class="p-2.5 rounded-xl bg-[
             {label: 'Уйти с добычей', onClick: async () => { auto = false; try { run = (await api('/api/horde/leave', 'POST', {})).run; } catch (e) { toast(cleanError(e)); } st.rerender(); }}],
           log: run.log || [],
           menu: skillsOpen ? skillMenu({mp: run.mp ?? 0, disabled: auto, onClose: () => { skillsOpen = false; st.rerender(); }, onUse: k => { skillsOpen = false; act('skill', 1, k.id); }}) : null}));
+        if (run.boon) {
+          if (auto) { if (!boonBusy) { boonBusy = true; pickBoon(run.boon.slice().sort((x, y) => BOON_RANK.indexOf(x.id) - BOON_RANK.indexOf(y.id))[0].id); } }
+          else body.prepend(h('div', {class: 'ae-boon-pick'}, h('b', {}, '✨ Дар Орды — выберите усиление'), h('div', {class: 'ae-boon-row'}, run.boon.map(b => h('button', {type: 'button', class: 'ae-boon', onclick: () => pickBoon(b.id)}, h('span', {}, b.icon), h('b', {}, b.name), h('small', {}, b.text))))));
+        }
+        if (run.boons?.length) body.querySelector('.ae-bv')?.after(h('div', {class: 'ae-boon-chips'}, run.boons.map(b => h('span', {title: `${b.name}: ${b.text}`}, b.icon))));
         if ((shake.foe || 0) > Date.now()) body.querySelector('[data-bv-foe]')?.classList.add('ae-shake');
         if ((shake.hero || 0) > Date.now()) body.querySelector('[data-bv-hero]')?.classList.add('ae-shake');
         requestAnimationFrame(showFloats);
@@ -6539,6 +6557,10 @@ html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>s
 .ae-season-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #ffffff12;font-size:12.5px}.ae-season-row.is-me{background:#f0cf7a22;border-radius:8px}
 .ae-mentor-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}.ae-mentor-step{display:flex;flex-direction:column;gap:3px;padding:7px;border-radius:10px;border:1px solid #ffffff1f;background:#0000002e;font-size:12px}
 .ae-mentor-step.is-open{border-color:#22c55e}.ae-mentor-step.is-got{opacity:.55}.ae-mentor-step small{opacity:.75}.ae-mentor-step .ae-btn{min-height:30px!important;padding:3px 8px!important;font-size:12px!important}
+.ae-boon-pick{position:sticky;top:0;z-index:5;margin:0 0 8px;padding:9px;border-radius:14px;border:2px solid #f0cf7a;background:linear-gradient(160deg,#3a2c14f5,#1a140af5);box-shadow:0 8px 24px #000c}.ae-boon-pick>b{display:block;text-align:center;color:#ffe9b0;font-size:14px;margin-bottom:7px}
+.ae-boon-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ae-boon{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 5px!important;border-radius:12px!important;border:1px solid #f0cf7a88!important;background:#0007!important;color:#fff!important;cursor:pointer;min-width:0}
+.ae-boon>span{font-size:24px}.ae-boon>b{font-size:12px;line-height:1.15}.ae-boon>small{font-size:10.5px;opacity:.8;line-height:1.2;text-align:center}.ae-boon:active{transform:scale(.96)}
+.ae-boon-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.ae-boon-chips>span{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#f0cf7a26;border:1px solid #f0cf7a66;font-size:15px}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}
