@@ -2331,7 +2331,7 @@
   }
   if (isApk) setTimeout(() => { api('/api/ae-profile/apk?app=1').catch(() => {}); if (uid() && me()) apkGiftCheck(); else setTimeout(apkGiftCheck, 8000); }, 7000);
   // In Telegram: tell once that the app gift is waiting (only to those who have not claimed it).
-  if (!isApk) setTimeout(async () => { const k = 'aeth_apk_gift_hint_' + uid(); if (!uid() || localStorage.getItem(k)) return;
+  if (!isApk) setTimeout(async () => { const k = 'aeth_apk_gift_hint_' + uid(); if (!uid() || localStorage.getItem(k) || (me()?.level || 1) < 5) return;   // not in a new player's first minutes
     try { const st = await api('/api/ae-profile/apk'); localStorage.setItem(k, '1'); if (!st.claimed) popup({icon: '📱', text: 'Подарок в приложении Android: Premium на 7 дней, золото, осколки и баннеры профиля!', act: 'Подробнее', fn: () => openApkInfo()}); } catch {} }, 25000);
   // Telegram's «⋮» menu of the game gets a «Settings» item: the updates channel, news and the game settings in one place.
   function openTgSettings() {
@@ -5012,6 +5012,51 @@
     if (el) el.replaceWith(fresh); else up.before(fresh);
   }
   setInterval(() => { if (!document.hidden) try { paintRodNeeds(); } catch (e) { console.warn('ae rod', e); } }, 1500);
+  // ---------- first minutes: what to press next is always on the screen ----------
+  // After a fight the game puts «Следующий противник» / «Новая серия» / «В локацию» below the bottom bar — bring it up once.
+  const shown = new WeakSet(); let nextArmed = true;
+  const NEXT_RE = /^(Следующий противник|Новая серия|В локацию|Итоги подземелья|Продолжить подземелье|Вернуться в подземелье|Вернуться в город)/i;
+  function bringNextIntoView() {
+    const nav = document.querySelector('nav.game-nav, nav'), navTop = nav ? nav.getBoundingClientRect().top : innerHeight;
+    if (document.documentElement.hasAttribute('data-in-combat') && !document.querySelector('main button') ?.innerText?.match(NEXT_RE)) nextArmed = true;
+    const b = [...document.querySelectorAll('main button')].find(x => x.offsetParent && !x.disabled && NEXT_RE.test((x.textContent || '').trim()));
+    if (!b) nextArmed = true;
+    else if (nextArmed) { nextArmed = false; const r = b.getBoundingClientRect(); if (r.bottom > navTop - 4 || r.top < 0) b.scrollIntoView({block: 'center', behavior: 'smooth'}); }
+    // «Распредели свободные очки: нажимай «+»» — the + buttons are far below the hero picture
+    const hint = [...document.querySelectorAll('main p, main div')].find(e => !e.childElementCount && /Распредели свободные очки/.test(e.textContent || ''));
+    const plus = hint && [...document.querySelectorAll('main button')].find(x => x.offsetParent && !x.disabled && /^\+$/.test((x.innerText || '').trim()));
+    if (plus && !shown.has(plus)) { shown.add(plus); setTimeout(() => plus.scrollIntoView({block: 'center', behavior: 'smooth'}), 900); }
+  }
+  // Up to level 10 a caster's plain attack uses the stronger of physical and magic power (stage39) — new players who just press «Атака» are not punished.
+  window.__aeNoviceCaster = cls => ['mage', 'necromancer', 'druid'].includes(cls) && (me()?.level || 1) <= 10;
+  // Class picker: one line about how each class plays (people pick by the picture)
+  const CLASS_HOW = {Воин: ['🟢', 'простой старт: крепкий, бьёт оружием'], Берсерк: ['🟡', 'бьёт оружием, сильнее при низком здоровье'], Рыцарь: ['🟢', 'самый живучий: щит и защита'],
+    Разбойник: ['🟡', 'быстрые удары, кровотечения и криты'], Ассасин: ['🔴', 'огромные криты, но мало здоровья'], Лучник: ['🟡', 'стрелы и высокий шанс крита'],
+    Маг: ['🟡', 'бьёт магией через «Навыки»: огонь и лёд'], Некромант: ['🟡', 'бьёт магией через «Навыки», лечится вампиризмом'], Паладин: ['🟢', 'оружие и свет, умеет лечить себя'], Друид: ['🟡', 'магия природы: яды, лозы и лечение']};
+  function paintClassHow() {
+    const head = [...document.querySelectorAll('label, div, p, span, h2, h3')].find(e => !e.childElementCount && /ВЫБЕРИТЕ КЛАСС ГЕРОЯ|Выберите класс героя/i.test(e.textContent || '')); if (!head) return;
+    for (const b of document.querySelectorAll('button')) {
+      if (b.querySelector('.ae-cls-how')) continue;
+      const name = Object.keys(CLASS_HOW).find(k => (b.textContent || '').trim().startsWith(k)); if (!name) continue;
+      b.append(h('span', {class: 'ae-cls-how'}, `${CLASS_HOW[name][0]} ${CLASS_HOW[name][1]}`));
+    }
+    if (!head.parentElement.querySelector('[data-ae-cls-legend]')) head.after(h('div', {class: 'ae-cls-legend', 'data-ae-cls-legend': '1'}, '🟢 легко начать · 🟡 нужно пользоваться навыками · 🔴 для опытных'));
+  }
+  setInterval(() => { if (!document.hidden && !me()) try { paintClassHow(); } catch {} }, 600);
+  // Casters (mage, necromancer, druid): their power is in skills. New players are told so in the fight.
+  const CASTER_TIP = {mage: '«Огненный шар»', necromancer: '«Касание смерти»', druid: '«Ядовитые споры»'};
+  function coachCaster() {
+    const p = me(), on = document.documentElement.hasAttribute('data-in-combat');
+    const old = document.querySelector('[data-ae-coach]');
+    if (!on || !p || !CASTER_TIP[p.classId] || (p.level || 1) > 10) { old?.remove(); document.querySelectorAll('.ae-coach-glow').forEach(e => e.classList.remove('ae-coach-glow')); return; }
+    const sk = [...document.querySelectorAll('main button')].find(b => b.offsetParent && /^Навыки$/i.test((b.textContent || '').trim())); if (!sk) { old?.remove(); return; }
+    if (!sk.classList.contains('ae-coach-glow')) sk.classList.add('ae-coach-glow');
+    if (old) return;
+    const row = sk.closest('div'); if (!row) return;
+    const cls = CLASS_RU2[p.classId] || 'Маг';
+    row.before(h('div', {class: 'ae-coach', 'data-ae-coach': '1'}, h('b', {}, `🔮 ${cls} сражается магией`), h('span', {}, ` — откройте «Навыки» и бейте ${CASTER_TIP[p.classId]}: навыки бьют намного сильнее обычной атаки. Маны хватит на много заклинаний, а «Защита» её восполняет.`)));
+  }
+  setInterval(() => { if (!document.hidden) try { bringNextIntoView(); coachCaster(); } catch {} }, 700);
   // ---------- World: «this land is below your level» hint with the game's own recommended land ----------
   const worldHintKey = () => 'aeth_world_hint_off_' + uid();
   function paintWorldHint() {
@@ -6574,6 +6619,11 @@ html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>s
 .ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
 .ae-roster-row b{display:block;font-size:12.5px}.ae-roster-row small{display:block;font-size:10.5px;opacity:.75;line-height:1.3}.ae-roster-dot{flex:none;font-size:12px}
 .ae-roster-days{flex:none;display:flex;flex-direction:column;align-items:center;min-width:34px}.ae-roster-days b{font-size:15px}.ae-roster-days small{font-size:9.5px;opacity:.65}
+html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:none!important}
+.ae-coach{margin:6px 0;padding:8px 10px;border-radius:12px;border:1px solid #a78bfa;background:linear-gradient(160deg,#2e1065e6,#1e1b4be6);color:#ede9fe;font-size:12.5px;line-height:1.35}.ae-coach b{color:#fff}
+.ae-coach-glow{box-shadow:0 0 0 2px #a78bfa,0 0 18px #a78bfacc!important;animation:ae-coach-pulse 1.4s ease-in-out infinite}@keyframes ae-coach-pulse{50%{box-shadow:0 0 0 3px #c4b5fd,0 0 26px #a78bfa}}
+.ae-cls-how{display:block;margin-top:3px;font:600 9.5px/1.2 system-ui,sans-serif;opacity:.85;text-transform:none;letter-spacing:0;white-space:normal}
+.ae-cls-legend{margin:4px 0 6px;font:600 11px system-ui,sans-serif;opacity:.8}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}
