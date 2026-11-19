@@ -196,7 +196,14 @@ function report(world, now) {
   const quitList = [...quit.entries()].map(([k, n]) => ({k, n})).sort((a, b) => b.n - a.n).slice(0, 12);
   const total = players.length, wau = new Set(act.filter(a => a.day > dayKey(now - 7 * DAY)).map(a => String(a.telegram_id))).size;
   const mau = new Set(act.filter(a => a.day > dayKey(now - 30 * DAY)).map(a => String(a.telegram_id))).size;
-  return ok({total, dau: byDay.get(dayKey(now))?.size || 0, wau, mau, daily, retention: {d1: ret(lastDays, 1), d3: ret(lastDays, 3), d7: ret(lastDays, 7)}, sections, quit: {n: quitN, list: quitList},
+  // who exactly: every hero with the last visit, active days and where they stopped
+  const daysOf = new Map(); for (const a of act) if (a.day > dayKey(now - 30 * DAY)) { const k = String(a.telegram_id); if (!daysOf.has(k)) daysOf.set(k, new Set()); daysOf.get(k).add(a.day); }
+  const lastDay = new Map(); for (const a of act) { const k = String(a.telegram_id); if (!lastDay.has(k) || a.day > lastDay.get(k)) lastDay.set(k, a.day); }
+  const tagOf = id => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); return m ? rows(world, 'clans').find(c => same(c.id, m.clan_id))?.tag || null : null; };
+  const roster = players.map(p => { const k = String(p.telegram_id), seen = Date.parse(p.last_seen_at || 0) || (lastDay.get(k) ? Date.parse(lastDay.get(k) + 'T12:00:00Z') : 0);
+    return {id: k, name: nameOf(p), level: Number(p.level) || 1, cls: p.class_id || null, clan: tagOf(k), seen: seen ? iso(seen) : null, created: p.created_at || null,
+      days30: daysOf.get(k)?.size || 0, screen: lastSess.get(k)?.last_screen || null, bot: !!p.bot_started}; }).sort((a, b) => String(b.seen).localeCompare(String(a.seen)));
+  return ok({roster, total, dau: byDay.get(dayKey(now))?.size || 0, wau, mau, daily, retention: {d1: ret(lastDays, 1), d3: ret(lastDays, 3), d7: ret(lastDays, 7)}, sections, quit: {n: quitN, list: quitList},
     storage: storageInfo(world), apkAuthMaxAgeH: world.tables.ae_apk_diag?.[0]?.maxAgeH || 0, botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
 }
 
