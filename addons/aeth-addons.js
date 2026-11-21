@@ -2295,6 +2295,16 @@
   }, 1200);
   const APK_URL = 'https://github.com/SHAULK21/Game/releases/latest/download/Aethelgard.apk';
   if (isApk) document.documentElement.classList.add('ae-apk');
+  // Android app: a fresh Telegram login arrives as the same address with a new #tgWebAppData. The WebView treats that
+  // as a jump inside the page and does not reload it, so the game kept the old, expired login and got 401 again.
+  // Reload the page as soon as the login in the address differs from the one the game started with.
+  if (isApk) {
+    const loginInUrl = () => { try { return new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || ''; } catch { return ''; } };
+    const started = loginInUrl();
+    const reloadOnNewLogin = () => { const now = loginInUrl(); if (now && now !== started) location.reload(); };
+    window.addEventListener('hashchange', reloadOnNewLogin);
+    setInterval(reloadOnNewLogin, 1500);
+  }
   // The game's dialogs lock page scrolling (body overflow:hidden) and restore the old value on close; when two of them
   // overlap and close out of order the lock stays forever and the page no longer scrolls. Unlock when no dialog is open.
   const gameDialogOpen = () => [...document.querySelectorAll('[role="dialog"], .game-dialog-backdrop, body > div .fixed.inset-0, .ae-story')].some(e => { const r = e.getBoundingClientRect(); return r.width > 50 && r.height > 50 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden'; });

@@ -128,7 +128,8 @@ public class MainActivity extends Activity {
         String d = prefs().getString("initData", "");
         String hash = "tgWebAppData=" + Uri.encode(d) + "&tgWebAppVersion=8.0&tgWebAppPlatform=android"
                 + "&tgWebAppThemeParams=" + Uri.encode("{\"bg_color\":\"#0b0f0d\",\"text_color\":\"#f1ead8\",\"button_color\":\"#c99a3c\",\"button_text_color\":\"#1d1408\",\"secondary_bg_color\":\"#141a17\"}");
-        web.loadUrl(GAME_URL + "?apk=" + BuildConfigVersion.code(this) + "#" + hash);
+        // a new query each time: the same address with only a new #hash would not reload the page and the old login would stay
+        web.loadUrl(GAME_URL + "?apk=" + BuildConfigVersion.code(this) + "&t=" + System.currentTimeMillis() + "#" + hash);
     }
 
     private boolean handleUrl(Uri uri) {

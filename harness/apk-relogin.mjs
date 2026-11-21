@@ -1,0 +1,13 @@
+import {launch} from './browser.mjs';
+const s = await launch({localState: {aethelgard_interface_style: 'modern'}}); const p = s.page;
+await p.addInitScript(() => { window.AethApk = {version: () => 7, versionName: () => '1.7', linked: () => true, getPref: (k, d) => d, setPref() {}, schedule() {}, cancel() {}, vibrate() {}, keepAwake() {}, openExternal() {}, paste: () => '', saveLogin() {}, logout() {}, reload() {}, share() {}, copy() {}}; });
+const mk = t => s.url + '?apk=7#tgWebAppData=' + encodeURIComponent(`user=%7B%22id%22%3A437290420%7D&auth_date=${t}&hash=h${t}`) + '&tgWebAppVersion=8.0&tgWebAppPlatform=android';
+await p.goto(mk(1000)); await p.waitForTimeout(5000);
+await p.evaluate(() => window.__mark = 1);
+await p.goto(mk(1000)); await p.waitForTimeout(3000);
+console.log('same login  → page kept:', await p.evaluate(() => window.__mark === 1));
+await p.goto(mk(2000)); await p.waitForTimeout(4000);
+console.log('new login   → reloaded:', await p.evaluate(() => window.__mark !== 1), 'hash has new login:', await p.evaluate(() => location.hash.includes('h2000')));
+await p.evaluate(() => window.__mark = 2); await p.waitForTimeout(5000);
+console.log('no reload loop:', await p.evaluate(() => window.__mark === 2), '| screen:', await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 60)));
+await s.close(); process.exit(0);
