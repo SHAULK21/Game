@@ -1,0 +1,15 @@
+import {launch} from './browser.mjs';
+const style = process.argv[2] || 'modern', slot = process.argv[3] || '';
+const s = await launch({localState: {aethelgard_interface_style: style, ...(slot ? {aeth_char_slot_437290420: slot} : {})}}); const p = s.page;
+await p.setViewportSize({width: 390, height: 844});
+await p.waitForTimeout(6000);
+await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^Пропустить$/.test(b.textContent.trim()))?.click()); await p.waitForTimeout(2000);
+const inp = p.locator('input').first();
+console.log('inputs:', await p.locator('input').count(), 'value before:', await inp.inputValue(), 'attrs:', await inp.evaluate(e => ({ro: e.readOnly, dis: e.disabled, max: e.maxLength, type: e.type})));
+await inp.click(); await p.keyboard.press('Control+A'); await p.keyboard.press('Backspace'); await p.waitForTimeout(300);
+await p.keyboard.type('Новыйгерой', {delay: 120});
+await p.waitForTimeout(1500);
+console.log('value after typing:', JSON.stringify(await inp.inputValue()), '| focused:', await p.evaluate(() => document.activeElement?.tagName));
+await p.screenshot({path: `name-${style}${slot}.png`});
+console.log('errors:', s.log.filter(l => /pageerror|\[error\]/.test(l)).slice(0, 4).join(' || ') || 'none');
+await s.close(); process.exit(0);

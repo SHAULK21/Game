@@ -5088,7 +5088,30 @@
     }
     if (!head.parentElement.querySelector('[data-ae-cls-legend]')) head.after(h('div', {class: 'ae-cls-legend', 'data-ae-cls-legend': '1'}, '🟢 легко начать · 🟡 нужно пользоваться навыками · 🔴 для опытных'));
   }
-  setInterval(() => { if (!document.hidden && !me()) try { paintClassHow(); } catch {} }, 600);
+  // Hero creation screen: the name first (a phone keyboard used to cover it), the old name replaced on the first tap,
+  // the name shown on the hero picture, class portraits in both styles, «Начать путешествие» always on screen.
+  const CLASS_ID = {Воин: 'warrior', Берсерк: 'berserker', Рыцарь: 'knight', Разбойник: 'rogue', Ассасин: 'assassin', Лучник: 'archer', Маг: 'mage', Некромант: 'necromancer', Паладин: 'paladin', Друид: 'druid'};
+  function paintRegistration() {
+    const reg = document.querySelector('.registration-screen'); if (!reg) return;
+    reg.classList.add('ae-reg');
+    const inp = reg.querySelector('input[type=text]');
+    if (inp && !inp.dataset.aeName) {
+      inp.dataset.aeName = '1'; inp.setAttribute('enterkeyhint', 'done'); inp.setAttribute('autocomplete', 'off'); inp.maxLength = 24;
+      const keep = () => { if (document.activeElement === inp) inp.scrollIntoView({block: 'center', behavior: 'smooth'}); };
+      inp.addEventListener('focus', () => { setTimeout(() => { try { inp.select(); } catch {} }, 30); setTimeout(keep, 350); setTimeout(keep, 800); });
+      window.visualViewport?.addEventListener('resize', keep);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    }
+    const art = reg.querySelector('.registration-hero-art');
+    if (art && inp) { let tag = art.querySelector('.ae-reg-name'); if (!tag) { tag = h('div', {class: 'ae-reg-name'}); art.append(tag); }
+      const v = inp.value.trim(); if (tag.textContent !== (v || 'Без имени')) tag.textContent = v || 'Без имени'; tag.classList.toggle('is-empty', !v); }
+    for (const b of reg.querySelectorAll('button')) {   // the modern style shows only icons: add the class portrait
+      if (b.querySelector('.registration-class-portrait, .ae-reg-portrait')) continue;
+      const name = Object.keys(CLASS_ID).find(k => (b.textContent || '').trim().startsWith(k)); if (!name || !b.querySelector('svg')) continue;
+      b.classList.add('ae-reg-cls'); b.append(h('img', {class: 'ae-reg-portrait', src: heroPortrait(CLASS_ID[name]), alt: '', loading: 'lazy'}));
+    }
+  }
+  setInterval(() => { if (!document.hidden && !me()) try { paintClassHow(); paintRegistration(); } catch {} }, 600);
   // Casters (mage, necromancer, druid): their power is in skills. New players are told so in the fight.
   const CASTER_TIP = {mage: '«Огненный шар»', necromancer: '«Касание смерти»', druid: '«Ядовитые споры»'};
   function coachCaster() {
@@ -6670,6 +6693,19 @@ html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:no
 .ae-coach-glow{box-shadow:0 0 0 2px #a78bfa,0 0 18px #a78bfacc!important;animation:ae-coach-pulse 1.4s ease-in-out infinite}@keyframes ae-coach-pulse{50%{box-shadow:0 0 0 3px #c4b5fd,0 0 26px #a78bfa}}
 .ae-cls-how{display:block;margin-top:3px;font:600 9.5px/1.2 system-ui,sans-serif;opacity:.85;text-transform:none;letter-spacing:0;white-space:normal}
 .ae-cls-legend{margin:4px 0 6px;font:600 11px system-ui,sans-serif;opacity:.8}
+.registration-screen.ae-reg>div{display:flex;flex-direction:column;gap:14px}.registration-screen.ae-reg>div>*{margin-top:0!important;margin-bottom:0!important}
+.registration-screen.ae-reg>div>div:first-child{order:0}
+.registration-screen.ae-reg>div>div:has(>input){order:1;padding:12px;border-radius:14px;border:1px solid #c9a35a99;background:linear-gradient(#1b1710,#0d0f12);box-shadow:0 0 0 3px #c9a35a1f}
+.registration-screen.ae-reg>div>div:has(>input)>label{font-size:0!important;letter-spacing:0}.registration-screen.ae-reg>div>div:has(>input)>label::before{content:"✍️ Имя героя";font:800 14px system-ui,sans-serif;color:#ffe6a8;text-transform:none}
+.registration-screen.ae-reg>div>div:has(>input)::after{content:"Нажмите на поле и введите своё имя — его увидят другие игроки.";display:block;margin-top:6px;font:500 11px system-ui,sans-serif;opacity:.7}
+.registration-screen.ae-reg input[data-ae-name]{font-size:17px!important;padding:12px 14px!important;border-color:#c9a35a!important}
+.registration-screen.ae-reg .registration-hero-art{order:2;height:180px!important;max-height:180px}.registration-screen.ae-reg .registration-hero-art img{object-position:center 18%}
+.ae-reg-name{position:absolute;top:10px;left:12px;right:12px;font:900 20px Georgia,serif;color:#ffe6a8;text-shadow:0 2px 8px #000,0 0 18px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-reg-name.is-empty{opacity:.55;font-style:italic}
+.registration-screen.ae-reg>div>div:has(.grid){order:3}
+.registration-screen.ae-reg>div>div.rounded-xl{order:4}
+.registration-screen.ae-reg>div>button.ui-primary{order:5;position:sticky;bottom:8px;z-index:5;box-shadow:0 -10px 24px #07090e,0 6px 18px #000a;font-size:16px!important;padding:15px!important}
+.registration-screen.ae-reg>div>section.registration-interface-switch{order:6;padding:8px!important}.registration-screen.ae-reg>div>button:not(.ui-primary){order:7}
+.ae-reg-cls{display:flex!important;flex-direction:column;align-items:center}.ae-reg-cls>svg{display:none!important}.ae-reg-portrait{order:-1;width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center 15%;border:2px solid #c9a35a88;margin-bottom:4px}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}
