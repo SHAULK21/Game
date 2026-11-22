@@ -6,7 +6,7 @@ import {drainDeliveries, sendPremiumWelcome} from '../lib/deliveryWorker.js';
 import {handleSocialRequest} from '../lib/social.js';
 import {handleCloudSave} from '../lib/cloudSave.js';
 import {seasonHook} from '../lib/season.js';
-import {charId, slotDenied, syncAccount, handleChars, realOf} from '../lib/alts.js';
+import {charId, slotDenied, syncAccount, handleChars, realOf, deleteHero} from '../lib/alts.js';
 
 // Telegram Serverless has no scheduler: deliver due notifications after player requests (throttled per isolate).
 let lastDrain = 0, lastPrune = 0;
@@ -41,6 +41,10 @@ async function handle(input, ctx) {
       syncAccount(world, user.id);
       const chars = handleChars(world, input, tgUser.id, slot, at); if (chars) return chars;
       const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
+      if (input.path === '/api/ae-chars/delete' && String(input.method).toUpperCase() === 'POST') {   // the engine's own hero reset, allowed for the owner's own extra hero only
+        const r = await deleteHero(world, tgUser.id, slot, input.body, sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: () => true}));
+        if (r.status < 300) validateNativeWorld(world); return r;
+      }
       const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam});
       const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at, native);
       if (social) { seasonHook(world, user.id, input, social, at); return social; }

@@ -29,6 +29,7 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
     const userIdX = slot ? A.charId(userId, slot) : userId;
     { const den = A.slotDenied(world, userId, slot, Date.now()); if (den) return den; A.syncAccount(world, userIdX); const ch = A.handleChars(world, input, userId, slot, Date.now()); if (ch) return ch; }
     const user = {id: userIdX, displayName: 'Admin', username: slot ? undefined : 'admin'};
+    if (input.path === '/api/ae-chars/delete') { const r = await A.deleteHero(world, userId, slot, input.body, sub => E.handleProgressRequest(world, sub, user, {now: () => Date.now(), isAdmin: () => true})); if (r.status < 300) E.validateNativeWorld(world); calls.push({path: input.path, status: r.status, body: JSON.stringify(r.body).slice(0, 200)}); return r; }
     const nowT = Number(process.env.AE_NOW) || Date.now(); const native = sub => E.handleProgressRequest(world, sub, user, {now: () => nowT, isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
     if (String(input.path || '').startsWith('/api/ae-save')) {  // in-memory stand-in for the cloud_saves table (same rules as tgcloud/lib/cloudSave.js)
       const cs = (world.__cloud ||= {}), row = cs[String(userId)], meta = r => r ? {rev: r.rev, savedAt: r.savedAt, device: r.device, level: r.level, heroName: r.heroName} : {rev: 0};

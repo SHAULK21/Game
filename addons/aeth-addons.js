@@ -4841,7 +4841,7 @@
   function openChars() {
     if (!CH) return toast('Персонажи доступны в игре из Telegram.');
     openPanel('👥 Персонажи', body => {
-      body.append(h('p', {class: 'ae-note'}, 'На одном аккаунте Telegram можно играть тремя героями. Второй — бесплатно, третий открывается с 👑 Premium. Premium общий для всех героев; промокоды и подарок за приложение — один раз на аккаунт.'));
+      body.append(h('p', {class: 'ae-note'}, 'На одном аккаунте Telegram можно играть тремя героями. Второй — бесплатно, третий открывается с 👑 Premium. Premium общий для всех героев; промокоды и подарок за приложение — один раз на аккаунт. Второго и третьего героя можно удалить (🗑), чтобы освободить место.'));
       const list = h('div', {class: 'ae-chars'}, h('p', {class: 'ae-empty'}, 'Загрузка…')); body.append(list);
       api('/api/ae-chars').then(d => {
         list.replaceChildren(...d.chars.map(c => {
@@ -4849,7 +4849,8 @@
           if (c.exists) return h('div', {class: 'ae-char' + (c.current ? ' is-on' : '')},
             h('img', {class: 'ae-avatar', src: heroPortrait(c.cls), alt: ''}),
             h('div', {class: 'ae-grow'}, h('small', {}, `Персонаж ${n}${c.current ? ' · сейчас в игре' : ''}`), h('b', {}, c.name), h('div', {class: 'ae-sub'}, `${c.level} ур.${c.cls ? ' · ' + (CLASS_RU2[c.cls] || c.cls) : ''}`)),
-            c.current ? h('span', {class: 'ae-char-tag'}, '✓') : h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => switchChar(c.slot)}, 'Играть'));
+            c.current ? h('span', {class: 'ae-char-tag'}, '✓') : h('div', {class: 'ae-char-acts'}, h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => switchChar(c.slot)}, 'Играть'),
+              c.slot ? h('button', {type: 'button', class: 'ae-btn ae-char-del', title: 'Удалить героя', onclick: ev => deleteChar(c, ev.currentTarget)}, '🗑') : ''));
           if (c.locked) return h('div', {class: 'ae-char is-locked'}, h('span', {class: 'ae-char-plus'}, '👑'),
             h('div', {class: 'ae-grow'}, h('small', {}, `Персонаж ${n}`), h('b', {}, 'Откроется с Premium'), h('div', {class: 'ae-sub'}, 'Оформите Premium — и создайте третьего героя.')));
           return h('div', {class: 'ae-char is-empty'}, h('span', {class: 'ae-char-plus'}, '＋'),
@@ -4858,6 +4859,17 @@
         }));
       }, e => list.replaceChildren(h('p', {class: 'ae-empty'}, cleanError(e))));
     }, {cls: 'ae-hq-panel'});
+  }
+  async function deleteChar(c, btn) {
+    if (!confirm(`Удалить героя «${c.name}» (${c.level} ур.) навсегда?\n\nУровень, вещи, золото, соратники, питомец и место в клане будут удалены. Отменить это нельзя.`)) return;
+    if (!confirm(`Точно удалить «${c.name}»? Это последнее предупреждение.`)) return;
+    const id = String(8e15 + Number(CH.tg) * 4 + c.slot);   // the same rule as tgcloud/lib/alts.js
+    btn.disabled = true;
+    try {
+      await api('/api/ae-chars/delete', 'POST', {slot: c.slot, confirm: id});
+      try { for (const k of Object.keys(localStorage)) if (k.includes(id)) localStorage.removeItem(k); } catch {}
+      toast(`🗑 Герой «${c.name}» удалён. Место ${c.slot + 1} свободно.`); sfx.play('page'); openChars();
+    } catch (e) { btn.disabled = false; toast(cleanError(e)); }
   }
   // A new hero's class screen: a way back to the hero the player already has.
   setInterval(() => {
@@ -6693,7 +6705,7 @@ html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>s
 .ae-boon-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ae-boon{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 5px!important;border-radius:12px!important;border:1px solid #f0cf7a88!important;background:#0007!important;color:#fff!important;cursor:pointer;min-width:0}
 .ae-boon>span{font-size:24px}.ae-boon>b{font-size:12px;line-height:1.15}.ae-boon>small{font-size:10.5px;opacity:.8;line-height:1.2;text-align:center}.ae-boon:active{transform:scale(.96)}
 .ae-boon-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.ae-boon-chips>span{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#f0cf7a26;border:1px solid #f0cf7a66;font-size:15px}
-.ae-chars{display:flex;flex-direction:column;gap:8px}.ae-char{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-char.is-on{border-color:#c9a35a;box-shadow:0 0 0 1px #c9a35a55 inset}.ae-char small{display:block;font-size:10.5px;opacity:.7}.ae-char b{display:block;font-size:14px}.ae-char .ae-avatar{width:48px;height:48px;flex:0 0 48px}.ae-char-plus{flex:0 0 48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px dashed #c9a35a88}.ae-char.is-locked{opacity:.7}.ae-char-tag{flex:none;color:#7fd17f;font-weight:800;font-size:18px;padding:0 6px}.ae-char-back{margin:6px 0}\n.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
+.ae-chars{display:flex;flex-direction:column;gap:8px}.ae-char{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-char.is-on{border-color:#c9a35a;box-shadow:0 0 0 1px #c9a35a55 inset}.ae-char small{display:block;font-size:10.5px;opacity:.7}.ae-char b{display:block;font-size:14px}.ae-char .ae-avatar{width:48px;height:48px;flex:0 0 48px}.ae-char-plus{flex:0 0 48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px dashed #c9a35a88}.ae-char.is-locked{opacity:.7}.ae-char-acts{display:flex;gap:6px;flex:none}.ae-char-del{min-width:40px;padding-left:8px!important;padding-right:8px!important}.ae-char-tag{flex:none;color:#7fd17f;font-weight:800;font-size:18px;padding:0 6px}.ae-char-back{margin:6px 0}\n.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
 .ae-roster-row b{display:block;font-size:12.5px}.ae-roster-row small{display:block;font-size:10.5px;opacity:.75;line-height:1.3}.ae-roster-dot{flex:none;font-size:12px}
 .ae-roster-days{flex:none;display:flex;flex-direction:column;align-items:center;min-width:34px}.ae-roster-days b{font-size:15px}.ae-roster-days small{font-size:9.5px;opacity:.65}
 html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:none!important}
