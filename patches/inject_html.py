@@ -19,8 +19,13 @@ script = MARK + '''<script>
 </script><!-- /aeth-runtime -->'''
 import re
 s = re.sub(r'<script type="module" src="/assets/aeth-addons-v\d+\.js"></script>', '', s)
-script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v129.js"></script><!-- /aeth-runtime -->')
+script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v130.js"></script><!-- /aeth-runtime -->')
 s = s.replace('</body>', script + '\n</body>', 1)
+
+# Several heroes on one account: the hero switch runs between telegram-web-app.js and the game bundle.
+s = re.sub(r'\n?\s*<script src="/assets/aeth-char-v\d+\.js" defer></script>', '', s)
+TG = '<script src="https://telegram.org/js/telegram-web-app.js" defer></script>'
+s = s.replace(TG, TG + '\n    <script src="/assets/aeth-char-v1.js" defer></script>', 1)
 
 # Startup splash art (head, so it paints before the bundle loads).
 s = re.sub(r'<link rel="preload" href="/assets/banners/splash.webp"[^>]*>|<style id="aeth-splash">.*?</style>', '', s, flags=re.S)

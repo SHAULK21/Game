@@ -6,6 +6,7 @@ import {drainDeliveries, sendPremiumWelcome} from '../lib/deliveryWorker.js';
 import {handleSocialRequest} from '../lib/social.js';
 import {handleCloudSave} from '../lib/cloudSave.js';
 import {seasonHook} from '../lib/season.js';
+import {charId, slotDenied, syncAccount, handleChars, realOf} from '../lib/alts.js';
 
 // Telegram Serverless has no scheduler: deliver due notifications after player requests (throttled per isolate).
 let lastDrain = 0, lastPrune = 0;
@@ -20,8 +21,13 @@ export default async function (input, ctx) {
 }
 
 async function handle(input, ctx) {
-  const user = ctx?.initData?.user;
-  if (!Number.isSafeInteger(user?.id) || user.id <= 0) return {status: 401, body: {code: 'UNAUTHORIZED', error: 'Откройте игру из Telegram.'}};
+  const tgUser = ctx?.initData?.user;
+  if (!Number.isSafeInteger(tgUser?.id) || tgUser.id <= 0) return {status: 401, body: {code: 'UNAUTHORIZED', error: 'Откройте игру из Telegram.'}};
+  // Several heroes on one account: the Mini App names the hero (input.char = 1 or 2); hero 1 is the Telegram id itself.
+  const slot = input?.char == null ? 0 : Number(input.char);
+  const user = slot ? {...tgUser, id: charId(tgUser.id, slot), username: undefined} : tgUser;
+  const startParam = slot ? undefined : ctx.initData.start_param;   // invitations count once per account (hero 1)
+  if (input && 'char' in input) { input = {...input}; delete input.char; }
   if (JSON.stringify(input || {}).length > 1126400) return {status: 413, body: {error: 'Слишком большой запрос.'}};
   const at = Date.now();
   if (String(input?.path || '').startsWith('/api/ae-save')) { try { return await handleCloudSave(input, user.id, user.id === ADMIN_TELEGRAM_ID); } catch (error) { console.error('cloud save failed', error?.code || error?.name); return {status: 500, body: {error: 'Облачное сохранение недоступно.'}}; } }
@@ -31,8 +37,11 @@ async function handle(input, ctx) {
       const authAgeH = (at - Number(ctx.initData.auth_date || 0) * 1000) / 3600e3;
       if (authAgeH > 2 && authAgeH < 24 * 400) { const d = (world.tables.ae_apk_diag ||= [{maxAgeH: 0}])[0]; if (authAgeH > d.maxAgeH) Object.assign(d, {maxAgeH: Math.round(authAgeH), at: new Date(at).toISOString()}); }
       if (at - lastPrune > 3600e3 || Math.random() < 0.005) { lastPrune = at; pruneWorld(world, at); }
+      const denied = slotDenied(world, tgUser.id, slot, at); if (denied) return denied;
+      syncAccount(world, user.id);
+      const chars = handleChars(world, input, tgUser.id, slot, at); if (chars) return chars;
       const engineUser = {id: user.id, username: user.username, displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок', allowsWriteToPm: user.allows_write_to_pm === true};
-      const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
+      const native = sub => handleProgressRequest(world, sub, engineUser, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam});
       const social = await handleSocialRequest(world, input, {...user, isAdmin: user.id === ADMIN_TELEGRAM_ID}, at, native);
       if (social) { seasonHook(world, user.id, input, social, at); return social; }
       if (input.path === '/api/profile/sync' && input.body) {
@@ -42,21 +51,23 @@ async function handle(input, ctx) {
       }
       const response = await handleProgressRequest(world, input, {id: user.id, username: user.username,
         displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок',
-        allowsWriteToPm: user.allows_write_to_pm === true}, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam: ctx.initData.start_param});
+        allowsWriteToPm: user.allows_write_to_pm === true}, {now: () => at, isAdmin: id => id === ADMIN_TELEGRAM_ID, startParam});
       seasonHook(world, user.id, input, response, at);
       validateNativeWorld(world); return response;
     }, {maxAttempts: input.path === '/api/admin/broadcasts' && String(input.method).toUpperCase() === 'POST' ? 32 : 8});
     if (input.path === '/api/admin/news' && reply.status < 300) reply.body.channel = await syncChannel(input, reply.body);
     if (input.path === '/api/admin/news' && reply.status === 201 && reply.body?.bot) { try { const r = await drainDeliveries(40); reply.body.botSent = r.sent; } catch (error) { console.error('news bot drain failed', error?.code || error?.name); } }
     if (input.path === '/api/admin/premium/grant' && reply.status === 200 && !reply.body?.replayed)
-      await sendPremiumWelcome(Number(input.body.targetId), Number(input.body.days), true);
+      await sendPremiumWelcome(realOf(Number(input.body.targetId)), Number(input.body.days), true);
     if (input.path === '/api/support/bug-report' && reply.status === 201 && reply.body?.report) {
       const r = reply.body.report; delete reply.body.report;
       try { await api.sendMessage({chat_id: ADMIN_TELEGRAM_ID, text: `🐞 Сообщение об ошибке\n${r.name}${r.username ? ' (@' + r.username + ')' : ''} · id ${r.u}${r.level ? ' · ур. ' + r.level : ''}\n\n${r.text}`.slice(0, 4096), link_preview_options: {is_disabled: true}}); }
       catch (e) { console.error('bug report forward failed', e?.description || e?.code); }
     }
     if (reply.effect?.method === 'createInvoiceLink') {
-      try {return {status: reply.status, body: {...reply.body, invoiceLink: await api.createInvoiceLink(reply.effect.payload)}};}
+      // Premium is one per account and Telegram pays it from the account itself: the invoice always names the Telegram id
+      const inv = slot ? {...reply.effect.payload, payload: String(reply.effect.payload?.payload || '').replace(/:\d+$/, ':' + tgUser.id)} : reply.effect.payload;
+      try {return {status: reply.status, body: {...reply.body, invoiceLink: await api.createInvoiceLink(inv)}};}
       catch {return {status: 502, body: {error: 'Не удалось создать счёт Telegram Stars. Попробуйте снова.'}};}
     }
     const response = {status: reply.status, body: reply.body};

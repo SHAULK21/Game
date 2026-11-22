@@ -23,7 +23,12 @@ export async function launch({engine = './engine-patched.js', userId = 437290420
   await page.exposeFunction('__serverless', async (name, input) => {
     const lat = Number(process.env.AE_LATENCY || 0); if (lat && input.path !== '/api/items/owned') await new Promise(r => setTimeout(r, lat));
     const snapshotFirst = input.path === '/api/items/owned' && lat;
-    const user = {id: userId, displayName: 'Admin', username: 'admin'};
+    // several heroes on one account: the same translation as tgcloud/endpoints/gameApi.js
+    const A = await import('../tgcloud/lib/alts.js'), slot = input.char == null ? 0 : Number(input.char);
+    if ('char' in input) { input = {...input}; delete input.char; }
+    const userIdX = slot ? A.charId(userId, slot) : userId;
+    { const den = A.slotDenied(world, userId, slot, Date.now()); if (den) return den; A.syncAccount(world, userIdX); const ch = A.handleChars(world, input, userId, slot, Date.now()); if (ch) return ch; }
+    const user = {id: userIdX, displayName: 'Admin', username: slot ? undefined : 'admin'};
     const nowT = Number(process.env.AE_NOW) || Date.now(); const native = sub => E.handleProgressRequest(world, sub, user, {now: () => nowT, isAdmin: id => id === E.ADMIN_TELEGRAM_ID});
     if (String(input.path || '').startsWith('/api/ae-save')) {  // in-memory stand-in for the cloud_saves table (same rules as tgcloud/lib/cloudSave.js)
       const cs = (world.__cloud ||= {}), row = cs[String(userId)], meta = r => r ? {rev: r.rev, savedAt: r.savedAt, device: r.device, level: r.level, heroName: r.heroName} : {rev: 0};

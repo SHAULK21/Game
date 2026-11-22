@@ -2355,7 +2355,8 @@
       item('☁️', 'Перенос героя', 'Один герой в Telegram и в приложении', go(() => openCloudPanel())),
       item('📱', 'Приложение Android', 'Подарок: Premium на 7 дней', go(() => openApkInfo())),
       item('🎟️', 'Промокод', 'Активировать код из канала', go(() => openPromo())),
-      item('👤', 'Профиль', 'Титулы, аватарка и баннер', go(() => openProfile()))));
+      item('👤', 'Профиль', 'Титулы, аватарка и баннер', go(() => openProfile())),
+      item('👥', 'Персонажи', 'До 3 героев на одном аккаунте', go(() => openChars()))));
   }
   try { const sb = !isApk && window.Telegram?.WebApp?.SettingsButton; if (sb && Telegram.WebApp.isVersionAtLeast?.('7.0')) { sb.onClick(() => openTgSettings()); sb.show(); } } catch (e) { console.warn('ae settings button', e); }
   function openApkInfo() {
@@ -4827,9 +4828,44 @@
     phone: '<rect x="8" y="3.5" width="12" height="21" rx="2.5"/><path d="M12.5 20.5h3"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>',
     coll: '<path d="M5 5.5h5.5v17H5zM11.5 5.5H17v17h-5.5zM18.5 7l4.5-1.2 4 15.6-4.5 1.2z"/>',
+    chars: '<circle cx="10.5" cy="9.5" r="3.5"/><path d="M3.5 22.5c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><circle cx="19.5" cy="10.5" r="2.8"/><path d="M19.5 16c3 0 5 2 5 5.5"/>',
     cloud: '<path d="M8 21.5h12.5a4.5 4.5 0 0 0 .6-9 6.5 6.5 0 0 0-12.6-1.6A5.3 5.3 0 0 0 8 21.5z"/><path d="M14 13v6M11.5 16.5L14 19l2.5-2.5"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
-  const AE_GROUP = [['season', 'Сезон 1', () => openSeason()], ['mentor', 'Наставничество', () => openMentor()], ['profile', 'Профиль', () => openProfile()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  // ---------- 👥 Several heroes on one Telegram account (the hero is chosen before the game loads: aeth-char.js) ----------
+  const CH = window.__aeChar || null;
+  function switchChar(slot) {
+    if (!CH) return toast('Персонажи доступны в игре из Telegram.');
+    try { if (slot) localStorage.setItem(CH.key, String(slot)); else localStorage.removeItem(CH.key); } catch {}
+    sfx.play('page'); setTimeout(() => location.reload(), 150);
+  }
+  function openChars() {
+    if (!CH) return toast('Персонажи доступны в игре из Telegram.');
+    openPanel('👥 Персонажи', body => {
+      body.append(h('p', {class: 'ae-note'}, 'На одном аккаунте Telegram можно играть тремя героями. Второй — бесплатно, третий открывается с 👑 Premium. Premium общий для всех героев; промокоды и подарок за приложение — один раз на аккаунт.'));
+      const list = h('div', {class: 'ae-chars'}, h('p', {class: 'ae-empty'}, 'Загрузка…')); body.append(list);
+      api('/api/ae-chars').then(d => {
+        list.replaceChildren(...d.chars.map(c => {
+          const n = c.slot + 1;
+          if (c.exists) return h('div', {class: 'ae-char' + (c.current ? ' is-on' : '')},
+            h('img', {class: 'ae-avatar', src: heroPortrait(c.cls), alt: ''}),
+            h('div', {class: 'ae-grow'}, h('small', {}, `Персонаж ${n}${c.current ? ' · сейчас в игре' : ''}`), h('b', {}, c.name), h('div', {class: 'ae-sub'}, `${c.level} ур.${c.cls ? ' · ' + (CLASS_RU2[c.cls] || c.cls) : ''}`)),
+            c.current ? h('span', {class: 'ae-char-tag'}, '✓') : h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => switchChar(c.slot)}, 'Играть'));
+          if (c.locked) return h('div', {class: 'ae-char is-locked'}, h('span', {class: 'ae-char-plus'}, '👑'),
+            h('div', {class: 'ae-grow'}, h('small', {}, `Персонаж ${n}`), h('b', {}, 'Откроется с Premium'), h('div', {class: 'ae-sub'}, 'Оформите Premium — и создайте третьего героя.')));
+          return h('div', {class: 'ae-char is-empty'}, h('span', {class: 'ae-char-plus'}, '＋'),
+            h('div', {class: 'ae-grow'}, h('small', {}, `Персонаж ${n}`), h('b', {}, 'Свободное место'), h('div', {class: 'ae-sub'}, 'Новый герой с 1 уровня: другой класс и своя история.')),
+            h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => { if (confirm(`Создать персонажа ${n}? Текущий герой сохранится — вернуться к нему можно здесь же, в «Персонажах».`)) switchChar(c.slot); }}, 'Создать'));
+        }));
+      }, e => list.replaceChildren(h('p', {class: 'ae-empty'}, cleanError(e))));
+    }, {cls: 'ae-hq-panel'});
+  }
+  // A new hero's class screen: a way back to the hero the player already has.
+  setInterval(() => {
+    if (document.hidden || !CH?.slot || me()) return;
+    const head = document.querySelector('[data-ae-cls-legend]'); if (!head || document.querySelector('[data-ae-char-back]')) return;
+    head.before(h('button', {type: 'button', class: 'ae-btn ae-wide ae-char-back', 'data-ae-char-back': '1', onclick: () => switchChar(0)}, '↩ Вернуться к основному персонажу'));
+  }, 800);
+  const AE_GROUP = [['season', 'Сезон 1', () => openSeason()], ['mentor', 'Наставничество', () => openMentor()], ['profile', 'Профиль', () => openProfile()], ['chars', 'Персонажи', () => openChars()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['coll', 'Коллекция', () => openCollection()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
   // Switch the game's interface style (the game's own switch lives in the Telegram settings button / desktop top bar).
   function switchStyle(k, label) {
@@ -5341,12 +5377,12 @@
       body.append(h('p', {class: 'ae-sub'}, 'Последний экран игры и уровень героя у тех, кто перестал заходить.'));
       body.append(h('div', {class: 'ae-pill'}, `🤖 Запустили бота: ${d.botUsers} · уведомления включены: ${d.notifyOn}`));
       if (d.roster?.length) {
-        const ago = t => { if (!t) return 'не заходил'; const days = Math.floor((Date.now() - Date.parse(t)) / 864e5); return days <= 0 ? 'сегодня' : days === 1 ? 'вчера' : `${days} ${plural(days, 'день', 'дня', 'дней')} назад`; };
+        const ago = t => { if (!t || Date.parse(t) < Date.parse('2020-01-01')) return 'давно'; const days = Math.floor((Date.now() - Date.parse(t)) / 864e5); return days <= 0 ? 'сегодня' : days === 1 ? 'вчера' : `${days} ${plural(days, 'день', 'дня', 'дней')} назад`; };
         const dot = t => { const dd = (Date.now() - Date.parse(t || 0)) / 864e5; return dd < 1 ? '🟢' : dd < 3 ? '🟡' : '🔴'; };
         const heroes = d.roster.filter(r => r.level > 1 || r.days30 > 0), rest = d.roster.length - heroes.length;
         body.append(h('div', {class: 'ae-h3'}, `👥 Игроки · ${heroes.length}`), h('p', {class: 'ae-sub'}, '🟢 был(а) сегодня · 🟡 1–3 дня назад · 🔴 больше 3 дней. «Дней» — сколько дней заходил(а) за последние 30. Нажмите на игрока — его карточка.'));
         for (const r of heroes) body.append(h('button', {type: 'button', class: 'ae-roster-row', onclick: () => openPlayerCard(r.id, r.name)},
-          h('span', {class: 'ae-roster-dot'}, dot(r.seen)), h('span', {class: 'ae-grow'}, h('b', {}, `${r.clan ? `[${r.clan}] ` : ''}${r.name}`), h('small', {}, `${r.level} ур.${r.cls ? ' · ' + (CLASS_RU2[r.cls] || r.cls) : ''} · ${ago(r.seen)}${r.screen ? ' · последний экран: ' + r.screen : ''}${r.bot ? '' : ' · 🤖 бот не запущен'}`)),
+          h('span', {class: 'ae-roster-dot'}, dot(r.seen)), h('span', {class: 'ae-grow'}, h('b', {}, `${r.clan ? `[${r.clan}] ` : ''}${r.name}${r.alt ? ` · персонаж ${r.alt}` : ''}`), h('small', {}, `${r.level} ур.${r.cls ? ' · ' + (CLASS_RU2[r.cls] || r.cls) : ''} · ${ago(r.seen)}${r.screen ? ' · последний экран: ' + r.screen : ''}${r.bot ? '' : ' · 🤖 бот не запущен'}`)),
           h('span', {class: 'ae-roster-days'}, h('b', {}, String(r.days30)), h('small', {}, 'дней'))));
         if (rest) body.append(h('p', {class: 'ae-sub'}, `Ещё ${rest} — открыли игру, но не создали героя или не играли.`));
       }
@@ -6626,7 +6662,7 @@ html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>s
 .ae-boon-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ae-boon{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 5px!important;border-radius:12px!important;border:1px solid #f0cf7a88!important;background:#0007!important;color:#fff!important;cursor:pointer;min-width:0}
 .ae-boon>span{font-size:24px}.ae-boon>b{font-size:12px;line-height:1.15}.ae-boon>small{font-size:10.5px;opacity:.8;line-height:1.2;text-align:center}.ae-boon:active{transform:scale(.96)}
 .ae-boon-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.ae-boon-chips>span{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#f0cf7a26;border:1px solid #f0cf7a66;font-size:15px}
-.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
+.ae-chars{display:flex;flex-direction:column;gap:8px}.ae-char{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-char.is-on{border-color:#c9a35a;box-shadow:0 0 0 1px #c9a35a55 inset}.ae-char small{display:block;font-size:10.5px;opacity:.7}.ae-char b{display:block;font-size:14px}.ae-char .ae-avatar{width:48px;height:48px;flex:0 0 48px}.ae-char-plus{flex:0 0 48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px dashed #c9a35a88}.ae-char.is-locked{opacity:.7}.ae-char-tag{flex:none;color:#7fd17f;font-weight:800;font-size:18px;padding:0 6px}.ae-char-back{margin:6px 0}\n.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
 .ae-roster-row b{display:block;font-size:12.5px}.ae-roster-row small{display:block;font-size:10.5px;opacity:.75;line-height:1.3}.ae-roster-dot{flex:none;font-size:12px}
 .ae-roster-days{flex:none;display:flex;flex-direction:column;align-items:center;min-width:34px}.ae-roster-days b{font-size:15px}.ae-roster-days small{font-size:9.5px;opacity:.65}
 html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:none!important}
@@ -6850,5 +6886,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {stats: () => openAdminStats(), card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), collection: () => openCollection(), wild: () => openClanHQ('wild'), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {chars: () => openChars(), stats: () => openAdminStats(), card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), collection: () => openCollection(), wild: () => openClanHQ('wild'), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

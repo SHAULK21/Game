@@ -1,5 +1,6 @@
 // Housekeeping for the single world document: keeps it small so every request stays cheap.
 import {compactQuestLog} from './arenaExtras.js';
+import {isAlt} from './alts.js';
 import {pruneFort} from './clanFort.js';
 const DAY = 864e5;
 const at = row => Date.parse(row?.created_at || row?.updated_at || '') || 0;
@@ -10,6 +11,7 @@ const APP = 'https://app8958621621.tgcloud.ai/';
 export function premiumNotices(world, now = Date.now()) {
   const t = world.tables || {}, marks = (t.ae_prem_notice ||= []), out = (t.telegram_outbox ||= []), ev = (t.ae_events ||= []);
   for (const p of t.players || []) {
+    if (isAlt(p.telegram_id)) continue;   // Premium is shared by the account's heroes: remind once, from hero 1
     const until = Date.parse(p.premium_until || 0); if (!until || until <= now) continue;
     const left = until - now, stage = left <= DAY ? 1 : left <= 3 * DAY ? 3 : 0; if (!stage) continue;
     const id = String(p.telegram_id), mk = marks.find(m => m.u === id && m.until === p.premium_until);

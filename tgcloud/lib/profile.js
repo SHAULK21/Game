@@ -1,4 +1,5 @@
 import {placeOf} from './clanPlus.js';
+import {accountIds} from './alts.js';
 import {COMP_TITLES, compCtx} from './companions.js';
 import {SEASON_TITLES, seasonAwards} from './season.js';
 import {compStats, compImg} from './companions.js';
@@ -229,9 +230,10 @@ export function handleProfileRequest(world, input, user, now) {
     pr.asc = rank; awardSSS(world, me, now); return ok({profile: publicProfile(world, me, now)});
   }
   if (path === '/api/ae-profile/apk') {  // the Android app gift (status / claim) — the claim only counts from the app
-    if (method === 'GET') { if (/[?&]app=1/.test(String(input.path))) { if (!pr) { pr = {u: me}; rows(world, 'ae_profiles').push(pr); } pr.apkSeen = new Date(now).toISOString(); } return ok({claimed: !!pr?.apkAt, gift: APK_GIFT}); }
+    const accountGot = accountIds(me).some(id => rows(world, 'ae_profiles').find(x => same(x.u, id))?.apkAt);  // one gift per Telegram account
+    if (method === 'GET') { if (/[?&]app=1/.test(String(input.path))) { if (!pr) { pr = {u: me}; rows(world, 'ae_profiles').push(pr); } pr.apkSeen = new Date(now).toISOString(); } return ok({claimed: accountGot, gift: APK_GIFT}); }
     if (body.apk !== true || !(Number(body.ver) >= 1)) return fail('Подарок можно получить только в мобильном приложении.');
-    if (pr.apkAt) return fail('Подарок за приложение уже получен.');
+    if (pr.apkAt || accountGot) return fail('Подарок за приложение уже получен на вашем аккаунте.');
     const p = player(world, me); pr.apkAt = new Date(now).toISOString();
     p.premium_until = new Date(Math.max(now, Date.parse(p.premium_until || 0) || 0) + APK_GIFT.premiumDays * 864e5).toISOString(); p.updated_at = pr.apkAt;
     rows(world, 'ae_events').push({id: crypto.randomUUID(), to: me, icon: '📱', text: 'Подарок за мобильное приложение: Premium на 7 дней и награды! Титул «Герой в кармане» можно надеть в профиле.', kind: 'achievement', at: pr.apkAt, acked: false});

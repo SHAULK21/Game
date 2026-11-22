@@ -6,6 +6,7 @@ const player = (world, id) => rows(world, 'players').find(p => same(p.telegram_i
 const nameOf = p => String(p?.character_name || p?.display_name || 'Игрок').trim() || 'Игрок';
 const rand = (a, b) => a + Math.random() * (b - a);
 import {creditDuel} from './clanPlus.js';
+import {accountIds} from './alts.js';
 import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
 import {realStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, outMult, inMult, gemProcs} from './skills.js';
@@ -350,7 +351,7 @@ export function handlePromo(world, path, method, body, user, now) {
     const code = String(body.code || '').trim().toUpperCase();
     const c = codes.find(x => x.code === code);
     if (!c) return fail('Промокод не найден.', 404);
-    if (c.usedBy.some(id => same(id, user.id))) return fail('Вы уже использовали этот промокод.');
+    if (c.usedBy.some(id => accountIds(user.id).includes(String(id)))) return fail('Этот промокод уже использован на вашем аккаунте.');
     if (c.usesLeft <= 0) return fail('Промокод больше не действует: все активации использованы.');
     const p = player(world, user.id), pack = PROMO_PACKS[c.pack];
     if (!p) return fail('Сначала создайте персонажа.');

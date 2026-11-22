@@ -1,6 +1,7 @@
 // Live features: pet satiety (server-kept, bot reminder), Blood Moon weekend announcement,
 // invite-a-friend (on top of the engine's referral reward) and admin analytics.
 import {bloodWeekend} from './horde.js';
+import {slotOf} from './alts.js';
 import {saveStats} from './heroStats.js';
 import {encodeDocument, STORAGE_CELL_LIMIT} from './storageCodec.js';
 import {handleClanPlus, clanTick, clanOf} from './clanPlus.js';
@@ -202,7 +203,7 @@ function report(world, now) {
   const tagOf = id => { const m = rows(world, 'clan_members').find(x => same(x.telegram_id, id)); return m ? rows(world, 'clans').find(c => same(c.id, m.clan_id))?.tag || null : null; };
   const roster = players.map(p => { const k = String(p.telegram_id), seen = Date.parse(p.last_seen_at || 0) || (lastDay.get(k) ? Date.parse(lastDay.get(k) + 'T12:00:00Z') : 0);
     return {id: k, name: nameOf(p), level: Number(p.level) || 1, cls: p.class_id || null, clan: tagOf(k), seen: seen ? iso(seen) : null, created: p.created_at || null,
-      days30: daysOf.get(k)?.size || 0, screen: lastSess.get(k)?.last_screen || null, bot: !!p.bot_started}; }).sort((a, b) => String(b.seen).localeCompare(String(a.seen)));
+      days30: daysOf.get(k)?.size || 0, screen: lastSess.get(k)?.last_screen || null, bot: !!p.bot_started, alt: slotOf(k) ? slotOf(k) + 1 : 0}; }).sort((a, b) => String(b.seen).localeCompare(String(a.seen)));
   return ok({roster, total, dau: byDay.get(dayKey(now))?.size || 0, wau, mau, daily, retention: {d1: ret(lastDays, 1), d3: ret(lastDays, 3), d7: ret(lastDays, 7)}, sections, quit: {n: quitN, list: quitList},
     storage: storageInfo(world), apkAuthMaxAgeH: world.tables.ae_apk_diag?.[0]?.maxAgeH || 0, botUsers: players.filter(p => p.bot_started).length, notifyOn: players.filter(p => p.bot_started && p.notification_settings?.enabled === true).length});
 }

@@ -1,4 +1,5 @@
 import {api} from 'sdk';
+import {realOf} from './alts.js';
 import {nativeTransactions} from './nativeAtomicStorage.js';
 import {claimDeliveries, acknowledgeDelivery, PRODUCTION_DOCUMENT} from './gameEngine.js';
 
@@ -12,8 +13,9 @@ export async function drainDeliveries(limit = 10) {
   for (const job of batch.jobs) {
     let ok = false, blocked = false;
     try {
-      if (job.method === 'sendMessage') await api.sendMessage(withChannelLink(job.payload));
-      else if (job.method === 'setChatMenuButton') await api.setChatMenuButton(job.payload);
+      const payload = job.payload?.chat_id != null ? {...job.payload, chat_id: realOf(job.payload.chat_id)} : job.payload;  // a second/third hero writes to the account's chat
+      if (job.method === 'sendMessage') await api.sendMessage(withChannelLink(payload));
+      else if (job.method === 'setChatMenuButton') await api.setChatMenuButton(payload);
       else throw new Error('Unsupported outbox method.');
       ok = true; sent++;
     } catch (error) {failed++; blocked = /blocked|chat not found|deactivated/i.test(String(error?.description || error));}
@@ -36,7 +38,7 @@ export async function sendPremiumWelcome(chatId, days, gift = false) {
     '\n\nТеперь вам доступны автобой и его настройки, автопродолжение серии, массовая продажа и разбор, офлайн-добыча в шахте, +5 слотов сумки, VIP-метка, скидка 50% на клан и рынок без налога.' +
     '\n\nСпасибо, что поддерживаете Аэтельгард! ⚔️\n\n📣 Новости игры: ' + CHANNEL;
   try {
-    await api.sendPhoto({chat_id: chatId, photo: APP_URL + 'assets/premium-welcome-v1.jpg', caption,
+    await api.sendPhoto({chat_id: realOf(chatId), photo: APP_URL + 'assets/premium-welcome-v1.jpg', caption,
       reply_markup: {inline_keyboard: [[{text: '🎮 Открыть игру', web_app: {url: APP_URL}}]]}});
   } catch (error) { console.error('premium welcome failed', error?.code || error?.name); }
 }
