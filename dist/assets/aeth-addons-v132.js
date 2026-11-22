@@ -5090,7 +5090,9 @@
   }
   // Hero creation screen: the name first (a phone keyboard used to cover it), the old name replaced on the first tap,
   // the name shown on the hero picture, class portraits in both styles, «Начать путешествие» always on screen.
-  const CLASS_ID = {Воин: 'warrior', Берсерк: 'berserker', Рыцарь: 'knight', Разбойник: 'rogue', Ассасин: 'assassin', Лучник: 'archer', Маг: 'mage', Некромант: 'necromancer', Паладин: 'paladin', Друид: 'druid'};
+  const CLASS_ID = {Воин: 'warrior', Берсерк: 'berserker', Рыцарь: 'knight', Разбойник: 'rogue', Ассасин: 'assassin', Лучник: 'archer', Маг: 'mage', Некромант: 'necromancer', Паладин: 'paladin', Друид: 'druid',
+    Воїн: 'warrior', Лицар: 'knight', Розбійник: 'rogue', Асасин: 'assassin', Друїд: 'druid'};
+  const classOfName = t => CLASS_ID[Object.keys(CLASS_ID).sort((a, b) => b.length - a.length).find(k => String(t || '').trim().startsWith(k))] || null;
   function paintRegistration() {
     const reg = document.querySelector('.registration-screen'); if (!reg) return;
     reg.classList.add('ae-reg');
@@ -5103,15 +5105,21 @@
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     }
     const art = reg.querySelector('.registration-hero-art');
+    // the same hero picture in both styles: the class portrait (the modern style used a wide banner)
+    if (art) { const cls = classOfName((art.textContent.match(/Клас[с]?:\s*(\S+)/) || [])[1]);
+      let pic = art.querySelector('.ae-reg-art'); if (cls && !pic) { pic = h('img', {class: 'ae-reg-art', alt: ''}); art.append(pic); }
+      if (pic && cls) { const src = heroPortrait(cls); if (pic.getAttribute('src') !== src) pic.setAttribute('src', src); }
+      art.classList.toggle('ae-has-art', !!(pic && cls)); }
     if (art && inp) { let tag = art.querySelector('.ae-reg-name'); if (!tag) { tag = h('div', {class: 'ae-reg-name'}); art.append(tag); }
       const v = inp.value.trim(); if (tag.textContent !== (v || 'Без имени')) tag.textContent = v || 'Без имени'; tag.classList.toggle('is-empty', !v); }
     for (const b of reg.querySelectorAll('button')) {   // the modern style shows only icons: add the class portrait
       if (b.querySelector('.registration-class-portrait, .ae-reg-portrait')) continue;
-      const name = Object.keys(CLASS_ID).find(k => (b.textContent || '').trim().startsWith(k)); if (!name || !b.querySelector('svg')) continue;
-      b.classList.add('ae-reg-cls'); b.append(h('img', {class: 'ae-reg-portrait', src: heroPortrait(CLASS_ID[name]), alt: '', loading: 'lazy'}));
+      const cls = classOfName(b.textContent); if (!cls || !b.querySelector('svg')) continue;
+      b.classList.add('ae-reg-cls'); b.append(h('img', {class: 'ae-reg-portrait', src: heroPortrait(cls), alt: '', loading: 'lazy'}));
     }
   }
   setInterval(() => { if (!document.hidden && !me()) try { paintClassHow(); paintRegistration(); } catch {} }, 600);
+  document.addEventListener('click', e => { if (e.target.closest?.('.registration-screen button')) setTimeout(() => { try { paintRegistration(); } catch {} }, 0); }, true);
   // Casters (mage, necromancer, druid): their power is in skills. New players are told so in the fight.
   const CASTER_TIP = {mage: '«Огненный шар»', necromancer: '«Касание смерти»', druid: '«Ядовитые споры»'};
   function coachCaster() {
@@ -6699,13 +6707,13 @@ html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:no
 .registration-screen.ae-reg>div>div:has(>input)>label{font-size:0!important;letter-spacing:0}.registration-screen.ae-reg>div>div:has(>input)>label::before{content:"✍️ Имя героя";font:800 14px system-ui,sans-serif;color:#ffe6a8;text-transform:none}
 .registration-screen.ae-reg>div>div:has(>input)::after{content:"Нажмите на поле и введите своё имя — его увидят другие игроки.";display:block;margin-top:6px;font:500 11px system-ui,sans-serif;opacity:.7}
 .registration-screen.ae-reg input[data-ae-name]{font-size:17px!important;padding:12px 14px!important;border-color:#c9a35a!important}
-.registration-screen.ae-reg .registration-hero-art{order:2;height:180px!important;max-height:180px}.registration-screen.ae-reg .registration-hero-art img{object-position:center 18%}
+.registration-screen.ae-reg .registration-hero-art{order:2;width:100%!important;max-width:360px!important;margin:0 auto!important;height:240px!important;max-height:240px;aspect-ratio:auto!important;background:#0a0f1d!important}.registration-screen.ae-reg .registration-hero-art.ae-has-art>img:not(.ae-reg-art){display:none!important}.registration-screen.ae-reg .registration-hero-art img.ae-reg-art{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover!important;object-position:center 15%!important;opacity:1!important;z-index:0}.registration-screen.ae-reg .registration-hero-art>div{z-index:1}
 .ae-reg-name{position:absolute;top:10px;left:12px;right:12px;font:900 20px Georgia,serif;color:#ffe6a8;text-shadow:0 2px 8px #000,0 0 18px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ae-reg-name.is-empty{opacity:.55;font-style:italic}
 .registration-screen.ae-reg>div>div:has(.grid){order:3}
 .registration-screen.ae-reg>div>div.rounded-xl{order:4}
 .registration-screen.ae-reg>div>button.ui-primary{order:5;position:sticky;bottom:8px;z-index:5;box-shadow:0 -10px 24px #07090e,0 6px 18px #000a;font-size:16px!important;padding:15px!important}
 .registration-screen.ae-reg>div>section.registration-interface-switch{order:6;padding:8px!important}.registration-screen.ae-reg>div>button:not(.ui-primary){order:7}
-.ae-reg-cls{display:flex!important;flex-direction:column;align-items:center}.ae-reg-cls>svg{display:none!important}.ae-reg-portrait{order:-1;width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center 15%;border:2px solid #c9a35a88;margin-bottom:4px}
+.registration-screen.ae-reg button:has(>.ae-reg-portrait){display:flex!important;flex-direction:column;align-items:center}.registration-screen.ae-reg button:has(>.ae-reg-portrait)>svg{display:none!important}.ae-reg-portrait,.registration-screen.ae-reg .registration-class-portrait{order:-1;width:52px!important;height:52px!important;border-radius:8px!important;overflow:hidden;object-fit:cover;object-position:center top;border:1px solid #c9a35a66!important;margin-bottom:5px}.registration-screen.ae-reg .registration-class-portrait img{object-fit:cover;object-position:center top}
 .ae-badges{position:absolute;inset:0;pointer-events:none;z-index:3;font:700 10px/1 system-ui,sans-serif}
 .ae-badges b{position:absolute;padding:2px 4px;border-radius:6px;background:#000c;color:#fff;text-shadow:0 1px 1px #000}
 .ae-b-up{top:3px;left:3px;color:#fde68a!important}.ae-b-asc{top:3px;right:3px;color:#fcd34d!important;background:#3b2a05e6!important}.ae-b-lvl{bottom:5px;left:3px;color:#cbd5e1!important}
