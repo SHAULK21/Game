@@ -19,7 +19,7 @@ script = MARK + '''<script>
 </script><!-- /aeth-runtime -->'''
 import re
 s = re.sub(r'<script type="module" src="/assets/aeth-addons-v\d+\.js"></script>', '', s)
-script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v134.js"></script><!-- /aeth-runtime -->')
+script = script.replace('</script><!-- /aeth-runtime -->', '</script><script type="module" src="/assets/aeth-addons-v135.js"></script><!-- /aeth-runtime -->')
 s = s.replace('</body>', script + '\n</body>', 1)
 
 # Several heroes on one account: the hero switch runs between telegram-web-app.js and the game bundle.

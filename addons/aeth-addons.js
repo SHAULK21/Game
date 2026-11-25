@@ -2251,6 +2251,7 @@
             g.length ? h('div', {class: 'ae-mail-gifts'}, h('span', {class: 'ae-grow'}, '🎁 ' + g.join(' · ')),
               got ? h('span', {class: 'ae-pill'}, '✅ Получено') : h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async ev => { ev.currentTarget.disabled = true; if (await claimMail(m)) { m.claimed = true; m.read = true; } await loadInbox(true); d = inboxData; st.rerender(); }}, 'Забрать')) : '')); }
       }
+      body.append(botToggleRow());
     }, {cls: 'ae-hq-panel'});
     loadInbox(true).then(x => { d = x; if (openPanelState === st) { st.rerender(); markSeen(); } });
   }
@@ -2357,7 +2358,9 @@
       item('🎟️', 'Промокод', 'Активировать код из канала', go(() => openPromo())),
       item('👤', 'Профиль', 'Титулы, аватарка и баннер', go(() => openProfile())),
       item('👥', 'Персонажи', 'До 3 героев на одном аккаунте', go(() => openChars())),
-      item('🎁', 'Награда за вход', 'Заходите каждый день — на 7-й день Premium', go(() => openDaily()))));
+      item('🎁', 'Награда за вход', 'Заходите каждый день — на 7-й день Premium', go(() => openDaily())),
+      item('🧭', 'Путь новичка', '7 шагов с наградами для нового героя', go(() => openPath())),
+      item('🔔', 'Сообщения от бота', 'Включить или выключить напоминания', go(() => openInbox('events')))));
   }
   try { const sb = !isApk && window.Telegram?.WebApp?.SettingsButton; if (sb && Telegram.WebApp.isVersionAtLeast?.('7.0')) { sb.onClick(() => openTgSettings()); sb.show(); } } catch (e) { console.warn('ae settings button', e); }
   function openApkInfo() {
@@ -4829,10 +4832,102 @@
     phone: '<rect x="8" y="3.5" width="12" height="21" rx="2.5"/><path d="M12.5 20.5h3"/>',
     wiki: '<path d="M14 7.5c-2.5-2-6-2.5-9.5-2v16c3.5-.5 7 0 9.5 2 2.5-2 6-2.5 9.5-2v-16c-3.5-.5-7 0-9.5 2zM14 7.5v16"/>',
     coll: '<path d="M5 5.5h5.5v17H5zM11.5 5.5H17v17h-5.5zM18.5 7l4.5-1.2 4 15.6-4.5 1.2z"/>',
+    path: '<circle cx="14" cy="14" r="10"/><path d="M17.5 10.5l-2 5-5 2 2-5z"/>',
     gift: '<rect x="4.5" y="11" width="19" height="12" rx="1.5"/><path d="M3.5 7.5h21v3.5h-21zM14 7.5v15.5M14 7.5c-1.5-4-6-4.5-6-1.5 0 1.5 3 1.5 6 1.5zM14 7.5c1.5-4 6-4.5 6-1.5 0 1.5-3 1.5-6 1.5z"/>',
     chars: '<circle cx="10.5" cy="9.5" r="3.5"/><path d="M3.5 22.5c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><circle cx="19.5" cy="10.5" r="2.8"/><path d="M19.5 16c3 0 5 2 5 5.5"/>',
     cloud: '<path d="M8 21.5h12.5a4.5 4.5 0 0 0 .6-9 6.5 6.5 0 0 0-12.6-1.6A5.3 5.3 0 0 0 8 21.5z"/><path d="M14 13v6M11.5 16.5L14 19l2.5-2.5"/>'};
   const lineIcon = k => h('span', {class: 'reference-icon ae-line-icon', 'aria-hidden': 'true', html: `<svg width="25" height="25" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LINE[k]}</svg>`});
+  // ---------- 🧭 «Путь новичка»: 7 steps with rewards for a new hero (server: tgcloud/lib/path.js) ----------
+  let pathState = null, pathAt = 0, pathBusy = false;
+  async function loadPath(force) {
+    if (!me() || pathBusy || (!force && Date.now() - pathAt < 120e3)) return pathState;
+    pathBusy = true; try { pathState = await api('/api/ae-path'); pathAt = Date.now(); } catch {} finally { pathBusy = false; }
+    paintPathPill(); return pathState;
+  }
+  const pathKey = k => `aeth_path_${k}_${uid()}`;
+  const pathGearSig = p => Object.entries(p?.equipped || {}).filter(([, v]) => v).map(([k, v]) => k + ':' + (v.id || v.templateId || '')).sort().join('|');
+  let lastSP = null;
+  // what the game itself shows: a won fight, spent stat points, new gear, the settlement, level 5 (the skill: a click in a fight)
+  function pathSeen() {
+    const p = me(); if (!p) return [];
+    const out = [];
+    if ((p.statsSummary?.battlesWon || 0) >= 1 || (p.statsSummary?.monstersKilled || 0) >= 1) out.push('win');
+    const sp = Number(p.statPoints) || 0; if (lastSP != null && sp < lastSP) out.push('stats'); lastSP = sp;
+    const sig = pathGearSig(p), was = localStorage.getItem(pathKey('gear')); if (was == null) localStorage.setItem(pathKey('gear'), sig); else if (sig && sig !== was) out.push('gear');
+    if (p.worldPlace === 'settlement') out.push('town');
+    if ((p.level || 1) >= 5) out.push('level5');
+    if (localStorage.getItem(pathKey('skill'))) out.push('skill');
+    return out;
+  }
+  document.addEventListener('click', e => {
+    if (!document.documentElement.hasAttribute('data-in-combat') || !pathState?.eligible) return;
+    const b = e.target.closest?.('button'), names = (me()?.skills || []).map(x => x.name).filter(Boolean);
+    if (b && names.some(n => (b.textContent || '').includes(n))) localStorage.setItem(pathKey('skill'), '1');
+  }, true);
+  async function pathTick() {
+    if (!pathState?.eligible || document.hidden) return;
+    const done = new Set(pathState.steps.filter(x => x.done).map(x => x.id)), fresh = pathSeen().filter(id => !done.has(id));
+    if (!fresh.length) return;
+    try { const before = done; pathState = await api('/api/ae-path/mark', 'POST', {steps: fresh}); pathAt = Date.now();
+      for (const st of pathState.steps) if (st.done && !st.claimed && !before.has(st.id)) toast(`🧭 Путь новичка: «${st.title}» выполнено — заберите награду!`);
+    } catch {}
+    paintPathPill();
+  }
+  setTimeout(() => loadPath(true), 8000); setInterval(() => { if (me()) loadPath().then(() => pathTick()); }, 3000);
+  function paintPathPill() {
+    let pill = document.querySelector('.ae-path-pill'); const s = pathState;
+    const hide = !s?.eligible || !me() || document.documentElement.hasAttribute('data-in-combat') || !!document.querySelector('.ae-panel, .ae-story, [role=dialog], .ae-relink, .registration-screen, #startup-splash') || !document.querySelector('nav');
+    if (!pill) { if (!s?.eligible) return; pill = h('button', {type: 'button', class: 'ae-path-pill', onclick: () => openPath()}); document.body.append(pill); }
+    pill.hidden = hide; if (hide) return;
+    const txt = `🧭 Путь новичка ${s.claimed}/${s.steps.length}${s.ready ? ' · 🎁' : ''}`; if (pill.textContent !== txt) pill.textContent = txt;
+    pill.classList.toggle('has-gift', !!s.ready);
+  }
+  setInterval(() => { try { paintPathPill(); } catch {} }, 1000);
+  const goNav = t => () => { closePanel(); setTimeout(() => [...document.querySelectorAll('nav button, nav a')].find(b => (b.textContent || '').includes(t))?.click(), 200); };
+  const PATH_GO = {win: ['Охота', goNav('Охота')], stats: ['Герой', goNav('Герой')], gear: ['Сумка', goNav('Сумка')], town: ['Поселение', () => { const has = [...document.querySelectorAll('nav button, nav a')].some(b => (b.textContent || '').includes('Поселение')); if (has) return goNav('Поселение')(); goNav('Мир')(); setTimeout(() => toast('🏘️ В «Мире» отправьтесь в Поселение — дорога займёт немного времени.'), 700); }], daily: ['Награда', () => openDaily()], level5: ['Охота', goNav('Охота')]};
+  async function claimPath(step) {
+    let pend; try { pend = JSON.parse(localStorage.getItem(pathKey('pending')) || 'null'); } catch { pend = null; }
+    const op = pend?.step === step ? pend.op : uuid4(); localStorage.setItem(pathKey('pending'), JSON.stringify({step, op}));
+    try {
+      const r = await api('/api/ae-path/claim', 'POST', {step, operationId: op});
+      let done; try { done = new Set(JSON.parse(localStorage.getItem(pathKey('done')) || '[]')); } catch { done = new Set(); }
+      if (!done.has(op)) { const parts = grantReward(r.gifts || {}); done.add(op); localStorage.setItem(pathKey('done'), JSON.stringify([...done].slice(-20)));
+        toast(r.finished ? `🎉 Путь новичка пройден! ${parts.join(', ')}` : `🧭 Награда: ${parts.join(', ')}`); sfx.play('coins'); if (r.finished) B()?.sound?.playVictory?.(); if (r.gifts?.premiumDays) setTimeout(() => checkPremium(), 800); }
+      localStorage.removeItem(pathKey('pending')); pathState = r; pathAt = Date.now(); paintPathPill(); return true;
+    } catch (e) { if (/уже получена/i.test(String(e?.message || ''))) localStorage.removeItem(pathKey('pending')); toast(cleanError(e)); return false; }
+  }
+  setTimeout(() => { try { const pend = JSON.parse(localStorage.getItem(pathKey('pending')) || 'null'); if (pend?.step) claimPath(pend.step); } catch {} }, 10000);   // a claim cut off mid-way
+  function openPath() {
+    openPanel('🧭 Путь новичка', body => {
+      const s = pathState;
+      if (!s) { body.append(h('p', {class: 'ae-empty'}, 'Загрузка…')); loadPath(true).then(() => openPanelState && openPath()); return; }
+      if (!s.eligible) { body.append(h('p', {class: 'ae-note'}, s.finished ? '🎉 Путь новичка пройден — все награды получены. Удачи в королевстве!' : 'Путь новичка — для героев до 10 уровня.')); return; }
+      body.append(h('p', {class: 'ae-note'}, 'Семь шагов, чтобы освоиться в Аэтельгарде. За каждый — награда, а за 5 уровень — 👑 Premium на сутки: автобой, офлайн-добыча и другие удобства.'),
+        h('div', {class: 'ae-path-bar'}, h('i', {style: `width:${Math.round(100 * s.claimed / s.steps.length)}%`})));
+      for (const st of s.steps) {
+        const go = PATH_GO[st.id];
+        body.append(h('div', {class: 'ae-path-step' + (st.claimed ? ' is-claimed' : st.done ? ' is-ready' : '')},
+          h('span', {class: 'ae-path-ico'}, st.claimed ? '✅' : st.icon),
+          h('div', {class: 'ae-grow'}, h('b', {}, st.title), h('small', {}, st.claimed ? 'Награда получена' : st.hint), h('div', {class: 'ae-path-gift'}, '🎁 ' + giftParts(st.gifts).join(' · '))),
+          st.claimed ? '' : st.done ? h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: async ev => { ev.currentTarget.disabled = true; if (await claimPath(st.id)) openPath(); else ev.currentTarget.disabled = false; }}, 'Забрать')
+            : go ? h('button', {type: 'button', class: 'ae-btn', onclick: go[1]}, go[0]) : ''));
+      }
+    }, {cls: 'ae-hq-panel'});
+  }
+  // ---------- 🤖 bot messages: on/off (the game's own notification setting) ----------
+  function botToggleRow() {
+    const row = h('div', {class: 'ae-bot-toggle'}, h('small', {class: 'ae-sub'}, '🤖 Сообщения от бота: загрузка…'));
+    api('/api/notifications').then(d => {
+      const on = d?.settings?.enabled === true, started = !!d?.botStarted;
+      if (!started) { row.replaceChildren(h('div', {class: 'ae-grow'}, h('b', {}, '🤖 Сообщения от бота'), h('small', {}, 'Запустите бота, чтобы получать напоминания: награда за вход, энергия, шахта, подарки.')),
+        h('button', {type: 'button', class: 'ae-btn ae-primary', onclick: () => { try { Telegram.WebApp.openTelegramLink('https://t.me/Aethelgardr_RPG_Bot?start=notify'); } catch { window.open('https://t.me/Aethelgardr_RPG_Bot?start=notify'); } }}, 'Открыть бота')); return; }
+      row.replaceChildren(h('div', {class: 'ae-grow'}, h('b', {}, `🤖 Сообщения от бота: ${on ? 'включены' : 'выключены'}`), h('small', {}, on ? 'Напоминания о награде за вход, энергии, шахте, арене и подарках.' : 'Включите, чтобы не пропускать награды и подарки.')),
+        h('button', {type: 'button', class: 'ae-btn' + (on ? '' : ' ae-primary'), onclick: async ev => { ev.currentTarget.disabled = true;
+          try { await api('/api/notifications/settings', 'POST', {enabled: !on}); toast(on ? '🔕 Сообщения от бота выключены.' : '🔔 Сообщения от бота включены.'); } catch (e) { toast(cleanError(e)); }
+          row.replaceWith(botToggleRow()); }}, on ? 'Выключить' : 'Включить'));
+    }, () => row.remove());
+    return row;
+  }
   // ---------- 🎁 Daily login reward: a 7-day calendar, one reward a day per Telegram account ----------
   const dailyDoneKey = () => 'aeth_daily_done_' + uid(), dailyPendKey = () => 'aeth_daily_pending_' + uid();
   const dailyDone = () => { try { return new Set(JSON.parse(localStorage.getItem(dailyDoneKey()) || '[]')); } catch { return new Set(); } };
@@ -4917,7 +5012,7 @@
     const head = document.querySelector('[data-ae-cls-legend]'); if (!head || document.querySelector('[data-ae-char-back]')) return;
     head.before(h('button', {type: 'button', class: 'ae-btn ae-wide ae-char-back', 'data-ae-char-back': '1', onclick: () => switchChar(0)}, '↩ Вернуться к основному персонажу'));
   }, 800);
-  const AE_GROUP = [['season', 'Сезон 1', () => openSeason()], ['mentor', 'Наставничество', () => openMentor()], ['profile', 'Профиль', () => openProfile()], ['gift', 'Награда за вход', () => openDaily()], ['chars', 'Персонажи', () => openChars()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
+  const AE_GROUP = [['season', 'Сезон 1', () => openSeason()], ['mentor', 'Наставничество', () => openMentor()], ['profile', 'Профиль', () => openProfile()], ['gift', 'Награда за вход', () => openDaily()], ['path', 'Путь новичка', () => openPath()], ['chars', 'Персонажи', () => openChars()], ['news', 'Что нового', openNews], ['horde', 'Орда', () => openHorde()], ['coop', 'Кооп', openCoop], ['duel', 'Дуэли', () => openDuel()], ['quests', 'Кооп и PvP задания', () => openSpecialQuests()], ['merge', 'Объединение', openMerge],
     ['friends', 'Друзья', () => openFriends()], ['invite', 'Пригласить друга', () => openInvite()], ['promo', 'Промокод', openPromo], ['wiki', 'Вики', openWiki], ['scale', 'Интерфейс: стиль и размер', () => openUiScale()], ['coll', 'Коллекция', () => openCollection()], ['cloud', 'Перенос героя', () => openCloudPanel()], ['phone', 'Приложение Android', () => openApkInfo()]];
   // Switch the game's interface style (the game's own switch lives in the Telegram settings button / desktop top bar).
   function switchStyle(k, label) {
@@ -4943,7 +5038,7 @@
   function tidyMechanicsMenu(menu) {
     if (!menu.querySelector(':scope > [data-ae-group]')) {
       const group = h('section', {class: 'mechanics-group', 'data-ae-group': '1'}, h('header', {}, h('h2', {}, 'Приключения'), h('p', {}, 'Вместе и против всех')),
-        h('div', {class: 'mechanics-grid'}, AE_GROUP.map(([icon, label, fn]) => h('div', {class: 'mechanics-entry'},
+        h('div', {class: 'mechanics-grid'}, AE_GROUP.filter(x => x[0] !== 'path' || pathState?.eligible).map(([icon, label, fn]) => h('div', {class: 'mechanics-entry'},
           h('button', {type: 'button', 'data-ae-news-btn': icon === 'news' ? '1' : null, onclick: e => { e.stopPropagation(); fn(); }}, lineIcon(icon), h('span', {class: 'mechanics-entry-label'}, label))))));
       const first = menu.querySelector(':scope > .mechanics-group');
       menu.insertBefore(group, first ? first.nextSibling : null);
@@ -6745,7 +6840,7 @@ html[data-in-combat] main .border-cyan-500\\/20.text-\\[10px\\].font-mono:has(>s
 .ae-boon-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ae-boon{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 5px!important;border-radius:12px!important;border:1px solid #f0cf7a88!important;background:#0007!important;color:#fff!important;cursor:pointer;min-width:0}
 .ae-boon>span{font-size:24px}.ae-boon>b{font-size:12px;line-height:1.15}.ae-boon>small{font-size:10.5px;opacity:.8;line-height:1.2;text-align:center}.ae-boon:active{transform:scale(.96)}
 .ae-boon-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.ae-boon-chips>span{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#f0cf7a26;border:1px solid #f0cf7a66;font-size:15px}
-.ae-chars{display:flex;flex-direction:column;gap:8px}.ae-char{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-char.is-on{border-color:#c9a35a;box-shadow:0 0 0 1px #c9a35a55 inset}.ae-char small{display:block;font-size:10.5px;opacity:.7}.ae-char b{display:block;font-size:14px}.ae-char .ae-avatar{width:48px;height:48px;flex:0 0 48px}.ae-char-plus{flex:0 0 48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px dashed #c9a35a88}.ae-char.is-locked{opacity:.7}.ae-daily-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}.ae-daily-day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:10px;border:1px solid #ffffff22;background:#0000002e;text-align:center;min-height:86px}.ae-daily-day small{font-size:10px;opacity:.75}.ae-daily-day b{font-size:9.5px;line-height:1.25;font-weight:600}.ae-daily-ico{font-size:20px;line-height:1.3}.ae-daily-day.is-today{border-color:#f0cf7a;box-shadow:0 0 0 2px #f0cf7a55,0 0 14px #f0cf7a44;background:#2a2112}.ae-daily-day.is-taken{opacity:.55}.ae-daily-day.is-big{grid-column:span 2;background:linear-gradient(#2a1d3a,#14101c);border-color:#b08cff88}.ae-daily-next{text-align:center;font-size:12.5px;opacity:.85}.ae-char-acts{display:flex;gap:6px;flex:none}.ae-char-del{min-width:40px;padding-left:8px!important;padding-right:8px!important}.ae-char-tag{flex:none;color:#7fd17f;font-weight:800;font-size:18px;padding:0 6px}.ae-char-back{margin:6px 0}\n.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
+.ae-chars{display:flex;flex-direction:column;gap:8px}.ae-char{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-char.is-on{border-color:#c9a35a;box-shadow:0 0 0 1px #c9a35a55 inset}.ae-char small{display:block;font-size:10.5px;opacity:.7}.ae-char b{display:block;font-size:14px}.ae-char .ae-avatar{width:48px;height:48px;flex:0 0 48px}.ae-char-plus{flex:0 0 48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px dashed #c9a35a88}.ae-char.is-locked{opacity:.7}.ae-path-pill{position:fixed;left:12px;bottom:84px;z-index:60;padding:9px 13px;border-radius:999px;border:1px solid #c9a35a;background:linear-gradient(#2a2112,#15110a);color:#ffe6a8;font:700 12.5px system-ui,sans-serif;box-shadow:0 4px 14px #000a}.ae-path-pill.has-gift{animation:aePathPulse 1.6s ease-in-out infinite}@keyframes aePathPulse{50%{box-shadow:0 0 0 4px #f0cf7a55,0 4px 14px #000a}}.ae-path-bar{height:8px;border-radius:6px;background:#ffffff1a;overflow:hidden;margin:4px 0 10px}.ae-path-bar i{display:block;height:100%;background:linear-gradient(90deg,#c99a3c,#f0cf7a)}.ae-path-step{display:flex;align-items:center;gap:10px;padding:9px;margin:6px 0;border-radius:12px;border:1px solid #ffffff1f;background:#0000002e}.ae-path-step.is-ready{border-color:#f0cf7a;box-shadow:0 0 0 1px #f0cf7a55 inset}.ae-path-step.is-claimed{opacity:.6}.ae-path-step b{display:block;font-size:13.5px}.ae-path-step small{display:block;font-size:11px;opacity:.8;line-height:1.35}.ae-path-gift{font-size:11px;color:#f0cf7a;margin-top:2px}.ae-path-ico{flex:none;font-size:22px;width:30px;text-align:center}.ae-bot-toggle{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px;border-radius:12px;border:1px solid #ffffff22;background:#0000002e}.ae-bot-toggle b{display:block;font-size:13px}.ae-bot-toggle small{display:block;font-size:11px;opacity:.8}.ae-daily-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}.ae-daily-day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:10px;border:1px solid #ffffff22;background:#0000002e;text-align:center;min-height:86px}.ae-daily-day small{font-size:10px;opacity:.75}.ae-daily-day b{font-size:9.5px;line-height:1.25;font-weight:600}.ae-daily-ico{font-size:20px;line-height:1.3}.ae-daily-day.is-today{border-color:#f0cf7a;box-shadow:0 0 0 2px #f0cf7a55,0 0 14px #f0cf7a44;background:#2a2112}.ae-daily-day.is-taken{opacity:.55}.ae-daily-day.is-big{grid-column:span 2;background:linear-gradient(#2a1d3a,#14101c);border-color:#b08cff88}.ae-daily-next{text-align:center;font-size:12.5px;opacity:.85}.ae-char-acts{display:flex;gap:6px;flex:none}.ae-char-del{min-width:40px;padding-left:8px!important;padding-right:8px!important}.ae-char-tag{flex:none;color:#7fd17f;font-weight:800;font-size:18px;padding:0 6px}.ae-char-back{margin:6px 0}\n.ae-roster-row{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;padding:7px 9px!important;border-radius:10px!important;border:1px solid #ffffff1f!important;background:#0000002e!important;color:inherit!important;text-align:left;font:inherit;cursor:pointer}
 .ae-roster-row b{display:block;font-size:12.5px}.ae-roster-row small{display:block;font-size:10.5px;opacity:.75;line-height:1.3}.ae-roster-dot{flex:none;font-size:12px}
 .ae-roster-days{flex:none;display:flex;flex-direction:column;align-items:center;min-width:34px}.ae-roster-days b{font-size:15px}.ae-roster-days small{font-size:9.5px;opacity:.65}
 html[data-in-combat] div:has(>section.notification-onboarding-dialog){display:none!important}
@@ -6982,5 +7077,5 @@ html[data-in-combat] .fantasy-shell-nav .game-nav-item+.game-nav-item::before{co
 @keyframes aeIn{from{opacity:0}}@keyframes aeZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.ae-story,.ae-story-card img{animation:none}.ae-confetti{display:none}}`;
   document.head.append(h('style', {id: 'ae-styles'}, css));
-  window.__aethOpen = {daily: () => openDaily(), chars: () => openChars(), stats: () => openAdminStats(), card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), collection: () => openCollection(), wild: () => openClanHQ('wild'), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
+  window.__aethOpen = {path: () => openPath(), daily: () => openDaily(), chars: () => openChars(), stats: () => openAdminStats(), card: (id, n) => openPlayerCard(id, n), auction: t => openAuction(t || "all"), settings: () => openTgSettings(), ui: () => openUiScale(), coop: () => openCoop(), companions: () => openCompanions(), clanFort: () => openClanHQ("fort"), lands: () => openClanHQ("lands"), collection: () => openCollection(), wild: () => openClanHQ('wild'), promoAdmin: () => openPanel('🎟️ Промокоды', b => b.append(adminPromoBlock())), newsAdmin: () => openPanel('📰 Новости', b => b.append(adminNewsBlock())), mailAdmin: () => openPanel('✉️ Почта', b => b.append(adminMailBlock())), inbox: openInbox, merge: openMerge, friends: openFriends, coop: openCoop, wiki: openWiki, duel: openDuel, promo: openPromo, pulse: socialPulse, horde: () => openHorde(), profile: () => openProfile(), card: (id, name) => openPlayerCard(id, name), stats: () => openAdminStats(), quests: () => openSpecialQuests(), invite: () => openInvite(), clanHQ: t => openClanHQ(t), clanRaid: () => openClanRaid(), clanSearch: () => openClanSearch(), auction: t => openAuction(t), wallet: n => openMarketWallet(n), shareItem: it => openShareItem(it), clanDonate: () => openClanDonate(), clanDeposit: () => openClanDeposit(), gems: t => openGems(t), legend: () => makeLegendary(me()), gear: r => makeGear(me(), r)};
 })();

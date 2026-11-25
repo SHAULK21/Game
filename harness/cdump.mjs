@@ -1,0 +1,10 @@
+import {launch} from './browser.mjs';
+const s = await launch({localState: {aethelgard_interface_style: 'modern'}}); const p = s.page; await p.setViewportSize({width: 390, height: 844});
+const click = async re => p.evaluate(src => { const re = new RegExp(src, 'i'); const b = [...document.querySelectorAll('button')].find(x => x.offsetParent && re.test((x.textContent || '').trim())); if (b) { b.click(); return true; } return false; }, re.source);
+await p.waitForTimeout(5000); await click(/^Пропустить$/); await p.waitForTimeout(1500); await p.fill('input', 'Тест'); await click(/Начать путешествие/); await p.waitForTimeout(6000);
+console.log('combat?', await p.evaluate(() => document.documentElement.hasAttribute('data-in-combat')));
+console.log(await p.evaluate(() => { const c = window.__aethBridge.combat; if (!c) return 'no combat'; const o = {}; for (const [k, v] of Object.entries(c)) o[k] = Array.isArray(v) ? `[${v.length}]` : v && typeof v === 'object' ? '{' + Object.keys(v).slice(0, 10) + '}' : v; return JSON.stringify(o).slice(0, 1500); }));
+console.log('skills:', await p.evaluate(() => JSON.stringify(window.__aethBridge.player.skills.map(s => ({id: s.id, name: s.name, mp: s.manaCost ?? s.mp, unlocked: s.unlocked})))));
+await click(/^Навыки$/); await p.waitForTimeout(800);
+console.log('skill buttons:', await p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent).map(b => b.textContent.trim().replace(/\s+/g, ' ').slice(0, 50)).join(' / ')));
+await s.close(); process.exit(0);

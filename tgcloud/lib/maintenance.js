@@ -1,6 +1,7 @@
 // Housekeeping for the single world document: keeps it small so every request stays cheap.
 import {compactQuestLog} from './arenaExtras.js';
 import {isAlt} from './alts.js';
+import {notifyDefaults, returnReminders} from './reminders.js';
 import {pruneFort} from './clanFort.js';
 const DAY = 864e5;
 const at = row => Date.parse(row?.created_at || row?.updated_at || '') || 0;
@@ -28,6 +29,7 @@ export function premiumNotices(world, now = Date.now()) {
 }
 export function pruneWorld(world, now = Date.now()) {
   try { premiumNotices(world, now); } catch {}
+  try { notifyDefaults(world, now); returnReminders(world, now); } catch (error) { console.error('reminders failed', error?.message); }
   const t = world.tables || {}, before = JSON.stringify(t).length;
   // Idempotency receipts only matter for client retries within minutes.
   if (t.game_operations) t.game_operations = keepRecent(t.game_operations, now - 7 * DAY);

@@ -61,7 +61,7 @@ export function handleChars(world, input, tg, current, now) {
 const KEEP_TABLES = new Set(['players', 'owned_items', 'clans', 'clan_members', 'global_chat_messages', 'ae_chat_meta', 'promo_codes', 'referral_rewards',
   'telegram_outbox', 'ae_news', 'ae_bug_reports', 'admin_premium_grants', 'ae_client_diag', 'ae_apk_diag', 'balance_sessions', 'balance_activity',
   'ae_lots', 'ae_lot_offers', 'ae_buy_requests', 'trade_offers', 'ae_market_ops', 'coop_rooms', 'duels', 'ae_flags', 'clan_storage_events',
-  'ae_deposits', 'ae_gem_ops', 'social_notice_marks', 'admin_account_resets', 'premium_payments', 'ae_profiles', 'friendships', 'ae_mentors', 'ae_lands']);
+  'ae_deposits', 'ae_gem_ops', 'social_notice_marks', 'admin_account_resets', 'premium_payments', 'ae_profiles', 'friendships', 'ae_mentors', 'ae_lands', 'ae_path', 'ae_remind']);
 const USER_KEYS = ['u', 'telegram_id', 'owner_telegram_id', 'user_id', 'to'];
 export function purgeHero(world, id) {
   const sid = String(id); let n = 0;
