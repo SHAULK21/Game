@@ -3,6 +3,7 @@
 // The server records the claim (idempotent by operationId) and returns the gifts; the game client adds gold,
 // silver, energy, fragments and tickets to the hero (as with mail gifts); Premium is set here.
 import {realOf, accountIds} from './alts.js';
+import {boardPush} from './npc.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -49,6 +50,7 @@ export function handleDaily(world, input, user, now) {
     let rec = st.rec; if (!rec) { rec = {u: tg}; rows(world, 'ae_daily').push(rec); }
     Object.assign(rec, {day: st.today, n, op, gifts, by: me, at: iso(now), best: Math.max(rec.best || 0, n)});
     if (gifts.premiumDays) for (const id of accountIds(me)) { const h = player(world, id); if (h) h.premium_until = iso(Math.max(now, Date.parse(h.premium_until || 0) || 0) + gifts.premiumDays * DAY); }
+    if (n === 7) boardPush(world, {icon: '🎁', text: `${String(p.character_name || 'Герой')}: 7 дней входа подряд — Премиум на сутки!`, u: me}, now);
     return ok({gifts, day: n});
   }
   return fail('API не найден.', 404);

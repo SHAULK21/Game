@@ -2,6 +2,7 @@
 // (one of a member's companions), and develop for passive income (gold, a mine, or a bastion).
 // Settled lazily (no scheduler): defence regenerates and income flows into the owner clan's treasury hour by hour.
 import {clanOf, membersOf, metaOf, tellClan, addClanXp, clanCredit, fortOf, todayStart} from './clanPlus.js';
+import {boardPush} from './npc.js';
 import {GUARDS} from './clanFort.js';
 import {baseStats, realStats} from './heroStats.js';
 import {compStats, compImg} from './companions.js';
@@ -148,6 +149,7 @@ export function handleLands(world, path, method, body, me, now, notify) {
       const prev = D; Object.assign(r, {owner: clan.id, troops: {}, gov: null, pool: null, inc_at: iso(now), shield: iso(now + SHIELD)});
       landsTick(world, now); r.pool = Math.round(maxDef(world, L, r) * 0.5);
       addClanXp(clan, 100 * L.tier);
+      boardPush(world, {icon: '🚩', text: `Клан [${clan.tag}] захватил «${L.name}»${prev ? ` у [${prev.tag}]` : ''}. Последний удар — ${nameOf(p)}`, u: me}, now);
       llog(r, now, '🚩', `[${clan.tag}] захватил ${L.name}${prev ? ` у [${prev.tag}]` : ''}. Последний удар: ${nameOf(p)}.`);
       tellClan(world, clan, `🚩 [${clan.tag}] захватил «${L.name}» (${TIERS[L.tier].name})! Последний удар — ${nameOf(p)}. Наймите гарнизон и выберите постройку в разделе «Земли клана».`, `land-cap:${L.id}:${now}`, now, notify, '🚩');
       if (prev) tellClan(world, prev, `🔥 [${clan.tag}] захватил нашу землю «${L.name}»! Отбейте её в разделе «Земли клана».`, `land-lost:${L.id}:${now}`, now, notify, '🔥');

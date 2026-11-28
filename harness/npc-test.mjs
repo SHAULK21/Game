@@ -1,0 +1,25 @@
+import {launch} from './browser.mjs'; import fs from 'node:fs';
+const style = process.argv[2] || 'fantasy', ME = '437290420', KEY = 'aethelgard_save_v1_data_' + ME;
+const ls = JSON.parse(fs.readFileSync('ls.json')); const save = JSON.parse(ls[KEY]);
+Object.assign(save.player, {level: 9, worldPlace: 'settlement', royalBriefingStep: 99}); delete save.player.firstJourney; delete save.player.firstJourneyDeparture; save.player.name = 'Артур';
+ls[KEY] = JSON.stringify(save); ls.aethelgard_interface_style = style; ls['aeth_daily_seen_' + ME] = new Date().toISOString().slice(0, 10);
+const s = await launch({localState: ls, setupWorld: (w, E) => { Object.assign(w, JSON.parse(fs.readFileSync('world-after-reg.json'))); const me = w.tables.players.find(p => String(p.telegram_id) === ME); if (me) Object.assign(me, {level: 9, character_name: 'Артур', class_id: 'warrior', last_seen_at: new Date().toISOString()}); (w.tables.horde_best ||= []).push({user: ME, kills: 20, bloodKills: 0}); }});
+const p = s.page; await p.setViewportSize({width: 390, height: 844}); p.setDefaultTimeout(4000);
+console.log('step: loaded'); await p.waitForTimeout(7000);
+for (const t of ['Позже', 'В бой, герой!', 'Понятно', 'Закрыть']) await p.evaluate(t => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === t)?.click(), t);
+for (let k = 0; k < 3; k++) { await p.evaluate(() => { document.querySelectorAll('.ae-story button, .ae-pop .ae-x, .ae-apk-hint button').forEach(b => b.click()); document.querySelector('.ae-x')?.click(); }); await p.waitForTimeout(500); }
+await p.evaluate(() => [...document.querySelectorAll('nav button, nav a')].find(b => /Поселение/.test(b.textContent))?.click()); await p.waitForTimeout(1200);
+await p.evaluate(() => document.querySelector('[data-settlement-place="chat"]')?.click()); await p.waitForTimeout(5000);
+console.log('step: tavern', await p.evaluate(() => !!document.querySelector('#tavern-chat')));
+console.log('strip:', await p.evaluate(() => document.querySelector('[data-ae-board]')?.innerText.replace(/\s+/g, ' ')));
+console.log('msgs:', await p.evaluate(() => [...document.querySelectorAll('.chat-message')].map(m => m.innerText.replace(/\s+/g, ' ').slice(0, 90)).slice(-3).join(' || ')));
+await p.fill('#tavern-chat .chat-composer input', 'Всем привет! Как быстро качаться?'); await p.evaluate(() => document.querySelector('#tavern-chat .chat-composer').requestSubmit());
+await p.waitForTimeout(16000);
+console.log('after:', await p.evaluate(() => [...document.querySelectorAll('.chat-message')].map(m => m.innerText.replace(/\s+/g, ' ').slice(0, 110)).slice(-3).join(' || ')));
+await p.screenshot({path: `npc-tavern-${style}.png`});
+const me = s.world.tables.players.find(x => String(x.telegram_id) === ME); me.level = 10; s.world.tables.horde_best[0].kills = 64; s.world.tables.ae_npc_state[0].tickAt = 0;
+await p.evaluate(() => window.__aethOpen.board()); await p.waitForTimeout(3000);
+console.log('board:', await p.evaluate(() => [...document.querySelectorAll('.ae-board-row')].map(r => r.innerText.replace(/\s+/g, ' ')).slice(0, 5).join(' || ')));
+await p.screenshot({path: `npc-board-${style}.png`});
+console.log('errors:', s.log.filter(l => /pageerror|\[error\]/.test(l)).slice(0, 4).join(' || ') || 'none');
+await s.close(); process.exit(0);

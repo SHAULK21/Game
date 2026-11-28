@@ -2,6 +2,7 @@
 // reaches 10 / 20 / 30 / 40 level both claim a reward; at 40 the apprentice graduates. One mentor per apprentice
 // per season, at most 5 graduations per mentor per season (alts cannot farm it).
 import {pushEvent} from './arenaExtras.js';
+import {isNpc} from './npc.js';
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
 const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400) => ({status, body: {error}});
@@ -28,7 +29,7 @@ function view(world, me, now) {
       steps: MILESTONES.map(s => ({lvl: s.lvl, reached: al >= s.lvl, before: (x.skip || []).includes(s.lvl), gotA: (x.gotA || []).includes(s.lvl), gotM: (x.gotM || []).includes(s.lvl), a: s.a, m: s.m, grad: !!s.grad})), next: next?.lvl || null, since: x.at}; };
   const graduated = all.some(x => same(x.a, me) && x.season === SEASON && x.status === 'done');
   const mentors = !asA && !graduated && L <= APPRENTICE_MAX ? (world.tables.players || [])
-    .filter(p => !same(p.telegram_id, me) && (Number(p.level) || 1) >= MENTOR_LVL && now - seenAt(p) < 3 * DAY && p.character_name)
+    .filter(p => !same(p.telegram_id, me) && !isNpc(p.telegram_id) && (Number(p.level) || 1) >= MENTOR_LVL && now - seenAt(p) < 3 * DAY && p.character_name)
     .map(p => ({id: String(p.telegram_id), name: nameOf(p), level: Number(p.level) || 1, busy: all.filter(x => same(x.m, p.telegram_id) && x.status === 'active').length, grads: graduates(world, p.telegram_id)}))
     .filter(x => x.busy < SLOTS).sort((a, b) => b.grads - a.grads || b.level - a.level).slice(0, 20) : [];
   return {level: L, canMentor: L >= MENTOR_LVL, canLearn: L <= APPRENTICE_MAX && !asA && !graduated, mentorLvl: MENTOR_LVL, apprenticeMax: APPRENTICE_MAX, slots: SLOTS, gradCap: GRAD_CAP,

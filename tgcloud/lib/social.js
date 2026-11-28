@@ -27,6 +27,7 @@ export function notify(world, to, text, kind, now) {
 }
 
 import {handleCoopRequest} from './coop.js';
+import {handleBoard} from './npc.js';
 import {handleDaily} from './daily.js';
 import {handlePath} from './path.js';
 import {handleMail} from './mail.js';
@@ -44,7 +45,8 @@ export async function handleSocialRequest(world, input, user, now, native) {
     if (p.startsWith('/api/ae-season')) return handleSeason(world, input, user, now);
     if (p.startsWith('/api/ae-mentor')) return handleMentor(world, input, user, now);
     if (p.startsWith('/api/ae-daily')) return handleDaily(world, input, user, now);
-    if (p.startsWith('/api/ae-path')) return handlePath(world, input, user, now); }
+    if (p.startsWith('/api/ae-path')) return handlePath(world, input, user, now);
+    if (p === '/api/ae-board') return handleBoard(world, input, user, now); }
   { const p = String(input?.path || '').split('?')[0]; if (p === '/api/chat/global' || p.startsWith('/api/ae-chat/')) { const r = await handleGlobalChat(world, input, user, now, native, notify); if (r) return r; } }
   const live = await handleLiveRequest(world, input, user, now, native, notify);
   if (live) return live;

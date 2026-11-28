@@ -1,6 +1,7 @@
 // Live features: pet satiety (server-kept, bot reminder), Blood Moon weekend announcement,
 // invite-a-friend (on top of the engine's referral reward) and admin analytics.
 import {bloodWeekend} from './horde.js';
+import {isNpc} from './npc.js';
 import {slotOf} from './alts.js';
 import {saveStats} from './heroStats.js';
 import {encodeDocument, STORAGE_CELL_LIMIT} from './storageCodec.js';
@@ -177,7 +178,7 @@ function track(world, me, sections, now) {
 }
 function report(world, now) {
   const days = [...Array(14)].map((_, i) => dayKey(now - (13 - i) * DAY));
-  const act = rows(world, 'balance_activity'), players = rows(world, 'players');
+  const act = rows(world, 'balance_activity'), players = rows(world, 'players').filter(p => !isNpc(p.telegram_id));
   const byDay = new Map(); for (const a of act) { if (!byDay.has(a.day)) byDay.set(a.day, new Set()); byDay.get(a.day).add(String(a.telegram_id)); }
   const created = new Map(players.map(p => [String(p.telegram_id), dayKey(Date.parse(p.created_at || 0) || 0)]));
   const newBy = d => players.filter(p => created.get(String(p.telegram_id)) === d).map(p => String(p.telegram_id));

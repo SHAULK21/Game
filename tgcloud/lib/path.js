@@ -4,6 +4,7 @@
 // reports them; the login reward and level 5 are checked here too. Rewards: like mail gifts (the client adds
 // gold/energy/…, Premium is set here). Rows stay when a hero is deleted, so a re-created hero cannot farm them.
 import {realOf} from './alts.js';
+import {boardPush} from './npc.js';
 
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
@@ -56,7 +57,8 @@ export function handlePath(world, input, user, now) {
     if (!r) { r = {u: me, marks: {}, claimed: {}, at: iso(now)}; rows(world, 'ae_path').push(r); }
     r.claimed[step.id] = op;
     if (step.gifts.premiumDays) p.premium_until = iso(Math.max(now, Date.parse(p.premium_until || 0) || 0) + step.gifts.premiumDays * DAY);
-    return ok({gifts: step.gifts, step: step.id, ...view(world, me, p, r)});
+    const after = view(world, me, p, r); if (after.finished) boardPush(world, {icon: '🧭', text: `${String(p.character_name)}: «Путь новичка» пройден!`, u: me}, now);
+    return ok({gifts: step.gifts, step: step.id, ...after});
   }
   return fail('API не найден.', 404);
 }

@@ -1,6 +1,7 @@
 // Global (tavern) chat on top of the engine's /api/chat/global: replies, @mentions, the author's level,
 // a flood guard, soft deletion and a bounded history. Rows of global_chat_messages keep the engine's shape;
 // everything extra lives in ae_chat_meta (keyed by message id).
+import {npcChatTick, npcOnPlayerMessage, onlineNow} from './npc.js';
 const rows = (world, n) => (world.tables[n] ||= []);
 const same = (a, b) => String(a) === String(b);
 const ok = (body, status = 200) => ({status, body}), fail = (error, status = 400) => ({status, body: {error}});
@@ -43,6 +44,7 @@ export async function handleGlobalChat(world, input, user, now, native, notify) 
   const path = String(input?.path || '').split('?')[0], method = String(input?.method || 'GET').toUpperCase();
   const me = String(user.id), body = input?.body || {};
   if (path === '/api/chat/global' && method === 'GET') {
+    try { npcChatTick(world, now); } catch (e) { console.error('npc chat', e?.message); }   // NPC lines and replies land before the engine reads the chat
     const r = await native(input);
     if (!(r?.status < 300) || !Array.isArray(r.body?.messages)) return r;
     // a poll only asks for newer ids: messages deleted lately are sent again, so open chats replace them too
@@ -54,7 +56,7 @@ export async function handleGlobalChat(world, input, user, now, native, notify) 
         extra.push({id: m.id, telegram_id: m.telegram_id, text: m.text, created_at: m.created_at, display_name: nameOf(p), is_premium: Date.parse(p.premium_until || '') > now});
       }
     }
-    r.body = {...r.body, messages: enrich(world, [...extra, ...r.body.messages], now), last: chatLastId(world)};
+    r.body = {...r.body, messages: enrich(world, [...extra, ...r.body.messages], now), last: chatLastId(world), online: onlineNow(world, now)};
     return r;
   }
   if (path === '/api/chat/global' && method === 'POST') {
@@ -79,6 +81,7 @@ export async function handleGlobalChat(world, input, user, now, native, notify) 
     if (!(r?.status < 300) || !r.body?.message) return r;
     const msg = r.body.message, author = nameOf(player(world, me));
     flood.push({u: me, t: now});
+    try { npcOnPlayerMessage(world, me, text, now); } catch {}
     if (reply) metaOf(world).push({id: String(msg.id), reply});
     // who should hear about it: the replied author and @mentioned players (a bot note, rate-limited by notify)
     const to = new Set(); if (reply && !same(reply.uid, me)) to.add(reply.uid);

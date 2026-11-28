@@ -152,6 +152,15 @@ const SCENES = {
     await p.evaluate(() => document.querySelector('.ae-char.is-empty button')?.scrollIntoView({block: 'center', behavior: 'smooth'})); await W(1400);
     await c.done(from, c.at());
   },
+  async anim() {
+    const c = await start('anim', {mut: pl => { pl.level = 9; pl.unlockedRegionIds = ['reg_plains', 'reg_whisper_woods']; potions(pl); }}); const {p, W} = c; await c.ready();
+    await toFight(c);
+    const from = c.at();
+    await atk(c); await W(900); await atk(c); await W(900);
+    await p.getByRole('button', {name: /^Защита/}).first().click({timeout: 1500, noWaitAfter: true}).catch(() => {}); await W(150); await p.evaluate(() => document.querySelector('[data-ae-scene]')?.scrollIntoView({block: 'start'})); await W(2400);
+    await atk(c); await W(1200); await atk(c); await W(1500);
+    await c.done(from, c.at());
+  },
   async cta() {
     const c = await start('cta'); const {p, W} = c; await c.ready();
     await p.evaluate(PROMO => { const d = document.createElement('div'); d.className = 'tt-full'; d.style.backgroundImage = 'linear-gradient(#0008,#000c 70%),url(/assets/story/courtyard.webp)';

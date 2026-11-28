@@ -1,5 +1,6 @@
 // Housekeeping for the single world document: keeps it small so every request stays cheap.
 import {compactQuestLog} from './arenaExtras.js';
+import {npcTick, npcAcceptFriends} from './npc.js';
 import {isAlt} from './alts.js';
 import {notifyDefaults, returnReminders} from './reminders.js';
 import {pruneFort} from './clanFort.js';
@@ -29,6 +30,7 @@ export function premiumNotices(world, now = Date.now()) {
 }
 export function pruneWorld(world, now = Date.now()) {
   try { premiumNotices(world, now); } catch {}
+  try { npcTick(world, now); npcAcceptFriends(world, now); } catch (error) { console.error('npc tick failed', error?.message); }
   try { notifyDefaults(world, now); returnReminders(world, now); } catch (error) { console.error('reminders failed', error?.message); }
   const t = world.tables || {}, before = JSON.stringify(t).length;
   // Idempotency receipts only matter for client retries within minutes.

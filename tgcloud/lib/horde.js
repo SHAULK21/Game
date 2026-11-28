@@ -2,6 +2,7 @@
 // Every request resolves one or several exchanges instantly (auto-battle sends several at once).
 // Blood Moon: monsters hit harder and more often, wounded ones may flee and new ones run in; rewards are higher.
 import {logQuest} from './arenaExtras.js';
+import {boardPush} from './npc.js';
 import {blendedStats, baseStats, saveStats, kitOf} from './heroStats.js';
 import {castSkill, outMult, inMult, gemProcs} from './skills.js';
 import {usePotion, pbAtk, pbCrit, pbIn, pbTick, throwDmg, poisonDot} from './potions.js';
@@ -188,6 +189,7 @@ const weekTop = (world, wk) => rows(world, 'horde_week').filter(r => r.w === wk 
 function weekPrizes(world, now) {
   const prev = weekKey(now - 7 * 864e5), flags = rows(world, 'ae_flags'), key = 'horde_week_' + prev; if (flags.some(f => f.key === key)) return;
   flags.push({key, at: new Date(now).toISOString()});
+  weekTop(world, prev).slice(0, 3).forEach((r, i) => boardPush(world, {icon: ['🥇', '🥈', '🥉'][i], text: `Орда, итоги недели: ${i + 1}-е место — ${String(player(world, r.u)?.character_name || 'Герой')}, ${r.kills} монстров за поход`, u: r.u}, now));
   weekTop(world, prev).slice(0, 3).forEach((r, i) => rows(world, 'ae_mail').push({id: crypto.randomUUID(), op: `horde-week-${prev}-${r.u}`, to: String(r.u),
     title: `🌕 Орда: ${i + 1}-е место недели!`, text: `Вы ${i + 1}-й в рейтинге Орды за неделю с ${prev}: ${r.kills} монстров за один поход. Награда — в письме.`, gifts: WEEK_PRIZES[i], at: new Date(now).toISOString()}));
   world.tables.horde_week = rows(world, 'horde_week').filter(r => r.w >= prev);
